@@ -235,6 +235,7 @@ Each phase now implements a **complete, testable feature** with:
 **Python Reference**: `models.py:53` (enable_tools), `parameter_validator.py:96-137` (tool headers), `main.py:342-344` (tool list)
 **Goal**: Complete Claude Code tools system with header parsing and content filtering
 **Complete Feature**: Full tools management supporting all 11 Claude Code tools with granular control
+**CRITICAL CHANGE**: Tools enabled by default (opposite of Python implementation)
 
 **What Gets Implemented**:
 - Tool constants and types (`src/tools/constants.ts`)
@@ -258,8 +259,9 @@ Each phase now implements a **complete, testable feature** with:
 **Success Criteria**:
 - All 11 Claude Code tools supported
 - Header parsing works correctly (X-Claude-* headers)
-- Content filtering removes tool content when disabled
-- Tool configuration matches Python behavior
+- Tools enabled by default for full Claude Code power
+- `disable_tools` parameter available for speed optimization
+- Tool configuration provides granular control
 - All tests pass
 - **Tools system ready for API integration**
 

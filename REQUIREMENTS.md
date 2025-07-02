@@ -413,7 +413,7 @@ docs/
 - ✅ **Authentication**: Environment variables only, no database
 - ✅ **Session Management**: In-memory with TTL, matching Python exactly
 - ✅ **Testing**: Mock repositories completely separate from development
-- ✅ **Tools**: All 11 Claude Code tools supported with header parsing
+- ✅ **Tools**: All 11 Claude Code tools enabled by default (enhanced from Python)
 - ✅ **Phases**: 15 feature-complete phases instead of 28 fragmented ones
 - ✅ **Marketing**: Professional README with CI badges and comprehensive features
 

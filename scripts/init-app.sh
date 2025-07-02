@@ -612,7 +612,7 @@ cat > src/tools/manager.ts << 'EOF'
 import { CLAUDE_CODE_TOOLS, ClaudeCodeTool, PermissionMode } from './constants';
 
 export interface ToolConfiguration {
-  enable_tools: boolean;
+  disable_tools?: boolean; // Changed: tools enabled by default
   allowed_tools?: ClaudeCodeTool[];
   disallowed_tools?: ClaudeCodeTool[];
   permission_mode?: PermissionMode;
@@ -625,19 +625,20 @@ export class ToolManager {
     disallowed_tools?: ClaudeCodeTool[];
     max_turns: number;
   } {
-    // Implementation pending - Phase 26
-    // Will replicate Python tool configuration logic
+    // Implementation pending - Phase 7
+    // CHANGE: Tools enabled by default (opposite of Python)
     
-    if (config.enable_tools === false) {
-      // Default: disable all tools for OpenAI compatibility
+    if (config.disable_tools === true) {
+      // Opt-out: disable tools for speed optimization
       return {
         disallowed_tools: [...CLAUDE_CODE_TOOLS],
         max_turns: 1
       };
     }
     
+    // Default: enable all tools for full Claude Code power
     return {
-      allowed_tools: config.allowed_tools,
+      allowed_tools: config.allowed_tools || [...CLAUDE_CODE_TOOLS],
       disallowed_tools: config.disallowed_tools,
       max_turns: config.max_turns || 10
     };

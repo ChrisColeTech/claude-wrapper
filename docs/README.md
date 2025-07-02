@@ -126,9 +126,9 @@ The Claude Code OpenAI Wrapper is a FastAPI-based service that provides an OpenA
 - **Session integration** with streaming responses
 
 ### **Tool Management**
-- **Tool disabling by default** for OpenAI compatibility
+- **All 11 tools enabled by default** for full Claude Code power
 - **Configurable tool restrictions** (allowed/disallowed lists)
-- **Tool usage filtering** from responses
+- **Optional tool disabling** for speed optimization
 - **Permission mode support** for tool execution
 
 ### **Custom Headers Support**
@@ -181,7 +181,7 @@ The Claude Code OpenAI Wrapper is a FastAPI-based service that provides an OpenA
 
 ### **Extensions to OpenAI API**
 - **`session_id`** - Conversation continuity
-- **`enable_tools`** - Claude Code tool control
+- **`disable_tools`** - Speed optimization (tools enabled by default)
 - **Custom headers** for Claude-specific parameters
 
 ## 🧪 Testing Infrastructure

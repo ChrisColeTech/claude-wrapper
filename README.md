@@ -41,7 +41,8 @@ npm run dev
 
 ### 🛠️ **Claude Code Integration**
 - **Multi-provider authentication** (Anthropic, AWS Bedrock, Google Vertex AI, Claude CLI)
-- **11 Claude Code tools** support (Task, Bash, Read, Write, Glob, Grep, etc.)
+- **11 Claude Code tools** enabled by default (Task, Bash, Read, Write, Glob, Grep, etc.)
+- **Full Claude Code power** out of the box - no setup required
 - **Tool control headers** (X-Claude-Allowed-Tools, X-Claude-Permission-Mode)
 - **Real-time streaming** responses with Server-Sent Events
 
@@ -70,6 +71,7 @@ npm run dev
 
 ## 🔐 Authentication
 
+### **Claude Code Authentication (Required)**
 Support for multiple Claude authentication methods:
 
 ```bash
@@ -87,6 +89,19 @@ export GOOGLE_CLOUD_PROJECT="your-project-id"
 
 # Claude Code CLI (auto-detected)
 # Requires claude-code CLI to be installed and authenticated
+```
+
+### **API Endpoint Protection (Optional)**
+```bash
+# Option 1: No protection (default) - perfect for local development
+# Just start the server - no API key needed for requests
+
+# Option 2: Environment API key
+export API_KEY="your-endpoint-protection-key"
+
+# Option 3: Interactive setup (like Python version)
+# Server will prompt: "Enable API key protection? (y/N)"
+# and generate a secure token if you choose yes
 ```
 
 ## 📊 Current Development Status
@@ -110,6 +125,7 @@ export GOOGLE_CLOUD_PROJECT="your-project-id"
 - **Metrics and monitoring** integration
 - **Advanced session management** with persistence options
 - **Plugin system** for custom tools and middleware
+- **Performance optimization** with `disable_tools` parameter for speed
 
 ## 🛠️ Development
 

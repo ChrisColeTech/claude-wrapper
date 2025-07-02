@@ -58,7 +58,7 @@ Authorization: Bearer your-api-key-here
   "temperature": 1.0,
   "max_tokens": null,
   "session_id": "session-123",
-  "enable_tools": false
+  "disable_tools": false
 }
 ```
 
@@ -79,7 +79,7 @@ Authorization: Bearer your-api-key-here
 | `stop` | string/array | No | `null` | **Not supported** - Will be ignored with warning |
 | `user` | string | No | `null` | User identifier for logging |
 | `session_id` | string | No | `null` | **Extension** - Session ID for conversation continuity |
-| `enable_tools` | boolean | No | `false` | **Extension** - Enable Claude Code tools |
+| `disable_tools` | boolean | No | `false` | **Extension** - Disable Claude Code tools for speed |
 
 #### Message Object
 
@@ -667,7 +667,7 @@ curl -X POST http://localhost:8000/v1/chat/completions \
     "messages": [
       {"role": "user", "content": "Help me write code"}
     ],
-    "enable_tools": true
+    "disable_tools": false
   }'
 ```
 
