@@ -27,17 +27,19 @@ Each phase now implements a **complete, testable feature** with:
 
 ---
 
-## **Phase 1: Complete Server Foundation**
+## **Phase 1: Complete CLI and Server Foundation**
 **Python Reference**: `main.py:37-50, 169-175, 835-851` (environment, logging, server setup, port detection)
-**Goal**: Complete working HTTP server with environment and logging
-**Complete Feature**: Fully functional Express server with health endpoint, environment loading, logging, and port detection
+**Goal**: Complete working CLI tool that starts HTTP server with environment and logging
+**Complete Feature**: Fully functional CLI tool with Express server, health endpoint, environment loading, logging, and port detection
 
 **What Gets Implemented**:
+- CLI entry point with argument parsing (`src/cli.ts`)
 - Environment variable loading with type safety (`src/utils/env.ts`)
 - Winston logging with debug/verbose modes (`src/utils/logger.ts`)
 - Port availability detection (`src/utils/port.ts`)
 - Express server with health endpoint (`src/server.ts`)
 - Application entry point (`src/index.ts`)
+- Package.json bin configuration for global CLI install
 
 **Architecture Compliance**:
 - **SRP**: Each utility has single responsibility, server class under 200 lines
@@ -45,14 +47,17 @@ Each phase now implements a **complete, testable feature** with:
 - **DRY**: Shared environment parsing utilities
 
 **Tests Required**:
+- Unit tests for CLI argument parsing
 - Unit tests for environment parsing
 - Unit tests for logger configuration
 - Unit tests for port detection
-- Integration test for server startup
+- Integration test for CLI → server startup
 - E2E test for health endpoint
 
 **Success Criteria**: 
-- Server starts on available port
+- CLI tool can be installed globally (`npm install -g`)
+- `claude-wrapper` command starts server on available port
+- CLI options work (--port, --help, --version)
 - Health endpoint returns 200 OK
 - Environment variables loaded correctly
 - Debug/verbose logging works

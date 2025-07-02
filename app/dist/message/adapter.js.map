@@ -1,0 +1,1 @@
+{"version":3,"file":"adapter.js","sourceRoot":"","sources":["../../src/message/adapter.ts"],"names":[],"mappings":";AAAA;;;GAGG;;;AAQH,MAAa,cAAc;IACzB,MAAM,CAAC,qBAAqB,CAAC,SAAoB;QAC/C,oCAAoC;QACpC,OAAO,EAAE,CAAC;IACZ,CAAC;IAED,MAAM,CAAC,mBAAmB,CAAC,SAAoB;QAC7C,oCAAoC;QACpC,OAAO,IAAI,CAAC;IACd,CAAC;CACF;AAVD,wCAUC"}

@@ -27,7 +27,8 @@ claude-code-openai-wrapper-node/
     ├── package.json                  # Node.js dependencies and scripts
     ├── tsconfig.json                 # TypeScript configuration
     ├── src/                          # Main source code
-    │   ├── index.ts                  # Application entry point
+    │   ├── cli.ts                    # CLI entry point (global command)
+    │   ├── index.ts                  # Application entry point (server logic)
     │   ├── server.ts                 # Express server setup
     │   ├── models/                   # Data models and validation
     │   │   ├── index.ts              # Model exports
@@ -148,7 +149,7 @@ claude-code-openai-wrapper-node/
 
 | Python File | TypeScript Equivalent | Purpose |
 |-------------|----------------------|---------|
-| `main.py` | `src/index.ts` + `src/server.ts` + `src/routes/` | FastAPI app → Express server + routes |
+| `main.py` | `src/cli.ts` + `src/index.ts` + `src/server.ts` + `src/routes/` | CLI + server logic + Express app + routes |
 | `models.py` | `src/models/` | Pydantic models → TypeScript interfaces with Zod |
 | `auth.py` | `src/auth/` | Authentication system with providers |
 | `message_adapter.py` | `src/message/` | Message processing and content filtering |
@@ -162,7 +163,7 @@ claude-code-openai-wrapper-node/
 
 | Python Code | TypeScript File | Function |
 |-------------|-----------------|----------|
-| `main.py:1-50` (imports, setup) | `src/index.ts` | Application entry point |
+| `main.py:1-50` (imports, setup) | `src/cli.ts` + `src/index.ts` | CLI entry point + application logic |
 | `main.py:169-175` (FastAPI app) | `src/server.ts` | Express server setup |
 | `main.py:177-185` (CORS) | `src/middleware/cors.ts` | CORS middleware |
 | `main.py:188-247` (debug middleware) | `src/middleware/debug.ts` | Debug logging |
@@ -360,13 +361,15 @@ claude-code-openai-wrapper-node/
 ## 🚀 Build and Deployment
 
 ### **Development Workflow**
-1. `npm run dev` - Start development server with hot reload
-2. `npm run test:watch` - Run tests in watch mode
-3. `npm run lint` - Check code quality
+1. **Development Mode**: `npm run dev` - Start development server with hot reload (for development)
+2. **CLI Mode**: `npm run build && npm link` - Build and link CLI globally, then use `claude-wrapper`
+3. **Testing**: `npm run test:watch` - Run tests in watch mode  
+4. **Code Quality**: `npm run lint` - Check code quality
 
 ### **Production Build**
 1. `npm run build` - Compile TypeScript to JavaScript
-2. `npm start` - Run compiled application
-3. `npm run test:coverage` - Full test suite with coverage
+2. `npm link` or `npm install -g .` - Install CLI globally
+3. `claude-wrapper` - Run the CLI tool from anywhere
+4. `npm run test:coverage` - Full test suite with coverage
 
 This structure ensures clean separation of concerns, maintainable code organization, and direct traceability to the Python implementation for systematic porting.
