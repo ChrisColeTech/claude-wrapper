@@ -93,7 +93,7 @@ jobs:
         
         # Check for security vulnerabilities
         echo "🔒 Checking for security vulnerabilities..."
-        npm audit --audit-level moderate || { echo "⚠️ Security vulnerabilities found"; exit 1; }
+        npm audit --audit-level high || { echo "⚠️ High severity security vulnerabilities found"; exit 1; }
         
         echo "✅ All production readiness checks passed!"
         

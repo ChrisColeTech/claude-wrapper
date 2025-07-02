@@ -62,7 +62,7 @@ cat > package.json << 'EOF'
     "@types/jest": "^29.0.0",
     "@types/readline-sync": "^1.4.0",
     "typescript": "^4.9.0",
-    "tsx": "^3.12.0",
+    "tsx": "^4.19.0",
     "jest": "^29.0.0",
     "ts-jest": "^29.0.0",
     "eslint": "^8.0.0",
