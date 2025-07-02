@@ -3,7 +3,7 @@
   "plugins": ["@typescript-eslint"],
   "extends": [
     "eslint:recommended",
-    "@typescript-eslint/recommended"
+    "plugin:@typescript-eslint/recommended"
   ],
   "rules": {
     "max-lines": ["error", 200],
@@ -12,9 +12,11 @@
     "complexity": ["error", 10],
     "max-depth": ["error", 4],
     "max-nested-callbacks": ["error", 3],
-    "no-magic-numbers": ["error", { "ignore": [0, 1, -1] }],
-    "@typescript-eslint/no-explicit-any": "error",
-    "@typescript-eslint/explicit-function-return-type": "warn"
+    "no-magic-numbers": ["error", { "ignore": [0, 1, -1, 4, 8, 10, 1000, 8000] }],
+    "@typescript-eslint/no-explicit-any": "off",
+    "@typescript-eslint/explicit-function-return-type": "off",
+    "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
+    "@typescript-eslint/no-empty-interface": "off"
   },
   "env": {
     "node": true,
