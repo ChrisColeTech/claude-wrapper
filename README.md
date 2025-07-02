@@ -71,37 +71,54 @@ npm run dev
 
 ## 🔐 Authentication
 
-### **Claude Code Authentication (Required)**
-Support for multiple Claude authentication methods:
+### **Getting Started (No API Key Required)**
 
 ```bash
-# Anthropic API Key
-export ANTHROPIC_API_KEY="your-api-key"
+# 1. Install and authenticate Claude Code CLI
+npm install -g @anthropic-ai/claude-code
+claude auth login
 
-# AWS Bedrock
-export AWS_ACCESS_KEY_ID="your-access-key"
-export AWS_SECRET_ACCESS_KEY="your-secret-key"
-export AWS_REGION="us-east-1"
+# 2. Start the wrapper - no additional setup needed
+npm run dev
 
-# Google Vertex AI
-export GOOGLE_APPLICATION_CREDENTIALS="path/to/credentials.json"
-export GOOGLE_CLOUD_PROJECT="your-project-id"
-
-# Claude Code CLI (auto-detected)
-# Requires claude-code CLI to be installed and authenticated
+# 3. Make requests - no API key required
+curl -X POST http://localhost:8000/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "claude-3-5-sonnet-20241022",
+    "messages": [{"role": "user", "content": "Hello!"}]
+  }'
 ```
 
-### **API Endpoint Protection (Optional)**
+### **Alternative Authentication Methods**
+
+If you prefer not to use Claude CLI:
+
 ```bash
-# Option 1: No protection (default) - perfect for local development
-# Just start the server - no API key needed for requests
+# Option 1: Direct Anthropic API Key
+export ANTHROPIC_API_KEY="your-anthropic-api-key"
 
-# Option 2: Environment API key
-export API_KEY="your-endpoint-protection-key"
+# Option 2: AWS Bedrock
+export ANTHROPIC_BEDROCK_REGION="us-east-1"
+export AWS_ACCESS_KEY_ID="your-access-key"
+export AWS_SECRET_ACCESS_KEY="your-secret-key"
 
-# Option 3: Interactive setup (like Python version)
-# Server will prompt: "Enable API key protection? (y/N)"
-# and generate a secure token if you choose yes
+# Option 3: Google Vertex AI  
+export ANTHROPIC_VERTEX_REGION="us-east-1"
+export ANTHROPIC_VERTEX_PROJECT_ID="your-project-id"
+export GOOGLE_APPLICATION_CREDENTIALS="path/to/credentials.json"
+```
+
+### **Optional Security (For Remote Access)**
+
+By default, no API key is required for requests. For remote access security:
+
+```bash
+# Set this to require Bearer token authentication
+export API_KEY="your-server-protection-key"
+
+# Then requests need Authorization header:
+curl -H "Authorization: Bearer your-server-protection-key" ...
 ```
 
 ## 📊 Current Development Status
@@ -111,10 +128,10 @@ export API_KEY="your-endpoint-protection-key"
 - 🏗️ **15-phase implementation plan** with feature-complete phases
 - 🔧 **Application scaffolding script** with full project structure
 - 📐 **SOLID/DRY architecture guidelines** with anti-pattern prevention
-- 🔍 **Comprehensive Python analysis** for systematic porting
+- 🔍 **Comprehensive feature analysis** for systematic implementation
 
 ### 🚧 **In Progress**
-- **Phase 1-15 implementation** following systematic porting approach
+- **Phase 1-15 implementation** following systematic development approach
 - **Server foundation** with Express, TypeScript, and testing framework
 - **Authentication system** with multi-provider support
 - **Core API endpoints** with OpenAI compatibility
@@ -181,11 +198,11 @@ Each phase implements a **complete, testable feature** with full test coverage.
 
 Comprehensive documentation in the `docs/` folder:
 
-- **[README.md](./docs/README.md)** - Complete Python feature analysis
+- **[README.md](./docs/README.md)** - Complete feature analysis and requirements
 - **[IMPLEMENTATION_PLAN.md](./docs/IMPLEMENTATION_PLAN.md)** - 15-phase development roadmap
 - **[ARCHITECTURE.md](./docs/ARCHITECTURE.md)** - SOLID/DRY principles and guidelines
 - **[API_REFERENCE.md](./docs/API_REFERENCE.md)** - Complete endpoint documentation
-- **[CODE_EXAMPLES.md](./docs/CODE_EXAMPLES.md)** - Python-to-TypeScript examples
+- **[CODE_EXAMPLES.md](./docs/CODE_EXAMPLES.md)** - TypeScript implementation examples
 - **[PROJECT_STRUCTURE.md](./docs/PROJECT_STRUCTURE.md)** - File organization reference
 - **[CLAUDE_SDK_REFERENCE.md](./docs/CLAUDE_SDK_REFERENCE.md)** - Node.js SDK integration
 
