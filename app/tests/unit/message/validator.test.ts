@@ -1,14 +1,14 @@
 /**
- * Test suite for Server
+ * Test suite for Message Validator
  * 
- * Server creation and configuration tests
+ * Message validation tests
  */
 
-import { MockClaudeClient } from '../mocks/MockClaudeClient'
-import { MockSessionStore } from '../mocks/MockSessionStore'
-import { TestDataBuilder } from '../helpers/TestDataBuilder'
+import { MockClaudeClient } from '../../mocks/MockClaudeClient'
+import { MockSessionStore } from '../../mocks/MockSessionStore'
+import { TestDataBuilder } from '../../helpers/TestDataBuilder'
 
-describe('Server', () => {
+describe('Message Validator', () => {
   let mockClaudeClient: MockClaudeClient
   let mockSessionStore: MockSessionStore
 
@@ -37,7 +37,7 @@ describe('Server', () => {
   describe('constructor', () => {
     it('should create instance successfully', () => {
       // TODO: Implement constructor test
-      // Example: const instance = new Server(mockClaudeClient, mockSessionStore)
+      // Example: const instance = new Message Validator(mockClaudeClient, mockSessionStore)
       // expect(instance).toBeDefined()
       expect(true).toBe(true) // Placeholder test
     })

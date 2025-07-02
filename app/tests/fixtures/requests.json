@@ -1,0 +1,28 @@
+{
+  "validChatCompletion": {
+    "model": "claude-3-5-sonnet-20241022",
+    "messages": [
+      { "role": "user", "content": "Hello, how are you?" }
+    ],
+    "max_tokens": 100,
+    "temperature": 0.7
+  },
+  "streamingChatCompletion": {
+    "model": "claude-3-5-sonnet-20241022",
+    "messages": [
+      { "role": "user", "content": "Tell me a short story" }
+    ],
+    "max_tokens": 200,
+    "temperature": 0.8,
+    "stream": true
+  },
+  "conversationChatCompletion": {
+    "model": "claude-3-5-sonnet-20241022",
+    "messages": [
+      { "role": "user", "content": "What is the capital of France?" },
+      { "role": "assistant", "content": "The capital of France is Paris." },
+      { "role": "user", "content": "What is its population?" }
+    ],
+    "max_tokens": 150
+  }
+}

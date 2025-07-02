@@ -1,11 +1,10 @@
-// Main Jest configuration
+// Unit test configuration with mocked dependencies
 module.exports = {
+  displayName: 'Unit Tests',
   preset: 'ts-jest',
   testEnvironment: 'node',
-  extensionsToTreatAsEsm: ['.ts'],
-  transform: {
-    '^.+\\.ts$': ['ts-jest', { useESM: true }]
-  },
+  testMatch: ['<rootDir>/tests/unit/**/*.test.ts'],
+  setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
     '^@models/(.*)$': '<rootDir>/src/models/$1',
@@ -17,17 +16,18 @@ module.exports = {
     '^@utils/(.*)$': '<rootDir>/src/utils/$1'
   },
   collectCoverageFrom: [
-    'src/**/*.ts',
+    'src/**/*.ts', 
     '!src/**/*.d.ts',
     '!src/cli.ts',
     '!src/index.ts'
   ],
-  coverageDirectory: 'coverage',
-  coverageReporters: ['text', 'lcov', 'html'],
-  testMatch: [
-    '<rootDir>/tests/unit/**/*.test.ts',
-    '<rootDir>/tests/integration/**/*.test.ts'
-  ],
-  setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
+  coverageThreshold: {
+    global: { 
+      branches: 75, 
+      functions: 80, 
+      lines: 80, 
+      statements: 80 
+    }
+  },
   testTimeout: 30000
 };

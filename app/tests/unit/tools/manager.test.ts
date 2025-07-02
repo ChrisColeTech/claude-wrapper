@@ -1,14 +1,14 @@
 /**
- * Test suite for Server
+ * Test suite for Tool Manager
  * 
- * Server creation and configuration tests
+ * Tools configuration and management tests
  */
 
-import { MockClaudeClient } from '../mocks/MockClaudeClient'
-import { MockSessionStore } from '../mocks/MockSessionStore'
-import { TestDataBuilder } from '../helpers/TestDataBuilder'
+import { MockClaudeClient } from '../../mocks/MockClaudeClient'
+import { MockSessionStore } from '../../mocks/MockSessionStore'
+import { TestDataBuilder } from '../../helpers/TestDataBuilder'
 
-describe('Server', () => {
+describe('Tool Manager', () => {
   let mockClaudeClient: MockClaudeClient
   let mockSessionStore: MockSessionStore
 
@@ -37,7 +37,7 @@ describe('Server', () => {
   describe('constructor', () => {
     it('should create instance successfully', () => {
       // TODO: Implement constructor test
-      // Example: const instance = new Server(mockClaudeClient, mockSessionStore)
+      // Example: const instance = new Tool Manager(mockClaudeClient, mockSessionStore)
       // expect(instance).toBeDefined()
       expect(true).toBe(true) // Placeholder test
     })
