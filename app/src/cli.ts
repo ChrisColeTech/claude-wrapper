@@ -13,6 +13,13 @@ import { createLogger } from './utils/logger';
 import { createAndStartServer } from './server';
 import { authManager } from './auth/auth-manager';
 import { promptForApiProtection } from './utils/interactive';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
+
+const execAsync = promisify(exec);
 
 /**
  * CLI options interface
@@ -24,6 +31,9 @@ export interface CliOptions {
   interactive?: boolean;
   help?: boolean;
   version?: boolean;
+  start?: boolean;
+  stop?: boolean;
+  status?: boolean;
 }
 
 /**
@@ -46,11 +56,15 @@ export class CliParser {
       .name('claude-wrapper')
       .description('OpenAI-compatible API wrapper for Claude Code CLI')
       .version('1.0.0')
+      .option('-p, --port <port>', 'port to run server on (default: 8000)')
       .option('-v, --verbose', 'enable verbose logging')
       .option('-d, --debug', 'enable debug mode')
       .option('--no-interactive', 'disable interactive API key setup')
+      .option('--start', 'start server in background (daemon mode)')
+      .option('--stop', 'stop background server')
+      .option('--status', 'check background server status')
       .helpOption('-h, --help', 'display help for command')
-      .argument('[port]', 'port to run server on (default: 8000)');
+      .argument('[port]', 'port to run server on (default: 8000) - alternative to --port option');
   }
 
   /**
@@ -63,8 +77,11 @@ export class CliParser {
     const options = this.program.opts() as CliOptions;
     const args = this.program.args;
     
-    // Handle port argument like Python does with sys.argv[1]
-    if (args.length > 0) {
+    // Handle port from --port option or positional argument
+    // Priority: --port option takes precedence over positional argument
+    let portToUse = options.port;
+    
+    if (!portToUse && args.length > 0) {
       const portArg = args[0];
       try {
         // Python int() is stricter than parseInt - must be exact integer string
@@ -72,14 +89,18 @@ export class CliParser {
         const isExactInteger = portArg === portNum.toString() && !portArg.includes('.');
         
         if (!isNaN(portNum) && isExactInteger && portNum >= 1 && portNum <= 65535) {
-          options.port = portArg;
-          console.log(`Using port from command line: ${portNum}`);
+          portToUse = portArg;
+          console.log(`Using port from command line argument: ${portNum}`);
         } else {
           console.log(`Invalid port number: ${portArg}. Using default.`);
         }
       } catch (error) {
         console.log(`Invalid port number: ${portArg}. Using default.`);
       }
+    }
+    
+    if (portToUse) {
+      options.port = portToUse;
     }
     
     return options;
@@ -117,6 +138,22 @@ export class CliRunner {
     try {
       const options = this.parser.parseArguments(argv);
       this.parser.validateOptions(options);
+
+      // Handle daemon commands first
+      if (options.stop) {
+        await this.stopDaemon();
+        return;
+      }
+
+      if (options.status) {
+        await this.checkDaemonStatus();
+        return;
+      }
+
+      if (options.start) {
+        await this.startDaemon(options);
+        return;
+      }
 
       // Override environment variables with CLI options
       if (options.port) {
