@@ -179,13 +179,13 @@ export class ToolManager {
       enabled_tools: enabledCount,
       disabled_tools: disabledCount,
       read_only_tools: config.tools.filter(tool => 
-        TOOL_CATEGORIES.READ_ONLY.includes(tool)
+        (TOOL_CATEGORIES.READ_ONLY as readonly string[]).includes(tool)
       ).length,
       write_tools: config.tools.filter(tool => 
-        TOOL_CATEGORIES.WRITE_OPERATIONS.includes(tool)
+        (TOOL_CATEGORIES.WRITE_OPERATIONS as readonly string[]).includes(tool)
       ).length,
       execution_tools: config.tools.filter(tool => 
-        TOOL_CATEGORIES.EXECUTION.includes(tool)
+        (TOOL_CATEGORIES.EXECUTION as readonly string[]).includes(tool)
       ).length
     };
   }

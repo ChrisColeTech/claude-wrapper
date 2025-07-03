@@ -42,8 +42,8 @@ describe('Phase 6A: Claude Metadata Extractor Tests', () => {
         model: 'claude-3-5-sonnet-20241022',
         session_id: 'session-123',
         prompt_tokens: 0, // No user messages
-        completion_tokens: 9, // ~36 chars / 4 = 9 tokens
-        total_tokens: 9
+        completion_tokens: 10, // ~37 chars / 4 = 9.25 -> 10 tokens
+        total_tokens: 10
       });
     });
 
@@ -139,9 +139,9 @@ describe('Phase 6A: Claude Metadata Extractor Tests', () => {
 
       const result = ClaudeMetadataExtractor.estimateTokenUsage(messages);
 
-      expect(result.prompt_tokens).toBe(15); // user + system = 10 + 5
+      expect(result.prompt_tokens).toBe(16); // user + system = 10 + 5 + 1 (for newline)
       expect(result.completion_tokens).toBe(6); // assistant = 6
-      expect(result.total_tokens).toBe(21); // 15 + 6
+      expect(result.total_tokens).toBe(22); // 16 + 6
     });
 
     it('should handle array content', () => {

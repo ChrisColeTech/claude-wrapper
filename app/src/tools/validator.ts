@@ -115,11 +115,19 @@ export class ToolValidator {
       
     const validationResult = this.validateToolNames(toolNames);
     
-    if (validationResult.valid && validationResult.validated_tools) {
+    // Return valid tools even if some were invalid
+    if (validationResult.validated_tools && validationResult.validated_tools.length > 0) {
+      if (!validationResult.valid) {
+        logger.warn('Some invalid tools found in header', {
+          header: headerValue,
+          errors: validationResult.errors,
+          validTools: validationResult.validated_tools
+        });
+      }
       return validationResult.validated_tools;
     }
     
-    logger.warn('Invalid tools found in header', {
+    logger.warn('No valid tools found in header', {
       header: headerValue,
       errors: validationResult.errors
     });

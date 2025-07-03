@@ -10,7 +10,14 @@ import { ClaudeClientError, AuthenticationError, StreamingError } from '../../..
 
 // Mock dependencies
 jest.mock('../../../src/auth/auth-manager');
-jest.mock('../../../src/utils/logger');
+jest.mock('../../../src/utils/logger', () => ({
+  getLogger: () => ({
+    debug: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn()
+  })
+}));
 
 describe('Phase 6A: Claude Code SDK Client Tests', () => {
   let client: ClaudeClient;
@@ -27,8 +34,9 @@ describe('Phase 6A: Claude Code SDK Client Tests', () => {
     
     mockAuthManager.getAuthStatus.mockResolvedValue({
       authenticated: true,
-      method: 'anthropic',
-      provider: 'AnthropicProvider'
+      method: 'anthropic' as any,
+      apiKeyProtected: false,
+      errors: []
     });
   });
 
@@ -63,7 +71,8 @@ describe('Phase 6A: Claude Code SDK Client Tests', () => {
       mockAuthManager.getAuthStatus.mockResolvedValue({
         authenticated: false,
         method: null,
-        provider: null
+        apiKeyProtected: false,
+        errors: ['No auth found']
       });
 
       const result = await client.verifySDK();
@@ -131,7 +140,8 @@ describe('Phase 6A: Claude Code SDK Client Tests', () => {
       mockAuthManager.getAuthStatus.mockResolvedValue({
         authenticated: false,
         method: null,
-        provider: null
+        apiKeyProtected: false,
+        errors: ['No auth found']
       });
 
       await expect(async () => {
@@ -257,7 +267,8 @@ describe('Phase 6A: Claude Code SDK Client Tests', () => {
       mockAuthManager.getAuthStatus.mockResolvedValue({
         authenticated: false,
         method: null,
-        provider: null
+        apiKeyProtected: false,
+        errors: ['No auth found']
       });
 
       await expect((client as any).setupEnvironment()).rejects.toThrow(AuthenticationError);

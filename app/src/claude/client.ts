@@ -90,6 +90,10 @@ export class ClaudeClient {
   constructor(timeout: number = 600000, cwd?: string) {
     this.timeout = timeout;
     this.cwd = cwd || process.cwd();
+    // Initialize SDK immediately
+    this.initializeSDK().catch(() => {
+      // Silent failure is expected in tests
+    });
   }
 
   /**
@@ -100,6 +104,7 @@ export class ClaudeClient {
     try {
       // Try to import claude_code_sdk - this would be the Python SDK via a bridge
       // or a native TypeScript implementation
+      // @ts-ignore - claude_code_sdk may not be available in development
       const claudeModule = await import('claude_code_sdk');
       this.claudeCodeSDK = claudeModule;
       logger.info('Claude Code SDK loaded successfully');
@@ -118,6 +123,9 @@ export class ClaudeClient {
     try {
       await this.initializeSDK();
       
+      // Check authentication first
+      await this.setupEnvironment();
+      
       // Test basic SDK functionality with minimal query
       const messages: ClaudeCodeMessage[] = [];
       const options: ClaudeCodeOptions = {
@@ -131,6 +139,9 @@ export class ClaudeClient {
           break;
         }
       }
+
+      // Restore environment after test
+      this.restoreEnvironment();
 
       if (messages.length > 0) {
         logger.info('✅ Claude Code SDK verified successfully');
@@ -148,6 +159,7 @@ export class ClaudeClient {
         };
       }
     } catch (error) {
+      this.restoreEnvironment(); // Ensure cleanup on error
       logger.error(`Claude Code SDK verification failed: ${error}`);
       return {
         available: false,

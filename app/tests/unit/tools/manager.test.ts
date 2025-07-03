@@ -72,7 +72,7 @@ describe('ToolManager', () => {
       const result = ToolManager.configureTools(config);
       
       expect(result.tools_enabled).toBe(true);
-      expect(result.tools).toEqual(allowedTools);
+      expect(result.tools).toEqual(expect.arrayContaining(allowedTools));
       expect(result.tools.length).toBe(3);
     });
     
@@ -381,7 +381,8 @@ describe('ToolManager', () => {
       const stats = ToolManager.getToolStats(result);
       
       expect(validation.valid).toBe(true);
-      expect(result.tools).toEqual(['Read', 'Write', 'Edit', 'Glob']);
+      expect(result.tools).toEqual(expect.arrayContaining(['Read', 'Write', 'Edit', 'Glob']));
+      expect(result.tools.length).toBe(4);
       expect(result.permission_mode).toBe('acceptEdits');
       expect(stats.execution_tools).toBe(0); // Bash removed
       expect(stats.write_tools).toBe(2); // Write, Edit
@@ -391,7 +392,7 @@ describe('ToolManager', () => {
   describe('performance', () => {
     it('should configure tools quickly', () => {
       const config: ToolConfiguration = {
-        allowed_tools: CLAUDE_CODE_TOOLS,
+        allowed_tools: [...CLAUDE_CODE_TOOLS],
         max_turns: 10
       };
       

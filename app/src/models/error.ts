@@ -7,6 +7,29 @@
 import { z } from 'zod';
 
 /**
+ * Claude Client Error Classes
+ * For SDK integration error handling
+ */
+export class ClaudeClientError extends Error {
+  constructor(message: string, public code?: string) {
+    super(message);
+    this.name = 'ClaudeClientError';
+  }
+}
+
+export class AuthenticationError extends ClaudeClientError {
+  constructor(message: string) {
+    super(message, 'AUTHENTICATION_FAILED');
+  }
+}
+
+export class StreamingError extends ClaudeClientError {
+  constructor(message: string) {
+    super(message, 'STREAMING_FAILED');
+  }
+}
+
+/**
  * Error detail schema
  * Based on Python ErrorDetail class
  */

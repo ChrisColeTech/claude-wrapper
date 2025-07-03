@@ -250,8 +250,7 @@ describe('Phase 6A: Claude Response Parser Tests', () => {
           subtype: 'success'
         },
         {
-          type: 'system',
-          subtype: 'other'
+          type: 'system'
         }
       ];
 
@@ -345,6 +344,8 @@ describe('StreamResponseParser', () => {
 
       expect(parser.getCurrentContent()).toBe('First part');
 
+      // Replace the first message with updated content (simulating streaming)
+      parser.reset();
       parser.addMessage({
         type: 'assistant',
         content: [

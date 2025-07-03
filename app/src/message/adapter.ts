@@ -68,6 +68,15 @@ export class MessageAdapter {
   }
   
   /**
+   * Convert OpenAI messages to Claude prompt string
+   * For Claude Code SDK integration
+   */
+  convertToClaudePrompt(messages: Message[]): string {
+    const result = MessageAdapter.messagesToPrompt(messages);
+    return result.prompt;
+  }
+  
+  /**
    * Legacy method for backward compatibility
    * @deprecated Use messagesToPrompt instead
    */

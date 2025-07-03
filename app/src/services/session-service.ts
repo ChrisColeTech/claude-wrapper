@@ -7,7 +7,6 @@
 import { SessionManager, Session } from '../session/manager';
 import { SessionInfo, SessionUtils, SessionListResponse } from '../models/session';
 import { Message } from '../models/message';
-import { EnhancedMemorySessionStorage } from '../session/storage';
 import { getLogger } from '../utils/logger';
 
 const logger = getLogger('SessionService');
@@ -45,20 +44,13 @@ export class SessionService {
   constructor(config: Partial<SessionServiceConfig> = {}) {
     this.config = { ...DEFAULT_SESSION_CONFIG, ...config };
     
-    const storage = new EnhancedMemorySessionStorage(
-      this.config.maxSessionsPerUser * 10, // Allow more storage capacity
-      true // Enable access tracking
+    this.sessionManager = new SessionManager(
+      this.config.defaultTtlHours, 
+      this.config.cleanupIntervalMinutes
     );
 
-    this.sessionManager = new SessionManager(storage, {
-      defaultTtlHours: this.config.defaultTtlHours,
-      cleanupIntervalMinutes: this.config.cleanupIntervalMinutes,
-      maxSessionsPerUser: this.config.maxSessionsPerUser,
-      maxMessagesPerSession: this.config.maxMessagesPerSession
-    });
-
     if (this.config.enableAutoCleanup) {
-      this.sessionManager.startCleanupTask();
+      this.sessionManager.start_cleanup_task();
     }
 
     logger.info('SessionService initialized', this.config);
@@ -68,13 +60,13 @@ export class SessionService {
    * Create a new session
    * Based on Python create_session business logic
    */
-  async createSession(sessionId?: string): Promise<SessionInfo> {
+  createSession(sessionId?: string): SessionInfo {
     try {
       if (sessionId && !this.isValidSessionId(sessionId)) {
         throw new Error(`Invalid session ID format: ${sessionId}`);
       }
 
-      const session = await this.sessionManager.getOrCreateSession(sessionId);
+      const session = this.sessionManager.get_or_create_session(sessionId || `session_${Date.now()}`);
       
       logger.info('Session created', {
         sessionId: session.session_id,
@@ -85,7 +77,7 @@ export class SessionService {
         session_id: session.session_id,
         created_at: session.created_at,
         last_accessed: session.last_accessed,
-        message_count: session.message_count,
+        message_count: session.messages.length,
         expires_at: session.expires_at
       };
     } catch (error) {
@@ -98,13 +90,13 @@ export class SessionService {
    * Get an existing session
    * Based on Python get_session with validation
    */
-  async getSession(sessionId: string): Promise<SessionInfo | null> {
+  getSession(sessionId: string): SessionInfo | null {
     try {
       if (!this.isValidSessionId(sessionId)) {
         throw new Error(`Invalid session ID format: ${sessionId}`);
       }
 
-      const session = await this.sessionManager.getSession(sessionId);
+      const session = this.getSessionById(sessionId);
       
       if (!session) {
         logger.debug('Session not found', { sessionId });
@@ -120,7 +112,7 @@ export class SessionService {
         session_id: session.session_id,
         created_at: session.created_at,
         last_accessed: session.last_accessed,
-        message_count: session.message_count,
+        message_count: session.messages.length,
         expires_at: session.expires_at
       };
     } catch (error) {
@@ -133,13 +125,13 @@ export class SessionService {
    * Get session with messages
    * For chat completion processing
    */
-  async getSessionWithMessages(sessionId: string): Promise<Session | null> {
+  getSessionWithMessages(sessionId: string): Session | null {
     try {
       if (!this.isValidSessionId(sessionId)) {
         throw new Error(`Invalid session ID format: ${sessionId}`);
       }
 
-      const session = await this.sessionManager.getSession(sessionId);
+      const session = this.getSessionById(sessionId);
       
       if (session) {
         logger.debug('Session with messages retrieved', {
@@ -159,7 +151,7 @@ export class SessionService {
    * Add messages to a session
    * Used by chat completion processing
    */
-  async addMessagesToSession(sessionId: string, messages: Message[]): Promise<SessionInfo> {
+  addMessagesToSession(sessionId: string, messages: Message[]): SessionInfo {
     try {
       if (!this.isValidSessionId(sessionId)) {
         throw new Error(`Invalid session ID format: ${sessionId}`);
@@ -176,7 +168,7 @@ export class SessionService {
         }
       }
 
-      const session = await this.sessionManager.addMessages(sessionId, messages);
+      const session = this.addMessagesViaManager(sessionId, messages);
       
       logger.info('Messages added to session', {
         sessionId: session.session_id,
@@ -188,7 +180,7 @@ export class SessionService {
         session_id: session.session_id,
         created_at: session.created_at,
         last_accessed: session.last_accessed,
-        message_count: session.message_count,
+        message_count: session.messages.length,
         expires_at: session.expires_at
       };
     } catch (error) {
@@ -201,19 +193,20 @@ export class SessionService {
    * Update session metadata
    * Touch session to extend TTL
    */
-  async updateSession(sessionId: string): Promise<SessionInfo> {
+  updateSession(sessionId: string): SessionInfo {
     try {
       if (!this.isValidSessionId(sessionId)) {
         throw new Error(`Invalid session ID format: ${sessionId}`);
       }
 
-      const existingSession = await this.sessionManager.getSession(sessionId);
+      const existingSession = this.getSessionById(sessionId);
       
       if (!existingSession) {
         throw new Error(`Session not found: ${sessionId}`);
       }
 
-      const updatedSession = await this.sessionManager.touchSession(existingSession);
+      existingSession.touch();
+      const updatedSession = existingSession;
       
       logger.debug('Session updated', {
         sessionId: updatedSession.session_id,
@@ -224,7 +217,7 @@ export class SessionService {
         session_id: updatedSession.session_id,
         created_at: updatedSession.created_at,
         last_accessed: updatedSession.last_accessed,
-        message_count: updatedSession.message_count,
+        message_count: updatedSession.messages.length,
         expires_at: updatedSession.expires_at
       };
     } catch (error) {
@@ -237,20 +230,20 @@ export class SessionService {
    * Delete a session
    * Based on Python delete_session
    */
-  async deleteSession(sessionId: string): Promise<boolean> {
+  deleteSession(sessionId: string): boolean {
     try {
       if (!this.isValidSessionId(sessionId)) {
         throw new Error(`Invalid session ID format: ${sessionId}`);
       }
 
-      const existingSession = await this.sessionManager.getSession(sessionId);
+      const existingSession = this.getSessionById(sessionId);
       
       if (!existingSession) {
         logger.debug('Session not found for deletion', { sessionId });
         return false;
       }
 
-      await this.sessionManager.deleteSession(sessionId);
+      this.sessionManager.delete_session(sessionId);
       
       logger.info('Session deleted', { sessionId });
       return true;
@@ -264,15 +257,15 @@ export class SessionService {
    * List all active sessions
    * Based on Python list_sessions with filtering
    */
-  async listSessions(): Promise<SessionListResponse> {
+  listSessions(): SessionListResponse {
     try {
-      const sessions = await this.sessionManager.listSessions();
+      const sessions = this.sessionManager.list_sessions();
       
       const sessionInfos = sessions.map(session => ({
         session_id: session.session_id,
         created_at: session.created_at,
         last_accessed: session.last_accessed,
-        message_count: session.message_count,
+        message_count: session.messages.length,
         expires_at: session.expires_at
       }));
 
@@ -291,9 +284,9 @@ export class SessionService {
    * Clean up expired sessions
    * Based on Python cleanup_expired_sessions
    */
-  async cleanupExpiredSessions(): Promise<number> {
+  cleanupExpiredSessions(): number {
     try {
-      const cleanedCount = await this.sessionManager.cleanupExpiredSessions();
+      const cleanedCount = (this.sessionManager as any)._cleanup_expired_sessions();
       
       if (cleanedCount > 0) {
         logger.info('Session cleanup completed', { cleanedCount });
@@ -310,15 +303,22 @@ export class SessionService {
    * Get session statistics
    * For monitoring and health checks
    */
-  async getSessionStats(): Promise<{
+  getSessionStats(): {
     activeSessions: number;
     totalMessages: number;
     avgMessagesPerSession: number;
     oldestSession: Date | null;
     newestSession: Date | null;
-  }> {
+  } {
     try {
-      const stats = await this.sessionManager.getSessionStats();
+      const sessions = this.sessionManager.list_sessions();
+      const stats = {
+        activeSessions: sessions.length,
+        totalMessages: sessions.reduce((sum, s) => sum + s.messages.length, 0),
+        avgMessagesPerSession: sessions.length > 0 ? sessions.reduce((sum, s) => sum + s.messages.length, 0) / sessions.length : 0,
+        oldestSession: sessions.length > 0 ? new Date(Math.min(...sessions.map(s => s.created_at.getTime()))) : null,
+        newestSession: sessions.length > 0 ? new Date(Math.max(...sessions.map(s => s.created_at.getTime()))) : null
+      };
       
       logger.debug('Session statistics retrieved', stats);
       
@@ -333,7 +333,8 @@ export class SessionService {
    * Check if service is healthy
    */
   isHealthy(): boolean {
-    return this.sessionManager.isHealthy();
+    const sessions = this.sessionManager.list_sessions();
+    return sessions.length < this.config.maxSessionsPerUser;
   }
 
   /**
@@ -350,6 +351,27 @@ export class SessionService {
   shutdown(): void {
     logger.info('SessionService shutting down');
     this.sessionManager.shutdown();
+  }
+
+  /**
+   * Get session by ID from manager
+   * Helper method to bridge SessionManager interface
+   */
+  private getSessionById(sessionId: string): Session | null {
+    const allSessions = this.sessionManager.list_sessions();
+    return allSessions.find(s => s.session_id === sessionId) || null;
+  }
+
+  /**
+   * Add messages using SessionManager interface
+   */
+  private addMessagesViaManager(sessionId: string, messages: Message[]): Session {
+    const [processedMessages, resultSessionId] = this.sessionManager.process_messages(messages, sessionId);
+    const session = this.getSessionById(sessionId);
+    if (!session) {
+      throw new Error(`Session not found after processing: ${sessionId}`);
+    }
+    return session;
   }
 
   /**

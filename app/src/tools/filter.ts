@@ -227,8 +227,11 @@ export class ToolContentFilter {
    * Based on Python whitespace cleanup logic
    */
   static cleanupWhitespace(content: string): string {
-    // Multiple newlines to double
-    let cleaned = content.replace(/\n\s*\n\s*\n/g, '\n\n');
+    // Multiple newlines to double newlines
+    let cleaned = content.replace(/\n\s*\n\s*\n+/g, '\n\n');
+    
+    // Clean up excessive internal whitespace (preserve single spaces and intentional formatting)
+    cleaned = cleaned.replace(/[ \t]+/g, ' ');
     
     // Trim leading and trailing whitespace
     cleaned = cleaned.trim();

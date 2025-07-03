@@ -290,7 +290,7 @@ export class ClaudeService {
     }
 
     // Default tools configuration based on enable_tools flag
-    if (options.enable_tools === false) {
+    if (options.enable_tools === false && !options.disallowed_tools) {
       claudeOptions.disallowed_tools = ['*']; // Disable all tools
     }
 

@@ -17,12 +17,14 @@ describe('Tools Management', () => {
   it('should configure tools with default settings', () => {
     const config = ToolManager.configureTools({});
     expect(config.max_turns).toBe(10);
-    expect(config.allowed_tools).toEqual(CLAUDE_CODE_TOOLS);
+    expect(config.tools).toEqual(CLAUDE_CODE_TOOLS);
+    expect(config.tools_enabled).toBe(true);
   });
 
   it('should disable tools when requested', () => {
     const config = ToolManager.configureTools({ disable_tools: true });
     expect(config.max_turns).toBe(1);
-    expect(config.disallowed_tools).toEqual(CLAUDE_CODE_TOOLS);
+    expect(config.disabled_tools).toEqual(CLAUDE_CODE_TOOLS);
+    expect(config.tools_enabled).toBe(false);
   });
 });

@@ -1,0 +1,512 @@
+/**
+ * Claude Service Tests for Phase 6A
+ * Tests for src/claude/service.ts ClaudeService class
+ * Validates Python compatibility and high-level service integration
+ */
+
+import { ClaudeService, ClaudeCompletionOptions, ClaudeCompletionResponse, ClaudeStreamChunk } from '../../../src/claude/service';
+import { ClaudeClient, ClaudeCodeMessage } from '../../../src/claude/client';
+import { MessageAdapter } from '../../../src/message/adapter';
+import { Message } from '../../../src/models/message';
+import { ChatCompletionRequest } from '../../../src/models/chat';
+import { ClaudeClientError, StreamingError } from '../../../src/models/error';
+
+// Mock dependencies
+jest.mock('../../../src/claude/client');
+jest.mock('../../../src/message/adapter');
+jest.mock('../../../src/utils/logger', () => ({
+  getLogger: () => ({
+    debug: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn()
+  })
+}));
+
+describe('Phase 6A: Claude Service Tests', () => {
+  let service: ClaudeService;
+  let mockClient: jest.Mocked<ClaudeClient>;
+  let mockAdapter: jest.Mocked<MessageAdapter>;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    
+    // Create mocked instances
+    mockClient = new ClaudeClient() as jest.Mocked<ClaudeClient>;
+    mockAdapter = new MessageAdapter() as jest.Mocked<MessageAdapter>;
+    
+    // Mock ClaudeClient constructor to return our mock
+    (ClaudeClient as jest.MockedClass<typeof ClaudeClient>).mockImplementation(() => mockClient);
+    (MessageAdapter as jest.MockedClass<typeof MessageAdapter>).mockImplementation(() => mockAdapter);
+    
+    // Setup default mocks
+    mockClient.getTimeout.mockReturnValue(300000);
+    mockClient.getCwd.mockReturnValue('/test/cwd');
+    mockClient.isAvailable.mockReturnValue(true);
+    
+    mockAdapter.convertToClaudePrompt.mockReturnValue('Converted prompt');
+    
+    service = new ClaudeService(300000, '/test/cwd');
+  });
+
+  describe('ClaudeService.constructor', () => {
+    it('should initialize with custom timeout and cwd', () => {
+      expect(ClaudeClient).toHaveBeenCalledWith(300000, '/test/cwd');
+      expect(MessageAdapter).toHaveBeenCalled();
+    });
+
+    it('should initialize with default values', () => {
+      new ClaudeService();
+      expect(ClaudeClient).toHaveBeenCalledWith(600000, undefined);
+    });
+  });
+
+  describe('ClaudeService.verifySDK', () => {
+    it('should verify SDK successfully', async () => {
+      mockClient.verifySDK.mockResolvedValue({
+        available: true,
+        authentication: true,
+        version: 'claude-code-sdk'
+      });
+
+      const result = await service.verifySDK();
+
+      expect(result.available).toBe(true);
+      expect(result.error).toBeUndefined();
+      expect(mockClient.verifySDK).toHaveBeenCalled();
+    });
+
+    it('should handle SDK verification failure', async () => {
+      mockClient.verifySDK.mockResolvedValue({
+        available: false,
+        authentication: false,
+        error: 'SDK not found'
+      });
+
+      const result = await service.verifySDK();
+
+      expect(result.available).toBe(false);
+      expect(result.error).toBe('SDK not found');
+    });
+
+    it('should handle SDK verification exception', async () => {
+      mockClient.verifySDK.mockRejectedValue(new Error('Verification failed'));
+
+      const result = await service.verifySDK();
+
+      expect(result.available).toBe(false);
+      expect(result.error).toContain('SDK verification failed');
+    });
+  });
+
+  describe('ClaudeService.createCompletion', () => {
+    const testMessages: Message[] = [
+      { role: 'user', content: 'Hello world' }
+    ];
+
+    const mockClaudeMessages: ClaudeCodeMessage[] = [
+      {
+        type: 'system',
+        subtype: 'init',
+        data: { session_id: 'test-session', model: 'claude-3-5-sonnet-20241022' }
+      },
+      {
+        type: 'assistant',
+        content: 'Hello! How can I help you today?'
+      },
+      {
+        type: 'result',
+        subtype: 'success',
+        total_cost_usd: 0.01,
+        duration_ms: 1000,
+        num_turns: 1,
+        session_id: 'test-session'
+      }
+    ];
+
+    it('should create completion successfully', async () => {
+      // Mock async generator
+      mockClient.runCompletion.mockImplementation(async function* () {
+        for (const message of mockClaudeMessages) {
+          yield message;
+        }
+      });
+
+      const options: ClaudeCompletionOptions = {
+        model: 'claude-3-5-sonnet-20241022',
+        max_turns: 1
+      };
+
+      const result = await service.createCompletion(testMessages, options);
+
+      expect(result.content).toBe('Hello! How can I help you today?');
+      expect(result.role).toBe('assistant');
+      expect(result.session_id).toBe('test-session');
+      expect(result.stop_reason).toBe('stop');
+      expect(result.metadata.total_cost_usd).toBe(0.01);
+      expect(result.metadata.model).toBe('claude-3-5-sonnet-20241022');
+
+      expect(mockAdapter.convertToClaudePrompt).toHaveBeenCalledWith(testMessages);
+      expect(mockClient.runCompletion).toHaveBeenCalledWith('Converted prompt', {
+        cwd: '/test/cwd',
+        model: 'claude-3-5-sonnet-20241022',
+        max_turns: 1
+      });
+    });
+
+    it('should handle completion with tools disabled', async () => {
+      mockClient.runCompletion.mockImplementation(async function* () {
+        for (const message of mockClaudeMessages) {
+          yield message;
+        }
+      });
+
+      const options: ClaudeCompletionOptions = {
+        enable_tools: false
+      };
+
+      await service.createCompletion(testMessages, options);
+
+      expect(mockClient.runCompletion).toHaveBeenCalledWith('Converted prompt', {
+        cwd: '/test/cwd',
+        disallowed_tools: ['*']
+      });
+    });
+
+    it('should handle completion with custom tools', async () => {
+      mockClient.runCompletion.mockImplementation(async function* () {
+        for (const message of mockClaudeMessages) {
+          yield message;
+        }
+      });
+
+      const options: ClaudeCompletionOptions = {
+        allowed_tools: ['read', 'write'],
+        disallowed_tools: ['bash']
+      };
+
+      await service.createCompletion(testMessages, options);
+
+      expect(mockClient.runCompletion).toHaveBeenCalledWith('Converted prompt', {
+        cwd: '/test/cwd',
+        allowed_tools: ['read', 'write'],
+        disallowed_tools: ['bash']
+      });
+    });
+
+    it('should throw error when no valid response received', async () => {
+      // Mock empty response
+      mockClient.runCompletion.mockImplementation(async function* () {
+        yield {
+          type: 'system',
+          subtype: 'init'
+        };
+      });
+
+      await expect(service.createCompletion(testMessages)).rejects.toThrow(ClaudeClientError);
+    });
+
+    it('should handle SDK errors', async () => {
+      mockClient.runCompletion.mockImplementation(async function* () {
+        throw new ClaudeClientError('SDK failed');
+      });
+
+      await expect(service.createCompletion(testMessages)).rejects.toThrow(ClaudeClientError);
+    });
+  });
+
+  describe('ClaudeService.createStreamingCompletion', () => {
+    const testMessages: Message[] = [
+      { role: 'user', content: 'Tell me a story' }
+    ];
+
+    const mockStreamMessages: ClaudeCodeMessage[] = [
+      {
+        type: 'system',
+        subtype: 'init',
+        data: { session_id: 'stream-session' }
+      },
+      {
+        type: 'result',
+        subtype: 'success',
+        total_cost_usd: 0.02,
+        duration_ms: 2000,
+        num_turns: 1
+      }
+    ];
+
+    it('should create streaming completion successfully', async () => {
+      // Create a more realistic streaming sequence
+      const streamingMessages: ClaudeCodeMessage[] = [
+        {
+          type: 'system',
+          subtype: 'init',
+          data: { session_id: 'stream-session' }
+        },
+        {
+          type: 'assistant',
+          content: 'Once upon'
+        },
+        {
+          type: 'result',
+          subtype: 'success',
+          total_cost_usd: 0.02,
+          duration_ms: 2000,
+          num_turns: 1
+        }
+      ];
+
+      mockClient.runCompletion.mockImplementation(async function* () {
+        for (const message of streamingMessages) {
+          yield message;
+        }
+      });
+
+      const chunks: ClaudeStreamChunk[] = [];
+      for await (const chunk of service.createStreamingCompletion(testMessages)) {
+        chunks.push(chunk);
+      }
+
+      expect(chunks).toHaveLength(2); // 1 content update + 1 final
+
+      // First chunk
+      expect(chunks[0].content).toBe('Once upon');
+      expect(chunks[0].delta).toBe('Once upon');
+      expect(chunks[0].finished).toBe(false);
+
+      // Final chunk
+      expect(chunks[1].content).toBe('Once upon');
+      expect(chunks[1].finished).toBe(true);
+      expect(chunks[1].metadata).toBeDefined();
+      expect(chunks[1].metadata?.total_cost_usd).toBe(0.02);
+    });
+
+    it('should handle streaming errors', async () => {
+      mockClient.runCompletion.mockImplementation(async function* () {
+        throw new Error('Stream failed');
+      });
+
+      const generator = service.createStreamingCompletion(testMessages);
+      await expect(generator.next()).rejects.toThrow(StreamingError);
+    });
+
+    it('should skip empty deltas', async () => {
+      const duplicateMessages: ClaudeCodeMessage[] = [
+        {
+          type: 'assistant',
+          content: 'Hello'
+        },
+        {
+          type: 'assistant',
+          content: 'Hello' // Same content, should not produce delta
+        },
+        {
+          type: 'result',
+          subtype: 'success'
+        }
+      ];
+
+      mockClient.runCompletion.mockImplementation(async function* () {
+        for (const message of duplicateMessages) {
+          yield message;
+        }
+      });
+
+      const chunks: ClaudeStreamChunk[] = [];
+      for await (const chunk of service.createStreamingCompletion(testMessages)) {
+        chunks.push(chunk);
+      }
+
+      expect(chunks).toHaveLength(2); // 1 content update + 1 final
+      expect(chunks[0].delta).toBe('Hello');
+      expect(chunks[1].finished).toBe(true);
+    });
+  });
+
+  describe('ClaudeService.createChatCompletion', () => {
+    it('should create chat completion from OpenAI request', async () => {
+      const request: ChatCompletionRequest = {
+        model: 'claude-3-5-sonnet-20241022',
+        messages: [{ role: 'user', content: 'Hello' }],
+        temperature: 1.0,
+        top_p: 1.0,
+        n: 1,
+        stream: false,
+        presence_penalty: 0,
+        frequency_penalty: 0,
+        enable_tools: false
+      };
+
+      mockClient.runCompletion.mockImplementation(async function* () {
+        yield {
+          type: 'assistant',
+          content: 'Chat response'
+        };
+        yield {
+          type: 'result',
+          subtype: 'success'
+        };
+      });
+
+      const result = await service.createChatCompletion(request);
+
+      expect(result.content).toBe('Chat response');
+      expect(result.role).toBe('assistant');
+    });
+
+    it('should throw error for streaming requests', async () => {
+      const request: ChatCompletionRequest = {
+        model: 'claude-3-5-sonnet-20241022',
+        messages: [{ role: 'user', content: 'Hello' }],
+        temperature: 1.0,
+        top_p: 1.0,
+        n: 1,
+        stream: true, // Should cause error
+        presence_penalty: 0,
+        frequency_penalty: 0,
+        enable_tools: false
+      };
+
+      await expect(service.createChatCompletion(request)).rejects.toThrow('Use createStreamingChatCompletion for streaming requests');
+    });
+  });
+
+  describe('ClaudeService.createStreamingChatCompletion', () => {
+    it('should create streaming chat completion from OpenAI request', async () => {
+      const request: ChatCompletionRequest = {
+        model: 'claude-3-5-sonnet-20241022',
+        messages: [{ role: 'user', content: 'Hello' }],
+        temperature: 1.0,
+        top_p: 1.0,
+        n: 1,
+        stream: true,
+        presence_penalty: 0,
+        frequency_penalty: 0,
+        enable_tools: true
+      };
+
+      mockClient.runCompletion.mockImplementation(async function* () {
+        yield {
+          type: 'assistant',
+          content: 'Streaming response'
+        };
+        yield {
+          type: 'result',
+          subtype: 'success'
+        };
+      });
+
+      const chunks: ClaudeStreamChunk[] = [];
+      for await (const chunk of service.createStreamingChatCompletion(request)) {
+        chunks.push(chunk);
+      }
+
+      expect(chunks).toHaveLength(2);
+      expect(chunks[0].content).toBe('Streaming response');
+      expect(chunks[1].finished).toBe(true);
+    });
+  });
+
+  describe('ClaudeService utility methods', () => {
+    it('should parse Claude messages', () => {
+      const messages: ClaudeCodeMessage[] = [
+        {
+          type: 'assistant',
+          content: 'Test message'
+        }
+      ];
+
+      const result = service.parseClaudeMessages(messages);
+      expect(result).toBe('Test message');
+    });
+
+    it('should extract metadata', () => {
+      const messages: ClaudeCodeMessage[] = [
+        {
+          type: 'result',
+          subtype: 'success',
+          total_cost_usd: 0.05
+        }
+      ];
+
+      const result = service.extractMetadata(messages);
+      expect(result.total_cost_usd).toBe(0.05);
+    });
+
+    it('should check SDK availability', () => {
+      expect(service.isSDKAvailable()).toBe(true);
+      expect(mockClient.isAvailable).toHaveBeenCalled();
+    });
+
+    it('should get timeout', () => {
+      expect(service.getTimeout()).toBe(300000);
+      expect(mockClient.getTimeout).toHaveBeenCalled();
+    });
+
+    it('should get cwd', () => {
+      expect(service.getCwd()).toBe('/test/cwd');
+      expect(mockClient.getCwd).toHaveBeenCalled();
+    });
+  });
+
+  describe('ClaudeService.prepareClaudeOptions', () => {
+    it('should prepare basic options', () => {
+      const options: ClaudeCompletionOptions = {
+        model: 'claude-3-haiku-20240307',
+        max_turns: 3
+      };
+
+      // Access private method
+      const result = (service as any).prepareClaudeOptions(options);
+
+      expect(result).toEqual({
+        cwd: '/test/cwd',
+        model: 'claude-3-haiku-20240307',
+        max_turns: 3
+      });
+    });
+
+    it('should prepare options with system prompt', () => {
+      const options: ClaudeCompletionOptions = {
+        system_prompt: 'You are helpful'
+      };
+
+      const result = (service as any).prepareClaudeOptions(options);
+
+      expect(result.system_prompt).toBe('You are helpful');
+    });
+
+    it('should prepare options with tools configuration', () => {
+      const options: ClaudeCompletionOptions = {
+        allowed_tools: ['read', 'write'],
+        disallowed_tools: ['bash']
+      };
+
+      const result = (service as any).prepareClaudeOptions(options);
+
+      expect(result.allowed_tools).toEqual(['read', 'write']);
+      expect(result.disallowed_tools).toEqual(['bash']);
+    });
+
+    it('should disable all tools when enable_tools is false', () => {
+      const options: ClaudeCompletionOptions = {
+        enable_tools: false
+      };
+
+      const result = (service as any).prepareClaudeOptions(options);
+
+      expect(result.disallowed_tools).toEqual(['*']);
+    });
+
+    it('should not override explicit disallowed_tools when enable_tools is false', () => {
+      const options: ClaudeCompletionOptions = {
+        enable_tools: false,
+        disallowed_tools: ['specific-tool']
+      };
+
+      const result = (service as any).prepareClaudeOptions(options);
+
+      expect(result.disallowed_tools).toEqual(['specific-tool']);
+    });
+  });
+});

@@ -18,12 +18,12 @@ export type {
 } from './client';
 
 export type {
-  ParsedClaudeResponse,
-  TokenUsage
+  ParsedClaudeResponse
 } from './parser';
 
 export type {
-  ResponseMetadata as MetadataResponse
+  ResponseMetadata as MetadataResponse,
+  TokenUsage
 } from './metadata';
 
 export type {
