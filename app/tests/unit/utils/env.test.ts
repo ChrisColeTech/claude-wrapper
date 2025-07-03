@@ -1,81 +1,139 @@
 /**
- * Test suite for Environment Utils
- * 
- * Environment configuration tests
+ * Test suite for Environment Variable Loading
+ * Tests for src/utils/env.ts components
  */
 
-import { MockClaudeClient } from '../../mocks/MockClaudeClient'
-import { MockSessionStore } from '../../mocks/MockSessionStore'
-import { TestDataBuilder } from '../../helpers/TestDataBuilder'
+import { EnvironmentError } from '../../../src/utils/env';
 
-describe('Environment Utils', () => {
-  let mockClaudeClient: MockClaudeClient
-  let mockSessionStore: MockSessionStore
+describe('Environment Variable Loading', () => {
+  const originalEnv = process.env;
 
   beforeEach(() => {
-    // Setup mock dependencies - lightweight in-memory replacements
-    // These run faster than real dependencies and don't require external setup
-    mockClaudeClient = new MockClaudeClient()
-    mockSessionStore = new MockSessionStore()
-    
-    // TODO: Add additional test environment setup
-  })
+    // Clear jest module cache to force fresh imports
+    jest.resetModules();
+    // Reset environment variables before each test
+    process.env = { ...originalEnv };
+    // Clear specific env vars
+    delete process.env.DEBUG_MODE;
+    delete process.env.VERBOSE;
+    delete process.env.PORT;
+    delete process.env.CORS_ORIGINS;
+    delete process.env.MAX_TIMEOUT;
+    delete process.env.API_KEY;
+  });
 
   afterEach(() => {
-    // Cleanup mock state
-    if (mockClaudeClient) {
-      mockClaudeClient.reset()
-    }
-    
-    if (mockSessionStore) {
-      mockSessionStore.clear()
-    }
-    
-    // TODO: Add additional cleanup
-  })
+    // Restore original environment
+    process.env = originalEnv;
+    // Clear jest module cache
+    jest.resetModules();
+  });
 
-  describe('constructor', () => {
-    it('should create instance successfully', () => {
-      // TODO: Implement constructor test
-      // Example: const instance = new Environment Utils(mockClaudeClient, mockSessionStore)
-      // expect(instance).toBeDefined()
-      expect(true).toBe(true) // Placeholder test
-    })
-  })
+  describe('EnvironmentError', () => {
+    it('should create error with correct message format', () => {
+      const error = new EnvironmentError('TEST_VAR', 'invalid_value', 'must be a number');
+      expect(error.message).toBe('Invalid environment variable TEST_VAR="invalid_value": must be a number');
+      expect(error.name).toBe('EnvironmentError');
+    });
+  });
 
-  describe('basic functionality', () => {
-    it('should perform basic operations', async () => {
-      // TODO: Test basic functionality using mock objects
-      // Use mockClaudeClient for API interactions instead of real Claude API
-      // Use mockSessionStore for session management instead of real storage
+  describe('Config interface validation', () => {
+    it('should load default configuration when no env vars set', () => {
+      // Import config fresh 
+      const { config } = require('../../../src/utils/env');
       
-      const testRequest = TestDataBuilder.createChatCompletionRequest()
-      expect(testRequest.model).toBe('claude-3-5-sonnet-20241022')
+      expect(config.DEBUG_MODE).toBe(false);
+      expect(config.VERBOSE).toBe(false);
+      expect(config.PORT).toBe(8000);
+      expect(config.CORS_ORIGINS).toBe('["*"]');
+      expect(config.MAX_TIMEOUT).toBe(600000);
+      expect(config.API_KEY).toBeUndefined();
+    });
+
+    it('should parse boolean values correctly', () => {
+      process.env.DEBUG_MODE = 'true';
+      process.env.VERBOSE = '1';
       
-      const mockResponse = await mockClaudeClient.sendMessage('test')
-      expect(mockResponse.content).toBeDefined()
+      // We need to require config fresh for env changes to take effect
+      jest.resetModules();
+      const { config: freshConfig } = require('../../../src/utils/env');
       
-      expect(true).toBe(true) // Placeholder test
-    })
-  })
+      expect(freshConfig.DEBUG_MODE).toBe(true);
+      expect(freshConfig.VERBOSE).toBe(true);
+    });
 
-  describe('mock integration', () => {
-    it('should work with mock claude client', async () => {
-      // TODO: Test component operations using mockClaudeClient
-      // The MockClaudeClient provides the same API as the real client but runs faster
-      const response = await mockClaudeClient.sendMessage('test message')
-      expect(response.content).toBeDefined()
-      expect(response.stop_reason).toBe('end_turn')
-    })
+    it('should validate port range correctly', () => {
+      process.env.PORT = '65536'; // Above max
 
-    it('should work with mock session store', async () => {
-      // TODO: Test session operations using mockSessionStore
-      // The MockSessionStore provides the same API as real storage but runs in memory
-      const session = await mockSessionStore.create('test-session', 'claude-3-5-sonnet-20241022', 'anthropic')
-      expect(session.id).toBe('test-session')
-    })
-  })
+      expect(() => {
+        jest.resetModules();
+        require('../../../src/utils/env');
+      }).toThrow('Invalid environment variable PORT="65536": must be between 1 and 65535');
+    });
 
-  // TODO: Add more test cases as specified in IMPLEMENTATION_PLAN.md
-  // Remember to use mock objects instead of real dependencies for faster testing
-})
+    it('should validate timeout range correctly', () => {
+      process.env.MAX_TIMEOUT = '999'; // Below min
+
+      expect(() => {
+        jest.resetModules();
+        require('../../../src/utils/env');
+      }).toThrow('Invalid environment variable MAX_TIMEOUT="999": must be between 1000 and 3600000');
+    });
+
+    it('should validate CORS origins JSON format', () => {
+      process.env.CORS_ORIGINS = 'invalid-json';
+
+      expect(() => {
+        jest.resetModules();
+        require('../../../src/utils/env');
+      }).toThrow('Invalid environment variable CORS_ORIGINS="invalid-json": must be valid JSON array');
+    });
+
+    it('should accept valid CORS origins', () => {
+      process.env.CORS_ORIGINS = '["http://localhost:3000", "https://example.com"]';
+
+      jest.resetModules();
+      const { config: freshConfig } = require('../../../src/utils/env');
+      
+      expect(freshConfig.CORS_ORIGINS).toBe('["http://localhost:3000", "https://example.com"]');
+    });
+
+    it('should handle API key correctly', () => {
+      process.env.API_KEY = 'test-api-key-123';
+
+      jest.resetModules();
+      const { config: freshConfig } = require('../../../src/utils/env');
+      
+      expect(freshConfig.API_KEY).toBe('test-api-key-123');
+    });
+  });
+
+  describe('Error handling', () => {
+    it('should throw EnvironmentError for invalid port', () => {
+      process.env.PORT = 'not-a-number';
+
+      expect(() => {
+        jest.resetModules();
+        require('../../../src/utils/env');
+      }).toThrow('Invalid environment variable PORT="not-a-number": must be a valid integer');
+    });
+
+    it('should throw EnvironmentError for port out of range', () => {
+      process.env.PORT = '0';
+
+      expect(() => {
+        jest.resetModules();
+        require('../../../src/utils/env');
+      }).toThrow('Invalid environment variable PORT="0": must be between 1 and 65535');
+    });
+
+    it('should throw EnvironmentError for invalid timeout', () => {
+      process.env.MAX_TIMEOUT = 'invalid';
+
+      expect(() => {
+        jest.resetModules();
+        require('../../../src/utils/env');
+      }).toThrow('Invalid environment variable MAX_TIMEOUT="invalid": must be a valid integer');
+    });
+  });
+});

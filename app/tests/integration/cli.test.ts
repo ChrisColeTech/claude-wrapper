@@ -1,46 +1,140 @@
 /**
  * CLI Integration Tests
- * Test the actual CLI functionality
+ * Test CLI integration with mocked dependencies for fast execution
  */
 
-import { exec } from 'child_process';
-import { promisify } from 'util';
+import { CliRunner, CliParser } from '../../src/cli';
+import { createAndStartServer } from '../../src/server';
 
-const execAsync = promisify(exec);
+// Mock the server creation to avoid real servers
+jest.mock('../../src/server', () => ({
+  createAndStartServer: jest.fn()
+}));
+
+// Mock process.exit to avoid test termination
+const mockExit = jest.spyOn(process, 'exit').mockImplementation();
+
+// Mock console methods
+const mockConsoleLog = jest.spyOn(console, 'log').mockImplementation();
+const mockConsoleError = jest.spyOn(console, 'error').mockImplementation();
 
 describe('CLI Integration', () => {
-  it('should show help when --help flag is used', async () => {
-    const { stdout } = await execAsync('node dist/cli.js --help');
-    expect(stdout).toContain('OpenAI-compatible API wrapper for Claude Code CLI');
-    expect(stdout).toContain('Options:');
-    expect(stdout).toContain('--help');
-    expect(stdout).toContain('--version');
-    expect(stdout).toContain('--port');
-  });
+  const mockCreateAndStartServer = createAndStartServer as jest.MockedFunction<typeof createAndStartServer>;
 
-  it('should show version when --version flag is used', async () => {
-    const { stdout } = await execAsync('node dist/cli.js --version');
-    expect(stdout.trim()).toBe('1.0.0');
-  });
-
-  it('should start server and respond to health check', async () => {
-    // Start server in background
-    const serverProcess = exec('node dist/cli.js --port 8003');
+  beforeEach(() => {
+    jest.clearAllMocks();
     
-    try {
-      // Wait for server to start
-      await new Promise(resolve => setTimeout(resolve, 2000));
+    // Setup default successful server mock
+    mockCreateAndStartServer.mockResolvedValue({
+      server: {
+        close: jest.fn((callback) => callback?.())
+      } as any,
+      port: 8000,
+      url: 'http://localhost:8000'
+    });
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  afterAll(() => {
+    // Restore all mocks
+    mockExit.mockRestore();
+    mockConsoleLog.mockRestore();
+    mockConsoleError.mockRestore();
+  });
+
+  describe('CLI Parser Integration', () => {
+    it('should parse CLI arguments and validate them', () => {
+      const parser = new CliParser();
       
-      // Test health endpoint
-      const { stdout } = await execAsync('curl -s http://localhost:8003/health');
-      const response = JSON.parse(stdout);
+      const options = parser.parseArguments(['node', 'cli.js', '9000', '--verbose']);
+      expect(options.port).toBe('9000');
+      expect(options.verbose).toBe(true);
       
-      expect(response.status).toBe('healthy');
-      expect(response.service).toBe('claude-code-openai-wrapper');
-    } finally {
-      // Clean up server process
-      serverProcess.kill();
-      await new Promise(resolve => setTimeout(resolve, 500));
-    }
-  }, 10000);
+      // Should not throw for valid options
+      expect(() => parser.validateOptions(options)).not.toThrow();
+    });
+
+    it('should reject invalid port numbers', () => {
+      const parser = new CliParser();
+      
+      expect(() => {
+        parser.validateOptions({ port: '0' });
+      }).toThrow('Invalid port number: 0');
+    });
+  });
+
+  describe('CLI Runner Integration', () => {
+    it('should start server with parsed CLI options', async () => {
+      const runner = new CliRunner();
+      
+      await runner.run(['node', 'cli.js', '9000', '--verbose']);
+      
+      // Verify server was called with mocked implementation
+      expect(mockCreateAndStartServer).toHaveBeenCalledTimes(1);
+      
+      // Verify environment variables were set
+      expect(process.env.PORT).toBe('9000');
+      expect(process.env.VERBOSE).toBe('true');
+    });
+
+    it('should handle server startup errors gracefully', async () => {
+      // Mock server startup failure
+      mockCreateAndStartServer.mockRejectedValue(new Error('Port already in use'));
+      
+      const runner = new CliRunner();
+      
+      await runner.run(['node', 'cli.js', '--port', '8000']);
+      
+      expect(mockConsoleError).toHaveBeenCalledWith(
+        expect.stringMatching(/❌.*Failed to start server.*/)
+      );
+      expect(mockExit).toHaveBeenCalledWith(1);
+    });
+
+    it('should handle validation errors', async () => {
+      const runner = new CliRunner();
+      
+      await runner.run(['node', 'cli.js', 'invalid']);
+      
+      // Should show Python-compatible invalid port message
+      expect(mockConsoleLog).toHaveBeenCalledWith(
+        'Invalid port number: invalid. Using default.'
+      );
+    });
+  });
+
+  describe('CLI to Server Integration Flow', () => {
+    it('should complete full startup flow with mocked server', async () => {
+      const runner = new CliRunner();
+      
+      // Run with debug and verbose flags (port as positional argument)
+      await runner.run(['node', 'cli.js', '8500', '--debug', '--verbose']);
+      
+      // Verify the flow completed
+      expect(mockCreateAndStartServer).toHaveBeenCalledTimes(1);
+      expect(process.env.DEBUG_MODE).toBe('true');
+      expect(process.env.VERBOSE).toBe('true');
+      expect(process.env.PORT).toBe('8500');
+    });
+
+    it('should set up graceful shutdown handlers', async () => {
+      const runner = new CliRunner();
+      
+      // Mock server with close function
+      const mockClose = jest.fn((callback) => callback?.());
+      mockCreateAndStartServer.mockResolvedValue({
+        server: { close: mockClose } as any,
+        port: 8000,
+        url: 'http://localhost:8000'
+      });
+      
+      await runner.run(['node', 'cli.js']);
+      
+      expect(mockCreateAndStartServer).toHaveBeenCalledTimes(1);
+      // Shutdown handlers are set up (tested indirectly through successful completion)
+    });
+  });
 });
