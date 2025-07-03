@@ -286,6 +286,131 @@ export class CliRunner {
     console.log('==================================================\n');
     process.exit(1);
   }
+
+  /**
+   * Get PID file path
+   */
+  private getPidFile(): string {
+    return path.join(os.tmpdir(), 'claude-wrapper.pid');
+  }
+
+  /**
+   * Get log file path
+   */
+  private getLogFile(): string {
+    return path.join(os.tmpdir(), 'claude-wrapper.log');
+  }
+
+  /**
+   * Start server in daemon mode
+   */
+  private async startDaemon(options: CliOptions): Promise<void> {
+    const pidFile = this.getPidFile();
+    const logFile = this.getLogFile();
+
+    // Check if already running
+    if (fs.existsSync(pidFile)) {
+      const pid = fs.readFileSync(pidFile, 'utf8').trim();
+      try {
+        process.kill(parseInt(pid), 0); // Check if process exists
+        console.log('❌ Server is already running (PID: ' + pid + ')');
+        console.log('   Use --stop to stop it first, or --status to check');
+        return;
+      } catch {
+        // Process doesn't exist, remove stale PID file
+        fs.unlinkSync(pidFile);
+      }
+    }
+
+    console.log('🚀 Starting claude-wrapper in background...');
+    
+    const port = options.port || '8000';
+    const args = [port, '--no-interactive'];
+    if (options.verbose) args.push('--verbose');
+    if (options.debug) args.push('--debug');
+
+    // Spawn detached process
+    const { spawn } = require('child_process');
+    const child = spawn('claude-wrapper', args, {
+      detached: true,
+      stdio: ['ignore', 'pipe', 'pipe']
+    });
+
+    // Write PID file
+    fs.writeFileSync(pidFile, child.pid.toString());
+
+    // Setup logging
+    const logStream = fs.createWriteStream(logFile, { flags: 'a' });
+    child.stdout.pipe(logStream);
+    child.stderr.pipe(logStream);
+
+    child.unref(); // Allow parent to exit
+
+    console.log(`✅ Server started in background`);
+    console.log(`   PID: ${child.pid}`);
+    console.log(`   Port: ${port}`);
+    console.log(`   Logs: ${logFile}`);
+    console.log(`   Stop: claude-wrapper --stop`);
+  }
+
+  /**
+   * Stop daemon server
+   */
+  private async stopDaemon(): Promise<void> {
+    const pidFile = this.getPidFile();
+    
+    if (!fs.existsSync(pidFile)) {
+      console.log('❌ No background server found');
+      return;
+    }
+
+    const pid = fs.readFileSync(pidFile, 'utf8').trim();
+    
+    try {
+      process.kill(parseInt(pid), 'SIGTERM');
+      fs.unlinkSync(pidFile);
+      console.log(`✅ Server stopped (PID: ${pid})`);
+    } catch (error) {
+      console.log(`❌ Failed to stop server: ${error}`);
+      fs.unlinkSync(pidFile); // Remove stale PID file
+    }
+  }
+
+  /**
+   * Check daemon status
+   */
+  private async checkDaemonStatus(): Promise<void> {
+    const pidFile = this.getPidFile();
+    const logFile = this.getLogFile();
+    
+    if (!fs.existsSync(pidFile)) {
+      console.log('📊 Server Status: NOT RUNNING');
+      return;
+    }
+
+    const pid = fs.readFileSync(pidFile, 'utf8').trim();
+    
+    try {
+      process.kill(parseInt(pid), 0); // Check if process exists
+      console.log('📊 Server Status: RUNNING');
+      console.log(`   PID: ${pid}`);
+      console.log(`   Logs: ${logFile}`);
+      
+      // Try to get port from curl
+      try {
+        const { stdout } = await execAsync('curl -s http://localhost:8000/health');
+        if (stdout.includes('healthy')) {
+          console.log('   Health: ✅ OK (port 8000)');
+        }
+      } catch {
+        console.log('   Health: ❓ Could not connect to port 8000');
+      }
+      
+    } catch {
+      console.log('📊 Server Status: NOT RUNNING (stale PID file)');
+      fs.unlinkSync(pidFile);
+    }
+  }
 }
 
 // Main execution
