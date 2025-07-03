@@ -1,81 +1,196 @@
 /**
- * Test suite for Models Endpoints Integration
- * 
- * Models endpoint integration tests
+ * Models Endpoints Integration Tests for Phase 11A
+ * Tests for src/routes/models.ts endpoints
+ * Validates Python compatibility and comprehensive endpoint behavior
  */
 
-import { MockClaudeClient } from '../../mocks/MockClaudeClient'
-import { MockSessionStore } from '../../mocks/MockSessionStore'
-import { TestDataBuilder } from '../../helpers/TestDataBuilder'
+import supertest from 'supertest';
+import express from 'express';
+import { ModelsRouter, ModelsResponse, ModelInfo } from '../../../src/routes/models';
 
-describe('Models Endpoints Integration', () => {
-  let mockClaudeClient: MockClaudeClient
-  let mockSessionStore: MockSessionStore
+describe('Phase 11A: Models Endpoints Integration', () => {
+  let app: express.Application;
+  let request: ReturnType<typeof supertest>;
 
   beforeEach(() => {
-    // Setup mock dependencies - lightweight in-memory replacements
-    // These run faster than real dependencies and don't require external setup
-    mockClaudeClient = new MockClaudeClient()
-    mockSessionStore = new MockSessionStore()
-    
-    // TODO: Add additional test environment setup
-  })
+    // Setup Express app with models router
+    app = express();
+    app.use(express.json());
+    app.use(ModelsRouter.createRouter());
+    request = supertest(app);
+  });
 
   afterEach(() => {
-    // Cleanup mock state
-    if (mockClaudeClient) {
-      mockClaudeClient.reset()
-    }
-    
-    if (mockSessionStore) {
-      mockSessionStore.clear()
-    }
-    
-    // TODO: Add additional cleanup
-  })
+    // No cleanup needed for stateless endpoint tests
+  });
 
-  describe('constructor', () => {
-    it('should create instance successfully', () => {
-      // TODO: Implement constructor test
-      // Example: const instance = new Models Endpoints Integration(mockClaudeClient, mockSessionStore)
-      // expect(instance).toBeDefined()
-      expect(true).toBe(true) // Placeholder test
-    })
-  })
+  describe('GET /v1/models', () => {
+    it('should return list of supported models with correct format', async () => {
+      const response = await request
+        .get('/v1/models')
+        .expect(200)
+        .expect('Content-Type', /json/);
 
-  describe('basic functionality', () => {
-    it('should perform basic operations', async () => {
-      // TODO: Test basic functionality using mock objects
-      // Use mockClaudeClient for API interactions instead of real Claude API
-      // Use mockSessionStore for session management instead of real storage
+      const modelsResponse: ModelsResponse = response.body;
+
+      // Verify response structure matches Python format
+      expect(modelsResponse.object).toBe('list');
+      expect(Array.isArray(modelsResponse.data)).toBe(true);
+      expect(modelsResponse.data.length).toBeGreaterThan(0);
+
+      // Verify each model has correct structure
+      modelsResponse.data.forEach((model: ModelInfo) => {
+        expect(model).toHaveProperty('id');
+        expect(model).toHaveProperty('object');
+        expect(model).toHaveProperty('owned_by');
+        expect(model.object).toBe('model');
+        expect(model.owned_by).toBe('anthropic');
+        expect(typeof model.id).toBe('string');
+        expect(model.id.length).toBeGreaterThan(0);
+      });
+    });
+
+    it('should return exact models from Python implementation', async () => {
+      const response = await request
+        .get('/v1/models')
+        .expect(200);
+
+      const modelsResponse: ModelsResponse = response.body;
+      const modelIds = modelsResponse.data.map(model => model.id);
+
+      // Verify exact models match Python main.py:650-655
+      const expectedModels = [
+        'claude-sonnet-4-20250514',
+        'claude-opus-4-20250514', 
+        'claude-3-7-sonnet-20250219',
+        'claude-3-5-sonnet-20241022',
+        'claude-3-5-haiku-20241022'
+      ];
+
+      expect(modelIds).toEqual(expectedModels);
+    });
+
+    it('should handle request errors gracefully', async () => {
+      // Create a separate app with error middleware to test error handling
+      const errorApp = express();
+      errorApp.use(express.json());
       
-      const testRequest = TestDataBuilder.createChatCompletionRequest()
-      expect(testRequest.model).toBe('claude-3-5-sonnet-20241022')
+      // Add a route that throws an error
+      errorApp.get('/v1/models', () => {
+        throw new Error('Test error');
+      });
       
-      const mockResponse = await mockClaudeClient.sendMessage('test')
-      expect(mockResponse.content).toBeDefined()
+      // Add error handling middleware
+      errorApp.use((error: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+        res.status(500).json({
+          error: 'Internal Server Error',
+          message: 'Failed to list models'
+        });
+      });
+
+      const errorRequest = supertest(errorApp);
+      const response = await errorRequest
+        .get('/v1/models')
+        .expect(500);
+
+      expect(response.body).toHaveProperty('error');
+      expect(response.body).toHaveProperty('message');
+      expect(response.body.error).toBe('Internal Server Error');
+    });
+
+    it('should return consistent response format across calls', async () => {
+      // Make multiple requests to ensure consistency
+      const responses = await Promise.all([
+        request.get('/v1/models'),
+        request.get('/v1/models'),
+        request.get('/v1/models')
+      ]);
+
+      responses.forEach(response => {
+        expect(response.status).toBe(200);
+        expect(response.body.object).toBe('list');
+        expect(response.body.data).toHaveLength(5);
+      });
+
+      // Verify all responses are identical
+      const firstResponse = JSON.stringify(responses[0].body);
+      responses.forEach(response => {
+        expect(JSON.stringify(response.body)).toBe(firstResponse);
+      });
+    });
+  });
+
+  describe('ModelsRouter utility methods', () => {
+    it('should correctly identify supported models', () => {
+      expect(ModelsRouter.isModelSupported('claude-sonnet-4-20250514')).toBe(true);
+      expect(ModelsRouter.isModelSupported('claude-opus-4-20250514')).toBe(true);
+      expect(ModelsRouter.isModelSupported('claude-3-5-sonnet-20241022')).toBe(true);
+      expect(ModelsRouter.isModelSupported('gpt-4')).toBe(false);
+      expect(ModelsRouter.isModelSupported('unknown-model')).toBe(false);
+      expect(ModelsRouter.isModelSupported('')).toBe(false);
+    });
+
+    it('should return correct list of supported model IDs', () => {
+      const supportedIds = ModelsRouter.getSupportedModelIds();
       
-      expect(true).toBe(true) // Placeholder test
-    })
-  })
+      expect(Array.isArray(supportedIds)).toBe(true);
+      expect(supportedIds).toHaveLength(5);
+      expect(supportedIds).toContain('claude-sonnet-4-20250514');
+      expect(supportedIds).toContain('claude-opus-4-20250514');
+      expect(supportedIds).toContain('claude-3-7-sonnet-20250219');
+      expect(supportedIds).toContain('claude-3-5-sonnet-20241022');
+      expect(supportedIds).toContain('claude-3-5-haiku-20241022');
+    });
 
-  describe('mock integration', () => {
-    it('should work with mock claude client', async () => {
-      // TODO: Test component operations using mockClaudeClient
-      // The MockClaudeClient provides the same API as the real client but runs faster
-      const response = await mockClaudeClient.sendMessage('test message')
-      expect(response.content).toBeDefined()
-      expect(response.stop_reason).toBe('end_turn')
-    })
+    it('should have correct static model data structure', () => {
+      const models = ModelsRouter.SUPPORTED_MODELS;
+      
+      expect(Array.isArray(models)).toBe(true);
+      expect(models).toHaveLength(5);
+      
+      models.forEach(model => {
+        expect(model).toHaveProperty('id');
+        expect(model).toHaveProperty('object');
+        expect(model).toHaveProperty('owned_by');
+        expect(model.object).toBe('model');
+        expect(model.owned_by).toBe('anthropic');
+        expect(typeof model.id).toBe('string');
+      });
+    });
+  });
 
-    it('should work with mock session store', async () => {
-      // TODO: Test session operations using mockSessionStore
-      // The MockSessionStore provides the same API as real storage but runs in memory
-      const session = await mockSessionStore.create('test-session', 'claude-3-5-sonnet-20241022', 'anthropic')
-      expect(session.id).toBe('test-session')
-    })
-  })
+  describe('Error handling edge cases', () => {
+    it('should handle malformed requests gracefully', async () => {
+      // Test with various malformed requests
+      await request
+        .get('/v1/models?invalid=param')
+        .expect(200); // Should still work with query params
 
-  // TODO: Add more test cases as specified in IMPLEMENTATION_PLAN.md
-  // Remember to use mock objects instead of real dependencies for faster testing
-})
+      await request
+        .post('/v1/models')
+        .expect(404); // POST not supported, should get 404
+    });
+
+    it('should handle concurrent requests efficiently', async () => {
+      const startTime = Date.now();
+      
+      // Make 10 concurrent requests
+      const requests = Array(10).fill(null).map(() => 
+        request.get('/v1/models').expect(200)
+      );
+      
+      const responses = await Promise.all(requests);
+      const endTime = Date.now();
+      
+      // All requests should succeed
+      responses.forEach(response => {
+        expect(response.status).toBe(200);
+        expect(response.body.object).toBe('list');
+        expect(response.body.data).toHaveLength(5);
+      });
+      
+      // Should complete quickly (under 1 second for all 10 requests)
+      expect(endTime - startTime).toBeLessThan(1000);
+    });
+  });
+});

@@ -79,17 +79,84 @@ Authorization: Bearer your-api-key-here
 | `stop` | string/array | No | `null` | **Not supported** - Will be ignored with warning |
 | `user` | string | No | `null` | User identifier for logging |
 | `session_id` | string | No | `null` | **Extension** - Session ID for conversation continuity |
-| `disable_tools` | boolean | No | `false` | **Extension** - Disable Claude Code tools for speed |
+| `tools` | array | No | `null` | **OpenAI Compatible** - Array of tool function definitions |
+| `tool_choice` | string/object | No | `"auto"` | **OpenAI Compatible** - Control tool usage: `"auto"`, `"none"`, or specific function |
+
+#### OpenAI Tools API Support
+
+The wrapper supports the standard OpenAI Tools API for function calling. Users can define tools that Claude can call, with execution handled by the client.
+
+**Tool Definition Example**:
+```json
+{
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "read_file",
+        "description": "Read content from a file",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "File path to read"
+            }
+          },
+          "required": ["path"]
+        }
+      }
+    }
+  ],
+  "tool_choice": "auto"
+}
+```
+
+**Tool Choice Options**:
+- `"auto"`: Claude decides when to use tools
+- `"none"`: Force text-only response, no tool calls
+- `{"type": "function", "function": {"name": "function_name"}}`: Force specific function call
+
+**Important**: The wrapper does NOT execute tools. It returns tool calls that the client must execute and send back as tool messages.
+
+#### Tool Messages
+
+When Claude requests a tool call, respond with a tool message:
+
+```json
+{
+  "role": "tool",
+  "tool_call_id": "call_abc123",
+  "content": "File content here..."
+}
+```
 
 #### Message Object
 
 ```json
 {
-  "role": "user|assistant|system",
+  "role": "user|assistant|system|tool",
   "content": "Message content as string",
-  "name": "optional-name"
+  "name": "optional-name",
+  "tool_calls": [
+    {
+      "id": "call_abc123",
+      "type": "function",
+      "function": {
+        "name": "function_name",
+        "arguments": "{\"param\": \"value\"}"
+      }
+    }
+  ],
+  "tool_call_id": "call_abc123"
 }
 ```
+
+**Message Roles**:
+- `"user"`: User message
+- `"assistant"`: Claude's response (may contain tool_calls)
+- `"system"`: System prompt
+- `"tool"`: Tool execution result (requires tool_call_id)
 
 #### Supported Models
 
@@ -103,11 +170,11 @@ Authorization: Bearer your-api-key-here
 
 | Header | Type | Description |
 |--------|------|-------------|
-| `X-Claude-Max-Turns` | integer | Maximum conversation turns |
-| `X-Claude-Allowed-Tools` | string | Comma-separated list of allowed tools |
-| `X-Claude-Disallowed-Tools` | string | Comma-separated list of disallowed tools |
+| `X-Claude-Max-Turns` | integer | Maximum conversation turns (tool calling affects turn count) |
 | `X-Claude-Permission-Mode` | string | Permission mode: `default`, `acceptEdits`, `bypassPermissions` |
 | `X-Claude-Max-Thinking-Tokens` | integer | Maximum thinking tokens |
+
+**Note**: Tool-specific headers removed. Use the standard OpenAI `tools` and `tool_choice` parameters instead.
 
 #### Response (Non-Streaming)
 
@@ -134,6 +201,46 @@ Authorization: Bearer your-api-key-here
   }
 }
 ```
+
+#### Response with Tool Calls
+
+When Claude decides to call a tool, the response includes tool_calls:
+
+```json
+{
+  "id": "chatcmpl-abc123",
+  "object": "chat.completion",
+  "created": 1677858242,
+  "model": "claude-3-5-sonnet-20241022",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": null,
+        "tool_calls": [
+          {
+            "id": "call_abc123",
+            "type": "function",
+            "function": {
+              "name": "read_file",
+              "arguments": "{\"path\": \"/home/user/config.json\"}"
+            }
+          }
+        ]
+      },
+      "finish_reason": "tool_calls"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 25,
+    "completion_tokens": 15,
+    "total_tokens": 40
+  }
+}
+```
+
+**Note**: When `finish_reason` is `"tool_calls"`, the client must execute the tools and continue the conversation with tool result messages.
 
 #### Response (Streaming)
 
@@ -481,13 +588,18 @@ Same as `/v1/chat/completions` request body.
   },
   "claude_code_sdk_options": {
     "supported": [
-      "model", "system_prompt", "max_turns", "allowed_tools",
-      "disallowed_tools", "permission_mode", "max_thinking_tokens",
+      "model", "system_prompt", "max_turns", "tools", "tool_choice",
+      "permission_mode", "max_thinking_tokens",
       "continue_conversation", "resume", "cwd"
     ],
+    "openai_tools_api": {
+      "supported": true,
+      "tool_execution": "client_side",
+      "supported_tool_types": ["function"],
+      "tool_choice_options": ["auto", "none", "specific_function"]
+    },
     "custom_headers": [
-      "X-Claude-Max-Turns", "X-Claude-Allowed-Tools",
-      "X-Claude-Disallowed-Tools", "X-Claude-Permission-Mode", 
+      "X-Claude-Max-Turns", "X-Claude-Permission-Mode", 
       "X-Claude-Max-Thinking-Tokens"
     ]
   }
@@ -667,8 +779,131 @@ curl -X POST http://localhost:8000/v1/chat/completions \
     "messages": [
       {"role": "user", "content": "Help me write code"}
     ],
-    "disable_tools": false
+    "tools": [
+      {
+        "type": "function",
+        "function": {
+          "name": "create_file",
+          "description": "Create a new file with content",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "path": {"type": "string", "description": "File path"},
+              "content": {"type": "string", "description": "File content"}
+            },
+            "required": ["path", "content"]
+          }
+        }
+      }
+    ],
+    "tool_choice": "auto"
   }'
 ```
 
-This API reference provides complete documentation for integrating with the Claude Code OpenAI Wrapper, ensuring full compatibility with OpenAI clients while leveraging Claude's capabilities.
+## 🔧 Complete Tool Calling Workflow Example
+
+Here's a complete example of how tool calling works with the wrapper:
+
+### Step 1: Initial Request with Tools
+
+```bash
+curl -X POST http://localhost:8000/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer your-api-key" \
+  -d '{
+    "model": "claude-3-5-sonnet-20241022",
+    "messages": [
+      {"role": "user", "content": "Read my config file at /home/user/app.json"}
+    ],
+    "tools": [
+      {
+        "type": "function",
+        "function": {
+          "name": "read_file",
+          "description": "Read content from a file",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "path": {"type": "string", "description": "File path to read"}
+            },
+            "required": ["path"]
+          }
+        }
+      }
+    ],
+    "tool_choice": "auto"
+  }'
+```
+
+### Step 2: Wrapper Returns Tool Call
+
+```json
+{
+  "choices": [{
+    "message": {
+      "role": "assistant", 
+      "content": null,
+      "tool_calls": [{
+        "id": "call_abc123",
+        "type": "function", 
+        "function": {
+          "name": "read_file",
+          "arguments": "{\"path\": \"/home/user/app.json\"}"
+        }
+      }]
+    },
+    "finish_reason": "tool_calls"
+  }]
+}
+```
+
+### Step 3: Client Executes Tool and Continues Conversation
+
+```bash
+curl -X POST http://localhost:8000/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer your-api-key" \
+  -d '{
+    "model": "claude-3-5-sonnet-20241022",
+    "messages": [
+      {"role": "user", "content": "Read my config file at /home/user/app.json"},
+      {
+        "role": "assistant",
+        "content": null,
+        "tool_calls": [{
+          "id": "call_abc123",
+          "type": "function", 
+          "function": {
+            "name": "read_file",
+            "arguments": "{\"path\": \"/home/user/app.json\"}"
+          }
+        }]
+      },
+      {
+        "role": "tool",
+        "tool_call_id": "call_abc123", 
+        "content": "{\"database_url\": \"postgres://localhost\", \"port\": 3000}"
+      }
+    ]
+  }'
+```
+
+### Step 4: Final Response
+
+```json
+{
+  "choices": [{
+    "message": {
+      "role": "assistant",
+      "content": "I can see your config file contains database and port settings. Your app is configured to connect to a PostgreSQL database at localhost and run on port 3000."
+    },
+    "finish_reason": "stop"
+  }]
+}
+```
+
+This workflow shows how the wrapper enables OpenAI-compatible tool calling while maintaining security by having clients execute tools in their own environment.
+
+---
+
+This API reference provides complete documentation for integrating with the Claude Code OpenAI Wrapper, ensuring full compatibility with OpenAI clients while leveraging Claude's capabilities through secure, client-side tool execution.

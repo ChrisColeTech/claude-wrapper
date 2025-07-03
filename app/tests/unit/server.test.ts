@@ -111,9 +111,8 @@ describe('Server Components', () => {
       expect(response.status).toBe(200);
       expect(response.body.status).toBe('healthy');
       expect(response.body.service).toBe('claude-code-openai-wrapper');
-      expect(response.body.version).toBe('1.0.0');
-      expect(response.body.timestamp).toBeDefined();
-      expect(response.body.uptime).toBeDefined();
+      // Basic health check doesn't include version (only detailed health does)
+      // Basic health check doesn't include timestamp and uptime (only detailed health does)
     });
 
     it('should handle unknown endpoints (auth middleware runs first)', async () => {
@@ -260,12 +259,10 @@ describe('Server Components', () => {
       expect(response.status).toBe(200);
       expect(response.body).toMatchObject({
         status: 'healthy',
-        service: 'claude-code-openai-wrapper',
-        version: '1.0.0'
+        service: 'claude-code-openai-wrapper'
+        // Basic health check doesn't include version
       });
-      expect(response.body.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
-      expect(typeof response.body.uptime).toBe('number');
-      expect(response.body.uptime).toBeGreaterThanOrEqual(0);
+      // Basic health check doesn't include timestamp and uptime
     });
 
     it('should handle concurrent health check requests', async () => {

@@ -19,12 +19,38 @@ jest.mock('../../../src/utils/logger', () => ({
   })
 }));
 
+// Mock child_process to prevent actual shell execution
+jest.mock('child_process', () => ({
+  exec: jest.fn()
+}));
+
+// Mock util.promisify
+jest.mock('util', () => ({
+  promisify: jest.fn((fn) => fn)
+}));
+
 describe('Phase 6A: Claude Code SDK Client Tests', () => {
   let client: ClaudeClient;
   const mockAuthManager = authManager as jest.Mocked<typeof authManager>;
+  let mockExec: jest.Mock;
 
   beforeEach(() => {
     jest.clearAllMocks();
+    
+    // Setup child_process mock
+    const childProcess = require('child_process');
+    mockExec = childProcess.exec as jest.Mock;
+    
+    // Mock successful command execution by default
+    mockExec.mockImplementation((command: string, options: any, callback?: Function) => {
+      if (callback) {
+        callback(null, '{"response": "test response"}', '');
+        return undefined;
+      } else {
+        return Promise.resolve({ stdout: '{"response": "test response"}', stderr: '' });
+      }
+    });
+    
     client = new ClaudeClient(300000, '/test/cwd');
     
     // Setup default auth manager mocks

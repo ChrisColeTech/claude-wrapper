@@ -13,9 +13,14 @@ import { authMiddleware, authStatusMiddleware } from './auth/middleware';
 import { createCorsMiddleware } from './middleware/cors';
 import { initializeAuthentication } from './server/auth-initializer';
 import { ServerManager, ServerStartResult } from './server/server-manager';
+import { ModelsRouter, HealthRouter, ChatRouter, AuthRouter, SessionsRouter, DebugRouter } from './routes';
 
-// Re-export ServerManager for external use
-export { ServerManager };
+// Re-export ServerManager and ServerStartResult for external use
+export { ServerManager, ServerStartResult };
+
+// Re-export http Server for tests
+export { Server } from 'http';
+
 
 /**
  * Server configuration interface
@@ -83,20 +88,19 @@ export class ExpressAppFactory {
 
     // Authentication middleware for protected routes
     app.use(authMiddleware({
-      skipPaths: ['/health', '/v1/models'] // Skip auth for health and models endpoints
+      skipPaths: ['/health', '/health/detailed', '/v1/models', '/v1/auth/status', '/v1/compatibility', '/v1/debug/request'] // Skip auth for health, models, auth status, and debug endpoints
     }));
 
-    // Health check endpoint
-    app.get('/health', (_req, res) => {
-      const healthResponse: HealthResponse = {
-        status: 'healthy',
-        service: 'claude-code-openai-wrapper',
-        version: '1.0.0',
-        timestamp: new Date().toISOString(),
-        uptime: Date.now() - this.startTime
-      };
-      res.json(healthResponse);
-    });
+    // Set start time for health router
+    HealthRouter.setStartTime(this.startTime);
+
+    // Mount route handlers
+    app.use(ModelsRouter.createRouter());
+    app.use(HealthRouter.createRouter());
+    app.use(AuthRouter.createRouter());
+    app.use(SessionsRouter.createRouter());
+    app.use(DebugRouter.createRouter());
+    app.use(ChatRouter.createRouter());
 
     // 404 handler
     app.use((_req, res) => {

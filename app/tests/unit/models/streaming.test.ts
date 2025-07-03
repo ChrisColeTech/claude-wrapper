@@ -9,12 +9,13 @@ import {
   ChatCompletionStreamResponseSchema,
   StreamDeltaTypes,
   StreamingUtils,
-  StreamingError,
-  StreamProcessingError,
-  StreamValidationError,
   type StreamChoice,
   type ChatCompletionStreamResponse
 } from '../../../src/models/streaming';
+import { 
+  StreamingError,
+  ClaudeClientError 
+} from '../../../src/models/error';
 
 describe('Streaming Response Models', () => {
   describe('StreamChoiceSchema', () => {
@@ -307,11 +308,11 @@ describe('Streaming Response Models', () => {
   describe('Error Classes', () => {
     describe('StreamingError', () => {
       it('should create streaming error', () => {
-        const error = new StreamingError("Test error", "TEST_CODE");
+        const error = new StreamingError("Test error");
         
         expect(error.message).toBe("Test error");
-        expect(error.code).toBe("TEST_CODE");
-        expect(error.name).toBe("StreamingError");
+        expect(error.code).toBe("STREAMING_FAILED");
+        expect(error.name).toBe("ClaudeClientError");
         expect(error).toBeInstanceOf(Error);
       });
 
@@ -319,29 +320,18 @@ describe('Streaming Response Models', () => {
         const error = new StreamingError("Test error");
         
         expect(error.message).toBe("Test error");
-        expect(error.code).toBeUndefined();
+        expect(error.code).toBe("STREAMING_FAILED");
       });
     });
 
-    describe('StreamProcessingError', () => {
-      it('should create stream processing error', () => {
-        const error = new StreamProcessingError("Processing failed");
+    describe('ClaudeClientError', () => {
+      it('should create general Claude client error', () => {
+        const error = new ClaudeClientError("General error", "TEST_CODE");
         
-        expect(error.message).toBe("Processing failed");
-        expect(error.code).toBe("STREAM_PROCESSING_ERROR");
-        expect(error.name).toBe("StreamingError");
-        expect(error).toBeInstanceOf(StreamingError);
-      });
-    });
-
-    describe('StreamValidationError', () => {
-      it('should create stream validation error', () => {
-        const error = new StreamValidationError("Validation failed");
-        
-        expect(error.message).toBe("Validation failed");
-        expect(error.code).toBe("STREAM_VALIDATION_ERROR");
-        expect(error.name).toBe("StreamingError");
-        expect(error).toBeInstanceOf(StreamingError);
+        expect(error.message).toBe("General error");
+        expect(error.code).toBe("TEST_CODE");
+        expect(error.name).toBe("ClaudeClientError");
+        expect(error).toBeInstanceOf(Error);
       });
     });
   });

@@ -212,8 +212,9 @@ describe('Phase 3B: Parameter Validator Tests', () => {
       const supportedModels = [
         'claude-sonnet-4-20250514',
         'claude-opus-4-20250514',
-        'claude-haiku-4-20250514',
-        'claude-3-5-sonnet-20241022'
+        'claude-3-7-sonnet-20250219',
+        'claude-3-5-sonnet-20241022',
+        'claude-3-5-haiku-20241022'
       ];
 
       for (const model of supportedModels) {
@@ -435,6 +436,169 @@ describe('Phase 3B: Parameter Validator Tests', () => {
 
       expect(result.valid).toBe(true);
       expect(result.errors).toHaveLength(0);
+    });
+  });
+
+  describe('ParameterValidator.validatePermissionMode', () => {
+    it('should validate supported permission modes', () => {
+      expect(ParameterValidator.validatePermissionMode('default')).toBe(true);
+      expect(ParameterValidator.validatePermissionMode('acceptEdits')).toBe(true);
+      expect(ParameterValidator.validatePermissionMode('bypassPermissions')).toBe(true);
+    });
+
+    it('should reject invalid permission modes', () => {
+      expect(ParameterValidator.validatePermissionMode('invalid')).toBe(false);
+      expect(ParameterValidator.validatePermissionMode('')).toBe(false);
+    });
+  });
+
+  describe('ParameterValidator.validateTools', () => {
+    it('should validate array of valid tool names', () => {
+      expect(ParameterValidator.validateTools(['tool1', 'tool2', 'tool3'])).toBe(true);
+      expect(ParameterValidator.validateTools(['Read', 'Write', 'Bash'])).toBe(true);
+      expect(ParameterValidator.validateTools([])).toBe(true); // Empty array is valid
+    });
+
+    it('should reject tools with empty strings', () => {
+      expect(ParameterValidator.validateTools(['tool1', '', 'tool3'])).toBe(false);
+      expect(ParameterValidator.validateTools(['', ''])).toBe(false);
+    });
+
+    it('should reject tools with whitespace-only strings', () => {
+      expect(ParameterValidator.validateTools(['tool1', '   ', 'tool3'])).toBe(false);
+      expect(ParameterValidator.validateTools(['\t', '\n'])).toBe(false);
+    });
+
+    it('should reject non-string values', () => {
+      expect(ParameterValidator.validateTools(['tool1', 123, 'tool3'] as any)).toBe(false);
+      expect(ParameterValidator.validateTools([null, undefined] as any)).toBe(false);
+    });
+  });
+
+  describe('ParameterValidator.createEnhancedOptions', () => {
+    const baseRequest: ChatCompletionRequest = {
+      model: 'claude-sonnet-4-20250514',
+      messages: [{ role: 'user', content: 'Hello' }],
+      temperature: 1.0,
+      top_p: 1.0,
+      n: 1,
+      stream: false,
+      presence_penalty: 0,
+      frequency_penalty: 0,
+      enable_tools: false
+    };
+
+    it('should create basic options from request', () => {
+      const options = ParameterValidator.createEnhancedOptions(baseRequest);
+
+      expect(options).toEqual({
+        model: 'claude-sonnet-4-20250514',
+        messages: [{ role: 'user', content: 'Hello' }],
+        stream: false,
+        user: undefined
+      });
+    });
+
+    it('should add max_turns when provided', () => {
+      const options = ParameterValidator.createEnhancedOptions(baseRequest, 5);
+
+      expect(options.max_turns).toBe(5);
+    });
+
+    it('should add allowed_tools when provided', () => {
+      const tools = ['Read', 'Write', 'Bash'];
+      const options = ParameterValidator.createEnhancedOptions(baseRequest, undefined, tools);
+
+      expect(options.allowed_tools).toEqual(tools);
+    });
+
+    it('should add disallowed_tools when provided', () => {
+      const tools = ['Bash', 'Edit'];
+      const options = ParameterValidator.createEnhancedOptions(baseRequest, undefined, undefined, tools);
+
+      expect(options.disallowed_tools).toEqual(tools);
+    });
+
+    it('should add permission_mode when provided', () => {
+      const options = ParameterValidator.createEnhancedOptions(baseRequest, undefined, undefined, undefined, 'acceptEdits');
+
+      expect(options.permission_mode).toBe('acceptEdits');
+    });
+
+    it('should add max_thinking_tokens when provided', () => {
+      const options = ParameterValidator.createEnhancedOptions(baseRequest, undefined, undefined, undefined, undefined, 1000);
+
+      expect(options.max_thinking_tokens).toBe(1000);
+    });
+
+    it('should include all enhanced options when provided', () => {
+      const allowedTools = ['Read', 'Write'];
+      const disallowedTools = ['Bash'];
+      
+      const options = ParameterValidator.createEnhancedOptions(
+        baseRequest,
+        10, // maxTurns
+        allowedTools,
+        disallowedTools,
+        'bypassPermissions',
+        5000 // maxThinkingTokens
+      );
+
+      expect(options).toEqual({
+        model: 'claude-sonnet-4-20250514',
+        messages: [{ role: 'user', content: 'Hello' }],
+        stream: false,
+        user: undefined,
+        max_turns: 10,
+        allowed_tools: allowedTools,
+        disallowed_tools: disallowedTools,
+        permission_mode: 'bypassPermissions',
+        max_thinking_tokens: 5000
+      });
+    });
+
+    it('should handle boundary values for max_turns', () => {
+      // Lower boundary - should work but warn
+      const options1 = ParameterValidator.createEnhancedOptions(baseRequest, 1);
+      expect(options1.max_turns).toBe(1);
+
+      // Upper boundary - should work but warn
+      const options2 = ParameterValidator.createEnhancedOptions(baseRequest, 100);
+      expect(options2.max_turns).toBe(100);
+
+      // Outside range - should still be added but logged
+      const options3 = ParameterValidator.createEnhancedOptions(baseRequest, 150);
+      expect(options3.max_turns).toBe(150);
+    });
+
+    it('should handle boundary values for max_thinking_tokens', () => {
+      // Lower boundary
+      const options1 = ParameterValidator.createEnhancedOptions(baseRequest, undefined, undefined, undefined, undefined, 0);
+      expect(options1.max_thinking_tokens).toBe(0);
+
+      // Upper boundary
+      const options2 = ParameterValidator.createEnhancedOptions(baseRequest, undefined, undefined, undefined, undefined, 50000);
+      expect(options2.max_thinking_tokens).toBe(50000);
+
+      // Outside range - should still be added but logged
+      const options3 = ParameterValidator.createEnhancedOptions(baseRequest, undefined, undefined, undefined, undefined, 60000);
+      expect(options3.max_thinking_tokens).toBe(60000);
+    });
+
+    it('should not add invalid tools', () => {
+      const invalidTools = ['', '  ', 'valid-tool'];
+      
+      const options = ParameterValidator.createEnhancedOptions(baseRequest, undefined, invalidTools);
+
+      // Should not include allowed_tools since validation failed
+      expect(options.allowed_tools).toBeUndefined();
+    });
+
+    it('should not add invalid permission mode', () => {
+      const options = ParameterValidator.createEnhancedOptions(baseRequest, undefined, undefined, undefined, 'invalidMode');
+
+      // Should not include permission_mode since validation failed
+      expect(options.permission_mode).toBeUndefined();
     });
   });
 });

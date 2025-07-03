@@ -5,6 +5,7 @@
  */
 
 import { z } from 'zod';
+import { StreamingError } from './error';
 
 /**
  * Stream choice schema for streaming chat completion response
@@ -177,21 +178,15 @@ function generateStreamId(): string {
 /**
  * Streaming error types
  */
-export class StreamingError extends Error {
-  constructor(message: string, public code?: string) {
-    super(message);
-    this.name = 'StreamingError';
-  }
-}
 
 export class StreamProcessingError extends StreamingError {
   constructor(message: string) {
-    super(message, 'STREAM_PROCESSING_ERROR');
+    super(`Stream processing error: ${message}`);
   }
 }
 
 export class StreamValidationError extends StreamingError {
   constructor(message: string) {
-    super(message, 'STREAM_VALIDATION_ERROR');
+    super(`Stream validation error: ${message}`);
   }
 }

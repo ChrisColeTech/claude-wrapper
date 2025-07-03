@@ -61,12 +61,14 @@ claude-code-openai-wrapper-node/
     │   │   ├── client.ts             # Claude Code SDK wrapper
     │   │   ├── parser.ts             # Response message parsing
     │   │   └── metadata.ts           # Cost and session metadata extraction
-    │   ├── tools/                    # Claude Code tools management
+    │   ├── tools/                    # OpenAI Tools API support
     │   │   ├── index.ts              # Tools exports
-    │   │   ├── constants.ts          # Claude Code tool constants and types
-    │   │   ├── manager.ts            # Tool enablement and control
-    │   │   ├── validator.ts          # Tool name validation
-    │   │   └── filter.ts             # Tool content filtering
+    │   │   ├── schemas.ts            # OpenAI tool schema validation
+    │   │   ├── converter.ts          # OpenAI ↔ Claude tool format conversion
+    │   │   ├── formatter.ts          # Tool call response formatting
+    │   │   ├── registry.ts           # Tool function schema registry
+    │   │   ├── state.ts              # Tool calling state management
+    │   │   └── types.ts              # OpenAI tools API types
     │   ├── validation/               # Parameter validation
     │   │   ├── index.ts              # Validation exports
     │   │   ├── validator.ts          # OpenAI parameter validation
@@ -109,7 +111,7 @@ claude-code-openai-wrapper-node/
     │   │   ├── message/              # Message processing tests
     │   │   ├── session/              # Session management tests
     │   │   ├── claude/               # Claude SDK integration tests
-    │   │   ├── tools/                # Tools management tests
+    │   │   ├── tools/                # OpenAI tools API tests
     │   │   ├── validation/           # Parameter validation tests
     │   │   ├── repositories/         # Repository layer tests
     │   │   ├── services/             # Business logic tests
@@ -156,6 +158,7 @@ claude-code-openai-wrapper-node/
 | `session_manager.py` | `src/session/` | Session management with TTL and cleanup |
 | `claude_cli.py` | `src/claude/` | Claude Code SDK integration |
 | `parameter_validator.py` | `src/validation/` | Parameter validation and compatibility |
+| N/A (new feature) | `src/tools/` | OpenAI Tools API support (no Python equivalent) |
 
 ### **Detailed Component Mapping**
 
@@ -235,6 +238,17 @@ claude-code-openai-wrapper-node/
 | `ParameterValidator` | `src/validation/validator.ts` | Parameter validation |
 | `extract_claude_headers` | `src/validation/headers.ts` | Header processing |
 | `CompatibilityReporter` | `src/validation/compatibility.ts` | Compatibility analysis |
+
+#### **OpenAI Tools API (New Feature → `src/tools/`)**
+
+| OpenAI Specification | TypeScript File | Purpose |
+|---------------------|-----------------|---------|
+| Tool function schema validation | `src/tools/schemas.ts` | OpenAI tools schema validation |
+| OpenAI ↔ Claude format conversion | `src/tools/converter.ts` | Tool format conversion |
+| Tool call response formatting | `src/tools/formatter.ts` | OpenAI-compatible tool call responses |
+| Tool function registry | `src/tools/registry.ts` | Dynamic tool schema management |
+| Tool calling state tracking | `src/tools/state.ts` | Tool call state across conversation turns |
+| OpenAI tools API types | `src/tools/types.ts` | TypeScript interfaces for OpenAI tools |
 
 ## 🔧 Configuration Files
 
