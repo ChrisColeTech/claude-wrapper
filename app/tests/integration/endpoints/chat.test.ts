@@ -29,19 +29,34 @@ describe('Phase 10B: Chat Completions Endpoint Integration', () => {
     // Reset mocks
     jest.clearAllMocks();
     
-    // Setup mock implementations for services at the prototype level
+    // Setup mock implementations for services at the constructor level
     const MockSessionService = require('../../../src/services/session-service').SessionService;
-    MockSessionService.prototype.getSessionWithMessages = jest.fn().mockReturnValue(null);
-    MockSessionService.prototype.createSession = jest.fn();
-    MockSessionService.prototype.addMessagesToSession = jest.fn();
+    MockSessionService.mockImplementation(() => ({
+      getSessionWithMessages: jest.fn().mockReturnValue(null),
+      createSession: jest.fn().mockReturnValue({
+        session_id: 'test-session-123',
+        created_at: new Date(),
+        last_accessed: new Date(),
+        message_count: 0,
+        expires_at: new Date(Date.now() + 60 * 60 * 1000),
+        id: 'test-session-123',
+        model: 'claude-3-sonnet-20240229',
+        system_prompt: 'You are a helpful assistant.',
+        max_turns: 10,
+        status: 'active'
+      }),
+      addMessagesToSession: jest.fn()
+    }));
 
     const MockMessageService = require('../../../src/services/message-service').MessageService;
-    MockMessageService.prototype.convertToClaudeFormat = jest.fn().mockResolvedValue({
-      prompt: 'Hello, how are you?',
-      systemPrompt: undefined
-    });
-    MockMessageService.prototype.filterContent = jest.fn().mockResolvedValue('Hello! How can I help you today?');
-    MockMessageService.prototype.estimateTokens = jest.fn().mockResolvedValue(10);
+    MockMessageService.mockImplementation(() => ({
+      convertToClaudeFormat: jest.fn().mockResolvedValue({
+        prompt: 'Hello, how are you?',
+        systemPrompt: undefined
+      }),
+      filterContent: jest.fn().mockResolvedValue('Hello! How can I help you today?'),
+      estimateTokens: jest.fn().mockResolvedValue(10)
+    }));
 
     // Setup validation mocks at module level
     const MockParameterValidator = require('../../../src/validation/validator').ParameterValidator;
@@ -63,9 +78,17 @@ describe('Phase 10B: Chat Completions Endpoint Integration', () => {
     app.use(ChatRouter.createRouter());
     request = supertest(app);
     
-    // Setup mock references
-    mockSessionService = MockSessionService.prototype;
-    mockMessageService = MockMessageService.prototype;
+    // Setup mock references - note these are just for type checking, actual behavior is mocked above
+    mockSessionService = {
+      getSessionWithMessages: jest.fn(),
+      createSession: jest.fn(),
+      addMessagesToSession: jest.fn()
+    } as any;
+    mockMessageService = {
+      convertToClaudeFormat: jest.fn(),
+      filterContent: jest.fn(), 
+      estimateTokens: jest.fn()
+    } as any;
   });
 
   afterEach(() => {

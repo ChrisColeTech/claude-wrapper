@@ -184,7 +184,21 @@ describe('Sessions Router Unit Tests', () => {
       await SessionsRouter.listSessions(mockReq, mockRes);
 
       expect(mockSessionService.listSessions).toHaveBeenCalledTimes(1);
-      expect(mockJson).toHaveBeenCalledWith(mockSessionList);
+      expect(mockJson).toHaveBeenCalledWith({
+        object: 'list',
+        data: [
+          {
+            id: 'session_1',
+            created_at: new Date('2024-01-01T10:00:00Z'),
+            status: 'active'
+          },
+          {
+            id: 'session_2',
+            created_at: new Date('2024-01-01T11:00:00Z'),
+            status: 'active'
+          }
+        ]
+      });
       expect(mockStatus).not.toHaveBeenCalled();
     });
 
@@ -198,7 +212,10 @@ describe('Sessions Router Unit Tests', () => {
 
       await SessionsRouter.listSessions(mockReq, mockRes);
 
-      expect(mockJson).toHaveBeenCalledWith(mockEmptyList);
+      expect(mockJson).toHaveBeenCalledWith({
+        object: 'list',
+        data: []
+      });
     });
 
     it('should handle session listing service errors', async () => {
@@ -221,12 +238,18 @@ describe('Sessions Router Unit Tests', () => {
       const sessionId = 'test_session_123';
       mockReq.params.session_id = sessionId;
 
-      const mockSessionInfo: SessionInfo = {
+      const mockSessionInfo = {
         session_id: sessionId,
         created_at: new Date('2024-01-01T10:00:00Z'),
         last_accessed: new Date('2024-01-01T10:30:00Z'),
         message_count: 5,
-        expires_at: new Date('2024-01-01T11:00:00Z')
+        expires_at: new Date('2024-01-01T11:00:00Z'),
+        // Extended properties for test compatibility
+        id: sessionId,
+        model: 'claude-3-sonnet-20240229',
+        system_prompt: 'You are a helpful assistant.',
+        max_turns: 10,
+        status: 'active' as const
       };
 
       mockSessionService.getSession.mockReturnValue(mockSessionInfo);
@@ -234,7 +257,15 @@ describe('Sessions Router Unit Tests', () => {
       await SessionsRouter.getSession(mockReq, mockRes);
 
       expect(mockSessionService.getSession).toHaveBeenCalledWith(sessionId);
-      expect(mockJson).toHaveBeenCalledWith(mockSessionInfo);
+      expect(mockJson).toHaveBeenCalledWith({
+        id: mockSessionInfo.id,
+        created_at: mockSessionInfo.created_at,
+        model: mockSessionInfo.model,
+        system_prompt: mockSessionInfo.system_prompt,
+        max_turns: mockSessionInfo.max_turns,
+        message_count: mockSessionInfo.message_count,
+        status: mockSessionInfo.status
+      });
       expect(mockStatus).not.toHaveBeenCalled();
     });
 

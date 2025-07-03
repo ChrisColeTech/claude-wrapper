@@ -246,7 +246,13 @@ describe('Sessions Endpoints Integration Tests', () => {
         created_at: new Date('2024-01-01T10:00:00Z'),
         last_accessed: new Date('2024-01-01T10:30:00Z'),
         message_count: 5,
-        expires_at: new Date('2024-01-01T11:00:00Z')
+        expires_at: new Date('2024-01-01T11:00:00Z'),
+        // Extended properties for test compatibility
+        id: sessionId,
+        model: 'claude-3-sonnet-20240229',
+        system_prompt: 'You are a helpful assistant.',
+        max_turns: 10,
+        status: 'active' as const
       };
 
       mockSessionService.getSession.mockReturnValue(mockSessionInfo);
@@ -304,7 +310,13 @@ describe('Sessions Endpoints Integration Tests', () => {
         created_at: new Date('2024-01-01T10:00:00Z'),
         last_accessed: new Date('2024-01-01T10:30:00Z'),
         message_count: 1,
-        expires_at: new Date('2024-01-01T11:00:00Z')
+        expires_at: new Date('2024-01-01T11:00:00Z'),
+        // Extended properties for test compatibility
+        id: sessionId,
+        model: 'claude-3-sonnet-20240229',
+        system_prompt: 'You are a helpful assistant.',
+        max_turns: 10,
+        status: 'active' as const
       };
 
       mockSessionService.getSession.mockReturnValue(mockSessionInfo);
@@ -330,7 +342,13 @@ describe('Sessions Endpoints Integration Tests', () => {
         created_at: new Date('2024-01-01T10:00:00Z'),
         last_accessed: new Date('2024-01-01T10:30:00Z'),
         message_count: 2,
-        expires_at: new Date('2024-01-01T11:00:00Z')
+        expires_at: new Date('2024-01-01T11:00:00Z'),
+        // Extended properties for test compatibility
+        id: sessionId,
+        model: 'claude-3-sonnet-20240229',
+        system_prompt: 'You are a helpful assistant.',
+        max_turns: 10,
+        status: 'active' as const
       };
 
       mockSessionService.getSession.mockReturnValue(mockSessionInfo);
@@ -500,7 +518,13 @@ describe('Sessions Endpoints Integration Tests', () => {
         created_at: new Date('2024-01-01T10:00:00.000Z'),
         last_accessed: new Date('2024-01-01T10:30:00.000Z'),
         message_count: 3,
-        expires_at: new Date('2024-01-01T11:00:00.000Z')
+        expires_at: new Date('2024-01-01T11:00:00.000Z'),
+        // Extended properties for test compatibility
+        id: 'json_test_session',
+        model: 'claude-3-sonnet-20240229',
+        system_prompt: 'You are a helpful assistant.',
+        max_turns: 10,
+        status: 'active' as const
       };
 
       mockSessionService.getSession.mockReturnValue(mockSessionInfo);
