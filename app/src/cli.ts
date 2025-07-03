@@ -142,17 +142,17 @@ export class CliRunner {
       // Handle daemon commands first
       if (options.stop) {
         await this.stopDaemon();
-        return;
+        process.exit(0);
       }
 
       if (options.status) {
         await this.checkDaemonStatus();
-        return;
+        process.exit(0);
       }
 
       if (options.start) {
         await this.startDaemon(options);
-        return;
+        process.exit(0);
       }
 
       // Override environment variables with CLI options
@@ -166,24 +166,28 @@ export class CliRunner {
         process.env.DEBUG_MODE = 'true';
       }
 
-      // Create logger first to show startup messages
-      const logger = createLogger(config);
+      // Reload config after setting environment variables
+      const { loadEnvironmentConfig } = await import('./utils/env');
+      const updatedConfig = loadEnvironmentConfig();
+
+      // Create logger with updated config
+      const logger = createLogger(updatedConfig);
       
       // Show startup banner
       console.log('\n🚀 Claude Code OpenAI Wrapper v1.0.0');
       console.log('==================================================');
       console.log('Starting server...');
-      console.log(`Port: ${options.port || config.PORT}`);
-      console.log(`Debug: ${options.debug || config.DEBUG_MODE ? 'enabled' : 'disabled'}`);
-      console.log(`Verbose: ${options.verbose || config.VERBOSE ? 'enabled' : 'disabled'}`);
+      console.log(`Port: ${updatedConfig.PORT}`);
+      console.log(`Debug: ${updatedConfig.DEBUG_MODE ? 'enabled' : 'disabled'}`);
+      console.log(`Verbose: ${updatedConfig.VERBOSE ? 'enabled' : 'disabled'}`);
       console.log('==================================================\n');
       
       logger.info('Starting Claude Code OpenAI Wrapper', {
         version: '1.0.0',
         options: {
-          port: options.port || config.PORT,
-          verbose: options.verbose || config.VERBOSE,
-          debug: options.debug || config.DEBUG_MODE,
+          port: updatedConfig.PORT,
+          verbose: updatedConfig.VERBOSE,
+          debug: updatedConfig.DEBUG_MODE,
           interactive: options.interactive !== false
         }
       });
@@ -201,7 +205,7 @@ export class CliRunner {
 
       // Start the server with progress indicators
       console.log('🔧 Initializing authentication providers...');
-      const result = await createAndStartServer(config);
+      const result = await createAndStartServer(updatedConfig);
       
       console.log('\n🎉 Server is ready and running!');
       console.log('==================================================');
@@ -329,11 +333,20 @@ export class CliRunner {
     if (options.verbose) args.push('--verbose');
     if (options.debug) args.push('--debug');
 
-    // Spawn detached process
+    // Spawn detached process using node directly to avoid recursion
     const { spawn } = require('child_process');
-    const child = spawn('claude-wrapper', args, {
+    const nodePath = process.execPath;
+    const scriptPath = path.join(__dirname, 'index.js'); // Use absolute path to index.js
+    
+    const child = spawn(nodePath, [scriptPath], {
       detached: true,
-      stdio: ['ignore', 'pipe', 'pipe']
+      stdio: ['ignore', 'pipe', 'pipe'],
+      env: {
+        ...process.env,
+        PORT: port,
+        VERBOSE: options.verbose ? 'true' : undefined,
+        DEBUG_MODE: options.debug ? 'true' : undefined
+      }
     });
 
     // Write PID file

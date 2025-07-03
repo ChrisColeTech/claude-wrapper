@@ -103,7 +103,7 @@ function validateCorsOrigins(value?: string): string {
  * Load and validate all environment variables
  * @returns Validated configuration object
  */
-function loadEnvironmentConfig(): Config {
+export function loadEnvironmentConfig(): Config {
   try {
     return {
       DEBUG_MODE: parseBoolean(process.env.DEBUG_MODE),

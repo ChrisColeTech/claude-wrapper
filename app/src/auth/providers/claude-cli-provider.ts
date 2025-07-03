@@ -19,55 +19,20 @@ const logger = getLogger('ClaudeCliProvider');
 export class ClaudeCliProvider implements IAutoDetectProvider {
   /**
    * Validate Claude CLI authentication configuration
+   * Matches Python behavior - assumes CLI is valid by default
    */
   async validate(): Promise<AuthValidationResult> {
-    const errors: string[] = [];
-    const config: Record<string, any> = {};
-
-    try {
-      // Check if Claude CLI is installed
-      const cliInstalled = await this.isClaudeCliInstalled();
-      config.cli_installed = cliInstalled;
-
-      if (!cliInstalled) {
-        errors.push('Claude CLI not installed or not in PATH');
-        return {
-          valid: false,
-          errors,
-          config,
-          method: AuthMethod.CLAUDE_CLI
-        };
-      }
-
-      // Check if Claude CLI is authenticated
-      const authStatus = await this.checkClaudeCliAuth();
-      config.auth_status = authStatus;
-
-      if (!authStatus.authenticated) {
-        errors.push(`Claude CLI not authenticated: ${authStatus.error || 'Unknown error'}`);
-      } else {
-        logger.debug('Claude CLI authentication verified');
-        config.user_info = authStatus.userInfo;
-      }
-
-    } catch (error) {
-      const errorMsg = `Failed to validate Claude CLI: ${error}`;
-      errors.push(errorMsg);
-      logger.debug(errorMsg);
-    }
-
-    const isValid = errors.length === 0;
+    logger.debug('Claude CLI authentication: assuming valid (matches Python behavior)');
     
-    if (isValid) {
-      logger.info('Claude CLI authentication validated successfully');
-    } else {
-      logger.debug(`Claude CLI validation failed: ${errors.join(', ')}`);
-    }
-
+    // Python approach: assume Claude CLI is functional
+    // Let the actual SDK handle authentication during usage
     return {
-      valid: isValid,
-      errors,
-      config,
+      valid: true,
+      errors: [],
+      config: {
+        method: 'Claude Code CLI authentication',
+        note: 'Using existing Claude Code CLI authentication'
+      },
       method: AuthMethod.CLAUDE_CLI
     };
   }

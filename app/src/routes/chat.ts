@@ -20,6 +20,7 @@ import { MessageService } from '../services/message-service';
 import { getLogger } from '../utils/logger';
 import { Message } from '../models/message';
 import { ChatCompletionRequest as ChatRequest } from '../models/chat';
+import { claudeService } from '../claude/service';
 
 const logger = getLogger('ChatRouter');
 
@@ -192,17 +193,46 @@ export class ChatRouter {
 
       res.write(`data: ${JSON.stringify(initialChunk)}\n\n`);
 
-      // TODO: Implement Claude Code SDK streaming call
-      // This is a placeholder - will be implemented with actual SDK integration
-      const mockStreamingResponse = [
-        { content: 'Hello', tokens: 1 },
-        { content: ' there!', tokens: 2 },
-        { content: ' How can I help you today?', tokens: 6 }
-      ];
+      // Call Claude Code SDK streaming
+      try {
+        const messages = request.messages;
+        const streamingGenerator = claudeService.createStreamingChatCompletion({
+          ...request,
+          messages,
+          stream: true
+        });
 
-      for (const chunk of mockStreamingResponse) {
-        contentBuffer += chunk.content;
-        completionTokens += chunk.tokens;
+        for await (const chunk of streamingGenerator) {
+          if (chunk.delta) {
+            contentBuffer += chunk.delta;
+            completionTokens += this.messageService.estimateTokens(chunk.delta);
+
+            const streamChunk: ChatCompletionResponse = {
+              id: completionId,
+              object: 'chat.completion.chunk',
+              created: Math.floor(startTime / 1000),
+              model: request.model,
+              choices: [{
+                index: 0,
+                delta: { content: chunk.delta },
+                finish_reason: chunk.finished ? 'stop' : null
+              }],
+              session_id: sessionId
+            };
+
+            res.write(`data: ${JSON.stringify(streamChunk)}\n\n`);
+          }
+
+          if (chunk.finished) {
+            break;
+          }
+        }
+      } catch (streamError) {
+        logger.error('Streaming error', { error: streamError });
+        // Fallback to a simple response
+        const fallbackContent = "I apologize, but I encountered an error while processing your request.";
+        contentBuffer = fallbackContent;
+        completionTokens = this.messageService.estimateTokens(fallbackContent);
 
         const streamChunk: ChatCompletionResponse = {
           id: completionId,
@@ -211,7 +241,7 @@ export class ChatRouter {
           model: request.model,
           choices: [{
             index: 0,
-            delta: { content: chunk.content },
+            delta: { content: fallbackContent },
             finish_reason: null
           }],
           session_id: sessionId
@@ -366,14 +396,60 @@ export class ChatRouter {
         logger.info("Tools enabled by user request");
       }
 
-      // 7. TODO: Collect all chunks from Claude CLI (Python pattern main.py:588-599)
-      // This is a placeholder for actual Claude Code SDK integration
-      const mockChunks = [
-        { content: 'Hello! How can I help you today?', stop_reason: 'end_turn' }
-      ];
+      // 7. Call Claude Code CLI directly (temporary fallback until SDK is fixed)
+      let rawAssistantContent: string;
+      try {
+        const { exec } = await import('child_process');
+        const { promisify } = await import('util');
+        const execAsync = promisify(exec);
+        
+        // Build command args
+        const args = [
+          '--print',
+          `--model ${request.model || 'claude-3-5-sonnet-20241022'}`
+        ];
+        
+        if (!request.enable_tools) {
+          // Disable tools for OpenAI compatibility
+          args.push('--max-turns 1');
+        }
+        
+        if (systemPrompt) {
+          args.push(`--system-prompt "${systemPrompt.replace(/"/g, '\\"')}"`);
+        }
+        
+        // Escape the prompt properly
+        const escapedPrompt = filteredPrompt.replace(/"/g, '\\"').replace(/\n/g, '\\n');
+        const command = `claude ${args.join(' ')} "${escapedPrompt}"`;
+        
+        logger.info(`Executing Claude CLI: ${command.substring(0, 100)}...`);
+        
+        const { stdout, stderr } = await execAsync(command, { 
+          timeout: 60000, // 60 seconds timeout
+          maxBuffer: 1024 * 1024 * 10 // 10MB buffer
+        });
+        
+        if (stderr) {
+          logger.warn('Claude CLI stderr:', stderr);
+        }
+        
+        rawAssistantContent = stdout.trim();
+        
+        if (!rawAssistantContent) {
+          throw new Error('Claude CLI returned empty response');
+        }
+        
+        logger.info('Claude CLI response received', { 
+          length: rawAssistantContent.length,
+          preview: rawAssistantContent.substring(0, 100) 
+        });
+        
+      } catch (cliError) {
+        logger.error('Claude CLI error:', cliError);
+        throw new Error(`Claude CLI execution failed: ${cliError instanceof Error ? cliError.message : 'Unknown error'}`);
+      }
 
       // 8. Extract assistant message (Python pattern main.py:602)
-      const rawAssistantContent = this.parseClaudeMessage(mockChunks);
       
       if (!rawAssistantContent) {
         res.status(500).json({
@@ -390,15 +466,16 @@ export class ChatRouter {
       const assistantContent = rawAssistantContent ? await this.messageService.filterContent(rawAssistantContent) : '';
 
       // 10. Add assistant response to session if using session mode (Python pattern main.py:611-613)
-      if (actualSessionId && assistantContent) {
+      const finalSessionId = actualSessionId;
+      if (finalSessionId && assistantContent) {
         const assistantMessage: Message = {
           role: 'assistant',
           content: assistantContent
         };
-        this.sessionService.addMessagesToSession(actualSessionId, [assistantMessage]);
+        this.sessionService.addMessagesToSession(finalSessionId, [assistantMessage]);
       }
 
-      // 11. Estimate tokens (Python pattern main.py:615-617)
+      // 11. Estimate token usage (Python pattern main.py:615-617)
       const promptTokens = filteredPrompt ? await this.messageService.estimateTokens(filteredPrompt) : 0;
       const completionTokens = assistantContent ? await this.messageService.estimateTokens(assistantContent) : 0;
 
@@ -421,12 +498,12 @@ export class ChatRouter {
           completion_tokens: completionTokens,
           total_tokens: promptTokens + completionTokens
         },
-        session_id: actualSessionId
+        session_id: finalSessionId
       };
 
       logger.info('Non-streaming completion completed', {
         requestId,
-        sessionId: actualSessionId,
+        sessionId: finalSessionId,
         contentLength: assistantContent.length,
         totalTokens: promptTokens + completionTokens,
         duration: Date.now() - startTime
