@@ -4,10 +4,10 @@
  * Based on Python claude_cli.py parse_claude_message implementation
  */
 
-import { getLogger } from '../utils/logger';
+// import { getLogger } from '../utils/logger';
 import { ClaudeCodeMessage } from './client';
 
-const logger = getLogger('ClaudeParser');
+// const _logger = getLogger('ClaudeParser');
 
 /**
  * Parsed Claude response interface

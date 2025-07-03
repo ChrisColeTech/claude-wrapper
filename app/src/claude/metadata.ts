@@ -4,10 +4,10 @@
  * Based on Python claude_cli.py extract_metadata implementation
  */
 
-import { getLogger } from '../utils/logger';
+// import { getLogger } from '../utils/logger';
 import { ClaudeCodeMessage } from './client';
 
-const logger = getLogger('ClaudeMetadata');
+// const _logger = getLogger('ClaudeMetadata');
 
 /**
  * Response metadata interface

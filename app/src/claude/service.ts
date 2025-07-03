@@ -5,15 +5,15 @@
  */
 
 import { ClaudeClient, ClaudeCodeOptions, ClaudeCodeMessage } from './client';
-import { ClaudeResponseParser, StreamResponseParser, ParsedClaudeResponse } from './parser';
+import { ClaudeResponseParser, StreamResponseParser } from './parser';
 import { ClaudeMetadataExtractor, ResponseMetadata } from './metadata';
 import { MessageAdapter } from '../message/adapter';
 import { Message } from '../models/message';
 import { ChatCompletionRequest } from '../models/chat';
-import { ClaudeClientError, AuthenticationError, StreamingError } from '../models/error';
-import { getLogger } from '../utils/logger';
+import { ClaudeClientError, StreamingError } from '../models/error';
+// import { getLogger } from '../utils/logger';
 
-const logger = getLogger('ClaudeService');
+// const _logger = getLogger('ClaudeService');
 
 /**
  * Claude completion request options
@@ -171,7 +171,7 @@ export class ClaudeService {
 
         // Check if response is complete
         if (streamParser.isComplete()) {
-          const finalResponse = streamParser.getFinalResponse();
+          streamParser.getFinalResponse();
           const metadata = ClaudeMetadataExtractor.extractMetadata(streamParser.getMessages());
           
           yield {

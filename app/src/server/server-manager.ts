@@ -40,7 +40,7 @@ export class ServerManager {
     app: express.Application, 
     preferredPort: number
   ): Promise<ServerStartResult> {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       try {
         // Try preferred port first (matching Python behavior)
         const server = app.listen(preferredPort, () => {
@@ -116,6 +116,7 @@ export class ServerManager {
     }
 
     return new Promise((resolve) => {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       this.server!.close(() => {
         this.logger.info('Server shutdown completed');
         resolve();

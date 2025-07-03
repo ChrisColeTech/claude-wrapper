@@ -62,6 +62,7 @@ export function configureMiddleware(app: Express, config?: MiddlewareConfig): vo
   logger.debug('✅ Request ID middleware configured');
 
   // 5. JSON body parser with size limits (before validation)
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
   const express = require('express');
   app.use(express.json({ 
     limit: '10mb',

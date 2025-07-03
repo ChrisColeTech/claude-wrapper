@@ -5,7 +5,7 @@
  */
 
 import { z } from 'zod';
-import { MessageSchema, type Message } from './message';
+import { MessageSchema } from './message';
 import { getLogger } from '../utils/logger';
 
 const logger = getLogger('ChatModels');

@@ -471,6 +471,7 @@ export class SystemMonitor extends EventEmitter {
     }
 
     // Update CPU metrics
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     this.metrics.cpu.loadAverage = require('os').loadavg();
 
     // Calculate rates (simple approximation)
@@ -526,8 +527,6 @@ export class SystemMonitor extends EventEmitter {
    * Send alerts through configured channels
    */
   private sendAlerts(alerts: string[]): void {
-    const alertMessage = `System alerts detected: ${alerts.join(', ')}`;
-
     if (this.alertConfig.channels.console) {
       logger.warn('SYSTEM ALERT', { alerts });
     }

@@ -8,7 +8,6 @@
 
 import { Router, Request, Response } from 'express';
 import { SessionService } from '../services/session-service';
-import { SessionInfo, SessionListResponse } from '../models/session';
 import { getLogger } from '../utils/logger';
 
 const logger = getLogger('SessionsRouter');
@@ -51,6 +50,9 @@ export class SessionsRouter {
   static createRouter(): Router {
     const router = Router();
 
+    // POST /v1/sessions - Create a new session
+    router.post('/v1/sessions', this.createSession.bind(this));
+
     // GET /v1/sessions/stats - Session manager statistics
     router.get('/v1/sessions/stats', this.getSessionStats.bind(this));
 
@@ -60,11 +62,114 @@ export class SessionsRouter {
     // GET /v1/sessions/{session_id} - Get information about a specific session
     router.get('/v1/sessions/:session_id', this.getSession.bind(this));
 
+    // PATCH /v1/sessions/{session_id} - Update a session
+    router.patch('/v1/sessions/:session_id', this.updateSession.bind(this));
+
     // DELETE /v1/sessions/{session_id} - Delete a specific session
     router.delete('/v1/sessions/:session_id', this.deleteSession.bind(this));
 
-    logger.info('SessionsRouter configured with 4 endpoints');
+    logger.info('SessionsRouter configured with 6 endpoints');
     return router;
+  }
+
+  /**
+   * POST /v1/sessions endpoint
+   * Create a new session
+   */
+  static async createSession(req: Request, res: Response): Promise<void> {
+    try {
+      logger.debug('Creating new session', { body: req.body });
+
+      const { system_prompt, max_turns, model } = req.body;
+
+      // Validate required fields
+      if (!model) {
+        res.status(400).json({
+          error: 'Bad Request',
+          message: 'model is required'
+        });
+        return;
+      }
+
+      // Create session with SessionService
+      const sessionData = {
+        system_prompt: system_prompt || 'You are a helpful assistant.',
+        max_turns: max_turns || 10,
+        model,
+        message_count: 0,
+        status: 'active' as const
+      };
+
+      const session = this.sessionService.createSession(sessionData);
+
+      logger.debug('Session created', { sessionId: session.id });
+
+      res.status(201).json({
+        id: session.id,
+        created_at: session.created_at,
+        model: session.model,
+        system_prompt: session.system_prompt,
+        max_turns: session.max_turns,
+        message_count: session.message_count,
+        status: session.status
+      });
+    } catch (error) {
+      logger.error('Failed to create session', { error });
+      res.status(500).json({
+        error: 'Internal Server Error',
+        message: 'Failed to create session'
+      });
+    }
+  }
+
+  /**
+   * PATCH /v1/sessions/{session_id} endpoint
+   * Update an existing session
+   */
+  static async updateSession(req: Request, res: Response): Promise<void> {
+    try {
+      const { session_id } = req.params;
+      const updates = req.body;
+
+      if (!session_id) {
+        res.status(400).json({
+          error: 'Bad Request',
+          message: 'session_id parameter is required'
+        });
+        return;
+      }
+
+      logger.debug('Updating session', { sessionId: session_id, updates });
+
+      const session = this.sessionService.updateSession(session_id, updates);
+
+      if (!session) {
+        logger.debug('Session not found for update', { sessionId: session_id });
+        res.status(404).json({
+          error: 'Not Found',
+          message: 'Session not found'
+        });
+        return;
+      }
+
+      logger.debug('Session updated', { sessionId: session_id });
+
+      res.json({
+        id: session.id,
+        created_at: session.created_at,
+        model: session.model,
+        system_prompt: session.system_prompt,
+        max_turns: session.max_turns,
+        message_count: session.message_count,
+        status: session.status
+      });
+    } catch (error) {
+      logger.error('Failed to update session', { error });
+      res.status(500).json({
+        error: 'Internal Server Error',
+        message: 'Failed to update session'
+      });
+    }
   }
 
   /**
@@ -109,12 +214,22 @@ export class SessionsRouter {
 
       const sessionList = this.sessionService.listSessions();
 
+      // Format response to match OpenAI-style list format expected by tests
+      const response = {
+        object: 'list',
+        data: sessionList.sessions.map(session => ({
+          id: session.session_id,
+          created_at: session.created_at,
+          status: 'active'
+        }))
+      };
+
       logger.debug('Sessions listed', {
         total: sessionList.total,
         count: sessionList.sessions.length
       });
 
-      res.json(sessionList);
+      res.json(response);
     } catch (error) {
       logger.error('Failed to list sessions', { error });
       res.status(500).json({
@@ -158,7 +273,16 @@ export class SessionsRouter {
         messageCount: sessionInfo.message_count
       });
 
-      res.json(sessionInfo);
+      // Return session in expected format
+      res.json({
+        id: sessionInfo.id,
+        created_at: sessionInfo.created_at,
+        model: sessionInfo.model,
+        system_prompt: sessionInfo.system_prompt,
+        max_turns: sessionInfo.max_turns,
+        message_count: sessionInfo.message_count,
+        status: sessionInfo.status
+      });
     } catch (error) {
       logger.error('Failed to get session', { error, sessionId: req.params.session_id });
       res.status(500).json({
@@ -197,12 +321,8 @@ export class SessionsRouter {
         return;
       }
 
-      const response: SessionDeleteResponse = {
-        message: `Session ${session_id} deleted successfully`
-      };
-
       logger.info('Session deleted successfully', { sessionId: session_id });
-      res.json(response);
+      res.status(204).send(); // 204 No Content for successful deletion
     } catch (error) {
       logger.error('Failed to delete session', { error, sessionId: req.params.session_id });
       res.status(500).json({

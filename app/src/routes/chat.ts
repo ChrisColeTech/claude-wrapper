@@ -8,15 +8,15 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { ParameterValidator, ValidationResult } from '../validation/validator';
+import { ParameterValidator } from '../validation/validator';
 import { HeaderProcessor, ClaudeHeaders } from '../validation/headers';
 import { CompatibilityReporter } from '../validation/compatibility';
 import { SessionService } from '../services/session-service';
 import { MessageService } from '../services/message-service';
-import { ToolValidator } from '../tools/validator';
-import { ToolManager, ToolConfiguration } from '../tools/manager';
-import { ToolContentFilter } from '../tools/filter';
-import { ModelsRouter } from './models';
+// import { ToolValidator } from '../tools/validator';
+// import { ToolManager } from '../tools/manager';
+// import { ToolContentFilter } from '../tools/filter';
+// import { ModelsRouter } from './models';
 import { getLogger } from '../utils/logger';
 import { Message } from '../models/message';
 import { ChatCompletionRequest as ChatRequest } from '../models/chat';
@@ -87,7 +87,7 @@ export class ChatRouter {
    */
   async createChatCompletion(req: Request, res: Response): Promise<void> {
     const startTime = Date.now();
-    let requestId: string = `chatcmpl-${Math.random().toString(16).substr(2, 8)}`;
+    const requestId: string = `chatcmpl-${Math.random().toString(16).substr(2, 8)}`;
     let sessionId: string | undefined;
     
     try {
@@ -171,7 +171,7 @@ export class ChatRouter {
     const completionId = `chatcmpl-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     let contentBuffer = '';
     let totalTokens = 0;
-    let promptTokens = 0;
+    const promptTokens = 0;
     let completionTokens = 0;
     let estimatedCost = 0;
 
@@ -333,7 +333,7 @@ export class ChatRouter {
       
       // 3. Filter content (Python pattern main.py:561-563)
       const filteredPrompt = prompt ? await this.messageService.filterContent(prompt) : '';
-      const filteredSystemPrompt = systemPrompt ? await this.messageService.filterContent(systemPrompt) : undefined;
+      await this.messageService.filterContent(systemPrompt || '');
 
       // 4. Get Claude Code SDK options from request (Python pattern main.py:566)
       const claudeOptions = this.buildClaudeOptions(request, claudeHeaders);
@@ -508,9 +508,14 @@ export class ChatRouter {
       const allMessages = [...session.messages, ...messages];
       return { allMessages, actualSessionId: sessionId };
     } else {
-      // Create new session
-      this.sessionService.createSession(sessionId);
-      return { allMessages: messages, actualSessionId: sessionId };
+      // Create new session  
+      const newSession = this.sessionService.createSession({
+        model: 'claude-3-sonnet-20240229',
+        system_prompt: 'You are a helpful assistant.',
+        max_turns: 10,
+        status: 'active'
+      });
+      return { allMessages: messages, actualSessionId: newSession.id };
     }
   }
 
@@ -548,7 +553,7 @@ export class ChatRouter {
    * Estimate token cost based on model and token count
    * Based on Python cost estimation
    */
-  private estimateTokenCost(tokens: number, model: string): number {
+  private estimateTokenCost(tokens: number, _model: string): number {
     // Simplified cost estimation - should be updated with actual pricing
     const costPerToken = 0.000003; // $3 per 1M tokens (example)
     return tokens * costPerToken;

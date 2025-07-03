@@ -356,6 +356,7 @@ class AsyncLock {
     } finally {
       // Release lock
       this.locks.delete(key);
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       resolve!();
     }
   }

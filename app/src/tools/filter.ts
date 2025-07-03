@@ -4,7 +4,7 @@
  * Phase 7A Implementation: Complete tool content filtering and extraction
  */
 
-import { ClaudeCodeTool, CLAUDE_CODE_TOOLS } from './constants';
+import { CLAUDE_CODE_TOOLS } from './constants';
 import { getLogger } from '../utils/logger';
 
 const logger = getLogger('ToolContentFilter');
@@ -255,7 +255,7 @@ export class ToolContentFilter {
       { pattern: /<(str_replace_editor|args|ask_followup_question|question|follow_up|suggest)[^>]*>/g, tools: ['legacy'] }
     ];
     
-    for (const { pattern, tools } of toolChecks) {
+    for (const { pattern } of toolChecks) {
       const matches = content.match(pattern);
       if (matches) {
         for (const match of matches) {
