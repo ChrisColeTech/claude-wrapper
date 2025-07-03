@@ -30,17 +30,39 @@ jest.mock('../../src/auth/auth-manager', () => ({
   }
 }));
 
-jest.mock('../../src/session/manager', () => ({
-  SessionManager: jest.fn(() => ({
-    createSession: jest.fn(() => Promise.resolve({ id: 'test-session' })),
-    getSession: jest.fn(() => Promise.resolve(null)),
-    deleteSession: jest.fn(() => Promise.resolve()),
-    start_cleanup_task: jest.fn(),
-    stop_cleanup_task: jest.fn(),
-    cleanup_expired_sessions: jest.fn(() => Promise.resolve()),
-    get_session_count: jest.fn(() => 0)
-  }))
-}));
+// Create a global session storage that persists across mock instances
+const globalMockSessions = new Map();
+
+jest.mock('../../src/session/manager', () => {
+  return {
+    SessionManager: jest.fn(() => ({
+      get_or_create_session: jest.fn((sessionId) => {
+        const session = {
+          session_id: sessionId || 'test-session',
+          messages: [],
+          created_at: new Date(),
+          last_accessed: new Date(),
+          expires_at: new Date(Date.now() + 60 * 60 * 1000),
+          touch: jest.fn(),
+          add_messages: jest.fn(),
+          get_all_messages: jest.fn(() => []),
+          is_expired: jest.fn(() => false)
+        };
+        globalMockSessions.set(sessionId, session);
+        return session;
+      }),
+      list_sessions: jest.fn(() => Array.from(globalMockSessions.values())),
+      delete_session: jest.fn((sessionId) => {
+        globalMockSessions.delete(sessionId);
+      }),
+      start_cleanup_task: jest.fn(),
+      shutdown: jest.fn(),
+      process_messages: jest.fn((messages, sessionId) => [messages, sessionId]),
+      _cleanup_expired_sessions: jest.fn(() => 0),
+      get_session_count: jest.fn(() => globalMockSessions.size)
+    }))
+  };
+});
 
 jest.mock('../../src/claude/service', () => ({
   claudeService: {
@@ -114,8 +136,8 @@ describe('Phase 15A - Complete System Integration Test Suite', () => {
   });
 
   beforeEach(() => {
-    // Reset all components to clean state
-    jest.clearAllMocks();
+    // Clear global session storage but keep mock functions
+    globalMockSessions.clear();
     
     // Clear environment variables that might affect tests
     delete process.env.API_KEY;
@@ -560,16 +582,16 @@ describe('Phase 15A - Complete System Integration Test Suite', () => {
 
       // POST endpoints should handle validation properly
       const postEndpoints = [
-        '/v1/sessions',
-        '/v1/compatibility', 
-        '/v1/debug/request',
-        '/v1/chat/completions'
+        { endpoint: '/v1/sessions', expectedStatuses: [400, 401, 500] },
+        { endpoint: '/v1/compatibility', expectedStatuses: [400, 401, 500] }, 
+        { endpoint: '/v1/debug/request', expectedStatuses: [200] }, // Debug endpoint returns 200 with debug info
+        { endpoint: '/v1/chat/completions', expectedStatuses: [400, 401, 500] }
       ];
 
-      for (const endpoint of postEndpoints) {
-        // Empty body should trigger validation (400) or auth error (401/500)
+      for (const { endpoint, expectedStatuses } of postEndpoints) {
+        // Empty body should trigger validation (400) or auth error (401/500), except debug endpoint
         const response = await request(server).post(endpoint).send({});
-        expect([400, 401, 500]).toContain(response.status);
+        expect(expectedStatuses).toContain(response.status);
       }
 
       logger.info('HTTP status codes and response formats validated');

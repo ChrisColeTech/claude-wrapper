@@ -66,6 +66,9 @@ export class ExpressAppFactory {
   createApp(config: ServerConfig): express.Application {
     const app = express();
 
+    // Remove security headers that expose server info
+    app.disable('x-powered-by');
+
     // Request parsing middleware
     app.use(express.json({ limit: '10mb' }));
     app.use(express.urlencoded({ extended: true }));

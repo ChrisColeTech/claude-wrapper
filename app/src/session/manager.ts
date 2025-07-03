@@ -247,4 +247,14 @@ export class SessionManager {
       return cleaned_count; // Return for testing
     });
   }
+
+  /**
+   * Get session count
+   * For monitoring and statistics
+   */
+  get_session_count(): number {
+    return this.lock.acquire(() => {
+      return this.sessions.size;
+    });
+  }
 }
