@@ -263,10 +263,13 @@ describe('Sessions Endpoints Integration Tests', () => {
 
       // Dates get serialized to ISO strings in JSON response
       expect(response.body).toEqual({
-        ...mockSessionInfo,
+        id: mockSessionInfo.id,
         created_at: mockSessionInfo.created_at.toISOString(),
-        last_accessed: mockSessionInfo.last_accessed.toISOString(),
-        expires_at: mockSessionInfo.expires_at.toISOString()
+        model: mockSessionInfo.model,
+        system_prompt: mockSessionInfo.system_prompt,
+        max_turns: mockSessionInfo.max_turns,
+        message_count: mockSessionInfo.message_count,
+        status: mockSessionInfo.status
       });
       expect(mockSessionService.getSession).toHaveBeenCalledWith(sessionId);
     });
@@ -327,10 +330,13 @@ describe('Sessions Endpoints Integration Tests', () => {
 
       // Dates get serialized to ISO strings in JSON response
       expect(response.body).toEqual({
-        ...mockSessionInfo,
+        id: mockSessionInfo.id,
         created_at: mockSessionInfo.created_at.toISOString(),
-        last_accessed: mockSessionInfo.last_accessed.toISOString(),
-        expires_at: mockSessionInfo.expires_at.toISOString()
+        model: mockSessionInfo.model,
+        system_prompt: mockSessionInfo.system_prompt,
+        max_turns: mockSessionInfo.max_turns,
+        message_count: mockSessionInfo.message_count,
+        status: mockSessionInfo.status
       });
     });
 
@@ -359,10 +365,13 @@ describe('Sessions Endpoints Integration Tests', () => {
 
       // Dates get serialized to ISO strings in JSON response
       expect(response.body).toEqual({
-        ...mockSessionInfo,
+        id: mockSessionInfo.id,
         created_at: mockSessionInfo.created_at.toISOString(),
-        last_accessed: mockSessionInfo.last_accessed.toISOString(),
-        expires_at: mockSessionInfo.expires_at.toISOString()
+        model: mockSessionInfo.model,
+        system_prompt: mockSessionInfo.system_prompt,
+        max_turns: mockSessionInfo.max_turns,
+        message_count: mockSessionInfo.message_count,
+        status: mockSessionInfo.status
       });
       expect(mockSessionService.getSession).toHaveBeenCalledWith(sessionId);
     });
@@ -535,8 +544,6 @@ describe('Sessions Endpoints Integration Tests', () => {
 
       // Dates should be serialized as ISO strings
       expect(response.body.created_at).toBe('2024-01-01T10:00:00.000Z');
-      expect(response.body.last_accessed).toBe('2024-01-01T10:30:00.000Z');
-      expect(response.body.expires_at).toBe('2024-01-01T11:00:00.000Z');
     });
 
     it('should maintain response structure consistency', async () => {

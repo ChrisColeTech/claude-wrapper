@@ -214,14 +214,16 @@ export class SessionsRouter {
 
       const sessionList = this.sessionService.listSessions();
 
-      // Format response to match OpenAI-style list format expected by tests
+      // Format response to match Python SessionListResponse format
       const response = {
-        object: 'list',
-        data: sessionList.sessions.map(session => ({
-          id: session.session_id,
+        sessions: sessionList.sessions.map(session => ({
+          session_id: session.session_id,
           created_at: session.created_at,
-          status: 'active'
-        }))
+          last_accessed: session.last_accessed,
+          message_count: session.message_count,
+          expires_at: session.expires_at
+        })),
+        total: sessionList.total
       };
 
       logger.debug('Sessions listed', {
@@ -322,7 +324,11 @@ export class SessionsRouter {
       }
 
       logger.info('Session deleted successfully', { sessionId: session_id });
-      res.status(204).send(); // 204 No Content for successful deletion
+      
+      // Return message format matching Python main.py:817
+      res.status(200).json({
+        message: `Session ${session_id} deleted successfully`
+      });
     } catch (error) {
       logger.error('Failed to delete session', { error, sessionId: req.params.session_id });
       res.status(500).json({

@@ -185,19 +185,23 @@ describe('Sessions Router Unit Tests', () => {
 
       expect(mockSessionService.listSessions).toHaveBeenCalledTimes(1);
       expect(mockJson).toHaveBeenCalledWith({
-        object: 'list',
-        data: [
+        sessions: [
           {
-            id: 'session_1',
+            session_id: 'session_1',
             created_at: new Date('2024-01-01T10:00:00Z'),
-            status: 'active'
+            last_accessed: new Date('2024-01-01T10:30:00Z'),
+            message_count: 3,
+            expires_at: new Date('2024-01-01T11:00:00Z')
           },
           {
-            id: 'session_2',
+            session_id: 'session_2',
             created_at: new Date('2024-01-01T11:00:00Z'),
-            status: 'active'
+            last_accessed: new Date('2024-01-01T11:15:00Z'),
+            message_count: 2,
+            expires_at: new Date('2024-01-01T12:00:00Z')
           }
-        ]
+        ],
+        total: 2
       });
       expect(mockStatus).not.toHaveBeenCalled();
     });
@@ -213,8 +217,8 @@ describe('Sessions Router Unit Tests', () => {
       await SessionsRouter.listSessions(mockReq, mockRes);
 
       expect(mockJson).toHaveBeenCalledWith({
-        object: 'list',
-        data: []
+        sessions: [],
+        total: 0
       });
     });
 
@@ -327,10 +331,10 @@ describe('Sessions Router Unit Tests', () => {
       await SessionsRouter.deleteSession(mockReq, mockRes);
 
       expect(mockSessionService.deleteSession).toHaveBeenCalledWith(sessionId);
+      expect(mockStatus).toHaveBeenCalledWith(200);
       expect(mockJson).toHaveBeenCalledWith({
         message: `Session ${sessionId} deleted successfully`
       });
-      expect(mockStatus).not.toHaveBeenCalled();
     });
 
     it('should return 404 when session does not exist for deletion', async () => {
