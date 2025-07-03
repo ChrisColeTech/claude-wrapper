@@ -132,6 +132,15 @@ export class CliRunner {
       // Create logger first to show startup messages
       const logger = createLogger(config);
       
+      // Show startup banner
+      console.log('\n🚀 Claude Code OpenAI Wrapper v1.0.0');
+      console.log('==================================================');
+      console.log('Starting server...');
+      console.log(`Port: ${options.port || config.PORT}`);
+      console.log(`Debug: ${options.debug || config.DEBUG_MODE ? 'enabled' : 'disabled'}`);
+      console.log(`Verbose: ${options.verbose || config.VERBOSE ? 'enabled' : 'disabled'}`);
+      console.log('==================================================\n');
+      
       logger.info('Starting Claude Code OpenAI Wrapper', {
         version: '1.0.0',
         options: {
@@ -145,7 +154,7 @@ export class CliRunner {
       // Interactive API key setup (matches Python main.py lines 859-861)
       // This MUST run BEFORE server start
       if (options.interactive !== false) {
-        logger.info('Running interactive API key setup...');
+        logger.debug('Running interactive API key setup...');
         const runtimeApiKey = await promptForApiProtection();
         if (runtimeApiKey) {
           authManager.setApiKey(runtimeApiKey);
@@ -153,8 +162,23 @@ export class CliRunner {
         }
       }
 
-      // Start the server
+      // Start the server with progress indicators
+      console.log('🔧 Initializing authentication providers...');
       const result = await createAndStartServer(config);
+      
+      console.log('\n🎉 Server is ready and running!');
+      console.log('==================================================');
+      console.log(`🌐 Server URL: ${result.url}`);
+      console.log(`📡 Port: ${result.port}`);
+      console.log('\n📋 Available endpoints:');
+      console.log(`   Health:          ${result.url}/health`);
+      console.log(`   Chat:            ${result.url}/v1/chat/completions`);
+      console.log(`   Models:          ${result.url}/v1/models`);
+      console.log(`   Sessions:        ${result.url}/v1/sessions`);
+      console.log(`   Auth Status:     ${result.url}/v1/auth/status`);
+      console.log('\n💡 Test with:');
+      console.log(`   curl ${result.url}/health`);
+      console.log('==================================================\n');
       
       logger.info('🚀 Server is ready!', {
         url: result.url,
@@ -204,13 +228,25 @@ export class CliRunner {
    * @param error Error to handle
    */
   private handleError(error: Error): void {
+    console.log('\n💥 Startup Failed!');
+    console.log('==================================================');
+    
     if (error instanceof EnvironmentError) {
       console.error(`❌ Configuration Error: ${error.message}`);
-      console.error('Please check your environment variables and try again.');
+      console.error('\n🔧 Troubleshooting:');
+      console.error('   1. Check your environment variables');
+      console.error('   2. Verify .env file configuration');
+      console.error('   3. Ensure all required dependencies are installed');
     } else {
       console.error(`❌ Failed to start server: ${error.message}`);
+      console.error('\n🔧 Troubleshooting:');
+      console.error('   1. Check if port is already in use');
+      console.error('   2. Verify Claude Code CLI is installed (claude --version)');
+      console.error('   3. Check authentication setup');
+      console.error('   4. Try running with --debug for more details');
     }
     
+    console.log('==================================================\n');
     process.exit(1);
   }
 }

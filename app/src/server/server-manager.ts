@@ -42,11 +42,14 @@ export class ServerManager {
   ): Promise<ServerStartResult> {
     return new Promise((resolve, reject) => {
       try {
+        console.log(`🚀 Starting server on port ${preferredPort}...`);
+        
         // Try preferred port first (matching Python behavior)
         const server = app.listen(preferredPort, () => {
           this.server = server;
           const url = `http://localhost:${preferredPort}`;
           
+          console.log(`✅ Server listening on port ${preferredPort}`);
           this.logger.info(`Server started successfully`, {
             port: preferredPort,
             url,

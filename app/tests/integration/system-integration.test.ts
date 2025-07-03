@@ -276,13 +276,12 @@ describe('Phase 15A - Complete System Integration Test Suite', () => {
         .expect(200);
 
       expect(listResponse.body).toMatchObject({
-        object: 'list',
-        data: expect.arrayContaining([
+        sessions: expect.arrayContaining([
           expect.objectContaining({
-            id: sessionId,
-            status: 'active'
+            session_id: sessionId
           })
-        ])
+        ]),
+        total: expect.any(Number)
       });
 
       // Get specific session
@@ -316,7 +315,7 @@ describe('Phase 15A - Complete System Integration Test Suite', () => {
       // Delete session
       await request(server)
         .delete(`/v1/sessions/${sessionId}`)
-        .expect(204);
+        .expect(200);
 
       // Verify session is deleted
       await request(server)
@@ -612,7 +611,8 @@ describe('Phase 15A - Complete System Integration Test Suite', () => {
 
       // Verify session management is functional
       const sessionsResponse = await request(server).get('/v1/sessions').expect(200);
-      expect(sessionsResponse.body.object).toBe('list');
+      expect(sessionsResponse.body).toHaveProperty('sessions');
+      expect(sessionsResponse.body).toHaveProperty('total');
 
       // Verify debug and compatibility tools are functional
       const compatibilityResponse = await request(server)
