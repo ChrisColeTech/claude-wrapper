@@ -1,33 +1,8 @@
-// Main Jest configuration
 module.exports = {
-  preset: 'ts-jest',
-  testEnvironment: 'node',
-  extensionsToTreatAsEsm: ['.ts'],
-  transform: {
-    '^.+\\.ts$': ['ts-jest', { useESM: true }]
-  },
-  moduleNameMapper: {
-    '^@/(.*)$': '<rootDir>/src/$1',
-    '^@models/(.*)$': '<rootDir>/src/models/$1',
-    '^@auth/(.*)$': '<rootDir>/src/auth/$1',
-    '^@message/(.*)$': '<rootDir>/src/message/$1',
-    '^@session/(.*)$': '<rootDir>/src/session/$1',
-    '^@claude/(.*)$': '<rootDir>/src/claude/$1',
-    '^@tools/(.*)$': '<rootDir>/src/tools/$1',
-    '^@utils/(.*)$': '<rootDir>/src/utils/$1'
-  },
-  collectCoverageFrom: [
-    'src/**/*.ts',
-    '!src/**/*.d.ts',
-    '!src/cli.ts',
-    '!src/index.ts'
+  reporters: [["<rootDir>/tests/scripts/custom-reporter.js", {}]],
+  projects: [
+    "<rootDir>/tests/jest.e2e.config.js",
+    "<rootDir>/tests/jest.integration.config.js",
+    "<rootDir>/tests/jest.unit.config.js",
   ],
-  coverageDirectory: 'coverage',
-  coverageReporters: ['text', 'lcov', 'html'],
-  testMatch: [
-    '<rootDir>/tests/unit/**/*.test.ts',
-    '<rootDir>/tests/integration/**/*.test.ts'
-  ],
-  setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
-  testTimeout: 30000
 };

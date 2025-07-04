@@ -1,7 +1,7 @@
 /**
  * Production Monitoring System
  * Single Responsibility: Comprehensive metrics, health checks, and alerting
- * 
+ *
  * Based on Phase 15A requirements:
  * - Comprehensive monitoring and alerting for tool operations
  * - Performance monitoring for production workloads
@@ -9,11 +9,16 @@
  * - Production logging and audit trails
  */
 
-import winston from 'winston';
-import { EventEmitter } from 'events';
+import winston from "winston";
+import { EventEmitter } from "events";
 
 export interface IMonitoring {
-  recordToolOperation(toolName: string, duration: number, success: boolean, error?: string): void;
+  recordToolOperation(
+    toolName: string,
+    duration: number,
+    success: boolean,
+    error?: string
+  ): void;
   recordPerformanceMetric(operation: string, duration: number): void;
   getHealthStatus(): HealthStatus;
   getMetricsSummary(): MetricsSummary;
@@ -22,7 +27,7 @@ export interface IMonitoring {
 }
 
 export interface HealthStatus {
-  status: 'healthy' | 'degraded' | 'unhealthy';
+  status: "healthy" | "degraded" | "unhealthy";
   timestamp: number;
   uptime: number;
   components: ComponentHealth[];
@@ -35,7 +40,7 @@ export interface HealthStatus {
 
 export interface ComponentHealth {
   name: string;
-  status: 'healthy' | 'degraded' | 'unhealthy';
+  status: "healthy" | "degraded" | "unhealthy";
   lastCheck: number;
   details?: any;
   error?: string;
@@ -73,7 +78,7 @@ export interface MetricsSummary {
 export interface AlertCondition {
   metric: string;
   threshold: number;
-  operator: 'gt' | 'lt' | 'eq' | 'gte' | 'lte';
+  operator: "gt" | "lt" | "eq" | "gte" | "lte";
   window?: number; // Time window in ms
   cooldown?: number; // Cooldown period in ms
 }
@@ -117,6 +122,7 @@ export class ProductionMonitoring extends EventEmitter implements IMonitoring {
   private performanceMetrics: PerformanceMetric[];
   private alerts: Map<string, AlertState>;
   private healthCheckInterval: NodeJS.Timeout;
+  private cleanupInterval: NodeJS.Timeout;
   private metricsRetentionMs: number;
 
   constructor(
@@ -141,71 +147,81 @@ export class ProductionMonitoring extends EventEmitter implements IMonitoring {
     );
 
     // Cleanup old metrics every hour
-    setInterval(() => this.cleanupOldMetrics(), 60 * 60 * 1000);
+    this.cleanupInterval = setInterval(() => this.cleanupOldMetrics(), 60 * 60 * 1000);
   }
 
-  recordToolOperation(toolName: string, duration: number, success: boolean, error?: string): void {
+  recordToolOperation(
+    toolName: string,
+    duration: number,
+    success: boolean,
+    error?: string
+  ): void {
     const metric: ToolOperationMetric = {
       toolName,
       timestamp: Date.now(),
       duration,
       success,
-      error
+      error,
     };
 
     this.toolMetrics.push(metric);
 
     // Log the operation
-    this.logger.info('Tool operation recorded', {
+    this.logger.info("Tool operation recorded", {
       tool: toolName,
       duration,
       success,
-      error: error || undefined
+      error: error || undefined,
     });
 
     // Check alerts
     this.checkToolAlerts(metric);
 
     // Emit event for real-time monitoring
-    this.emit('toolOperation', metric);
+    this.emit("toolOperation", metric);
   }
 
   recordPerformanceMetric(operation: string, duration: number): void {
     const metric: PerformanceMetric = {
       operation,
       timestamp: Date.now(),
-      duration
+      duration,
     };
 
     this.performanceMetrics.push(metric);
+
+    this.logger.info("Performance metric recorded", {
+      operation: operation,
+      duration: duration,
+    });
 
     // Check performance alerts
     this.checkPerformanceAlerts(metric);
 
     // Emit event for real-time monitoring
-    this.emit('performanceMetric', metric);
+    this.emit("performanceMetric", metric);
   }
 
   getHealthStatus(): HealthStatus {
     const now = Date.now();
     const uptime = now - this.startTime;
-    
+
     const components = this.checkComponentHealth();
-    const errors = components.filter(c => c.status === 'unhealthy').length;
-    const warnings = components.filter(c => c.status === 'degraded').length;
-    
+    const errors = components.filter((c) => c.status === "unhealthy").length;
+    const warnings = components.filter((c) => c.status === "degraded").length;
+
     const criticalIssues: string[] = [];
-    components.forEach(component => {
-      if (component.status === 'unhealthy' && component.error) {
+    components.forEach((component) => {
+      if (component.status === "unhealthy" && component.error) {
         criticalIssues.push(`${component.name}: ${component.error}`);
       }
     });
 
-    let overallStatus: 'healthy' | 'degraded' | 'unhealthy' = 'healthy';
+    let overallStatus: "healthy" | "degraded" | "unhealthy" = "healthy";
     if (errors > 0) {
-      overallStatus = 'unhealthy';
+      overallStatus = "unhealthy";
     } else if (warnings > 0) {
-      overallStatus = 'degraded';
+      overallStatus = "degraded";
     }
 
     return {
@@ -216,44 +232,53 @@ export class ProductionMonitoring extends EventEmitter implements IMonitoring {
       overall: {
         errors,
         warnings,
-        criticalIssues
-      }
+        criticalIssues,
+      },
     };
   }
 
   getMetricsSummary(): MetricsSummary {
     const now = Date.now();
-    const oneHourAgo = now - (60 * 60 * 1000);
-    
+    const oneHourAgo = now - 60 * 60 * 1000;
+
     // Filter recent metrics
-    const recentToolMetrics = this.toolMetrics.filter(m => m.timestamp >= oneHourAgo);
-    const recentPerfMetrics = this.performanceMetrics.filter(m => m.timestamp >= oneHourAgo);
+    const recentToolMetrics = this.toolMetrics.filter(
+      (m) => m.timestamp >= oneHourAgo
+    );
+    const recentPerfMetrics = this.performanceMetrics.filter(
+      (m) => m.timestamp >= oneHourAgo
+    );
 
     // Calculate tool statistics
     const totalCalls = recentToolMetrics.length;
-    const successfulCalls = recentToolMetrics.filter(m => m.success).length;
+    const successfulCalls = recentToolMetrics.filter((m) => m.success).length;
     const successRate = totalCalls > 0 ? successfulCalls / totalCalls : 1;
-    
-    const averageLatency = totalCalls > 0 
-      ? recentToolMetrics.reduce((sum, m) => sum + m.duration, 0) / totalCalls 
-      : 0;
+
+    const averageLatency =
+      totalCalls > 0
+        ? recentToolMetrics.reduce((sum, m) => sum + m.duration, 0) / totalCalls
+        : 0;
 
     const errorsByTool: Record<string, number> = {};
     const callsByTool: Record<string, number> = {};
-    
-    recentToolMetrics.forEach(metric => {
+
+    recentToolMetrics.forEach((metric) => {
       callsByTool[metric.toolName] = (callsByTool[metric.toolName] || 0) + 1;
       if (!metric.success) {
-        errorsByTool[metric.toolName] = (errorsByTool[metric.toolName] || 0) + 1;
+        errorsByTool[metric.toolName] =
+          (errorsByTool[metric.toolName] || 0) + 1;
       }
     });
 
     // Calculate performance statistics
-    const responseTimes = recentPerfMetrics.map(m => m.duration).sort((a, b) => a - b);
-    const averageResponseTime = responseTimes.length > 0 
-      ? responseTimes.reduce((sum, t) => sum + t, 0) / responseTimes.length 
-      : 0;
-    
+    const responseTimes = recentPerfMetrics
+      .map((m) => m.duration)
+      .sort((a, b) => a - b);
+    const averageResponseTime =
+      responseTimes.length > 0
+        ? responseTimes.reduce((sum, t) => sum + t, 0) / responseTimes.length
+        : 0;
+
     const p95Index = Math.floor(responseTimes.length * 0.95);
     const p99Index = Math.floor(responseTimes.length * 0.99);
     const p95ResponseTime = responseTimes[p95Index] || 0;
@@ -271,28 +296,28 @@ export class ProductionMonitoring extends EventEmitter implements IMonitoring {
       period: {
         start: oneHourAgo,
         end: now,
-        duration: 60 * 60 * 1000
+        duration: 60 * 60 * 1000,
       },
       tools: {
         totalCalls,
         successRate,
         averageLatency,
         errorsByTool,
-        callsByTool
+        callsByTool,
       },
       performance: {
         averageResponseTime,
         p95ResponseTime,
         p99ResponseTime,
         requestsPerSecond,
-        errorRate
+        errorRate,
       },
       system: {
         memoryUsage: memoryUsage.heapUsed / 1024 / 1024, // MB
         cpuUsage: 0, // Would need additional monitoring for actual CPU
         uptime,
-        activeConnections: 0 // Would need server integration
-      }
+        activeConnections: 0, // Would need server integration
+      },
     };
   }
 
@@ -302,18 +327,18 @@ export class ProductionMonitoring extends EventEmitter implements IMonitoring {
       id: alertId,
       condition,
       callback,
-      active: true
+      active: true,
     };
 
     this.alerts.set(alertId, alertState);
 
-    this.logger.info('Alert configured', {
+    this.logger.info("Alert configured", {
       alertId,
       condition: {
         metric: condition.metric,
         threshold: condition.threshold,
-        operator: condition.operator
-      }
+        operator: condition.operator,
+      },
     });
 
     return alertId;
@@ -321,9 +346,9 @@ export class ProductionMonitoring extends EventEmitter implements IMonitoring {
 
   removeAlert(alertId: string): boolean {
     const success = this.alerts.delete(alertId);
-    
+
     if (success) {
-      this.logger.info('Alert removed', { alertId });
+      this.logger.info("Alert removed", { alertId });
     }
 
     return success;
@@ -331,16 +356,16 @@ export class ProductionMonitoring extends EventEmitter implements IMonitoring {
 
   private performHealthCheck(): void {
     const healthStatus = this.getHealthStatus();
-    
-    this.logger.debug('Health check performed', {
+
+    this.logger.debug("Health check performed", {
       status: healthStatus.status,
       components: healthStatus.components.length,
       errors: healthStatus.overall.errors,
-      warnings: healthStatus.overall.warnings
+      warnings: healthStatus.overall.warnings,
     });
 
     // Emit health status for monitoring
-    this.emit('healthCheck', healthStatus);
+    this.emit("healthCheck", healthStatus);
 
     // Check for health-based alerts
     this.checkHealthAlerts(healthStatus);
@@ -351,20 +376,32 @@ export class ProductionMonitoring extends EventEmitter implements IMonitoring {
     const now = Date.now();
 
     // Check tool operations health
-    const recentToolMetrics = this.toolMetrics.filter(m => m.timestamp >= now - 5 * 60 * 1000); // Last 5 minutes
-    const toolErrorRate = recentToolMetrics.length > 0 
-      ? recentToolMetrics.filter(m => !m.success).length / recentToolMetrics.length 
-      : 0;
+    const recentToolMetrics = this.toolMetrics.filter(
+      (m) => m.timestamp >= now - 5 * 60 * 1000
+    ); // Last 5 minutes
+    const toolErrorRate =
+      recentToolMetrics.length > 0
+        ? recentToolMetrics.filter((m) => !m.success).length /
+          recentToolMetrics.length
+        : 0;
 
     components.push({
-      name: 'tool_operations',
-      status: toolErrorRate > 0.1 ? 'unhealthy' : toolErrorRate > 0.05 ? 'degraded' : 'healthy',
+      name: "tool_operations",
+      status:
+        toolErrorRate > 0.1
+          ? "unhealthy"
+          : toolErrorRate > 0.05
+          ? "degraded"
+          : "healthy",
       lastCheck: now,
       details: {
         recentCalls: recentToolMetrics.length,
-        errorRate: toolErrorRate
+        errorRate: toolErrorRate,
       },
-      error: toolErrorRate > 0.1 ? `High error rate: ${(toolErrorRate * 100).toFixed(1)}%` : undefined
+      error:
+        toolErrorRate > 0.1
+          ? `High error rate: ${(toolErrorRate * 100).toFixed(1)}%`
+          : undefined,
     });
 
     // Check memory usage
@@ -373,126 +410,156 @@ export class ProductionMonitoring extends EventEmitter implements IMonitoring {
     const memoryLimitMB = 512; // Assumed limit
 
     components.push({
-      name: 'memory_usage',
-      status: memoryUsedMB > memoryLimitMB * 0.9 ? 'unhealthy' : memoryUsedMB > memoryLimitMB * 0.7 ? 'degraded' : 'healthy',
+      name: "memory_usage",
+      status:
+        memoryUsedMB > memoryLimitMB * 0.9
+          ? "unhealthy"
+          : memoryUsedMB > memoryLimitMB * 0.7
+          ? "degraded"
+          : "healthy",
       lastCheck: now,
       details: {
         usedMB: memoryUsedMB,
         limitMB: memoryLimitMB,
-        percentage: (memoryUsedMB / memoryLimitMB * 100).toFixed(1)
+        percentage: ((memoryUsedMB / memoryLimitMB) * 100).toFixed(1),
       },
-      error: memoryUsedMB > memoryLimitMB * 0.9 ? 'Memory usage critical' : undefined
+      error:
+        memoryUsedMB > memoryLimitMB * 0.9
+          ? "Memory usage critical"
+          : undefined,
     });
 
     // Check response times
-    const recentPerfMetrics = this.performanceMetrics.filter(m => m.timestamp >= now - 5 * 60 * 1000);
-    const avgResponseTime = recentPerfMetrics.length > 0
-      ? recentPerfMetrics.reduce((sum, m) => sum + m.duration, 0) / recentPerfMetrics.length
-      : 0;
+    const recentPerfMetrics = this.performanceMetrics.filter(
+      (m) => m.timestamp >= now - 5 * 60 * 1000
+    );
+    const avgResponseTime =
+      recentPerfMetrics.length > 0
+        ? recentPerfMetrics.reduce((sum, m) => sum + m.duration, 0) /
+          recentPerfMetrics.length
+        : 0;
 
     components.push({
-      name: 'response_times',
-      status: avgResponseTime > 2000 ? 'unhealthy' : avgResponseTime > 1000 ? 'degraded' : 'healthy',
+      name: "response_times",
+      status:
+        avgResponseTime > 2000
+          ? "unhealthy"
+          : avgResponseTime > 1000
+          ? "degraded"
+          : "healthy",
       lastCheck: now,
       details: {
         averageMs: avgResponseTime,
-        recentRequests: recentPerfMetrics.length
+        recentRequests: recentPerfMetrics.length,
       },
-      error: avgResponseTime > 2000 ? `Slow response times: ${avgResponseTime.toFixed(0)}ms` : undefined
+      error:
+        avgResponseTime > 2000
+          ? `Slow response times: ${avgResponseTime.toFixed(0)}ms`
+          : undefined,
     });
 
     return components;
   }
 
   private checkToolAlerts(metric: ToolOperationMetric): void {
-    this.alerts.forEach(alert => {
+    this.alerts.forEach((alert) => {
       if (!alert.active) return;
 
       const condition = alert.condition;
       let currentValue: number;
 
       switch (condition.metric) {
-        case 'tool_error_rate':
+        case "tool_error_rate":
           currentValue = this.calculateToolErrorRate(metric.toolName);
           break;
-        case 'tool_latency':
+        case "tool_latency":
           currentValue = metric.duration;
           break;
         default:
           return;
       }
 
-      if (this.shouldTriggerAlert(condition, currentValue, alert.lastTriggered)) {
+      if (
+        this.shouldTriggerAlert(condition, currentValue, alert.lastTriggered)
+      ) {
         this.triggerAlert(alert, currentValue);
       }
     });
   }
 
   private checkPerformanceAlerts(metric: PerformanceMetric): void {
-    this.alerts.forEach(alert => {
+    this.alerts.forEach((alert) => {
       if (!alert.active) return;
 
       const condition = alert.condition;
       let currentValue: number;
 
       switch (condition.metric) {
-        case 'response_time':
+        case "response_time":
           currentValue = metric.duration;
           break;
-        case 'avg_response_time':
+        case "avg_response_time":
           currentValue = this.calculateAverageResponseTime();
           break;
         default:
           return;
       }
 
-      if (this.shouldTriggerAlert(condition, currentValue, alert.lastTriggered)) {
+      if (
+        this.shouldTriggerAlert(condition, currentValue, alert.lastTriggered)
+      ) {
         this.triggerAlert(alert, currentValue);
       }
     });
   }
 
   private checkHealthAlerts(healthStatus: HealthStatus): void {
-    this.alerts.forEach(alert => {
+    this.alerts.forEach((alert) => {
       if (!alert.active) return;
 
       const condition = alert.condition;
       let currentValue: number;
 
       switch (condition.metric) {
-        case 'error_count':
+        case "error_count":
           currentValue = healthStatus.overall.errors;
           break;
-        case 'warning_count':
+        case "warning_count":
           currentValue = healthStatus.overall.warnings;
           break;
         default:
           return;
       }
 
-      if (this.shouldTriggerAlert(condition, currentValue, alert.lastTriggered)) {
+      if (
+        this.shouldTriggerAlert(condition, currentValue, alert.lastTriggered)
+      ) {
         this.triggerAlert(alert, currentValue);
       }
     });
   }
 
-  private shouldTriggerAlert(condition: AlertCondition, currentValue: number, lastTriggered?: number): boolean {
+  private shouldTriggerAlert(
+    condition: AlertCondition,
+    currentValue: number,
+    lastTriggered?: number
+  ): boolean {
     // Check threshold condition
     let conditionMet = false;
     switch (condition.operator) {
-      case 'gt':
+      case "gt":
         conditionMet = currentValue > condition.threshold;
         break;
-      case 'gte':
+      case "gte":
         conditionMet = currentValue >= condition.threshold;
         break;
-      case 'lt':
+      case "lt":
         conditionMet = currentValue < condition.threshold;
         break;
-      case 'lte':
+      case "lte":
         conditionMet = currentValue <= condition.threshold;
         break;
-      case 'eq':
+      case "eq":
         conditionMet = currentValue === condition.threshold;
         break;
     }
@@ -519,70 +586,77 @@ export class ProductionMonitoring extends EventEmitter implements IMonitoring {
       condition: alert.condition,
       currentValue,
       timestamp: now,
-      message: `Alert triggered: ${alert.condition.metric} ${alert.condition.operator} ${alert.condition.threshold} (current: ${currentValue})`
+      message: `Alert triggered: ${alert.condition.metric} ${alert.condition.operator} ${alert.condition.threshold} (current: ${currentValue})`,
     };
 
-    this.logger.warn('Production alert triggered', {
+    this.logger.warn("Production alert triggered", {
       alertEvent,
       metric: alert.condition.metric,
       threshold: alert.condition.threshold,
-      currentValue
+      currentValue,
     });
 
     // Call the alert callback
     try {
       alert.callback(alertEvent);
     } catch (error) {
-      this.logger.error('Alert callback failed', {
+      this.logger.error("Alert callback failed", {
         alertId: alert.id,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       });
     }
 
     // Emit alert event
-    this.emit('alert', alertEvent);
+    this.emit("alert", alertEvent);
   }
 
   private calculateToolErrorRate(toolName: string): number {
     const now = Date.now();
     const recentMetrics = this.toolMetrics.filter(
-      m => m.toolName === toolName && m.timestamp >= now - 5 * 60 * 1000
+      (m) => m.toolName === toolName && m.timestamp >= now - 5 * 60 * 1000
     );
 
     if (recentMetrics.length === 0) return 0;
 
-    const errors = recentMetrics.filter(m => !m.success).length;
+    const errors = recentMetrics.filter((m) => !m.success).length;
     return errors / recentMetrics.length;
   }
 
   private calculateAverageResponseTime(): number {
     const now = Date.now();
     const recentMetrics = this.performanceMetrics.filter(
-      m => m.timestamp >= now - 5 * 60 * 1000
+      (m) => m.timestamp >= now - 5 * 60 * 1000
     );
 
     if (recentMetrics.length === 0) return 0;
 
-    return recentMetrics.reduce((sum, m) => sum + m.duration, 0) / recentMetrics.length;
+    return (
+      recentMetrics.reduce((sum, m) => sum + m.duration, 0) /
+      recentMetrics.length
+    );
   }
 
   private cleanupOldMetrics(): void {
     const cutoff = Date.now() - this.metricsRetentionMs;
-    
+
     const toolMetricsBefore = this.toolMetrics.length;
     const perfMetricsBefore = this.performanceMetrics.length;
 
-    this.toolMetrics = this.toolMetrics.filter(m => m.timestamp >= cutoff);
-    this.performanceMetrics = this.performanceMetrics.filter(m => m.timestamp >= cutoff);
+    this.toolMetrics = this.toolMetrics.filter((m) => m.timestamp >= cutoff);
+    this.performanceMetrics = this.performanceMetrics.filter(
+      (m) => m.timestamp >= cutoff
+    );
 
     const toolMetricsRemoved = toolMetricsBefore - this.toolMetrics.length;
-    const perfMetricsRemoved = perfMetricsBefore - this.performanceMetrics.length;
+    const perfMetricsRemoved =
+      perfMetricsBefore - this.performanceMetrics.length;
 
     if (toolMetricsRemoved > 0 || perfMetricsRemoved > 0) {
-      this.logger.debug('Old metrics cleaned up', {
+      this.logger.debug("Old metrics cleaned up", {
         toolMetricsRemoved,
         perfMetricsRemoved,
-        totalRemaining: this.toolMetrics.length + this.performanceMetrics.length
+        totalRemaining:
+          this.toolMetrics.length + this.performanceMetrics.length,
       });
     }
   }
@@ -594,6 +668,9 @@ export class ProductionMonitoring extends EventEmitter implements IMonitoring {
   public destroy(): void {
     if (this.healthCheckInterval) {
       clearInterval(this.healthCheckInterval);
+    }
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
     }
     this.removeAllListeners();
     this.alerts.clear();
