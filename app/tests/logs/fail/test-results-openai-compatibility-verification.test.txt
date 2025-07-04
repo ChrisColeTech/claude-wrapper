@@ -12,33 +12,33 @@
      💡 Error: expect(received).toBe(expected) // Object.is equality
 
 ✅ Passed Tests:
-  ✅ OpenAI Compatibility Verification (Phase 14B) OpenAI Tool Structure Compliance should validate compliant OpenAI tool structure (4ms)
+  ✅ OpenAI Compatibility Verification (Phase 14B) OpenAI Tool Structure Compliance should validate compliant OpenAI tool structure (321ms)
   ✅ OpenAI Compatibility Verification (Phase 14B) OpenAI Tool Structure Compliance should detect invalid tool type 
   ✅ OpenAI Compatibility Verification (Phase 14B) OpenAI Tool Structure Compliance should validate parameter schema depth limits (1ms)
-  ✅ OpenAI Compatibility Verification (Phase 14B) OpenAI Tool Structure Compliance should validate parameter count limits 
+  ✅ OpenAI Compatibility Verification (Phase 14B) OpenAI Tool Structure Compliance should validate parameter count limits (1ms)
   ✅ OpenAI Compatibility Verification (Phase 14B) OpenAI Tool Structure Compliance should validate supported parameter types only 
-  ✅ OpenAI Compatibility Verification (Phase 14B) OpenAI Tool Structure Compliance should validate required field presence (1ms)
+  ✅ OpenAI Compatibility Verification (Phase 14B) OpenAI Tool Structure Compliance should validate required field presence 
   ✅ OpenAI Compatibility Verification (Phase 14B) Request Format Compliance should validate compliant request format 
   ✅ OpenAI Compatibility Verification (Phase 14B) Request Format Compliance should detect missing required fields 
   ✅ OpenAI Compatibility Verification (Phase 14B) Request Format Compliance should validate message array structure (1ms)
   ✅ OpenAI Compatibility Verification (Phase 14B) Request Format Compliance should validate tool choice format 
-  ✅ OpenAI Compatibility Verification (Phase 14B) Request Format Compliance should validate tools array structure 
-  ✅ OpenAI Compatibility Verification (Phase 14B) Response Format Compliance should validate compliant response format (1ms)
-  ✅ OpenAI Compatibility Verification (Phase 14B) Response Format Compliance should detect missing required response fields 
+  ✅ OpenAI Compatibility Verification (Phase 14B) Request Format Compliance should validate tools array structure (1ms)
+  ✅ OpenAI Compatibility Verification (Phase 14B) Response Format Compliance should validate compliant response format 
+  ✅ OpenAI Compatibility Verification (Phase 14B) Response Format Compliance should detect missing required response fields (1ms)
   ✅ OpenAI Compatibility Verification (Phase 14B) Response Format Compliance should validate response field types 
-  ✅ OpenAI Compatibility Verification (Phase 14B) Response Format Compliance should validate choice structure (15ms)
-  ✅ OpenAI Compatibility Verification (Phase 14B) Response Format Compliance should validate tool_calls structure in messages 
+  ✅ OpenAI Compatibility Verification (Phase 14B) Response Format Compliance should validate choice structure 
+  ✅ OpenAI Compatibility Verification (Phase 14B) Response Format Compliance should validate tool_calls structure in messages (1ms)
   ✅ OpenAI Compatibility Verification (Phase 14B) Error Format Compliance should detect missing error fields 
   ✅ OpenAI Compatibility Verification (Phase 14B) Error Format Compliance should validate error type against OpenAI specification 
   ✅ OpenAI Compatibility Verification (Phase 14B) Tool Call Validation Engine should validate compliant tool call structure 
   ✅ OpenAI Compatibility Verification (Phase 14B) Tool Call Validation Engine should detect missing required fields in tool calls 
-  ✅ OpenAI Compatibility Verification (Phase 14B) Tool Call Validation Engine should validate function name format in tool calls 
+  ✅ OpenAI Compatibility Verification (Phase 14B) Tool Call Validation Engine should validate function name format in tool calls (1ms)
   ✅ OpenAI Compatibility Verification (Phase 14B) Tool Call Validation Engine should validate function arguments JSON format 
   ✅ OpenAI Compatibility Verification (Phase 14B) Comprehensive Compatibility Assessment should perform complete compatibility assessment (1ms)
   ✅ OpenAI Compatibility Verification (Phase 14B) Comprehensive Compatibility Assessment should generate comprehensive compatibility report (1ms)
   ✅ OpenAI Compatibility Verification (Phase 14B) Comprehensive Compatibility Assessment should handle specification version compatibility 
-  ✅ OpenAI Compatibility Verification (Phase 14B) Comprehensive Compatibility Assessment should provide actionable recommendations 
-  ✅ OpenAI Compatibility Verification (Phase 14B) Edge Cases and Error Handling should handle empty tool arrays (1ms)
-  ✅ OpenAI Compatibility Verification (Phase 14B) Edge Cases and Error Handling should handle malformed tools gracefully 
+  ✅ OpenAI Compatibility Verification (Phase 14B) Comprehensive Compatibility Assessment should provide actionable recommendations (1ms)
+  ✅ OpenAI Compatibility Verification (Phase 14B) Edge Cases and Error Handling should handle empty tool arrays 
+  ✅ OpenAI Compatibility Verification (Phase 14B) Edge Cases and Error Handling should handle malformed tools gracefully (1ms)
   ✅ OpenAI Compatibility Verification (Phase 14B) Edge Cases and Error Handling should handle circular references in parameters 
   ✅ OpenAI Compatibility Verification (Phase 14B) Edge Cases and Error Handling should maintain performance under error conditions (1ms)

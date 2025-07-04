@@ -6,37 +6,37 @@
 📊 Total: 34
 
 ✅ Passed Tests:
-  ✅ ProductionMonitoring Tool Operation Metrics should record tool operations accurately (4ms)
-  ✅ ProductionMonitoring Tool Operation Metrics should emit tool operation events 
-  ✅ ProductionMonitoring Tool Operation Metrics should calculate success rates correctly (1ms)
-  ✅ ProductionMonitoring Tool Operation Metrics should calculate average latency correctly 
-  ✅ ProductionMonitoring Tool Operation Metrics should track errors by tool correctly (1ms)
+  ✅ ProductionMonitoring Tool Operation Metrics should record tool operations accurately (2ms)
+  ✅ ProductionMonitoring Tool Operation Metrics should emit tool operation events (1ms)
+  ✅ ProductionMonitoring Tool Operation Metrics should calculate success rates correctly 
+  ✅ ProductionMonitoring Tool Operation Metrics should calculate average latency correctly (1ms)
+  ✅ ProductionMonitoring Tool Operation Metrics should track errors by tool correctly 
   ✅ ProductionMonitoring Performance Metrics should record performance metrics accurately 
   ✅ ProductionMonitoring Performance Metrics should emit performance metric events 
   ✅ ProductionMonitoring Performance Metrics should calculate percentile response times correctly 
   ✅ ProductionMonitoring Performance Metrics should calculate requests per second 
   ✅ ProductionMonitoring Health Status should provide comprehensive health status (1ms)
   ✅ ProductionMonitoring Health Status should check component health accurately 
-  ✅ ProductionMonitoring Health Status should detect memory issues (1ms)
-  ✅ ProductionMonitoring Health Status should monitor response times 
+  ✅ ProductionMonitoring Health Status should detect memory issues 
+  ✅ ProductionMonitoring Health Status should monitor response times (1ms)
   ✅ ProductionMonitoring Health Status should emit health check events 
   ✅ ProductionMonitoring Health Status should determine overall status correctly 
-  ✅ ProductionMonitoring Alert System should register alerts correctly 
+  ✅ ProductionMonitoring Alert System should register alerts correctly (1ms)
   ✅ ProductionMonitoring Alert System should trigger alerts when conditions are met 
-  ✅ ProductionMonitoring Alert System should respect cooldown periods (100ms)
-  ✅ ProductionMonitoring Alert System should remove alerts correctly (1ms)
+  ✅ ProductionMonitoring Alert System should respect cooldown periods (101ms)
+  ✅ ProductionMonitoring Alert System should remove alerts correctly 
   ✅ ProductionMonitoring Alert System should handle alert callback errors gracefully (1ms)
   ✅ ProductionMonitoring Alert System should emit alert events 
-  ✅ ProductionMonitoring Metrics Summary should provide accurate metrics summary 
-  ✅ ProductionMonitoring Metrics Summary should calculate error rates correctly (1ms)
+  ✅ ProductionMonitoring Metrics Summary should provide accurate metrics summary (1ms)
+  ✅ ProductionMonitoring Metrics Summary should calculate error rates correctly 
   ✅ ProductionMonitoring Metrics Summary should include system metrics 
-  ✅ ProductionMonitoring Metrics Summary should filter metrics by time window (1ms)
-  ✅ ProductionMonitoring Performance Requirements should complete metric recording in <1ms 
-  ✅ ProductionMonitoring Performance Requirements should complete health check in <1ms (1ms)
+  ✅ ProductionMonitoring Metrics Summary should filter metrics by time window 
+  ✅ ProductionMonitoring Performance Requirements should complete metric recording in <1ms (1ms)
+  ✅ ProductionMonitoring Performance Requirements should complete health check in <1ms 
   ✅ ProductionMonitoring Performance Requirements should complete metrics summary generation in <1ms (1ms)
   ✅ ProductionMonitoring Integration with Constants should use production monitoring constants correctly 
   ✅ ProductionMonitoring Integration with Constants should apply monitoring thresholds correctly 
-  ✅ ProductionMonitoring Edge Cases should handle no metrics gracefully 
+  ✅ ProductionMonitoring Edge Cases should handle no metrics gracefully (1ms)
   ✅ ProductionMonitoring Edge Cases should handle invalid metric values 
-  ✅ ProductionMonitoring Edge Cases should handle cleanup operations correctly (6ms)
+  ✅ ProductionMonitoring Edge Cases should handle cleanup operations correctly (5ms)
   ✅ ProductionMonitoring Edge Cases should handle concurrent operations safely (1ms)

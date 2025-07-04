@@ -89,10 +89,10 @@ npm test -- --testPathPattern="monitoring.test.ts"
 npm test -- --testNamePattern="should trigger alerts"
 
 # Run with coverage
-npm test:coverage
+npm run test:coverage
 
 # Watch mode for development
-npm test:watch
+npm run test:watch
 ```
 
 ### Debugging Workflow
@@ -271,6 +271,11 @@ it("should complete operation within performance limits", () => {
 **Jest Configuration Warnings**:
 - All validation warnings have been resolved
 - Configuration uses Jest 29 compatible options
+
+**Jest Coverage "unknown option '-1'" Error**:
+- Fixed by using specific Jest config for coverage: `jest --config tests/jest.unit.config.js --coverage`
+- Issue was caused by Jest projects configuration conflicting with coverage options
+- Solution: Modified package.json test:coverage script to target unit test config directly
 
 **Log Files Not Generated**:
 - Verify `tests/logs/` directory permissions

@@ -5,4 +5,11 @@ module.exports = {
     "<rootDir>/tests/jest.integration.config.js",
     "<rootDir>/tests/jest.unit.config.js",
   ],
+  collectCoverageFrom: [
+    "src/**/*.ts",
+    "!src/**/*.d.ts",
+    "!src/cli.ts",
+    "!src/index.ts",
+  ],
+  coverageDirectory: "tests/logs/coverage",
 };

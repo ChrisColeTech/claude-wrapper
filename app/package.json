@@ -12,7 +12,7 @@
     "dev": "tsx watch src/index.ts",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage",
+    "test:coverage": "jest --config tests/jest.unit.config.js --coverage",
     "test:performance": "node performance-test.js",
     "test:stress": "node stress-test.js",
     "test:phase3a": "npm run build && npm run test:performance",

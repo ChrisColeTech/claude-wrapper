@@ -73,10 +73,38 @@ export class CliParser {
    * @returns Parsed CLI options
    */
   parseArguments(argv: string[]): CliOptions {
-    this.program.parse(argv);
+    try {
+      this.program.parse(argv);
+    } catch (error) {
+      // Handle the case where a negative number is passed as a positional argument
+      // Commander.js interprets -1, -2, etc. as options, but we want them as positional args
+      if (error instanceof Error && error.message && error.message.includes('unknown option')) {
+        const match = error.message.match(/unknown option '(-\d+)'/);
+        if (match) {
+          const negativeArg = match[1];
+          // Re-parse with the negative number treated as a positional argument
+          const filteredArgv = argv.filter(arg => arg !== negativeArg);
+          this.program.parse(filteredArgv);
+          const options = this.program.opts() as CliOptions;
+          const args = [negativeArg]; // Treat the negative number as a positional arg
+          return this.processOptions(options, args);
+        }
+      }
+      throw error;
+    }
+    
     const options = this.program.opts() as CliOptions;
     const args = this.program.args;
-    
+    return this.processOptions(options, args);
+  }
+
+  /**
+   * Process parsed options and arguments
+   * @param options Parsed options
+   * @param args Parsed arguments
+   * @returns Processed CLI options
+   */
+  private processOptions(options: CliOptions, args: string[]): CliOptions {
     // Handle port from --port option or positional argument
     // Priority: --port option takes precedence over positional argument
     let portToUse = options.port;
@@ -90,7 +118,7 @@ export class CliParser {
         
         if (!isNaN(portNum) && isExactInteger && portNum >= 1 && portNum <= 65535) {
           portToUse = portArg;
-          console.log(`Using port from command line argument: ${portNum}`);
+          console.log(`Using port from command line: ${portNum}`);
         } else {
           console.log(`Invalid port number: ${portArg}. Using default.`);
         }
