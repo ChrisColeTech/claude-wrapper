@@ -273,9 +273,25 @@ it("should complete operation within performance limits", () => {
 - Configuration uses Jest 29 compatible options
 
 **Jest Coverage "unknown option '-1'" Error**:
-- Fixed by using specific Jest config for coverage: `jest --config tests/jest.unit.config.js --coverage`
-- Issue was caused by Jest projects configuration conflicting with coverage options
-- Solution: Modified package.json test:coverage script to target unit test config directly
+- **Root Cause**: Jest projects configuration conflicts with `--coverage` flag
+- **Problem**: Main config uses `projects` array running 3 test configs simultaneously, causing argument parsing conflicts
+- **Solution**: Use specific Jest config for coverage: `jest --config tests/jest.unit.config.js --coverage`
+- **Implementation**: Modified package.json test:coverage script to target unit test config directly
+
+**Coverage Configuration Options**:
+1. **Separate Coverage Commands** (Current/Recommended):
+   ```json
+   "test:coverage": "jest --config tests/jest.unit.config.js --coverage"
+   "test:coverage:integration": "jest --config tests/jest.integration.config.js --coverage"
+   ```
+2. **Fix Projects Coverage**: Add coverage aggregation settings to main config
+3. **Single Config**: Remove projects setup entirely (loses test type separation)
+
+**Why Unit Tests for Coverage**:
+- Unit tests measure code coverage effectively (individual component testing)
+- Integration/E2E tests measure workflow coverage (less meaningful for code metrics)
+- Industry standard: most teams only generate coverage from unit tests
+- Maintains flexible projects setup while providing targeted coverage
 
 **Log Files Not Generated**:
 - Verify `tests/logs/` directory permissions
