@@ -18,16 +18,33 @@ export const ContentPartSchema = z.object({
 export type ContentPart = z.infer<typeof ContentPartSchema>;
 
 /**
+ * Tool call schema for OpenAI assistant messages
+ */
+export const ToolCallSchema = z.object({
+  id: z.string(),
+  type: z.literal("function"),
+  function: z.object({
+    name: z.string(),
+    arguments: z.string()
+  })
+});
+
+export type ToolCall = z.infer<typeof ToolCallSchema>;
+
+/**
  * Message schema with role, content, and optional name
  * Based on Python Message class with content normalization
+ * Phase 9A: Added tool role and tool_call_id for tool message processing
  */
 export const MessageSchema = z.object({
-  role: z.enum(["system", "user", "assistant"]),
+  role: z.enum(["system", "user", "assistant", "tool"]),
   content: z.union([
     z.string(),
     z.array(ContentPartSchema)
   ]),
-  name: z.string().optional()
+  name: z.string().optional(),
+  tool_call_id: z.string().optional(),
+  tool_calls: z.array(ToolCallSchema).optional()
 }).transform((data) => {
   // Convert array content to string for Claude Code compatibility
   // Replicates Python Message.normalize_content validator
@@ -80,6 +97,15 @@ export const MessageHelpers = {
   }),
 
   /**
+   * Create a tool message (Phase 9A)
+   */
+  tool: (content: string, toolCallId: string): Message => ({
+    role: "tool",
+    content,
+    tool_call_id: toolCallId
+  }),
+
+  /**
    * Create a multimodal message with text parts
    */
   multimodal: (role: "user" | "assistant", textParts: string[]): Message => ({
@@ -123,5 +149,19 @@ export const MessageValidation = {
     
     // Should not happen after transform, but handle gracefully
     return message.content.map(part => part.text).join('\n');
+  },
+
+  /**
+   * Validate tool message (Phase 9A)
+   */
+  isValidToolMessage: (message: Message): boolean => {
+    return message.role === 'tool' && Boolean(message.tool_call_id);
+  },
+
+  /**
+   * Check if message is a tool message (Phase 9A)
+   */
+  isToolMessage: (message: Message): boolean => {
+    return message.role === 'tool';
   }
 };

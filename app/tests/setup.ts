@@ -3,35 +3,28 @@
  * Configures test environment and mocks
  */
 
-import { MockClaudeClient } from './mocks/MockClaudeClient';
-import { MockSessionStore } from './mocks/MockSessionStore';
+import { MockClaudeClient } from "./mocks/MockClaudeClient";
+import { MockSessionStore } from "./mocks/MockSessionStore";
+import { setupCustomMatchers } from "./helpers/openai-tools/assertion-helpers";
+import { jest, afterEach } from "@jest/globals";
 
 // Configure test environment
-process.env.NODE_ENV = 'test';
-process.env.API_KEY = 'test-api-key';
-process.env.PORT = '8001';
-
-// Suppress console output during tests unless debugging
-if (!process.env.DEBUG_TESTS) {
-  global.console = {
-    ...console,
-    log: jest.fn(),
-    debug: jest.fn(),
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn()
-  };
-}
+process.env.NODE_ENV = "test";
+process.env.API_KEY = "test-api-key";
+process.env.PORT = "8001";
 
 // Global test utilities
 (global as any).TestUtils = {
   createMockClaudeClient: () => new MockClaudeClient(),
   createMockSessionStore: () => new MockSessionStore(),
-  sleep: (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+  sleep: (ms: number) => new Promise((resolve) => setTimeout(resolve, ms)),
 };
 
 // Jest configuration
 jest.setTimeout(30000);
+
+// Setup custom matchers for OpenAI tools testing
+setupCustomMatchers();
 
 // Clean up after each test
 afterEach(() => {

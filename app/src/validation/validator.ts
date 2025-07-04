@@ -5,8 +5,14 @@
  */
 
 import { ChatCompletionRequest } from '../models/chat';
-import { Message } from '../models/message';
+import { Message, MessageValidation } from '../models/message';
 import { getLogger } from '../utils/logger';
+import { toolValidator } from '../tools';
+import { 
+  MESSAGE_ROLES, 
+  MESSAGE_PROCESSING_MESSAGES,
+  TOOL_MESSAGE_VALIDATION 
+} from '../tools/constants';
 
 const logger = getLogger('ParameterValidator');
 
@@ -46,6 +52,13 @@ export class ParameterValidator {
     const messagesResult = this.validateMessages(request.messages);
     errors.push(...messagesResult.errors);
     warnings.push(...messagesResult.warnings);
+
+    // Validate OpenAI tools if provided
+    if (request.tools || request.tool_choice) {
+      const toolsResult = this.validateOpenAITools(request.tools, request.tool_choice);
+      errors.push(...toolsResult.errors);
+      warnings.push(...toolsResult.warnings);
+    }
 
     // Validate n parameter (Claude Code only supports single response)
     if (request.n > 1) {
@@ -118,8 +131,44 @@ export class ParameterValidator {
   }
 
   /**
+   * Validate OpenAI tools array and tool choice
+   * Based on Phase 1A OpenAI tools validation requirements
+   */
+  static validateOpenAITools(tools?: any[], toolChoice?: any): ValidationResult {
+    const errors: string[] = [];
+    const warnings: string[] = [];
+
+    try {
+      if (tools) {
+        const toolsResult = toolValidator.validateToolArray(tools);
+        if (!toolsResult.valid) {
+          errors.push(...toolsResult.errors);
+        }
+        
+        if (toolChoice) {
+          const choiceResult = toolValidator.validateToolChoice(toolChoice, toolsResult.validTools);
+          if (!choiceResult.valid) {
+            errors.push(...choiceResult.errors);
+          }
+        }
+      } else if (toolChoice) {
+        errors.push('tool_choice parameter provided without tools array');
+      }
+    } catch (error) {
+      errors.push(`Tools validation error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+
+    return {
+      valid: errors.length === 0,
+      errors,
+      warnings
+    };
+  }
+
+  /**
    * Validate messages array
    * Based on Python ParameterValidator.validate_messages()
+   * Phase 9A: Updated to include tool message validation
    */
   static validateMessages(messages: Message[]): ValidationResult {
     const errors: string[] = [];
@@ -141,12 +190,19 @@ export class ParameterValidator {
       
       if (!message.role) {
         errors.push(`Message at index ${i} is missing required 'role' field`);
-      } else if (!['system', 'user', 'assistant'].includes(message.role)) {
-        errors.push(`Message at index ${i} has invalid role '${message.role}'. Must be 'system', 'user', or 'assistant'`);
+      } else if (!Object.values(MESSAGE_ROLES).includes(message.role as any)) {
+        errors.push(`Message at index ${i} has invalid role '${message.role}'. Must be one of: ${Object.values(MESSAGE_ROLES).join(', ')}`);
       }
 
       if (!message.content) {
         errors.push(`Message at index ${i} is missing required 'content' field`);
+      }
+
+      // Phase 9A: Validate tool messages specifically
+      if (message.role === MESSAGE_ROLES.TOOL) {
+        const toolValidation = this.validateToolMessage(message, i);
+        errors.push(...toolValidation.errors);
+        warnings.push(...toolValidation.warnings);
       }
     }
 
@@ -248,6 +304,119 @@ export class ParameterValidator {
       return false;
     }
     return true;
+  }
+
+  /**
+   * Validate tool message structure and required fields (Phase 9A)
+   * @param message Tool message to validate
+   * @param index Message index for error reporting
+   * @returns Validation result with errors and warnings
+   */
+  static validateToolMessage(message: Message, index: number): ValidationResult {
+    const errors: string[] = [];
+    const warnings: string[] = [];
+
+    // Check role first
+    if (message.role !== MESSAGE_ROLES.TOOL) {
+      errors.push(`Message at index ${index} has invalid role '${message.role}' for tool message. Must be 'tool'`);
+    }
+
+    // Check required tool_call_id field
+    if (!message.tool_call_id) {
+      errors.push(`Tool message at index ${index} is missing required 'tool_call_id' field`);
+    } else if (typeof message.tool_call_id !== 'string') {
+      errors.push(`Tool message at index ${index} has invalid 'tool_call_id' type. Must be string`);
+    } else if (!TOOL_MESSAGE_VALIDATION.TOOL_CALL_ID_PATTERN.test(message.tool_call_id)) {
+      errors.push(`Tool message at index ${index} has invalid 'tool_call_id' format. Must match pattern: ${TOOL_MESSAGE_VALIDATION.TOOL_CALL_ID_PATTERN.source}`);
+    }
+
+    // Check content requirements for tool messages
+    if (!message.content) {
+      errors.push(`Tool message at index ${index} is missing required 'content' field`);
+    } else {
+      const contentLength = typeof message.content === 'string' 
+        ? message.content.length 
+        : JSON.stringify(message.content).length;
+
+      if (contentLength > TOOL_MESSAGE_VALIDATION.MAX_CONTENT_LENGTH) {
+        errors.push(`Tool message at index ${index} content exceeds maximum length of ${TOOL_MESSAGE_VALIDATION.MAX_CONTENT_LENGTH} characters`);
+      }
+
+      if (contentLength === 0) {
+        errors.push(`Tool message at index ${index} has empty content`);
+      }
+    }
+
+    // Validate tool message name if provided
+    if (message.name && typeof message.name !== 'string') {
+      errors.push(`Tool message at index ${index} has invalid 'name' type. Must be string if provided`);
+    }
+
+    return {
+      valid: errors.length === 0,
+      errors,
+      warnings
+    };
+  }
+
+  /**
+   * Validate tool call ID format (Phase 9A)
+   * @param toolCallId Tool call ID to validate
+   * @returns True if valid format
+   */
+  static validateToolCallId(toolCallId: string): boolean {
+    if (!toolCallId || typeof toolCallId !== 'string') {
+      logger.error(MESSAGE_PROCESSING_MESSAGES.TOOL_CALL_ID_INVALID);
+      return false;
+    }
+
+    if (!TOOL_MESSAGE_VALIDATION.TOOL_CALL_ID_PATTERN.test(toolCallId)) {
+      logger.error(`Tool call ID format invalid: ${toolCallId}`);
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
+   * Validate tool message correlation (Phase 9A)
+   * Ensures tool messages have valid structure for correlation
+   * @param messages Array of messages to validate
+   * @returns Validation result
+   */
+  static validateToolMessageCorrelation(messages: Message[]): ValidationResult {
+    const errors: string[] = [];
+    const warnings: string[] = [];
+    const toolCallIds = new Set<string>();
+
+    for (let i = 0; i < messages.length; i++) {
+      const message = messages[i];
+      
+      if (message.role === MESSAGE_ROLES.TOOL) {
+        // Check for duplicate tool call IDs
+        if (message.tool_call_id) {
+          if (toolCallIds.has(message.tool_call_id)) {
+            errors.push(`Duplicate tool_call_id '${message.tool_call_id}' found at message index ${i}`);
+          } else {
+            toolCallIds.add(message.tool_call_id);
+          }
+        }
+      }
+    }
+
+    // Check for orphaned tool messages (tool messages without corresponding assistant messages)
+    const assistantMessages = messages.filter(m => m.role === MESSAGE_ROLES.ASSISTANT);
+    const toolMessages = messages.filter(m => m.role === MESSAGE_ROLES.TOOL);
+
+    if (toolMessages.length > 0 && assistantMessages.length === 0) {
+      warnings.push('Tool messages found without corresponding assistant messages. Tool messages should follow assistant messages that contain tool calls.');
+    }
+
+    return {
+      valid: errors.length === 0,
+      errors,
+      warnings
+    };
   }
 
   /**

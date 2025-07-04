@@ -8,8 +8,7 @@ import {
   CLAUDE_CODE_TOOLS, 
   ClaudeCodeTool, 
   PermissionMode, 
-  DEFAULT_TOOL_CONFIG,
-  TOOL_CATEGORIES,
+  CLAUDE_TOOL_CONFIG,
   TOOL_HEADERS 
 } from './constants';
 import { getLogger } from '../utils/logger';
@@ -83,8 +82,8 @@ export class ToolManager {
     const result: ToolResponse = {
       tools: enabledTools,
       tools_enabled: enabledTools.length > 0,
-      max_turns: config.max_turns || DEFAULT_TOOL_CONFIG.max_turns,
-      permission_mode: config.permission_mode || DEFAULT_TOOL_CONFIG.permission_mode
+      max_turns: config.max_turns || CLAUDE_TOOL_CONFIG.DEFAULT.max_turns,
+      permission_mode: config.permission_mode || CLAUDE_TOOL_CONFIG.DEFAULT.permission_mode
     };
     
     if (config.disallowed_tools && config.disallowed_tools.length > 0) {
@@ -138,19 +137,19 @@ export class ToolManager {
       config.allowed_tools = [];
       
       if (readPermission === 'true') {
-        config.allowed_tools.push(...TOOL_CATEGORIES.READ_ONLY);
+        config.allowed_tools.push(...CLAUDE_TOOL_CONFIG.CATEGORIES.READ_ONLY);
       }
       
       if (writePermission === 'true') {
-        config.allowed_tools.push(...TOOL_CATEGORIES.WRITE_OPERATIONS);
+        config.allowed_tools.push(...CLAUDE_TOOL_CONFIG.CATEGORIES.WRITE_OPERATIONS);
       }
       
       if (executePermission === 'true') {
-        config.allowed_tools.push(...TOOL_CATEGORIES.EXECUTION);
+        config.allowed_tools.push(...CLAUDE_TOOL_CONFIG.CATEGORIES.EXECUTION);
       }
       
       // Always include flow control tools
-      config.allowed_tools.push(...TOOL_CATEGORIES.FLOW_CONTROL);
+      config.allowed_tools.push(...CLAUDE_TOOL_CONFIG.CATEGORIES.FLOW_CONTROL);
       
       // Remove duplicates
       config.allowed_tools = [...new Set(config.allowed_tools)];
@@ -179,13 +178,13 @@ export class ToolManager {
       enabled_tools: enabledCount,
       disabled_tools: disabledCount,
       read_only_tools: config.tools.filter(tool => 
-        (TOOL_CATEGORIES.READ_ONLY as readonly string[]).includes(tool)
+        (CLAUDE_TOOL_CONFIG.CATEGORIES.READ_ONLY as readonly string[]).includes(tool)
       ).length,
       write_tools: config.tools.filter(tool => 
-        (TOOL_CATEGORIES.WRITE_OPERATIONS as readonly string[]).includes(tool)
+        (CLAUDE_TOOL_CONFIG.CATEGORIES.WRITE_OPERATIONS as readonly string[]).includes(tool)
       ).length,
       execution_tools: config.tools.filter(tool => 
-        (TOOL_CATEGORIES.EXECUTION as readonly string[]).includes(tool)
+        (CLAUDE_TOOL_CONFIG.CATEGORIES.EXECUTION as readonly string[]).includes(tool)
       ).length
     };
   }

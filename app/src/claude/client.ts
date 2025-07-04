@@ -7,6 +7,15 @@
 import { authManager } from '../auth/auth-manager';
 import { getLogger } from '../utils/logger';
 import { ClaudeClientError, AuthenticationError, StreamingError } from '../models/error';
+// Phase 5A: Tool choice integration
+import { 
+  ChoiceProcessingContext,
+  ClaudeChoiceFormat,
+  ChoiceEnforcementRequest,
+  ChoiceEnforcementResult,
+  IToolChoiceEnforcer,
+  ToolChoiceEnforcerFactory
+} from '../tools/choice-enforcer';
 
 const logger = getLogger('ClaudeClient');
 
@@ -24,6 +33,14 @@ export interface ClaudeCodeOptions {
   cwd?: string;
   model?: string;
   system_prompt?: string;
+  // Phase 5A: Tool choice integration
+  tool_choice_mode?: 'auto' | 'none' | 'specific';
+  force_function?: string;
+  choice_restrictions?: {
+    onlyTextResponse?: boolean;
+    specificFunction?: boolean;
+    functionName?: string;
+  };
 }
 
 /**
@@ -74,6 +91,7 @@ export interface ClaudeCodeMessage {
   duration_ms?: number;
   num_turns?: number;
   session_id?: string;
+  stop_reason?: string;
 }
 
 /**
@@ -86,10 +104,15 @@ export class ClaudeClient {
   private originalEnvVars: Record<string, string | undefined> = {};
   private timeout: number = 600000; // 10 minutes in ms
   private cwd: string;
+  // Phase 5A: Tool choice enforcement
+  private choiceEnforcer: IToolChoiceEnforcer;
 
   constructor(timeout: number = 600000, cwd?: string) {
     this.timeout = timeout;
     this.cwd = cwd || process.cwd();
+    // Phase 5A: Initialize tool choice enforcer
+    this.choiceEnforcer = ToolChoiceEnforcerFactory.create();
+    
     // Initialize SDK immediately, unless in test mode
     if (process.env.NODE_ENV !== 'test') {
       this.initializeSDK().catch(() => {
@@ -213,6 +236,171 @@ export class ClaudeClient {
     } finally {
       this.restoreEnvironment();
     }
+  }
+
+  /**
+   * Run completion with tool choice enforcement (Phase 5A)
+   * Integrates tool choice processing and enforcement
+   */
+  async *runCompletionWithChoice(
+    prompt: string,
+    options: ClaudeCodeOptions = {},
+    choiceContext?: ChoiceProcessingContext
+  ): AsyncGenerator<ClaudeCodeMessage, void, unknown> {
+    await this.setupEnvironment();
+    
+    try {
+      // Apply tool choice restrictions to options
+      const choiceOptions = this.applyChoiceToOptions(options, choiceContext);
+      
+      // Run the query with choice-modified options
+      let lastMessage: ClaudeCodeMessage | undefined;
+      
+      for await (const message of this.query(prompt, choiceOptions)) {
+        const normalizedMessage = this.normalizeMessage(message);
+        lastMessage = normalizedMessage;
+        
+        // If this is a final response and we have choice context, enforce it
+        if (choiceContext && this.isFinalResponse(normalizedMessage)) {
+          const enforcedMessage = await this.enforceChoiceOnResponse(normalizedMessage, choiceContext);
+          yield enforcedMessage;
+        } else {
+          yield normalizedMessage;
+        }
+      }
+    } finally {
+      this.restoreEnvironment();
+    }
+  }
+
+  /**
+   * Apply tool choice context to Claude options
+   */
+  private applyChoiceToOptions(
+    options: ClaudeCodeOptions,
+    choiceContext?: ChoiceProcessingContext
+  ): ClaudeCodeOptions {
+    if (!choiceContext) {
+      return options;
+    }
+
+    const choiceOptions = { ...options };
+    const claudeFormat = choiceContext.claudeFormat;
+
+    // Apply choice mode
+    choiceOptions.tool_choice_mode = claudeFormat.mode;
+
+    // Apply tool restrictions
+    if (claudeFormat.mode === 'none') {
+      choiceOptions.choice_restrictions = {
+        onlyTextResponse: true,
+        specificFunction: false
+      };
+      // Disable tools for none choice
+      choiceOptions.disallowed_tools = ['*'];
+    } else if (claudeFormat.mode === 'specific' && claudeFormat.forceFunction) {
+      choiceOptions.force_function = claudeFormat.forceFunction;
+      choiceOptions.choice_restrictions = {
+        onlyTextResponse: false,
+        specificFunction: true,
+        functionName: claudeFormat.forceFunction
+      };
+    } else if (claudeFormat.mode === 'auto') {
+      choiceOptions.choice_restrictions = {
+        onlyTextResponse: false,
+        specificFunction: false
+      };
+    }
+
+    return choiceOptions;
+  }
+
+  /**
+   * Check if message is a final response
+   */
+  private isFinalResponse(message: ClaudeCodeMessage): boolean {
+    return (
+      message.type === 'assistant' && 
+      message.content !== undefined &&
+      message.content !== null
+    ) || (
+      message.type === 'result' &&
+      message.subtype === 'success'
+    );
+  }
+
+  /**
+   * Enforce tool choice on Claude response
+   */
+  private async enforceChoiceOnResponse(
+    message: ClaudeCodeMessage,
+    choiceContext: ChoiceProcessingContext
+  ): Promise<ClaudeCodeMessage> {
+    try {
+      // Convert message to Claude response format for enforcement
+      const claudeResponse = this.messageToClaudeResponse(message);
+      
+      // Enforce choice
+      const enforcementRequest: ChoiceEnforcementRequest = {
+        context: choiceContext,
+        claudeResponse
+      };
+
+      const enforcementResult = await this.choiceEnforcer.enforceChoice(enforcementRequest);
+
+      if (enforcementResult.success && enforcementResult.modifiedResponse) {
+        // Convert back to message format
+        return this.claudeResponseToMessage(enforcementResult.modifiedResponse, message);
+      } else if (!enforcementResult.success) {
+        logger.warn(`Tool choice enforcement failed: ${enforcementResult.errors.join(', ')}`);
+      }
+
+      return message;
+    } catch (error) {
+      logger.error(`Tool choice enforcement error: ${error}`);
+      return message;
+    }
+  }
+
+  /**
+   * Convert Claude message to Claude response format
+   */
+  private messageToClaudeResponse(message: ClaudeCodeMessage): any {
+    return {
+      content: message.content || '',
+      tool_calls: message.data?.tool_calls || [],
+      finish_reason: message.stop_reason || 'stop',
+      metadata: {
+        model: message.data?.model,
+        usage: {
+          prompt_tokens: message.data?.prompt_tokens || 0,
+          completion_tokens: message.data?.completion_tokens || 0,
+          total_tokens: message.data?.total_tokens || 0
+        }
+      }
+    };
+  }
+
+  /**
+   * Convert Claude response back to message format
+   */
+  private claudeResponseToMessage(
+    claudeResponse: any, 
+    originalMessage: ClaudeCodeMessage
+  ): ClaudeCodeMessage {
+    return {
+      ...originalMessage,
+      content: claudeResponse.content,
+      stop_reason: claudeResponse.finish_reason,
+      data: {
+        ...originalMessage.data,
+        tool_calls: claudeResponse.tool_calls,
+        model: claudeResponse.metadata?.model,
+        prompt_tokens: claudeResponse.metadata?.usage?.prompt_tokens,
+        completion_tokens: claudeResponse.metadata?.usage?.completion_tokens,
+        total_tokens: claudeResponse.metadata?.usage?.total_tokens
+      }
+    };
   }
 
   /**

@@ -9,7 +9,7 @@
  * - Audit trail logging
  */
 
-import { Request, Response } from 'express';
+import { Request } from 'express';
 import winston from 'winston';
 
 export interface IRateLimit {

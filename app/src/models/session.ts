@@ -5,6 +5,7 @@
  */
 
 import { z } from 'zod';
+import { ToolCallStateSnapshot } from '../tools/state';
 
 /**
  * Session info schema
@@ -15,7 +16,8 @@ export const SessionInfoSchema = z.object({
   created_at: z.date(),
   last_accessed: z.date(),
   message_count: z.number().int().nonnegative(),
-  expires_at: z.date()
+  expires_at: z.date(),
+  tool_call_state_snapshot: z.any().optional() // ToolCallStateSnapshot - using any for now to avoid circular import
 });
 
 export type SessionInfo = z.infer<typeof SessionInfoSchema>;
@@ -37,7 +39,8 @@ export type SessionListResponse = z.infer<typeof SessionListResponseSchema>;
 export const SessionCreateOptionsSchema = z.object({
   session_id: z.string().optional(),
   expires_in_minutes: z.number().int().positive().default(60 * 24), // 24 hours default
-  metadata: z.record(z.string(), z.any()).optional()
+  metadata: z.record(z.string(), z.any()).optional(),
+  enable_tool_state_tracking: z.boolean().default(true)
 });
 
 export type SessionCreateOptions = z.infer<typeof SessionCreateOptionsSchema>;
@@ -67,7 +70,8 @@ export const SessionUtils = {
       created_at: now,
       last_accessed: now,
       message_count: 0,
-      expires_at: expiresAt
+      expires_at: expiresAt,
+      tool_call_state_snapshot: undefined
     };
   },
 
@@ -148,7 +152,8 @@ export const SessionUtils = {
       created_at: session.created_at.toISOString(),
       last_accessed: session.last_accessed.toISOString(),
       message_count: session.message_count,
-      expires_at: session.expires_at.toISOString()
+      expires_at: session.expires_at.toISOString(),
+      tool_call_state_snapshot: session.tool_call_state_snapshot
     };
   },
 
@@ -161,7 +166,42 @@ export const SessionUtils = {
       created_at: new Date(data.created_at),
       last_accessed: new Date(data.last_accessed),
       message_count: data.message_count,
-      expires_at: new Date(data.expires_at)
+      expires_at: new Date(data.expires_at),
+      tool_call_state_snapshot: data.tool_call_state_snapshot
+    };
+  },
+
+  /**
+   * Update session with tool call state snapshot
+   */
+  updateToolCallState: (session: SessionInfo, snapshot: ToolCallStateSnapshot | undefined): SessionInfo => {
+    return {
+      ...session,
+      tool_call_state_snapshot: snapshot,
+      last_accessed: new Date()
+    };
+  },
+
+  /**
+   * Check if session has tool call state tracking enabled
+   */
+  hasToolStateTracking: (session: SessionInfo): boolean => {
+    return session.tool_call_state_snapshot !== undefined;
+  },
+
+  /**
+   * Get tool call state summary for session
+   */
+  getToolCallStateSummary: (session: SessionInfo): { totalCalls: number; pendingCalls: number; completedCalls: number } => {
+    if (!session.tool_call_state_snapshot) {
+      return { totalCalls: 0, pendingCalls: 0, completedCalls: 0 };
+    }
+
+    const snapshot = session.tool_call_state_snapshot;
+    return {
+      totalCalls: snapshot.totalCalls,
+      pendingCalls: snapshot.pendingCalls.length,
+      completedCalls: snapshot.completedCalls.length
     };
   }
 };

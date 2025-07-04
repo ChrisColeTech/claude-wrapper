@@ -1,10 +1,13 @@
 /**
  * Message service implementation
  * Business logic for message processing
- * Based on Python message_adapter.py approach exactly
+ * Updated for Phase 2A: Uses new message converters
  */
 
 import { Message, MessageValidation } from '../models/message';
+import { claudeConverter } from '../message/claude-converter';
+import { contentFilter } from '../message/message-parser';
+import { ClaudeConversionResult } from '../message/interfaces';
 import { getLogger } from '../utils/logger';
 
 const logger = getLogger('MessageService');
@@ -12,44 +15,24 @@ const logger = getLogger('MessageService');
 export class MessageService {
   /**
    * Convert OpenAI messages to Claude Code prompt format
-   * Based on Python MessageAdapter.messages_to_prompt
+   * Phase 2A: Uses new ClaudeConverter with proper error handling
    * Returns prompt and system_prompt
    */
   async convertToClaudeFormat(messages: Message[]): Promise<{ prompt: string; systemPrompt?: string }> {
     try {
-      let systemPrompt: string | undefined;
-      const conversationParts: string[] = [];
+      // Use new Claude converter from Phase 2A
+      const result: ClaudeConversionResult = await claudeConverter.convert(messages);
 
-      for (const message of messages) {
-        // Validate message structure
-        const validatedMessage = MessageValidation.validateMessage(message);
-        const content = MessageValidation.extractText(validatedMessage);
-
-        if (validatedMessage.role === 'system') {
-          // Use the last system message as the system prompt
-          systemPrompt = content;
-        } else if (validatedMessage.role === 'user') {
-          conversationParts.push(`Human: ${content}`);
-        } else if (validatedMessage.role === 'assistant') {
-          conversationParts.push(`Assistant: ${content}`);
-        }
-      }
-
-      // Join conversation parts
-      let prompt = conversationParts.join('\n\n');
-
-      // If the last message wasn't from the user, add a prompt for assistant
-      if (messages.length > 0 && messages[messages.length - 1].role !== 'user') {
-        prompt += '\n\nHuman: Please continue.';
-      }
-
-      logger.debug('Converted messages to Claude format', {
+      logger.debug('Converted messages to Claude format using new converter', {
         messageCount: messages.length,
-        promptLength: prompt.length,
-        hasSystemPrompt: !!systemPrompt
+        promptLength: result.prompt.length,
+        hasSystemPrompt: !!result.systemPrompt
       });
 
-      return { prompt, systemPrompt };
+      return { 
+        prompt: result.prompt, 
+        systemPrompt: result.systemPrompt 
+      };
     } catch (error) {
       logger.error('Failed to convert messages to Claude format', { error });
       throw new Error(`Message conversion failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -58,7 +41,7 @@ export class MessageService {
 
   /**
    * Filter content for unsupported features and tool usage
-   * Based on Python MessageAdapter.filter_content
+   * Phase 2A: Uses new ContentFilter with enhanced filtering
    */
   async filterContent(content: string): Promise<string> {
     if (!content) {
@@ -66,72 +49,18 @@ export class MessageService {
     }
 
     try {
-      let filteredContent = content;
+      // Use new content filter from Phase 2A
+      const filterResult = await contentFilter.filter(content);
 
-      // Remove thinking blocks (common when tools are disabled but Claude tries to think)
-      const thinkingPattern = /<thinking>.*?<\/thinking>/gs;
-      filteredContent = filteredContent.replace(thinkingPattern, '');
-
-      // Extract content from attempt_completion blocks (these contain the actual user response)
-      const attemptCompletionPattern = /<attempt_completion>(.*?)<\/attempt_completion>/gs;
-      const attemptMatches = [...filteredContent.matchAll(attemptCompletionPattern)];
-      
-      if (attemptMatches.length > 0) {
-        // Use the content from the attempt_completion block
-        let extractedContent = attemptMatches[0][1].trim();
-
-        // If there's a <result> tag inside, extract from that
-        const resultPattern = /<result>(.*?)<\/result>/gs;
-        const resultMatches = [...extractedContent.matchAll(resultPattern)];
-        
-        if (resultMatches.length > 0) {
-          extractedContent = resultMatches[0][1].trim();
-        }
-
-        if (extractedContent) {
-          filteredContent = extractedContent;
-        }
-      } else {
-        // Remove other tool usage blocks (when tools are disabled but Claude tries to use them)
-        const toolPatterns = [
-          /<read_file>.*?<\/read_file>/gs,
-          /<write_file>.*?<\/write_file>/gs,
-          /<bash>.*?<\/bash>/gs,
-          /<search_files>.*?<\/search_files>/gs,
-          /<str_replace_editor>.*?<\/str_replace_editor>/gs,
-          /<args>.*?<\/args>/gs,
-          /<ask_followup_question>.*?<\/ask_followup_question>/gs,
-          /<attempt_completion>.*?<\/attempt_completion>/gs,
-          /<question>.*?<\/question>/gs,
-          /<follow_up>.*?<\/follow_up>/gs,
-          /<suggest>.*?<\/suggest>/gs
-        ];
-
-        for (const pattern of toolPatterns) {
-          filteredContent = filteredContent.replace(pattern, '');
-        }
-      }
-
-      // Pattern to match image references or base64 data
-      const imagePattern = /\[Image:.*?\]|data:image\/.*?;base64,.*?(?=\s|$)/g;
-      filteredContent = filteredContent.replace(imagePattern, '[Image: Content not supported by Claude Code]');
-
-      // Clean up extra whitespace and newlines
-      filteredContent = filteredContent.replace(/\n\s*\n\s*\n/g, '\n\n'); // Multiple newlines to double
-      filteredContent = filteredContent.trim();
-
-      // If content is now empty or only whitespace, provide a fallback
-      if (!filteredContent || /^\s*$/.test(filteredContent)) {
-        filteredContent = "I understand you're testing the system. How can I help you today?";
-      }
-
-      logger.debug('Content filtered', {
+      logger.debug('Content filtered using new filter', {
         originalLength: content.length,
-        filteredLength: filteredContent.length,
-        hasChanges: content !== filteredContent
+        filteredLength: filterResult.content.length,
+        wasFiltered: filterResult.wasFiltered,
+        filtersApplied: filterResult.filtersApplied,
+        processingTimeMs: filterResult.processingTimeMs
       });
 
-      return filteredContent;
+      return filterResult.content;
     } catch (error) {
       logger.error('Failed to filter content', { error, contentLength: content.length });
       return content; // Return original content on error

@@ -430,7 +430,7 @@ export class ProductionReliability extends EventEmitter implements IReliability 
   getAllCircuitBreakerStats(): CircuitBreakerStats[] {
     const stats: CircuitBreakerStats[] = [];
     
-    for (const [operation, circuitBreaker] of this.circuitBreakers.entries()) {
+    for (const [_operation, circuitBreaker] of this.circuitBreakers.entries()) {
       stats.push(circuitBreaker.getStats());
     }
     

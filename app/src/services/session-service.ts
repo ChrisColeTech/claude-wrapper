@@ -8,6 +8,11 @@ import { SessionManager, Session } from '../session/manager';
 import { SessionInfo, SessionListResponse } from '../models/session';
 import { Message } from '../models/message';
 import { getLogger } from '../utils/logger';
+import { ToolCallIDManager, toolCallIDManager } from '../tools/id-manager';
+import { OpenAIToolCall } from '../tools/types';
+import { toolStateManager, IToolStateManager } from '../tools/state';
+import { toolStatePersistence } from '../tools/state-persistence';
+import { ToolCallStateSnapshot } from '../tools/state';
 
 const logger = getLogger('SessionService');
 
@@ -20,6 +25,8 @@ export interface SessionServiceConfig {
   maxSessionsPerUser: number;
   maxMessagesPerSession: number;
   enableAutoCleanup: boolean;
+  enableToolStateTracking: boolean;
+  toolStateCleanupIntervalMinutes: number;
 }
 
 /**
@@ -30,7 +37,9 @@ const DEFAULT_SESSION_CONFIG: SessionServiceConfig = {
   cleanupIntervalMinutes: 5,
   maxSessionsPerUser: 100,
   maxMessagesPerSession: 1000,
-  enableAutoCleanup: true
+  enableAutoCleanup: true,
+  enableToolStateTracking: true,
+  toolStateCleanupIntervalMinutes: 10
 };
 
 /**
@@ -40,6 +49,7 @@ const DEFAULT_SESSION_CONFIG: SessionServiceConfig = {
 export class SessionService {
   private sessionManager: SessionManager;
   private config: SessionServiceConfig;
+  private toolStateCleanupInterval?: NodeJS.Timeout;
 
   constructor(config: Partial<SessionServiceConfig> = {}) {
     this.config = { ...DEFAULT_SESSION_CONFIG, ...config };
@@ -51,6 +61,11 @@ export class SessionService {
 
     if (this.config.enableAutoCleanup) {
       this.sessionManager.start_cleanup_task();
+    }
+
+    // Start tool state cleanup if enabled
+    if (this.config.enableToolStateTracking) {
+      this.startToolStateCleanup();
     }
 
     logger.info('SessionService initialized', this.config);
@@ -378,11 +393,254 @@ export class SessionService {
   }
 
   /**
+   * Track tool call in session (Phase 6A requirement)
+   * Integrates ID management with session persistence
+   */
+  async trackToolCall(sessionId: string, toolCall: OpenAIToolCall): Promise<{ success: boolean; error?: string }> {
+    try {
+      if (!this.isValidSessionId(sessionId)) {
+        return { success: false, error: 'Invalid session ID format' };
+      }
+
+      const session = this.getSessionById(sessionId);
+      if (!session) {
+        return { success: false, error: 'Session not found' };
+      }
+
+      // Track the tool call ID in the ID management system
+      const result = await toolCallIDManager.trackId(toolCall.id, sessionId);
+      
+      if (!result.success) {
+        return { success: false, error: result.errors.join(', ') };
+      }
+
+      logger.debug('Tool call tracked in session', { 
+        sessionId, 
+        toolCallId: toolCall.id,
+        toolName: toolCall.function.name 
+      });
+
+      return { success: true };
+    } catch (error) {
+      logger.error('Failed to track tool call in session', { error, sessionId, toolCallId: toolCall.id });
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  }
+
+  /**
+   * Get all tool call IDs for a session
+   * Enables conversation continuity for tool calls
+   */
+  getSessionToolCalls(sessionId: string): string[] {
+    try {
+      if (!this.isValidSessionId(sessionId)) {
+        return [];
+      }
+
+      return toolCallIDManager.getSessionIds(sessionId);
+    } catch (error) {
+      logger.error('Failed to get session tool calls', { error, sessionId });
+      return [];
+    }
+  }
+
+  /**
+   * Check if tool call ID is tracked in session
+   * Validates tool call ownership in conversation context
+   */
+  isToolCallTracked(toolCallId: string): boolean {
+    try {
+      return toolCallIDManager.isIdTracked(toolCallId);
+    } catch (error) {
+      logger.error('Failed to check tool call tracking', { error, toolCallId });
+      return false;
+    }
+  }
+
+  /**
+   * Clear all tool calls for a session
+   * Cleanup when session ends
+   */
+  clearSessionToolCalls(sessionId: string): void {
+    try {
+      if (!this.isValidSessionId(sessionId)) {
+        return;
+      }
+
+      toolCallIDManager.clearSession(sessionId);
+      logger.debug('Cleared tool calls for session', { sessionId });
+    } catch (error) {
+      logger.error('Failed to clear session tool calls', { error, sessionId });
+    }
+  }
+
+  /**
+   * Create or update tool call state for session (Phase 11A)
+   */
+  async createToolCallState(sessionId: string, toolCall: OpenAIToolCall, metadata?: Record<string, any>): Promise<{ success: boolean; error?: string }> {
+    try {
+      if (!this.config.enableToolStateTracking) {
+        return { success: false, error: 'Tool state tracking is disabled' };
+      }
+
+      if (!this.isValidSessionId(sessionId)) {
+        return { success: false, error: 'Invalid session ID format' };
+      }
+
+      const session = this.getSessionById(sessionId);
+      if (!session) {
+        return { success: false, error: 'Session not found' };
+      }
+
+      // Create tool call state entry
+      const stateEntry = await toolStateManager.createToolCall(sessionId, toolCall, metadata);
+      
+      // Get updated snapshot and save to session
+      const snapshot = await toolStateManager.getStateSnapshot(sessionId);
+      if (snapshot) {
+        await this.updateSessionToolState(sessionId, snapshot);
+      }
+
+      logger.debug('Tool call state created', { 
+        sessionId, 
+        toolCallId: toolCall.id,
+        state: stateEntry.state 
+      });
+
+      return { success: true };
+    } catch (error) {
+      logger.error('Failed to create tool call state', { error, sessionId, toolCallId: toolCall.id });
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  }
+
+  /**
+   * Update tool call state transition
+   */
+  async updateToolCallState(sessionId: string, toolCallId: string, newState: 'pending' | 'in_progress' | 'completed' | 'failed' | 'cancelled', result?: any, error?: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      if (!this.config.enableToolStateTracking) {
+        return { success: false, error: 'Tool state tracking is disabled' };
+      }
+
+      const transitionResult = await toolStateManager.updateToolCallState(sessionId, {
+        toolCallId,
+        newState,
+        result,
+        error
+      });
+
+      if (!transitionResult.success) {
+        return { success: false, error: transitionResult.error };
+      }
+
+      // Update session snapshot
+      const snapshot = await toolStateManager.getStateSnapshot(sessionId);
+      if (snapshot) {
+        await this.updateSessionToolState(sessionId, snapshot);
+      }
+
+      logger.debug('Tool call state updated', { 
+        sessionId, 
+        toolCallId,
+        newState,
+        transitionTime: transitionResult.transitionTimeMs 
+      });
+
+      return { success: true };
+    } catch (error) {
+      logger.error('Failed to update tool call state', { error, sessionId, toolCallId });
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  }
+
+  /**
+   * Get tool call state snapshot for session
+   */
+  async getSessionToolState(sessionId: string): Promise<ToolCallStateSnapshot | null> {
+    try {
+      if (!this.config.enableToolStateTracking) {
+        return null;
+      }
+
+      return await toolStateManager.getStateSnapshot(sessionId);
+    } catch (error) {
+      logger.error('Failed to get session tool state', { error, sessionId });
+      return null;
+    }
+  }
+
+  /**
+   * Cleanup expired tool states
+   */
+  async cleanupExpiredToolStates(): Promise<number> {
+    try {
+      if (!this.config.enableToolStateTracking) {
+        return 0;
+      }
+
+      const maxAge = this.config.defaultTtlHours * 60 * 60 * 1000; // Convert hours to ms
+      const cleanupResult = await toolStateManager.cleanupExpiredStates(maxAge);
+      
+      logger.info('Tool state cleanup completed', { 
+        cleanedEntries: cleanupResult.cleanedEntries,
+        remainingEntries: cleanupResult.remainingEntries 
+      });
+
+      return cleanupResult.cleanedEntries;
+    } catch (error) {
+      logger.error('Failed to cleanup expired tool states', { error });
+      return 0;
+    }
+  }
+
+  /**
+   * Start periodic tool state cleanup
+   */
+  private startToolStateCleanup(): void {
+    const intervalMs = this.config.toolStateCleanupIntervalMinutes * 60 * 1000;
+    
+    this.toolStateCleanupInterval = setInterval(async () => {
+      try {
+        await this.cleanupExpiredToolStates();
+      } catch (error) {
+        logger.error('Tool state cleanup interval error', { error });
+      }
+    }, intervalMs);
+
+    logger.info('Tool state cleanup started', { intervalMinutes: this.config.toolStateCleanupIntervalMinutes });
+  }
+
+  /**
+   * Update session with tool state snapshot
+   */
+  private async updateSessionToolState(sessionId: string, snapshot: ToolCallStateSnapshot): Promise<void> {
+    try {
+      // Store the snapshot in session persistence if available
+      await toolStatePersistence.saveSessionState(sessionId, snapshot);
+      
+      logger.debug('Session tool state updated', { 
+        sessionId, 
+        totalCalls: snapshot.totalCalls,
+        pendingCalls: snapshot.pendingCalls.length 
+      });
+    } catch (error) {
+      logger.warn('Failed to update session tool state', { error, sessionId });
+    }
+  }
+
+  /**
    * Shutdown the session service
    * For graceful application shutdown
    */
   shutdown(): void {
     try {
+      // Clear tool state cleanup interval
+      if (this.toolStateCleanupInterval) {
+        clearInterval(this.toolStateCleanupInterval);
+        this.toolStateCleanupInterval = undefined;
+      }
+
       this.sessionManager.shutdown();
       logger.info('SessionService shut down successfully');
     } catch (error) {

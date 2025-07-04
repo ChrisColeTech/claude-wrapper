@@ -5,15 +5,17 @@
  */
 
 import { ClaudeClient, ClaudeCodeOptions, ClaudeCodeMessage } from './client';
+import { ClaudeSDKClient } from './sdk-client';
 import { ClaudeResponseParser, StreamResponseParser } from './parser';
 import { ClaudeMetadataExtractor, ResponseMetadata } from './metadata';
 import { MessageAdapter } from '../message/adapter';
 import { Message } from '../models/message';
 import { ChatCompletionRequest } from '../models/chat';
 import { ClaudeClientError, StreamingError } from '../models/error';
-// import { getLogger } from '../utils/logger';
+import { ClaudeSDKError, handleClaudeSDKCall } from './error-types';
+import { getLogger } from '../utils/logger';
 
-// const _logger = getLogger('ClaudeService');
+const logger = getLogger('ClaudeService');
 
 /**
  * Claude completion request options
@@ -55,10 +57,12 @@ export interface ClaudeStreamChunk {
  */
 export class ClaudeService {
   private client: ClaudeClient;
+  private sdkClient: ClaudeSDKClient;
   private messageAdapter: MessageAdapter;
 
   constructor(timeout: number = 600000, cwd?: string) {
     this.client = new ClaudeClient(timeout, cwd);
+    this.sdkClient = new ClaudeSDKClient({ timeout, cwd });
     this.messageAdapter = new MessageAdapter();
   }
 
@@ -66,18 +70,28 @@ export class ClaudeService {
    * Verify Claude Code SDK is available and authenticated
    */
   async verifySDK(): Promise<{ available: boolean; error?: string }> {
-    try {
-      const result = await this.client.verifySDK();
-      return {
-        available: result.available && (result.authentication ?? false),
-        error: result.error
-      };
-    } catch (error) {
-      return {
-        available: false,
-        error: `SDK verification failed: ${error}`
-      };
-    }
+    return handleClaudeSDKCall(async () => {
+      try {
+        // Use the new SDK client for verification
+        const result = await this.sdkClient.verifySDK();
+        logger.info('Claude SDK verification result', { 
+          available: result.available, 
+          authentication: result.authentication,
+          version: result.version 
+        });
+        
+        return {
+          available: result.available && (result.authentication ?? false),
+          error: result.error
+        };
+      } catch (error) {
+        logger.error('Claude SDK verification error', { error });
+        return {
+          available: false,
+          error: `SDK verification failed: ${error}`
+        };
+      }
+    });
   }
 
   /**
@@ -88,48 +102,71 @@ export class ClaudeService {
     messages: Message[],
     options: ClaudeCompletionOptions = {}
   ): Promise<ClaudeCompletionResponse> {
-    try {
-      // Convert messages to prompt format
-      const prompt = this.messageAdapter.convertToClaudePrompt(messages);
-      
-      // Prepare Claude Code SDK options
-      const claudeOptions = this.prepareClaudeOptions(options);
+    return handleClaudeSDKCall(async () => {
+      try {
+        logger.info('Creating Claude completion', { 
+          messageCount: messages.length,
+          model: options.model,
+          maxTurns: options.max_turns 
+        });
 
-      // Collect all messages from SDK
-      const claudeMessages: ClaudeCodeMessage[] = [];
-      
-      for await (const message of this.client.runCompletion(prompt, claudeOptions)) {
-        claudeMessages.push(message);
+        // Convert messages to prompt format
+        const prompt = this.messageAdapter.convertToClaudePrompt(messages);
         
-        // Break early if we get a complete assistant response
-        if (message.type === 'assistant' && ClaudeResponseParser.isCompleteResponse(claudeMessages)) {
-          break;
+        // Prepare Claude Code SDK options
+        const claudeOptions = this.prepareClaudeOptions(options);
+
+        // Use the SDK client instead of the legacy client
+        const claudeMessages: ClaudeCodeMessage[] = [];
+        
+        // Performance tracking for Phase 1A requirement
+        const startTime = Date.now();
+        
+        for await (const message of this.sdkClient.runCompletion(prompt, claudeOptions)) {
+          claudeMessages.push(message);
+          
+          // Break early if we get a complete assistant response
+          if (message.type === 'assistant' && ClaudeResponseParser.isCompleteResponse(claudeMessages)) {
+            break;
+          }
         }
+
+        const responseTime = Date.now() - startTime;
+        logger.info('Claude completion response time', { responseTime, messageCount: claudeMessages.length });
+
+        // Parse response
+        const parsedResponse = ClaudeResponseParser.parseToOpenAIResponse(claudeMessages);
+        if (!parsedResponse) {
+          throw new ClaudeSDKError('No valid response received from Claude Code SDK');
+        }
+
+        // Extract metadata
+        const metadata = ClaudeMetadataExtractor.extractMetadata(claudeMessages);
+
+        const response = {
+          content: parsedResponse.content,
+          role: 'assistant' as const,
+          metadata,
+          session_id: parsedResponse.session_id,
+          stop_reason: parsedResponse.stop_reason
+        };
+
+        logger.info('Claude completion successful', { 
+          contentLength: response.content.length,
+          responseTime,
+          tokenUsage: metadata
+        });
+
+        return response;
+
+      } catch (error) {
+        logger.error('Claude completion failed', { error });
+        if (error instanceof ClaudeSDKError) {
+          throw error;
+        }
+        throw new ClaudeSDKError(`Completion failed: ${error}`);
       }
-
-      // Parse response
-      const parsedResponse = ClaudeResponseParser.parseToOpenAIResponse(claudeMessages);
-      if (!parsedResponse) {
-        throw new ClaudeClientError('No valid response received from Claude Code SDK');
-      }
-
-      // Extract metadata
-      const metadata = ClaudeMetadataExtractor.extractMetadata(claudeMessages);
-
-      return {
-        content: parsedResponse.content,
-        role: 'assistant',
-        metadata,
-        session_id: parsedResponse.session_id,
-        stop_reason: parsedResponse.stop_reason
-      };
-
-    } catch (error) {
-      if (error instanceof ClaudeClientError) {
-        throw error;
-      }
-      throw new ClaudeClientError(`Completion failed: ${error}`);
-    }
+    });
   }
 
   /**
@@ -140,6 +177,11 @@ export class ClaudeService {
     options: ClaudeCompletionOptions = {}
   ): AsyncGenerator<ClaudeStreamChunk, void, unknown> {
     try {
+      logger.info('Creating Claude streaming completion', { 
+        messageCount: messages.length,
+        model: options.model 
+      });
+
       // Convert messages to prompt format
       const prompt = this.messageAdapter.convertToClaudePrompt(messages);
       
@@ -150,7 +192,10 @@ export class ClaudeService {
       const streamParser = new StreamResponseParser();
       let lastContent = '';
 
-      for await (const message of this.client.runCompletion(prompt, claudeOptions)) {
+      // Performance tracking for Phase 1A requirement
+      const startTime = Date.now();
+
+      for await (const message of this.sdkClient.runCompletion(prompt, claudeOptions)) {
         streamParser.addMessage(message);
         
         // Get current content
@@ -171,6 +216,9 @@ export class ClaudeService {
 
         // Check if response is complete
         if (streamParser.isComplete()) {
+          const responseTime = Date.now() - startTime;
+          logger.info('Claude streaming completion finished', { responseTime });
+          
           streamParser.getFinalResponse();
           const metadata = ClaudeMetadataExtractor.extractMetadata(streamParser.getMessages());
           
@@ -185,7 +233,8 @@ export class ClaudeService {
       }
 
     } catch (error) {
-      if (error instanceof ClaudeClientError) {
+      logger.error('Claude streaming completion failed', { error });
+      if (error instanceof ClaudeSDKError) {
         throw error;
       }
       throw new StreamingError(`Streaming completion failed: ${error}`);

@@ -247,7 +247,42 @@ export const ErrorUtils = {
     } catch {
       return false;
     }
-  }
+  },
+
+  /**
+   * Create tool call error (Phase 8A)
+   */
+  toolCallError: (message: string, code?: string, param?: string): ErrorResponse => ({
+    error: {
+      message,
+      type: ErrorTypes.TOOL_ERROR,
+      param,
+      code: code || ErrorCodes.TOOL_EXECUTION_FAILED
+    }
+  }),
+
+  /**
+   * Create tool validation error (Phase 8A)
+   */
+  toolValidationError: (message: string, param?: string): ErrorResponse => ({
+    error: {
+      message,
+      type: 'invalid_request_error',
+      param,
+      code: 'tool_validation_failed'
+    }
+  }),
+
+  /**
+   * Create tool timeout error (Phase 8A)
+   */
+  toolTimeoutError: (message: string): ErrorResponse => ({
+    error: {
+      message,
+      type: ErrorTypes.TOOL_ERROR,
+      code: 'tool_timeout_exceeded'
+    }
+  })
 };
 
 /**
@@ -265,8 +300,43 @@ export const ErrorStatusCodes = {
   [ErrorTypes.ENGINE_OVERLOADED]: 503,
   [ErrorTypes.SDK_ERROR]: 500,
   [ErrorTypes.STREAMING_ERROR]: 500,
-  [ErrorTypes.TOOL_ERROR]: 500
+  [ErrorTypes.TOOL_ERROR]: 422
 } as const;
+
+// Phase 8A: Tool Call Error Types and Interfaces
+export interface ToolCallError {
+  id?: string;
+  type: 'validation' | 'timeout' | 'processing' | 'format' | 'execution' | 'system';
+  code: string;
+  message: string;
+  context?: Record<string, any>;
+  timestamp: number;
+  recoverable: boolean;
+}
+
+export interface ToolCallErrorDetail extends ErrorDetail {
+  toolCallId?: string;
+  functionName?: string;
+  errorContext?: Record<string, any>;
+}
+
+export interface ToolCallErrorResponse extends ErrorResponse {
+  error: ToolCallErrorDetail;
+}
+
+/**
+ * Tool call error classification
+ */
+export const ToolCallErrorTypes = {
+  VALIDATION: 'validation',
+  TIMEOUT: 'timeout', 
+  PROCESSING: 'processing',
+  FORMAT: 'format',
+  EXECUTION: 'execution',
+  SYSTEM: 'system'
+} as const;
+
+export type ToolCallErrorType = typeof ToolCallErrorTypes[keyof typeof ToolCallErrorTypes];
 
 /**
  * Get HTTP status code for error type

@@ -1,311 +1,457 @@
 /**
- * Tool Validation System
- * Based on Python parameter_validator.py:96-137 tool header validation
- * Phase 7A Implementation: Complete tool validation and header parsing
+ * Tool validation service
+ * Single Responsibility: Validation logic only
+ * 
+ * Implements OpenAI Tools API validation with comprehensive error handling
  */
 
-import { 
-  PERMISSION_MODES, 
-  ClaudeCodeTool, 
-  PermissionMode, 
-  CLAUDE_CODE_TOOLS,
-  TOOL_HEADERS 
+import {
+  IToolValidator,
+  IToolSchemaValidator,
+  IToolArrayValidator,
+  OpenAITool,
+  OpenAIFunction,
+  OpenAIToolChoice,
+  ToolValidationResult,
+  ToolArrayValidationResult,
+  IValidationFramework,
+  ValidationFrameworkResult,
+  RuntimeValidationContext
+} from './types';
+import {
+  OpenAIToolSchema,
+  OpenAIFunctionSchema,
+  OpenAIToolChoiceSchema,
+  ToolsArraySchema,
+  ToolsRequestSchema,
+  ValidationUtils
+} from './schemas';
+import {
+  TOOL_VALIDATION_LIMITS,
+  TOOL_VALIDATION_MESSAGES
 } from './constants';
-import { getLogger } from '../utils/logger';
 
-const logger = getLogger('ToolValidator');
-
-export interface ToolValidationResult {
-  valid: boolean;
-  errors: string[];
-  warnings: string[];
-  validated_tools?: ClaudeCodeTool[];
-}
-
-export interface HeaderValidationResult {
-  valid: boolean;
-  errors: string[];
-  warnings: string[];
-  parsed_config?: any;
+/**
+ * Tool validation error class
+ */
+export class ToolValidationError extends Error {
+  constructor(
+    message: string,
+    public readonly code: string,
+    public readonly field?: string,
+    public readonly details?: any
+  ) {
+    super(message);
+    this.name = 'ToolValidationError';
+  }
 }
 
 /**
- * Tool Validator - Complete implementation for Phase 7A
- * Based on Python parameter_validator.py tool validation logic
+ * Tool schema validator implementation
  */
-export class ToolValidator {
+export class ToolSchemaValidator implements IToolSchemaValidator {
   /**
-   * Validate tool names against supported Claude Code tools
-   * Based on Python tool name validation logic
+   * Validate individual tool
    */
-  static validateToolNames(tools: string[]): ToolValidationResult {
-    const errors: string[] = [];
-    const warnings: string[] = [];
-    const validatedTools: ClaudeCodeTool[] = [];
-    
-    if (!Array.isArray(tools)) {
-      errors.push('Tools must be provided as an array');
-      return { valid: false, errors, warnings };
+  validateTool(tool: OpenAITool): ToolValidationResult {
+    try {
+      const result = OpenAIToolSchema.safeParse(tool);
+      
+      if (result.success) {
+        return { valid: true, errors: [] };
+      }
+      
+      const errors = ValidationUtils.extractErrorMessages(result);
+      return { valid: false, errors };
+      
+    } catch (error) {
+      return {
+        valid: false,
+        errors: [error instanceof Error ? error.message : 'Unknown validation error']
+      };
     }
-    
-    for (const tool of tools) {
-      if (typeof tool !== 'string') {
-        errors.push(`Tool name must be a string, got ${typeof tool}`);
-        continue;
-      }
-      
-      const trimmedTool = tool.trim();
-      if (!trimmedTool) {
-        warnings.push('Empty tool name provided, ignoring');
-        continue;
-      }
-      
-      if (!CLAUDE_CODE_TOOLS.includes(trimmedTool as ClaudeCodeTool)) {
-        errors.push(`Unknown tool: ${trimmedTool}. Supported tools: ${CLAUDE_CODE_TOOLS.join(', ')}`);
-        continue;
-      }
-      
-      if (!validatedTools.includes(trimmedTool as ClaudeCodeTool)) {
-        validatedTools.push(trimmedTool as ClaudeCodeTool);
-      } else {
-        warnings.push(`Duplicate tool: ${trimmedTool}`);
-      }
-    }
-    
-    logger.debug('Tool name validation result', {
-      input: tools,
-      validated: validatedTools,
-      errors,
-      warnings
-    });
-    
-    return {
-      valid: errors.length === 0,
-      errors,
-      warnings,
-      validated_tools: validatedTools
-    };
   }
-  
+
   /**
-   * Validate permission mode against supported modes
-   * Based on Python permission mode validation
+   * Validate function definition
    */
-  static validatePermissionMode(mode: string): boolean {
-    if (typeof mode !== 'string') {
-      return false;
-    }
-    
-    return PERMISSION_MODES.includes(mode.trim() as PermissionMode);
-  }
-  
-  /**
-   * Parse tool header value (comma-separated tool names)
-   * Based on Python header parsing logic
-   */
-  static parseToolHeader(headerValue: string): ClaudeCodeTool[] {
-    if (!headerValue || typeof headerValue !== 'string') {
-      return [];
-    }
-    
-    const toolNames = headerValue
-      .split(',')
-      .map(tool => tool.trim())
-      .filter(tool => tool.length > 0);
+  validateFunction(func: OpenAIFunction): ToolValidationResult {
+    try {
+      const result = OpenAIFunctionSchema.safeParse(func);
       
-    const validationResult = this.validateToolNames(toolNames);
-    
-    // Return valid tools even if some were invalid
-    if (validationResult.validated_tools && validationResult.validated_tools.length > 0) {
-      if (!validationResult.valid) {
-        logger.warn('Some invalid tools found in header', {
-          header: headerValue,
-          errors: validationResult.errors,
-          validTools: validationResult.validated_tools
-        });
-      }
-      return validationResult.validated_tools;
-    }
-    
-    logger.warn('No valid tools found in header', {
-      header: headerValue,
-      errors: validationResult.errors
-    });
-    
-    return [];
-  }
-  
-  /**
-   * Validate all tool-related headers
-   * Based on Python parameter_validator.py:96-137 comprehensive header validation
-   */
-  static validateToolHeaders(headers: Record<string, string>): HeaderValidationResult {
-    const errors: string[] = [];
-    const warnings: string[] = [];
-    const config: any = {};
-    
-    // Validate tools enabled/disabled headers
-    const toolsEnabled = headers[TOOL_HEADERS.TOOLS_ENABLED];
-    const toolsDisabled = headers[TOOL_HEADERS.TOOLS_DISABLED];
-    
-    if (toolsEnabled !== undefined) {
-      const normalizedEnabled = toolsEnabled.toLowerCase();
-      if (!['true', 'false'].includes(normalizedEnabled)) {
-        errors.push(`${TOOL_HEADERS.TOOLS_ENABLED} must be 'true' or 'false', got: ${toolsEnabled}`);
-      } else {
-        config.tools_enabled = normalizedEnabled === 'true';
-      }
-    }
-    
-    if (toolsDisabled !== undefined) {
-      const normalizedDisabled = toolsDisabled.toLowerCase();
-      if (!['true', 'false'].includes(normalizedDisabled)) {
-        errors.push(`${TOOL_HEADERS.TOOLS_DISABLED} must be 'true' or 'false', got: ${toolsDisabled}`);
-      } else {
-        config.disable_tools = normalizedDisabled === 'true';
-      }
-    }
-    
-    // Validate conflicting headers
-    if (toolsEnabled === 'true' && toolsDisabled === 'true') {
-      errors.push('Cannot have both tools enabled and disabled');
-    }
-    
-    // Validate permission mode
-    const permissionMode = headers[TOOL_HEADERS.PERMISSION_MODE];
-    if (permissionMode !== undefined) {
-      if (!this.validatePermissionMode(permissionMode)) {
-        errors.push(`Invalid permission mode: ${permissionMode}. Supported: ${PERMISSION_MODES.join(', ')}`);
-      } else {
-        config.permission_mode = permissionMode.trim();
-      }
-    }
-    
-    // Validate max turns
-    const maxTurns = headers[TOOL_HEADERS.MAX_TURNS];
-    if (maxTurns !== undefined) {
-      const parsed = parseInt(maxTurns, 10);
-      if (isNaN(parsed) || parsed < 1 || parsed > 100) {
-        errors.push(`${TOOL_HEADERS.MAX_TURNS} must be a number between 1 and 100, got: ${maxTurns}`);
-      } else {
-        config.max_turns = parsed;
-      }
-    }
-    
-    // Validate permission headers
-    const readPermission = headers[TOOL_HEADERS.READ_PERMISSION];
-    const writePermission = headers[TOOL_HEADERS.WRITE_PERMISSION];
-    const executePermission = headers[TOOL_HEADERS.EXECUTION_PERMISSION];
-    
-    [
-      { header: TOOL_HEADERS.READ_PERMISSION, value: readPermission },
-      { header: TOOL_HEADERS.WRITE_PERMISSION, value: writePermission },
-      { header: TOOL_HEADERS.EXECUTION_PERMISSION, value: executePermission }
-    ].forEach(({ header, value }) => {
-      if (value !== undefined) {
-        const normalized = value.toLowerCase();
-        if (!['true', 'false'].includes(normalized)) {
-          errors.push(`${header} must be 'true' or 'false', got: ${value}`);
-        }
-      }
-    });
-    
-    logger.debug('Tool header validation result', {
-      headers,
-      config,
-      errors,
-      warnings
-    });
-    
-    return {
-      valid: errors.length === 0,
-      errors,
-      warnings,
-      parsed_config: config
-    };
-  }
-  
-  /**
-   * Validate tool security constraints
-   * Based on Python security validation logic
-   */
-  static validateToolSecurity(
-    requestedTools: ClaudeCodeTool[], 
-    permissionMode: PermissionMode
-  ): ToolValidationResult {
-    const errors: string[] = [];
-    const warnings: string[] = [];
-    
-    // Check for dangerous tool combinations in restrictive mode
-    if (permissionMode === 'default') {
-      const hasWrite = requestedTools.some(tool => 
-        ['Edit', 'MultiEdit', 'Write', 'NotebookEdit', 'TodoWrite'].includes(tool)
-      );
-      const hasExecution = requestedTools.includes('Bash');
-      
-      if (hasWrite && hasExecution) {
-        warnings.push('Both write and execution tools requested - ensure proper security measures');
+      if (result.success) {
+        return { valid: true, errors: [] };
       }
       
-      if (hasExecution && permissionMode === 'default') {
-        warnings.push('Bash execution requested in default mode - consider using acceptEdits mode');
-      }
+      const errors = ValidationUtils.extractErrorMessages(result);
+      return { valid: false, errors };
+      
+    } catch (error) {
+      return {
+        valid: false,
+        errors: [error instanceof Error ? error.message : 'Unknown validation error']
+      };
     }
-    
-    // Validate tool dependencies
-    if (requestedTools.includes('exit_plan_mode') && requestedTools.length === 1) {
-      warnings.push('exit_plan_mode alone may not provide full functionality');
-    }
-    
-    return {
-      valid: errors.length === 0,
-      errors,
-      warnings,
-      validated_tools: requestedTools
-    };
   }
-  
+
   /**
-   * Get comprehensive tool validation report
+   * Validate function parameters
    */
-  static getValidationReport(
-    tools: string[],
-    headers: Record<string, string>,
-    permissionMode: PermissionMode = 'default'
-  ): {
-    overall_valid: boolean;
-    tool_validation: ToolValidationResult;
-    header_validation: HeaderValidationResult;
-    security_validation: ToolValidationResult;
-    all_errors: string[];
-    all_warnings: string[];
-  } {
-    const toolValidation = this.validateToolNames(tools);
-    const headerValidation = this.validateToolHeaders(headers);
-    const securityValidation = this.validateToolSecurity(
-      toolValidation.validated_tools || [],
-      permissionMode
-    );
-    
-    const allErrors = [
-      ...toolValidation.errors,
-      ...headerValidation.errors,
-      ...securityValidation.errors
-    ];
-    
-    const allWarnings = [
-      ...toolValidation.warnings,
-      ...headerValidation.warnings,
-      ...securityValidation.warnings
-    ];
-    
-    return {
-      overall_valid: allErrors.length === 0,
-      tool_validation: toolValidation,
-      header_validation: headerValidation,
-      security_validation: securityValidation,
-      all_errors: allErrors,
-      all_warnings: allWarnings
-    };
+  validateParameters(parameters: Record<string, any>): ToolValidationResult {
+    try {
+      // Check parameter depth
+      if (!ValidationUtils.validateParameterDepth(parameters)) {
+        return {
+          valid: false,
+          errors: [TOOL_VALIDATION_MESSAGES.PARAMETERS_DEPTH_EXCEEDED]
+        };
+      }
+      
+      // Validate parameter structure
+      const result = OpenAIFunctionSchema.shape.parameters.safeParse(parameters);
+      
+      if (result.success) {
+        return { valid: true, errors: [] };
+      }
+      
+      const errors = ValidationUtils.extractErrorMessages(result);
+      return { valid: false, errors };
+      
+    } catch (error) {
+      return {
+        valid: false,
+        errors: [error instanceof Error ? error.message : 'Unknown validation error']
+      };
+    }
   }
 }
+
+/**
+ * Tool array validator implementation
+ */
+export class ToolArrayValidator implements IToolArrayValidator {
+  /**
+   * Validate tools array
+   */
+  validateToolArray(tools: OpenAITool[]): ToolArrayValidationResult {
+    try {
+      if (!Array.isArray(tools)) {
+        return {
+          valid: false,
+          errors: [TOOL_VALIDATION_MESSAGES.TOOLS_ARRAY_REQUIRED],
+          validTools: []
+        };
+      }
+      
+      const result = ToolsArraySchema.safeParse(tools);
+      
+      if (result.success) {
+        return { valid: true, errors: [], validTools: result.data };
+      }
+      
+      const errors = ValidationUtils.extractErrorMessages(result);
+      
+      // Extract valid tools for partial validation
+      const validTools = tools.filter(tool => {
+        const toolResult = OpenAIToolSchema.safeParse(tool);
+        return toolResult.success;
+      });
+      
+      return { valid: false, errors, validTools };
+      
+    } catch (error) {
+      return {
+        valid: false,
+        errors: [error instanceof Error ? error.message : 'Unknown validation error'],
+        validTools: []
+      };
+    }
+  }
+
+  /**
+   * Validate tool choice
+   */
+  validateToolChoice(toolChoice: OpenAIToolChoice, tools: OpenAITool[]): ToolValidationResult {
+    try {
+      // Basic schema validation
+      const result = OpenAIToolChoiceSchema.safeParse(toolChoice);
+      
+      if (!result.success) {
+        const errors = ValidationUtils.extractErrorMessages(result);
+        return { valid: false, errors };
+      }
+      
+      // Validate function name exists in tools array
+      if (typeof toolChoice === 'object' && toolChoice.type === 'function') {
+        const functionName = toolChoice.function.name;
+        const toolNames = tools.map(tool => tool.function.name);
+        
+        if (!toolNames.includes(functionName)) {
+          return {
+            valid: false,
+            errors: [TOOL_VALIDATION_MESSAGES.TOOL_CHOICE_FUNCTION_NOT_FOUND]
+          };
+        }
+      }
+      
+      return { valid: true, errors: [] };
+      
+    } catch (error) {
+      return {
+        valid: false,
+        errors: [error instanceof Error ? error.message : 'Unknown validation error']
+      };
+    }
+  }
+}
+
+/**
+ * Main tool validator implementation
+ */
+export class ToolValidator implements IToolValidator {
+  private schemaValidator: IToolSchemaValidator;
+  private arrayValidator: IToolArrayValidator;
+  private validationFramework?: IValidationFramework;
+
+  constructor(
+    schemaValidator?: IToolSchemaValidator,
+    arrayValidator?: IToolArrayValidator,
+    validationFramework?: IValidationFramework
+  ) {
+    this.schemaValidator = schemaValidator || new ToolSchemaValidator();
+    this.arrayValidator = arrayValidator || new ToolArrayValidator();
+    this.validationFramework = validationFramework;
+  }
+
+  /**
+   * Validate individual tool
+   */
+  validateTool(tool: OpenAITool): ToolValidationResult {
+    return this.schemaValidator.validateTool(tool);
+  }
+
+  /**
+   * Validate function definition
+   */
+  validateFunction(func: OpenAIFunction): ToolValidationResult {
+    return this.schemaValidator.validateFunction(func);
+  }
+
+  /**
+   * Validate function parameters
+   */
+  validateParameters(parameters: Record<string, any>): ToolValidationResult {
+    return this.schemaValidator.validateParameters(parameters);
+  }
+
+  /**
+   * Validate tools array
+   */
+  validateToolArray(tools: OpenAITool[]): ToolArrayValidationResult {
+    return this.arrayValidator.validateToolArray(tools);
+  }
+
+  /**
+   * Validate tool choice
+   */
+  validateToolChoice(toolChoice: OpenAIToolChoice, tools: OpenAITool[]): ToolValidationResult {
+    return this.arrayValidator.validateToolChoice(toolChoice, tools);
+  }
+
+  /**
+   * Validate complete tools request
+   */
+  validateToolsRequest(tools: OpenAITool[], toolChoice?: OpenAIToolChoice): ToolArrayValidationResult {
+    try {
+      const requestData = { tools, tool_choice: toolChoice };
+      const result = ToolsRequestSchema.safeParse(requestData);
+      
+      if (result.success) {
+        return { valid: true, errors: [], validTools: result.data.tools };
+      }
+      
+      const errors = ValidationUtils.extractErrorMessages(result);
+      
+      // Extract valid tools for partial validation
+      const validTools = tools.filter(tool => {
+        const toolResult = OpenAIToolSchema.safeParse(tool);
+        return toolResult.success;
+      });
+      
+      return { valid: false, errors, validTools };
+      
+    } catch (error) {
+      return {
+        valid: false,
+        errors: [error instanceof Error ? error.message : 'Unknown validation error'],
+        validTools: []
+      };
+    }
+  }
+
+  /**
+   * Validate with performance timeout
+   */
+  async validateWithTimeout(
+    tools: OpenAITool[],
+    toolChoice?: OpenAIToolChoice,
+    timeoutMs: number = TOOL_VALIDATION_LIMITS.VALIDATION_TIMEOUT_MS
+  ): Promise<ToolArrayValidationResult> {
+    try {
+      const requestData = { tools, tool_choice: toolChoice };
+      const result = await ValidationUtils.validateWithTimeout(
+        ToolsRequestSchema,
+        requestData,
+        timeoutMs
+      );
+      
+      if (result.success) {
+        return { valid: true, errors: [], validTools: result.data.tools };
+      }
+      
+      const errors = ValidationUtils.extractErrorMessages(result);
+      
+      // Extract valid tools for partial validation
+      const validTools = tools.filter(tool => {
+        const toolResult = OpenAIToolSchema.safeParse(tool);
+        return toolResult.success;
+      });
+      
+      return { valid: false, errors, validTools };
+      
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('timeout')) {
+        return {
+          valid: false,
+          errors: [TOOL_VALIDATION_MESSAGES.VALIDATION_TIMEOUT],
+          validTools: []
+        };
+      }
+      
+      return {
+        valid: false,
+        errors: [error instanceof Error ? error.message : 'Unknown validation error'],
+        validTools: []
+      };
+    }
+  }
+
+  /**
+   * Enhanced validation with framework (Phase 12A)
+   * Provides complete validation including runtime parameter validation
+   */
+  async validateWithFramework(
+    tool: OpenAITool,
+    parameters: Record<string, any>,
+    context?: RuntimeValidationContext
+  ): Promise<ValidationFrameworkResult> {
+    if (!this.validationFramework) {
+      // Fallback to basic validation
+      const basicResult = this.validateTool(tool);
+      return {
+        valid: basicResult.valid,
+        errors: basicResult.errors.map(error => ({
+          field: 'tool',
+          code: 'VALIDATION_FAILED',
+          message: error,
+          severity: 'error' as const
+        })),
+        validationTimeMs: 0,
+        performanceMetrics: {
+          validationTimeMs: 0,
+          schemaValidationTimeMs: 0,
+          runtimeValidationTimeMs: 0,
+          customRulesTimeMs: 0,
+          cacheTimeMs: 0,
+          memoryUsageBytes: 0
+        }
+      };
+    }
+
+    return this.validationFramework.validateComplete(tool, parameters, context);
+  }
+
+  /**
+   * Enhanced tools validation with framework
+   */
+  async validateToolsWithFramework(tools: OpenAITool[]): Promise<ValidationFrameworkResult[]> {
+    if (!this.validationFramework) {
+      // Fallback to basic validation
+      return tools.map(tool => {
+        const basicResult = this.validateTool(tool);
+        return {
+          valid: basicResult.valid,
+          errors: basicResult.errors.map(error => ({
+            field: 'tool',
+            code: 'VALIDATION_FAILED',
+            message: error,
+            severity: 'error' as const
+          })),
+          validationTimeMs: 0,
+          performanceMetrics: {
+            validationTimeMs: 0,
+            schemaValidationTimeMs: 0,
+            runtimeValidationTimeMs: 0,
+            customRulesTimeMs: 0,
+            cacheTimeMs: 0,
+            memoryUsageBytes: 0
+          }
+        };
+      });
+    }
+
+    return this.validationFramework.validateTools(tools);
+  }
+
+  /**
+   * Enhanced tools with choice validation using framework
+   */
+  async validateToolsRequestWithFramework(
+    tools: OpenAITool[],
+    toolChoice?: OpenAIToolChoice
+  ): Promise<ValidationFrameworkResult> {
+    if (!this.validationFramework) {
+      // Fallback to basic validation
+      const basicResult = this.validateToolsRequest(tools, toolChoice);
+      return {
+        valid: basicResult.valid,
+        errors: basicResult.errors.map(error => ({
+          field: 'tools',
+          code: 'VALIDATION_FAILED',
+          message: error,
+          severity: 'error' as const
+        })),
+        validationTimeMs: 0,
+        performanceMetrics: {
+          validationTimeMs: 0,
+          schemaValidationTimeMs: 0,
+          runtimeValidationTimeMs: 0,
+          customRulesTimeMs: 0,
+          cacheTimeMs: 0,
+          memoryUsageBytes: 0
+        }
+      };
+    }
+
+    return this.validationFramework.validateToolsWithChoice(tools, toolChoice);
+  }
+
+  /**
+   * Set validation framework instance
+   */
+  setValidationFramework(framework: IValidationFramework): void {
+    this.validationFramework = framework;
+  }
+
+  /**
+   * Check if validation framework is available
+   */
+  hasValidationFramework(): boolean {
+    return !!this.validationFramework;
+  }
+}
+
+/**
+ * Default tool validator instance
+ */
+export const toolValidator = new ToolValidator();

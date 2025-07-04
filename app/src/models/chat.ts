@@ -7,6 +7,8 @@
 import { z } from 'zod';
 import { MessageSchema } from './message';
 import { getLogger } from '../utils/logger';
+import { ToolsArraySchema, OpenAIToolChoiceSchema } from '../tools/schemas';
+import { OpenAIToolCall } from '../tools/types';
 
 const logger = getLogger('ChatModels');
 
@@ -28,7 +30,9 @@ export const ChatCompletionRequestSchema = z.object({
   logit_bias: z.record(z.string(), z.number()).optional(),
   user: z.string().optional(),
   session_id: z.string().optional().describe("Optional session ID for conversation continuity"),
-  enable_tools: z.boolean().default(false).describe("Enable Claude Code tools (Read, Write, Bash, etc.) - disabled by default for OpenAI compatibility")
+  enable_tools: z.boolean().default(false).describe("Enable Claude Code tools (Read, Write, Bash, etc.) - disabled by default for OpenAI compatibility"),
+  tools: ToolsArraySchema.optional().describe("OpenAI tools array for function calling"),
+  tool_choice: OpenAIToolChoiceSchema.optional().describe("OpenAI tool choice parameter")
 }).refine((data) => {
   // Validate n parameter (Claude Code SDK only supports single response)
   if (data.n > 1) {
@@ -80,13 +84,34 @@ export function logUnsupportedParameters(data: ChatCompletionRequest): void {
 }
 
 /**
+ * OpenAI tool call schema for responses
+ */
+export const OpenAIToolCallSchema = z.object({
+  id: z.string(),
+  type: z.literal('function'),
+  function: z.object({
+    name: z.string(),
+    arguments: z.string() // JSON string
+  })
+});
+
+/**
  * Choice schema for chat completion response
- * Based on Python Choice class
+ * Based on Python Choice class - Enhanced for Phase 4A tool calls
  */
 export const ChoiceSchema = z.object({
   index: z.number().int().nonnegative(),
-  message: MessageSchema,
-  finish_reason: z.enum(["stop", "length", "content_filter", "null"]).nullable().optional()
+  message: z.object({
+    role: z.enum(["assistant"]),
+    content: z.string().nullable(),
+    tool_calls: z.array(OpenAIToolCallSchema).optional()
+  }).optional(),
+  delta: z.object({
+    role: z.enum(["assistant"]).optional(),
+    content: z.string().optional(),
+    tool_calls: z.array(OpenAIToolCallSchema).optional()
+  }).optional(),
+  finish_reason: z.enum(["stop", "length", "content_filter", "tool_calls"]).nullable()
 });
 
 export type Choice = z.infer<typeof ChoiceSchema>;
@@ -159,6 +184,36 @@ export const ChatCompletionUtils = {
         content
       },
       finish_reason: finishReason
+    };
+
+    return {
+      id: `chatcmpl-${generateId()}`,
+      object: "chat.completion",
+      created: Math.floor(Date.now() / 1000),
+      model,
+      choices: [choice],
+      usage,
+      system_fingerprint: undefined
+    };
+  },
+
+  /**
+   * Create chat completion response with tool calls (Phase 4A)
+   */
+  createToolCallResponse: (
+    model: string,
+    toolCalls: OpenAIToolCall[],
+    content?: string,
+    usage?: Usage
+  ): ChatCompletionResponse => {
+    const choice: Choice = {
+      index: 0,
+      message: {
+        role: "assistant",
+        content: content || null,
+        tool_calls: toolCalls.length > 0 ? toolCalls : undefined
+      },
+      finish_reason: toolCalls.length > 0 ? "tool_calls" : "stop"
     };
 
     return {

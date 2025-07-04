@@ -8,7 +8,7 @@ import request from 'supertest';
 import { spawn, ChildProcess } from 'child_process';
 import path from 'path';
 import { promises as fs } from 'fs';
-import { getLogger } from '../../../src/utils/logger';
+import { getLogger } from '../../src/utils/logger';
 
 const logger = getLogger('E2EWorkflow');
 
@@ -442,7 +442,7 @@ describe('Phase 15A - End-to-End Complete Workflow Test Suite', () => {
       ];
 
       for (const test of endpointTests) {
-        const response = await request(serverUrl)[test.method.toLowerCase()](test.path)
+        const response = await (request(serverUrl) as any)[test.method.toLowerCase()](test.path)
           .send(test.body);
         
         // Should not return 404 (endpoint exists) or 500 (no crashes)
