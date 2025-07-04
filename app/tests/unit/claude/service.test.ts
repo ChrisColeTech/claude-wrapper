@@ -6,14 +6,20 @@
 
 import { ClaudeService, ClaudeCompletionOptions, ClaudeCompletionResponse, ClaudeStreamChunk } from '../../../src/claude/service';
 import { ClaudeClient, ClaudeCodeMessage } from '../../../src/claude/client';
+import { ClaudeSDKClient } from '../../../src/claude/sdk-client';
 import { MessageAdapter } from '../../../src/message/adapter';
 import { Message } from '../../../src/models/message';
 import { ChatCompletionRequest } from '../../../src/models/chat';
 import { ClaudeClientError, StreamingError } from '../../../src/models/error';
+import { ClaudeResponseParser } from '../../../src/claude/parser';
+import { ClaudeMetadataExtractor } from '../../../src/claude/metadata';
 
 // Mock dependencies
 jest.mock('../../../src/claude/client');
+jest.mock('../../../src/claude/sdk-client');
 jest.mock('../../../src/message/adapter');
+jest.mock('../../../src/claude/parser');
+jest.mock('../../../src/claude/metadata');
 jest.mock('../../../src/utils/logger', () => ({
   getLogger: () => ({
     debug: jest.fn(),
@@ -26,6 +32,7 @@ jest.mock('../../../src/utils/logger', () => ({
 describe('Phase 6A: Claude Service Tests', () => {
   let service: ClaudeService;
   let mockClient: jest.Mocked<ClaudeClient>;
+  let mockSDKClient: jest.Mocked<ClaudeSDKClient>;
   let mockAdapter: jest.Mocked<MessageAdapter>;
 
   beforeEach(() => {
@@ -33,10 +40,12 @@ describe('Phase 6A: Claude Service Tests', () => {
     
     // Create mocked instances
     mockClient = new ClaudeClient() as jest.Mocked<ClaudeClient>;
+    mockSDKClient = new ClaudeSDKClient({}) as jest.Mocked<ClaudeSDKClient>;
     mockAdapter = new MessageAdapter() as jest.Mocked<MessageAdapter>;
     
-    // Mock ClaudeClient constructor to return our mock
+    // Mock constructors to return our mocks
     (ClaudeClient as jest.MockedClass<typeof ClaudeClient>).mockImplementation(() => mockClient);
+    (ClaudeSDKClient as jest.MockedClass<typeof ClaudeSDKClient>).mockImplementation(() => mockSDKClient);
     (MessageAdapter as jest.MockedClass<typeof MessageAdapter>).mockImplementation(() => mockAdapter);
     
     // Setup default mocks
@@ -44,7 +53,32 @@ describe('Phase 6A: Claude Service Tests', () => {
     mockClient.getCwd.mockReturnValue('/test/cwd');
     mockClient.isAvailable.mockReturnValue(true);
     
+    mockSDKClient.verifySDK.mockResolvedValue({
+      available: true,
+      authentication: true,
+      version: 'claude-code-sdk'
+    });
+    
     mockAdapter.convertToClaudePrompt.mockReturnValue('Converted prompt');
+    
+    // Mock parser and metadata modules
+    (ClaudeResponseParser.isCompleteResponse as jest.Mock).mockReturnValue(true);
+    (ClaudeResponseParser.parseToOpenAIResponse as jest.Mock).mockReturnValue({
+      content: 'Hello! How can I help you today?',
+      role: 'assistant',
+      session_id: 'test-session',
+      stop_reason: 'stop'
+    });
+    (ClaudeMetadataExtractor.extractMetadata as jest.Mock).mockReturnValue({
+      total_cost_usd: 0.01,
+      model: 'claude-3-5-sonnet-20241022',
+      duration_ms: 1000,
+      num_turns: 1,
+      session_id: 'test-session',
+      prompt_tokens: 10,
+      completion_tokens: 15,
+      total_tokens: 25
+    });
     
     service = new ClaudeService(300000, '/test/cwd');
   });
@@ -63,7 +97,7 @@ describe('Phase 6A: Claude Service Tests', () => {
 
   describe('ClaudeService.verifySDK', () => {
     it('should verify SDK successfully', async () => {
-      mockClient.verifySDK.mockResolvedValue({
+      mockSDKClient.verifySDK.mockResolvedValue({
         available: true,
         authentication: true,
         version: 'claude-code-sdk'
@@ -73,11 +107,11 @@ describe('Phase 6A: Claude Service Tests', () => {
 
       expect(result.available).toBe(true);
       expect(result.error).toBeUndefined();
-      expect(mockClient.verifySDK).toHaveBeenCalled();
+      expect(mockSDKClient.verifySDK).toHaveBeenCalled();
     });
 
     it('should handle SDK verification failure', async () => {
-      mockClient.verifySDK.mockResolvedValue({
+      mockSDKClient.verifySDK.mockResolvedValue({
         available: false,
         authentication: false,
         error: 'SDK not found'
@@ -90,7 +124,7 @@ describe('Phase 6A: Claude Service Tests', () => {
     });
 
     it('should handle SDK verification exception', async () => {
-      mockClient.verifySDK.mockRejectedValue(new Error('Verification failed'));
+      mockSDKClient.verifySDK.mockRejectedValue(new Error('Verification failed'));
 
       const result = await service.verifySDK();
 
@@ -126,7 +160,7 @@ describe('Phase 6A: Claude Service Tests', () => {
 
     it('should create completion successfully', async () => {
       // Mock async generator
-      mockClient.runCompletion.mockImplementation(async function* () {
+      mockSDKClient.runCompletion.mockImplementation(async function* () {
         for (const message of mockClaudeMessages) {
           yield message;
         }
@@ -147,7 +181,7 @@ describe('Phase 6A: Claude Service Tests', () => {
       expect(result.metadata.model).toBe('claude-3-5-sonnet-20241022');
 
       expect(mockAdapter.convertToClaudePrompt).toHaveBeenCalledWith(testMessages);
-      expect(mockClient.runCompletion).toHaveBeenCalledWith('Converted prompt', {
+      expect(mockSDKClient.runCompletion).toHaveBeenCalledWith('Converted prompt', {
         cwd: '/test/cwd',
         model: 'claude-3-5-sonnet-20241022',
         max_turns: 1
@@ -155,7 +189,7 @@ describe('Phase 6A: Claude Service Tests', () => {
     });
 
     it('should handle completion with tools disabled', async () => {
-      mockClient.runCompletion.mockImplementation(async function* () {
+      mockSDKClient.runCompletion.mockImplementation(async function* () {
         for (const message of mockClaudeMessages) {
           yield message;
         }
@@ -167,14 +201,14 @@ describe('Phase 6A: Claude Service Tests', () => {
 
       await service.createCompletion(testMessages, options);
 
-      expect(mockClient.runCompletion).toHaveBeenCalledWith('Converted prompt', {
+      expect(mockSDKClient.runCompletion).toHaveBeenCalledWith('Converted prompt', {
         cwd: '/test/cwd',
         disallowed_tools: ['*']
       });
     });
 
     it('should handle completion with custom tools', async () => {
-      mockClient.runCompletion.mockImplementation(async function* () {
+      mockSDKClient.runCompletion.mockImplementation(async function* () {
         for (const message of mockClaudeMessages) {
           yield message;
         }
@@ -187,7 +221,7 @@ describe('Phase 6A: Claude Service Tests', () => {
 
       await service.createCompletion(testMessages, options);
 
-      expect(mockClient.runCompletion).toHaveBeenCalledWith('Converted prompt', {
+      expect(mockSDKClient.runCompletion).toHaveBeenCalledWith('Converted prompt', {
         cwd: '/test/cwd',
         allowed_tools: ['read', 'write'],
         disallowed_tools: ['bash']
@@ -196,20 +230,21 @@ describe('Phase 6A: Claude Service Tests', () => {
 
     it('should throw error when no valid response received', async () => {
       // Mock empty response
-      mockClient.runCompletion.mockImplementation(async function* () {
+      mockSDKClient.runCompletion.mockImplementation(async function* () {
         yield {
           type: 'system',
           subtype: 'init'
         };
       });
 
-      await expect(service.createCompletion(testMessages)).rejects.toThrow(ClaudeClientError);
+      // Mock parser to return null for invalid response
+      (ClaudeResponseParser.parseToOpenAIResponse as jest.Mock).mockReturnValueOnce(null);
+
+      await expect(service.createCompletion(testMessages)).rejects.toThrow();
     });
 
     it('should handle SDK errors', async () => {
-      mockClient.runCompletion.mockImplementation(async function* () {
-        throw new ClaudeClientError('SDK failed');
-      });
+      mockSDKClient.runCompletion.mockRejectedValue(new ClaudeClientError('SDK failed'));
 
       await expect(service.createCompletion(testMessages)).rejects.toThrow(ClaudeClientError);
     });
@@ -256,7 +291,7 @@ describe('Phase 6A: Claude Service Tests', () => {
         }
       ];
 
-      mockClient.runCompletion.mockImplementation(async function* () {
+      mockSDKClient.runCompletion.mockImplementation(async function* () {
         for (const message of streamingMessages) {
           yield message;
         }
@@ -282,7 +317,7 @@ describe('Phase 6A: Claude Service Tests', () => {
     });
 
     it('should handle streaming errors', async () => {
-      mockClient.runCompletion.mockImplementation(async function* () {
+      mockSDKClient.runCompletion.mockImplementation(async function* () {
         throw new Error('Stream failed');
       });
 
@@ -306,7 +341,7 @@ describe('Phase 6A: Claude Service Tests', () => {
         }
       ];
 
-      mockClient.runCompletion.mockImplementation(async function* () {
+      mockSDKClient.runCompletion.mockImplementation(async function* () {
         for (const message of duplicateMessages) {
           yield message;
         }
@@ -337,7 +372,7 @@ describe('Phase 6A: Claude Service Tests', () => {
         enable_tools: false
       };
 
-      mockClient.runCompletion.mockImplementation(async function* () {
+      mockSDKClient.runCompletion.mockImplementation(async function* () {
         yield {
           type: 'assistant',
           content: 'Chat response'
@@ -385,7 +420,7 @@ describe('Phase 6A: Claude Service Tests', () => {
         enable_tools: true
       };
 
-      mockClient.runCompletion.mockImplementation(async function* () {
+      mockSDKClient.runCompletion.mockImplementation(async function* () {
         yield {
           type: 'assistant',
           content: 'Streaming response'

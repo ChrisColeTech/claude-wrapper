@@ -322,6 +322,7 @@ describe('Message Processing Pipeline Integration', () => {
         system: 1,
         user: 3,
         assistant: 2,
+        tool: 0,
         total: 6
       });
     });

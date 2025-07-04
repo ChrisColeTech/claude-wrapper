@@ -41,8 +41,8 @@ describe('Debug Endpoints Integration Tests', () => {
     app = express();
     app.use(express.json());
     
-    // Mount the debug router
-    app.use(DebugRouter.createRouter());
+    // Mount the debug router at /v1 to match test expectations
+    app.use('/v1', DebugRouter.createRouter());
 
     // Reset all mocks
     jest.clearAllMocks();

@@ -298,7 +298,7 @@ describe('Phase 3B: Parameter Validator Tests', () => {
       const result = ParameterValidator.validateMessages(messages);
 
       expect(result.valid).toBe(false);
-      expect(result.errors).toContain("Message at index 0 has invalid role 'invalid'. Must be 'system', 'user', or 'assistant'");
+      expect(result.errors).toContain("Message at index 0 has invalid role 'invalid'. Must be one of: system, user, assistant, tool");
     });
 
     it('should reject messages with missing content', () => {
