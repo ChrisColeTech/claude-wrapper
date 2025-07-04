@@ -179,7 +179,7 @@ export class ChatRouter {
    * Process tool choice context
    */
   private async processToolChoice(request: ChatCompletionRequest): Promise<ChoiceProcessingContext> {
-    let choiceContext: ChoiceProcessingContext = {
+    const choiceContext: ChoiceProcessingContext = {
       hasChoice: !!request.tool_choice,
       choiceType: 'auto',
       allowsTools: request.enable_tools !== false,

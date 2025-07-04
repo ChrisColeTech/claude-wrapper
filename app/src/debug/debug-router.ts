@@ -9,7 +9,7 @@
  * - Debug reporting and analysis endpoints
  */
 
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { toolInspector } from './tool-inspector';
 import { compatibilityChecker } from './compatibility-checker';
 import { getLogger } from '../utils/logger';
@@ -122,7 +122,7 @@ export class DebugRouter implements IDebugRouter {
   /**
    * Validate debug request parameters
    */
-  private validateDebugRequest(req: Request, res: Response, next: Function): void {
+  private validateDebugRequest(req: Request, res: Response, next: NextFunction): void {
     const { sessionId } = req.params;
     
     if (!sessionId) {
@@ -139,7 +139,7 @@ export class DebugRouter implements IDebugRouter {
   /**
    * Validate compatibility check request
    */
-  private validateCompatibilityRequest(req: Request, res: Response, next: Function): void {
+  private validateCompatibilityRequest(req: Request, res: Response, next: NextFunction): void {
     const { request } = req.body;
     
     if (!request) {
