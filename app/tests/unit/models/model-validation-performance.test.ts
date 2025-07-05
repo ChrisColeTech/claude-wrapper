@@ -3,8 +3,8 @@
  * Phase 5A: Verify performance requirements are met
  */
 
-import { modelValidator } from '../../src/validation/model-validator';
-import { modelRegistry } from '../../src/models/model-registry';
+import { modelValidator } from '../../../src/validation/model-validator';
+import { modelRegistry } from '../../../src/models/model-registry';
 
 describe('Phase 5A: Model Validation System Performance', () => {
   
@@ -31,7 +31,7 @@ describe('Phase 5A: Model Validation System Performance', () => {
     it('should perform strict validation within performance threshold', () => {
       const validModels = modelRegistry.getSupportedModelIds();
       
-      validModels.forEach(model => {
+      validModels.forEach((model: string) => {
         const startTime = Date.now();
         expect(() => modelValidator.validateModelStrict(model)).not.toThrow();
         const duration = Date.now() - startTime;
@@ -63,7 +63,7 @@ describe('Phase 5A: Model Validation System Performance', () => {
     it('should perform capability lookups within 5ms requirement', () => {
       const supportedModels = modelRegistry.getSupportedModelIds();
       
-      supportedModels.forEach(model => {
+      supportedModels.forEach((model: string) => {
         const startTime = Date.now();
         const capabilities = modelRegistry.getModelCapabilities(model);
         const duration = Date.now() - startTime;

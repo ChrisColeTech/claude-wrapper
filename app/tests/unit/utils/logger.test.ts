@@ -85,7 +85,10 @@ describe('Logger Factory', () => {
         level: LogLevel.ERROR,
         enableConsole: true,
         enableTimestamp: true,
-        enableColors: false
+        enableColors: false,
+        enableCorrelation: false,
+        enableErrorTracking: false,
+        enablePerformanceLogging: false
       };
 
       const logger = LoggerFactory.createFromLoggerConfig(loggerConfig);
@@ -98,7 +101,10 @@ describe('Logger Factory', () => {
         level: LogLevel.INFO,
         enableConsole: false,
         enableTimestamp: true,
-        enableColors: true
+        enableColors: true,
+        enableCorrelation: false,
+        enableErrorTracking: false,
+        enablePerformanceLogging: false
       };
 
       const logger = LoggerFactory.createFromLoggerConfig(loggerConfig);

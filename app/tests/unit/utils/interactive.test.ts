@@ -518,14 +518,8 @@ describe('Interactive Utilities', () => {
       
       const setup = new InteractiveApiKeySetup(errorReadline);
       
-      try {
-        await setup.promptForApiProtection();
-        expect.fail('Expected method to throw');
-      } catch (error) {
-        expect(error).toBeInstanceOf(Error);
-        expect((error as Error).message).toBe('Readline error');
-        expect(closeCalled).toBe(true);
-      }
+      await expect(setup.promptForApiProtection()).rejects.toThrow('Readline error');
+      expect(closeCalled).toBe(true);
     });
 
     it('should handle crypto errors during key generation', async () => {

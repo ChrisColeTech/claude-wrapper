@@ -89,15 +89,29 @@ export class CliParser {
       // Handle the case where a negative number is passed as a positional argument
       // Commander.js interprets -1, -2, etc. as options, but we want them as positional args
       if (error instanceof Error && error.message && error.message.includes('unknown option')) {
-        const match = error.message.match(/unknown option '(-\d+)'/);
-        if (match) {
-          const negativeArg = match[1];
-          // Re-parse with the negative number treated as a positional argument
-          const filteredArgv = argv.filter(arg => arg !== negativeArg);
-          this.program.parse(filteredArgv);
-          const options = this.program.opts() as CliOptions;
-          const args = [negativeArg]; // Treat the negative number as a positional arg
-          return this.processOptions(options, args);
+        // Try multiple regex patterns to match different Commander.js versions
+        const patterns = [
+          /unknown option '(-\d+)'/,
+          /error: unknown option '(-\d+)'/,
+          /Unknown option '(-\d+)'/
+        ];
+        
+        for (const pattern of patterns) {
+          const match = error.message.match(pattern);
+          if (match) {
+            const negativeArg = match[1];
+            // Re-parse with the negative number treated as a positional argument
+            const filteredArgv = argv.filter(arg => arg !== negativeArg);
+            try {
+              this.program.parse(filteredArgv);
+              const options = this.program.opts() as CliOptions;
+              const args = [negativeArg]; // Treat the negative number as a positional arg
+              return this.processOptions(options, args);
+            } catch (innerError) {
+              // If re-parsing fails, fall through to normal error handling
+              break;
+            }
+          }
         }
       }
       throw error;
