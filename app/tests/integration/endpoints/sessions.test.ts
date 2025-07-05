@@ -77,7 +77,9 @@ describe('Sessions Endpoints Integration Tests', () => {
         defaultTtlHours: 1,
         maxSessionsPerUser: 100,
         maxMessagesPerSession: 1000,
-        enableAutoCleanup: true
+        enableAutoCleanup: true,
+        enableToolStateTracking: true,
+        toolStateCleanupIntervalMinutes: 10
       };
 
       mockSessionService.getSessionStats.mockReturnValue(mockStats);
@@ -131,7 +133,9 @@ describe('Sessions Endpoints Integration Tests', () => {
         defaultTtlHours: 2,
         maxSessionsPerUser: 50,
         maxMessagesPerSession: 500,
-        enableAutoCleanup: false
+        enableAutoCleanup: false,
+        enableToolStateTracking: true,
+        toolStateCleanupIntervalMinutes: 10
       };
 
       mockSessionService.getSessionStats.mockReturnValue(mockEmptyStats);
@@ -560,7 +564,9 @@ describe('Sessions Endpoints Integration Tests', () => {
         defaultTtlHours: 1,
         maxSessionsPerUser: 100,
         maxMessagesPerSession: 1000,
-        enableAutoCleanup: true
+        enableAutoCleanup: true,
+        enableToolStateTracking: true,
+        toolStateCleanupIntervalMinutes: 10
       };
 
       mockSessionService.getSessionStats.mockReturnValue(statsResponse);
@@ -626,7 +632,9 @@ describe('Sessions Endpoints Integration Tests', () => {
         defaultTtlHours: 1,
         maxSessionsPerUser: 100,
         maxMessagesPerSession: 1000,
-        enableAutoCleanup: true
+        enableAutoCleanup: true,
+        enableToolStateTracking: true,
+        toolStateCleanupIntervalMinutes: 10
       };
 
       mockSessionService.getSessionStats.mockReturnValue(pythonStats);
