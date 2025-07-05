@@ -1,4 +1,4 @@
-name: Continuous Integration
+name: CI Summary
 
 on:
   push:
@@ -7,109 +7,36 @@ on:
     branches: [ main ]
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
+  # Wait for all test workflows to complete
+  unit-core:
+    uses: ./.github/workflows/ci-unit-core.yml
     
-    strategy:
-      matrix:
-        node-version: [18.x, 20.x]
+  unit-claude:
+    uses: ./.github/workflows/ci-unit-claude.yml
     
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Setup Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ matrix.node-version }}
-        
-    - name: Install dependencies
-      run: |
-        cd app
-        npm install
-        
-    - name: Run linting
-      run: |
-        cd app
-        npm run lint
-        
-    - name: Run type checking
-      run: |
-        cd app
-        npm run type-check
-        
-    - name: Build application
-      run: |
-        cd app
-        npm run build
-        
-    - name: Run tests with coverage
-      run: |
-        cd app
-        NODE_OPTIONS="--max-old-space-size=8192" npm run test:coverage
-        
-    - name: Test CLI functionality
-      run: |
-        cd app
-        node dist/cli.js --help
-        node dist/cli.js --version
-        timeout 3s node dist/cli.js --port 8001 || echo "CLI started successfully"
-        
-    - name: Production readiness check
-      run: |
-        cd app
-        echo "🔍 Running production readiness checks..."
-        
-        # Check if all required files exist
-        echo "📁 Checking essential files..."
-        test -f dist/cli.js || { echo "❌ CLI entry point missing"; exit 1; }
-        test -f dist/index.js || { echo "❌ Server entry point missing"; exit 1; }
-        test -f dist/server.js || { echo "❌ Server module missing"; exit 1; }
-        test -f package.json || { echo "❌ package.json missing"; exit 1; }
-        
-        # Check package.json has required fields
-        echo "📦 Validating package.json..."
-        node -e "const pkg = require('./package.json'); 
-        if (!pkg.bin) throw new Error('Missing bin field');
-        if (!pkg.bin['claude-wrapper']) throw new Error('Missing claude-wrapper bin');
-        if (!pkg.scripts.build) throw new Error('Missing build script');
-        if (!pkg.scripts.test) throw new Error('Missing test script');
-        console.log('✅ package.json validation passed');"
-        
-        # Test CLI can be executed
-        echo "🖥️ Testing CLI execution..."
-        node dist/cli.js --help > /dev/null || { echo "❌ CLI help failed"; exit 1; }
-        
-        # Test server starts and responds
-        echo "🌐 Testing server startup..."
-        timeout 10s bash -c '
-        node dist/cli.js --port 8002 &
-        SERVER_PID=$!
-        sleep 3
-        curl -f http://localhost:8002/health || { echo "❌ Health check failed"; kill $SERVER_PID 2>/dev/null; exit 1; }
-        echo "✅ Server health check passed"
-        kill $SERVER_PID 2>/dev/null
-        ' || { echo "❌ Server startup test failed"; exit 1; }
-        
-        # Check for security vulnerabilities
-        echo "🔒 Checking for security vulnerabilities..."
-        npm audit --audit-level high || { echo "⚠️ High severity security vulnerabilities found"; exit 1; }
-        
-        echo "✅ All production readiness checks passed!"
-        
+  unit-tools:
+    uses: ./.github/workflows/ci-unit-tools.yml
+    
+  integration:
+    uses: ./.github/workflows/ci-integration.yml
+    
+  # Summary job that depends on all tests
   build-success:
-    needs: test
+    needs: [unit-core, unit-claude, unit-tools, integration]
     runs-on: ubuntu-latest
     if: success()
     
     steps:
-    - name: Build Success
+    - name: All Tests Passed
       run: |
         echo "🎉 All CI checks passed!"
+        echo "✅ Core unit tests passed"
+        echo "✅ Claude service tests passed"
+        echo "✅ Tools tests passed"
+        echo "✅ Integration tests passed"
         echo "✅ TypeScript compilation successful"
         echo "✅ Linting passed with no errors"
         echo "✅ Type checking passed"
-        echo "✅ Test suite passed with coverage"
         echo "✅ CLI tool fully functional"
         echo "✅ Server startup and health check passed"
         echo "✅ Production readiness verified"

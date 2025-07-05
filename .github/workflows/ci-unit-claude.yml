@@ -1,0 +1,34 @@
+name: Unit Tests - Claude Service
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  unit-claude:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        
+    - name: Install dependencies
+      run: |
+        cd app
+        npm install
+        
+    - name: Run Claude service tests
+      run: |
+        cd app
+        NODE_OPTIONS="--max-old-space-size=4096" npx jest --config tests/jest.unit.config.js --testPathPattern="claude" --maxWorkers=1 --runInBand --forceExit

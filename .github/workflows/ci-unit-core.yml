@@ -1,0 +1,49 @@
+name: Unit Tests - Core
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  unit-core:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        
+    - name: Install dependencies
+      run: |
+        cd app
+        npm install
+        
+    - name: Run linting
+      run: |
+        cd app
+        npm run lint
+        
+    - name: Run type checking
+      run: |
+        cd app
+        npm run type-check
+        
+    - name: Build application
+      run: |
+        cd app
+        npm run build
+        
+    - name: Run core unit tests
+      run: |
+        cd app
+        NODE_OPTIONS="--max-old-space-size=4096" npx jest --config tests/jest.unit.config.js --testPathPattern="(auth|message|models|utils)" --maxWorkers=1 --runInBand
