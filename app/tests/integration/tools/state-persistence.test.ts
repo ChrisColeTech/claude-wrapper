@@ -15,9 +15,12 @@ import { OpenAIToolCall } from '../../../src/tools/types';
 import { TOOL_STATES, STATE_MANAGEMENT_LIMITS } from '../../../src/tools/constants';
 
 describe('State Management Integration Tests', () => {
-  const testSessionId = 'integration-test-session';
+  let testSessionId: string;
   
   beforeEach(async () => {
+    // Generate unique session ID for each test to ensure isolation
+    testSessionId = `integration-test-session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
     // Clean up before each test to ensure isolation
     await toolStateManager.cleanupExpiredStates(0);
     await toolStateTracker.cleanupOldMetrics(0);
@@ -436,6 +439,18 @@ describe('State Management Integration Tests', () => {
       const averageTrackingTime = trackingTime / numberOfCalls;
       const averageTransitionTime = transitionTime / (numberOfCalls * 2);
 
+      console.log('DEBUG: Performance metrics:', {
+        averageCreationTime,
+        averageTrackingTime, 
+        averageTransitionTime,
+        persistenceTime,
+        limits: {
+          stateTimeout: STATE_MANAGEMENT_LIMITS.STATE_OPERATION_TIMEOUT_MS,
+          trackingTimeout: STATE_MANAGEMENT_LIMITS.TRACKING_OPERATION_TIMEOUT_MS,
+          persistenceTimeout: STATE_MANAGEMENT_LIMITS.PERSISTENCE_OPERATION_TIMEOUT_MS
+        }
+      });
+
       expect(averageCreationTime).toBeLessThan(STATE_MANAGEMENT_LIMITS.STATE_OPERATION_TIMEOUT_MS);
       expect(averageTrackingTime).toBeLessThan(STATE_MANAGEMENT_LIMITS.TRACKING_OPERATION_TIMEOUT_MS);
       expect(averageTransitionTime).toBeLessThan(STATE_MANAGEMENT_LIMITS.STATE_OPERATION_TIMEOUT_MS);
@@ -555,6 +570,17 @@ describe('State Management Integration Tests', () => {
       // Verify consistency after transition
       const progressSnapshot = await toolStateManager.getStateSnapshot(testSessionId);
       const progressMetrics = await toolStateTracker.getSessionMetrics(testSessionId);
+
+      console.log('DEBUG: Progress snapshot:', {
+        totalCalls: progressSnapshot?.totalCalls,
+        pendingCallsLength: progressSnapshot?.pendingCalls?.length,
+        completedCallsLength: progressSnapshot?.completedCalls?.length
+      });
+      console.log('DEBUG: Progress metrics:', {
+        pendingCalls: progressMetrics?.pendingCalls,
+        completedCalls: progressMetrics?.completedCalls,
+        successRate: progressMetrics?.successRate
+      });
 
       expect(progressSnapshot!.totalCalls).toBe(1);
       expect(progressSnapshot!.pendingCalls).toHaveLength(1); // Still shows as pending in state manager

@@ -438,7 +438,7 @@ export class DebugRouter implements IDebugRouter {
       } catch (error) {
         validationResult = {
           valid: false,
-          errors: [String(error)]
+          errors: [error instanceof Error ? error.message : String(error)]
         };
       }
       
@@ -447,9 +447,8 @@ export class DebugRouter implements IDebugRouter {
         debug_info: {
           headers: req.headers,
           method: req.method,
-          url: req.url,
+          url: req.originalUrl || req.url,
           raw_body: rawBody,
-          json_parse_error: jsonParseError,
           parsed_body: body,
           validation_result: validationResult,
           debug_mode_enabled: debugModeEnabled,
