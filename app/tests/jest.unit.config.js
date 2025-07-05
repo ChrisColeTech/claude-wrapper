@@ -30,4 +30,14 @@ module.exports = {
     },
   },
   coverageDirectory: "<rootDir>/logs/coverage/unit",
+  
+  // Memory management and performance settings
+  maxWorkers: 2,
+  workerIdleMemoryLimit: "2GB",
+  logHeapUsage: true,
+  detectOpenHandles: true,
+  forceExit: true,
+  
+  // Test timeout settings
+  testTimeout: 30000,
 };

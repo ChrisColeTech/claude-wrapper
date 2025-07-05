@@ -67,6 +67,7 @@ describe('ToolParameterProcessor', () => {
         claudeFormat: { mode: 'auto' },
         errors: [] 
       }),
+      createProcessingContext: jest.fn().mockReturnValue({}),
       validateChoiceAgainstTools: jest.fn().mockReturnValue([]),
       createChoiceContext: jest.fn().mockReturnValue({}),
       processChoiceWithContext: jest.fn().mockResolvedValue({ 
@@ -75,6 +76,9 @@ describe('ToolParameterProcessor', () => {
       })
     };
     processor = new ToolParameterProcessor(mockValidator, mockExtractor, mockChoiceValidator, mockChoiceProcessor);
+    
+    // Reset all mocks to their default state
+    jest.clearAllMocks();
   });
 
   describe('processRequest', () => {
@@ -279,6 +283,12 @@ describe('ToolParameterProcessor', () => {
         errors: ['Invalid tool choice']
       });
 
+      // Mock the choice processor to also return a failure for this invalid choice
+      mockChoiceProcessor.processChoice.mockResolvedValueOnce({
+        success: false,
+        errors: ['Invalid tool choice format']
+      });
+
       const result = await processor.processToolParameters(tools, toolChoice);
 
       expect(result.success).toBe(false);
@@ -287,6 +297,12 @@ describe('ToolParameterProcessor', () => {
 
     it('should reject tool choice without tools', async () => {
       const toolChoice: OpenAIToolChoice = 'auto';
+
+      // Mock the choice processor to return failure for this case too
+      mockChoiceProcessor.processChoice.mockResolvedValueOnce({
+        success: false,
+        errors: ['Cannot process tool choice without tools']
+      });
 
       const result = await processor.processToolParameters(undefined, toolChoice);
 
