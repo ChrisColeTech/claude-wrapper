@@ -46,8 +46,10 @@ describe('PortManager', () => {
   });
 
   afterEach(async () => {
-    portManager.shutdown();
     jest.useRealTimers();
+    portManager.shutdown();
+    // Give time for cleanup to complete
+    await new Promise(resolve => setTimeout(resolve, 10));
   });
 
   describe('Constructor and Configuration', () => {
