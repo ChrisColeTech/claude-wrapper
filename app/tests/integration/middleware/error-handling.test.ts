@@ -98,7 +98,7 @@ describe('Error Handling Integration', () => {
             return res.status(400).json(errorResponse);
           }
 
-          res.json({ success: true });
+          return res.json({ success: true });
         } catch (error) {
           const classification = errorClassifier.classifyError(error as Error, {
             endpoint: req.path,
@@ -659,7 +659,7 @@ describe('Error Handling Integration', () => {
         try {
           // This will throw due to malformed JSON
           JSON.stringify(req.body);
-          res.json({ success: true });
+          return res.json({ success: true });
         } catch (error) {
           const classification = errorClassifier.classifyError(error as Error, {
             requestId: req.requestId
@@ -688,6 +688,366 @@ describe('Error Handling Integration', () => {
 
       // Express built-in error handling should kick in
       expect(response.body).toBeDefined();
+    });
+  });
+
+  describe('Phase 4B Integration Requirements', () => {
+    it('should provide end-to-end performance validation (<10ms error, <25ms validation)', async () => {
+      // Setup performance-monitored endpoint
+      app.post('/api/performance-test', async (req, res) => {
+        const startTime = performance.now();
+        
+        try {
+          // Simulate validation
+          const validationReport = await validationHandler.validateRequest(
+            req.body,
+            'chat_completion',
+            { requestId: req.requestId }
+          );
+
+          const validationTime = performance.now() - startTime;
+          
+          if (!validationReport.isValid) {
+            const errorStartTime = performance.now();
+            const classification = errorClassifier.classifyError(
+              new Error('Validation failed'),
+              { requestId: req.requestId }
+            );
+            const errorTime = performance.now() - errorStartTime;
+
+            const errorResponse = ErrorResponseFactory.createValidationErrorResponse(
+              validationReport,
+              req.requestId
+            );
+
+            // Add performance metrics to response for testing
+            (errorResponse as any).performance_metrics = {
+              validation_time_ms: validationTime,
+              error_processing_time_ms: errorTime,
+              total_time_ms: performance.now() - startTime
+            };
+
+            return res.status(400).json(errorResponse);
+          }
+
+          return res.json({ success: true });
+        } catch (error) {
+          const errorProcessingStart = performance.now();
+          const classification = errorClassifier.classifyError(error as Error);
+          const errorProcessingTime = performance.now() - errorProcessingStart;
+
+          const response = ErrorResponseFactory.createFromClassification(
+            error as Error,
+            classification,
+            req.requestId
+          );
+
+          (response as any).performance_metrics = {
+            error_processing_time_ms: errorProcessingTime,
+            total_time_ms: performance.now() - startTime
+          };
+
+          res.status(500).json(response);
+        }
+      });
+
+      // Test with invalid data to trigger validation
+      const response = await request(app)
+        .post('/api/performance-test')
+        .send({ messages: 'invalid' }) // Invalid type
+        .expect(400);
+
+      const performanceMetrics = response.body.performance_metrics;
+      expect(performanceMetrics).toBeDefined();
+      expect(performanceMetrics.validation_time_ms).toBeLessThan(25);
+      expect(performanceMetrics.error_processing_time_ms).toBeLessThan(10);
+      expect(performanceMetrics.total_time_ms).toBeLessThan(50);
+    });
+
+    it('should maintain request ID correlation throughout error handling pipeline', async () => {
+      const customRequestId = 'req_integration_correlation_test_789';
+      
+      app.post('/api/correlation-test', async (req, res) => {
+        try {
+          // Force a validation error
+          const validationReport = await validationHandler.validateRequest(
+            { invalid: 'data' },
+            'chat_completion',
+            {
+              requestId: req.requestId,
+              endpoint: req.path,
+              method: req.method
+            }
+          );
+
+          const classification = errorClassifier.classifyError(
+            new Error('Test correlation error'),
+            { requestId: req.requestId }
+          );
+
+          const errorResponse = ErrorResponseFactory.createValidationErrorResponse(
+            validationReport,
+            req.requestId
+          );
+
+          res.status(400).json(errorResponse);
+        } catch (error) {
+          const classification = errorClassifier.classifyError(
+            error as Error,
+            { requestId: req.requestId }
+          );
+
+          const response = ErrorResponseFactory.createFromClassification(
+            error as Error,
+            classification,
+            req.requestId
+          );
+
+          res.status(500).json(response);
+        }
+      });
+
+      const response = await request(app)
+        .post('/api/correlation-test')
+        .set('X-Request-ID', customRequestId)
+        .send({})
+        .expect(400);
+
+      // Verify request ID is preserved throughout the pipeline
+      expect(response.body.error.request_id).toBe(customRequestId);
+      if (response.body.error.details?.correlation_id) {
+        expect(response.body.error.details.correlation_id).toBe(customRequestId);
+      }
+    });
+
+    it('should provide OpenAI-compatible error responses in production scenarios', async () => {
+      app.post('/api/openai-compatibility', async (req, res) => {
+        try {
+          // Simulate various error scenarios
+          const errorType = req.body.error_type;
+          
+          switch (errorType) {
+            case 'validation':
+              const validationReport = await validationHandler.validateRequest(
+                { invalid: 'request' },
+                'chat_completion',
+                { requestId: req.requestId }
+              );
+              const validationResponse = ErrorResponseFactory.createValidationErrorResponse(
+                validationReport,
+                req.requestId
+              );
+              return res.status(400).json(validationResponse);
+
+            case 'authentication':
+              const authResponse = ErrorResponseFactory.createAuthenticationErrorResponse(
+                'Invalid API key',
+                'bearer',
+                'invalid',
+                req.requestId
+              );
+              return res.status(401).json(authResponse);
+
+            case 'rate_limit':
+              const rateLimitResponse = ErrorResponseFactory.createRateLimitErrorResponse(
+                'Rate limit exceeded',
+                60,
+                'requests',
+                req.requestId
+              );
+              return res.status(429).json(rateLimitResponse);
+
+            case 'server_error':
+              const serverResponse = ErrorResponseFactory.createServerErrorResponse(
+                'Internal server error',
+                'degraded',
+                req.requestId
+              );
+              return res.status(500).json(serverResponse);
+
+            default:
+              return res.status(400).json({
+                error: {
+                  type: 'invalid_request_error',
+                  message: 'Unknown error type',
+                  code: 'UNKNOWN_ERROR_TYPE'
+                }
+              });
+          }
+        } catch (error) {
+          const classification = errorClassifier.classifyError(error as Error);
+          const response = ErrorResponseFactory.createFromClassification(
+            error as Error,
+            classification,
+            req.requestId
+          );
+          res.status(500).json(response);
+        }
+      });
+
+      // Test validation error OpenAI compatibility
+      const validationResponse = await request(app)
+        .post('/api/openai-compatibility')
+        .send({ error_type: 'validation' })
+        .expect(400);
+
+      expect(validationResponse.body.error.type).toBe('validation_error');
+      expect(validationResponse.body.error.message).toBeDefined();
+      expect(validationResponse.body.error.code).toBeDefined();
+      expect(validationResponse.body.error.details).toBeDefined();
+
+      // Test authentication error OpenAI compatibility  
+      const authResponse = await request(app)
+        .post('/api/openai-compatibility')
+        .send({ error_type: 'authentication' })
+        .expect(401);
+
+      expect(authResponse.body.error.type).toBe('authentication_error');
+      expect(authResponse.body.error.details.auth_method).toBe('bearer');
+      expect(authResponse.body.error.details.token_status).toBe('invalid');
+
+      // Test rate limit error OpenAI compatibility
+      const rateLimitResponse = await request(app)
+        .post('/api/openai-compatibility')
+        .send({ error_type: 'rate_limit' })
+        .expect(429);
+
+      expect(rateLimitResponse.body.error.type).toBe('rate_limit_error');
+      expect(rateLimitResponse.body.error.details.retry_after_seconds).toBe(60);
+      expect(rateLimitResponse.body.error.details.limit_type).toBe('requests');
+
+      // Test server error OpenAI compatibility
+      const serverResponse = await request(app)
+        .post('/api/openai-compatibility')
+        .send({ error_type: 'server_error' })
+        .expect(500);
+
+      expect(serverResponse.body.error.type).toBe('server_error');
+      expect(serverResponse.body.error.details.service_status).toBe('degraded');
+    });
+
+    it('should handle concurrent error scenarios without request ID contamination', async () => {
+      app.post('/api/concurrent-errors', async (req, res) => {
+        try {
+          // Simulate processing delay
+          await new Promise(resolve => setTimeout(resolve, Math.random() * 10));
+          
+          const validationReport = await validationHandler.validateRequest(
+            req.body,
+            'chat_completion',
+            {
+              requestId: req.requestId,
+              endpoint: req.path,
+              method: req.method
+            }
+          );
+
+          if (!validationReport.isValid) {
+            const errorResponse = ErrorResponseFactory.createValidationErrorResponse(
+              validationReport,
+              req.requestId
+            );
+            return res.status(400).json(errorResponse);
+          }
+
+          res.json({ success: true, requestId: req.requestId });
+        } catch (error) {
+          const classification = errorClassifier.classifyError(error as Error);
+          const response = ErrorResponseFactory.createFromClassification(
+            error as Error,
+            classification,
+            req.requestId
+          );
+          res.status(500).json(response);
+        }
+      });
+
+      // Create 20 concurrent requests with unique request IDs
+      const concurrentRequests = Array.from({ length: 20 }, (_, i) => {
+        const requestId = `req_concurrent_${i}_${Date.now()}`;
+        return request(app)
+          .post('/api/concurrent-errors')
+          .set('X-Request-ID', requestId)
+          .send({ invalid: 'data' }) // Will trigger validation error
+          .expect(400)
+          .then(response => ({
+            requestId,
+            responseRequestId: response.body.error.request_id
+          }));
+      });
+
+      const results = await Promise.all(concurrentRequests);
+
+      // Verify each response has the correct request ID
+      results.forEach(({ requestId, responseRequestId }) => {
+        expect(responseRequestId).toBe(requestId);
+      });
+
+      // Verify no request ID contamination
+      const uniqueRequestIds = new Set(results.map(r => r.responseRequestId));
+      expect(uniqueRequestIds.size).toBe(results.length);
+    });
+
+    it('should handle error handling system failures gracefully', async () => {
+      // Test resilience when error handling components fail
+      app.post('/api/resilience-test', async (req, res) => {
+        try {
+          // Simulate a scenario where error handling itself fails
+          if (req.body.simulate_error_handler_failure) {
+            // Force error in validation handler
+            throw new Error('Error handler failure simulation');
+          }
+
+          const validationReport = await validationHandler.validateRequest(
+            req.body,
+            'chat_completion',
+            { requestId: req.requestId }
+          );
+
+          if (!validationReport.isValid) {
+            const errorResponse = ErrorResponseFactory.createValidationErrorResponse(
+              validationReport,
+              req.requestId
+            );
+            return res.status(400).json(errorResponse);
+          }
+
+          return res.json({ success: true });
+        } catch (error) {
+          // Fallback error handling
+          try {
+            const classification = errorClassifier.classifyError(error as Error);
+            const response = ErrorResponseFactory.createFromClassification(
+              error as Error,
+              classification,
+              req.requestId
+            );
+            res.status(500).json(response);
+          } catch (fallbackError) {
+            // Ultimate fallback
+            res.status(500).json({
+              error: {
+                type: 'api_error',
+                message: 'Internal server error',
+                code: 'FALLBACK_ERROR',
+                request_id: req.requestId
+              }
+            });
+          }
+        }
+      });
+
+      // Test fallback behavior
+      const response = await request(app)
+        .post('/api/resilience-test')
+        .send({ simulate_error_handler_failure: true })
+        .expect(500);
+
+      // Should still get a valid error response
+      expect(response.body.error).toBeDefined();
+      expect(response.body.error.type).toBeDefined();
+      expect(response.body.error.message).toBeDefined();
+      expect(response.body.error.request_id).toBeDefined();
     });
   });
 });
