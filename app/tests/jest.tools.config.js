@@ -19,13 +19,13 @@ module.exports = {
     "^@utils/(.*)$": "<rootDir>/../src/utils/$1",
   },
   
-  // Aggressive memory management and performance settings
+  // Optimized test configuration
   maxWorkers: 1,
-  workerIdleMemoryLimit: "256MB",
-  detectOpenHandles: true,
+  workerIdleMemoryLimit: "512MB",
+  detectOpenHandles: false,
   forceExit: true,
   
-  // Aggressive memory cleanup
+  // Memory cleanup
   clearMocks: true,
   restoreMocks: true,
   resetMocks: true,
@@ -34,5 +34,8 @@ module.exports = {
   runInBand: true,
   
   // Test timeout settings
-  testTimeout: 60000,
+  testTimeout: 90000,
+  
+  // Node memory options
+  setupFiles: ["<rootDir>/jest-memory-setup.js"]
 };

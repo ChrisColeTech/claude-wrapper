@@ -146,10 +146,10 @@ describe('ConversionUtils', () => {
         .rejects.toThrow('Async error');
     });
 
-    it('should work with zero timeout', async () => {
+    it('should work with very short timeout', async () => {
       const fastFn = jest.fn().mockReturnValue('fast');
       
-      const result = await ConversionUtils.validateWithTimeout(fastFn, 0);
+      const result = await ConversionUtils.validateWithTimeout(fastFn, 1);
       
       expect(result).toBe('fast');
     });

@@ -256,8 +256,8 @@ export const ConversionTestAssertions = {
 
   expectSuccessfulBidirectional: <T, U>(result: BidirectionalConversionResult) => {
     expect(result.roundTripSuccess).toBe(true);
-    expect(result.forwardConversion.success).toBe(true);
-    expect(result.backwardConversion.success).toBe(true);
+    expect(result.forwardConversion?.success).toBe(true);
+    expect(result.backwardConversion?.success).toBe(true);
     expect(result.dataFidelity).toBeGreaterThanOrEqual(0.9); // Allow 10% fidelity loss
   },
 
