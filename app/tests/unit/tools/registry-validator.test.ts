@@ -181,10 +181,14 @@ describe('RegistryValidator', () => {
     it('should handle validation timeout scenarios', async () => {
       // Mock performance.now to simulate timeout
       let callCount = 0;
-      const mockPerformanceNow = jest.spyOn(performance, 'now').mockImplementation(() => {
-        callCount++;
-        if (callCount === 1) return 0; // Start time
-        return REGISTRY_LIMITS.REGISTRY_OPERATION_TIMEOUT_MS + 1; // End time exceeds limit
+      const originalNow = performance.now;
+      Object.defineProperty(performance, 'now', {
+        writable: true,
+        value: jest.fn(() => {
+          callCount++;
+          if (callCount === 1) return 0; // Start time
+          return REGISTRY_LIMITS.REGISTRY_OPERATION_TIMEOUT_MS + 1; // End time exceeds limit
+        })
       });
 
       try {
@@ -192,7 +196,10 @@ describe('RegistryValidator', () => {
         expect(result.valid).toBe(false);
         expect(result.errors).toContain(REGISTRY_MESSAGES.REGISTRY_OPERATION_TIMEOUT);
       } finally {
-        mockPerformanceNow.mockRestore();
+        Object.defineProperty(performance, 'now', {
+          writable: true,
+          value: originalNow
+        });
       }
     });
 

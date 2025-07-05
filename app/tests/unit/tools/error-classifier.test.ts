@@ -631,7 +631,7 @@ describe('Performance Requirements', () => {
 
     results.forEach(result => {
       expect(result.success).toBe(true);
-      expect(result.classificationTimeMs).toBeLessThanOrEqual(50);
+      expect(result.classificationTimeMs).toBeLessThanOrEqual(25);
     });
 
     expect(totalTime).toBeLessThan(500); // 100 operations in under 500ms
