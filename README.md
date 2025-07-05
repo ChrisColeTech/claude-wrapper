@@ -60,8 +60,6 @@ npm run lint        # Code quality
 npm install -g .
 ```
 
-See [PROJECT_STRUCTURE.md](docs/PROJECT_STRUCTURE.md) for detailed codebase organization.
-
 ## 🚀 Quick Start
 
 ### 1. Start the Server
@@ -84,41 +82,6 @@ Would you like to enable API key protection? (y/N):
 ```
 
 **Press Enter** to skip (recommended for local development), then the server will start.
-
-### 2. Configure Claude Authentication
-
-Set up one of these authentication methods:
-
-```bash
-# Anthropic API (easiest)
-export ANTHROPIC_API_KEY="your-api-key-here"
-claude-wrapper
-
-# AWS Bedrock
-export CLAUDE_CODE_USE_BEDROCK=1
-# + AWS credentials
-
-# Google Vertex AI  
-export CLAUDE_CODE_USE_VERTEX=1
-# + GCP credentials
-
-# Claude CLI (uses existing auth)
-claude-wrapper
-```
-
-### 3. Test the API
-
-```bash
-curl -X POST http://localhost:8000/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "claude-3-5-sonnet-20241022",
-    "messages": [
-      {"role": "user", "content": "Hello, Claude!"}
-    ]
-  }'
-```
-
 
 ## 🚀 CLI Usage
 
@@ -172,6 +135,16 @@ Options:
   -h, --help         Display help for command
 ```
 
+## 📡 API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/v1/chat/completions` | Main chat completions with streaming support |
+| `GET` | `/v1/models` | List available Claude models |
+| `GET` | `/v1/auth/status` | Claude Code authentication status |
+| `GET` | `/health` | Service health check |
+| `GET` | `/v1/sessions` | List active sessions |
+
 ## 🔐 Authentication vs API Protection
 
 ### Claude Authentication (Required)
@@ -184,16 +157,31 @@ Options:
 - **Required**: No, purely optional
 - **Setup**: Interactive prompt when starting server
 
-## 📡 API Endpoints
+## 🔐 Configure Claude Authentication
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `POST` | `/v1/chat/completions` | Main chat completions with streaming support |
-| `GET` | `/v1/models` | List available Claude models |
-| `GET` | `/v1/auth/status` | Claude Code authentication status |
-| `GET` | `/health` | Service health check |
-| `GET` | `/v1/sessions` | List active sessions |
+Set up one of these authentication methods:
 
+```bash
+# Anthropic API (easiest)
+export ANTHROPIC_API_KEY="your-api-key-here"
+claude-wrapper
+
+# AWS Bedrock
+export CLAUDE_CODE_USE_BEDROCK=1
+export AWS_ACCESS_KEY_ID="your-access-key"
+export AWS_SECRET_ACCESS_KEY="your-secret-key"
+export AWS_REGION="us-east-1"
+claude-wrapper
+
+# Google Vertex AI  
+export CLAUDE_CODE_USE_VERTEX=1
+export ANTHROPIC_VERTEX_PROJECT_ID="your-project-id"
+export GOOGLE_APPLICATION_CREDENTIALS="path/to/credentials.json"
+claude-wrapper
+
+# Claude CLI (uses existing auth)
+claude-wrapper
+```
 
 ## 📄 License
 
