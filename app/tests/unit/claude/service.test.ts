@@ -43,7 +43,6 @@ describe('Phase 6A: Claude Service Tests', () => {
   let mockAdapter: jest.Mocked<MessageAdapter>;
 
   beforeEach(() => {
-    console.log('DEBUG - Starting test:', expect.getState().currentTestName);
     jest.clearAllMocks();
     
     // Create mocked instances
@@ -51,15 +50,24 @@ describe('Phase 6A: Claude Service Tests', () => {
     mockSDKClient = new ClaudeSDKClient({}) as jest.Mocked<ClaudeSDKClient>;
     mockAdapter = new MessageAdapter() as jest.Mocked<MessageAdapter>;
     
-    // Mock StreamResponseParser
-    const mockStreamParser = {
-      addMessage: jest.fn(),
-      getCurrentContent: jest.fn().mockReturnValue('Once upon'),
-      isComplete: jest.fn().mockReturnValueOnce(false).mockReturnValueOnce(true),
-      getFinalResponse: jest.fn(),
-      getMessages: jest.fn().mockReturnValue([])
-    };
-    (StreamResponseParser as jest.MockedClass<typeof StreamResponseParser>).mockImplementation(() => mockStreamParser as any);
+    // Mock StreamResponseParser - each instance has its own messages array
+    (StreamResponseParser as jest.MockedClass<typeof StreamResponseParser>).mockImplementation(() => {
+      const messages: any[] = [];
+      return {
+        addMessage: jest.fn().mockImplementation((message: any) => {
+          messages.push(message);
+        }),
+        getCurrentContent: jest.fn().mockReturnValue('Once upon'),
+        isComplete: jest.fn().mockImplementation(() => {
+          // Return true only when we have both assistant and result messages
+          const hasAssistant = messages.some(msg => msg.type === 'assistant');
+          const hasResult = messages.some(msg => msg.type === 'result' && msg.subtype === 'success');
+          return hasAssistant && hasResult;
+        }),
+        getFinalResponse: jest.fn(),
+        getMessages: jest.fn().mockImplementation(() => [...messages])
+      } as any;
+    });
     
     // Mock constructors to return our mocks
     (ClaudeClient as jest.MockedClass<typeof ClaudeClient>).mockImplementation(() => mockClient);
@@ -86,6 +94,10 @@ describe('Phase 6A: Claude Service Tests', () => {
     });
     // Mock parseToOpenAIResponse to simulate real behavior by extracting content directly
     (ClaudeResponseParser.parseToOpenAIResponse as jest.Mock).mockImplementation((messages: any[]) => {
+      if (!Array.isArray(messages)) {
+        return null;
+      }
+      
       // Find assistant content directly
       let content: string | null = null;
       for (const message of messages) {
@@ -132,15 +144,14 @@ describe('Phase 6A: Claude Service Tests', () => {
     
     // Mock extractMetadata to simulate real behavior  
     (ClaudeMetadataExtractor.extractMetadata as jest.Mock).mockImplementation((messages: any[]) => {
-      console.log('DEBUG - extractMetadata called with messages:', JSON.stringify(messages, null, 2));
       const metadata: any = {
         total_cost_usd: 0.0,
         duration_ms: 0,
         num_turns: 0
       };
       
+      // Process ALL messages in the array to find result metadata
       for (const message of messages) {
-        console.log('DEBUG - Processing message:', JSON.stringify(message, null, 2));
         if (message.type === 'result' && message.subtype === 'success') {
           if (message.total_cost_usd !== undefined) metadata.total_cost_usd = message.total_cost_usd;
           if (message.duration_ms !== undefined) metadata.duration_ms = message.duration_ms;
@@ -153,20 +164,14 @@ describe('Phase 6A: Claude Service Tests', () => {
         }
       }
       
-      console.log('DEBUG - Final metadata:', JSON.stringify(metadata, null, 2));
       return metadata;
     });
     
-    console.log('DEBUG - Mock setup complete. parseToOpenAIResponse mock result:', 
-      (ClaudeResponseParser.parseToOpenAIResponse as jest.Mock)());
     
     service = new ClaudeService(300000, '/test/cwd');
   });
 
   afterEach(async () => {
-    console.log('DEBUG - Ending test:', expect.getState().currentTestName);
-    console.log('DEBUG - Memory usage before cleanup:', process.memoryUsage());
-    
     // Clean up any hanging promises or timers
     jest.clearAllTimers();
     
@@ -179,8 +184,6 @@ describe('Phase 6A: Claude Service Tests', () => {
     if (global.gc) {
       global.gc();
     }
-    
-    console.log('DEBUG - Memory usage after cleanup:', process.memoryUsage());
   });
 
   describe('ClaudeService.constructor', () => {
