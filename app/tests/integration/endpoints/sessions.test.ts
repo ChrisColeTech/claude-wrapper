@@ -119,8 +119,7 @@ describe('Sessions Endpoints Integration Tests', () => {
         .expect(500);
 
       expect(response.body).toEqual({
-        error: 'Internal Server Error',
-        message: 'Failed to get session statistics'
+        detail: 'Failed to get session statistics'
       });
     });
 
@@ -145,13 +144,18 @@ describe('Sessions Endpoints Integration Tests', () => {
 
       mockSessionService.getSessionStats.mockReturnValue(mockEmptyStats);
       mockSessionService.getConfig.mockReturnValue(mockConfig);
+      mockSessionService.getExpiredSessionCount.mockReturnValue(0);
 
       const response = await request(app)
         .get('/v1/sessions/stats')
         .expect(200);
 
       expect(response.body).toEqual({
-        session_stats: mockEmptyStats,
+        session_stats: {
+          active_sessions: mockEmptyStats.activeSessions,
+          expired_sessions: 0,
+          total_messages: mockEmptyStats.totalMessages
+        },
         cleanup_interval_minutes: 10,
         default_ttl_hours: 2
       });
@@ -188,13 +192,14 @@ describe('Sessions Endpoints Integration Tests', () => {
 
       // Dates get serialized to ISO strings in JSON response
       const expectedSessionList = {
-        ...mockSessionList,
         sessions: mockSessionList.sessions.map(session => ({
-          ...session,
+          session_id: session.session_id,
           created_at: session.created_at.toISOString(),
           last_accessed: session.last_accessed.toISOString(),
+          message_count: session.message_count,
           expires_at: session.expires_at.toISOString()
-        }))
+        })),
+        total: mockSessionList.total
       };
       expect(response.body).toEqual(expectedSessionList);
       expect(mockSessionService.listSessions).toHaveBeenCalledTimes(1);
@@ -225,8 +230,7 @@ describe('Sessions Endpoints Integration Tests', () => {
         .expect(500);
 
       expect(response.body).toEqual({
-        error: 'Internal Server Error',
-        message: 'Failed to list sessions'
+        detail: 'Failed to list sessions'
       });
     });
 
@@ -272,13 +276,11 @@ describe('Sessions Endpoints Integration Tests', () => {
 
       // Dates get serialized to ISO strings in JSON response
       expect(response.body).toEqual({
-        id: mockSessionInfo.id,
+        session_id: mockSessionInfo.session_id,
         created_at: mockSessionInfo.created_at.toISOString(),
-        model: mockSessionInfo.model,
-        system_prompt: mockSessionInfo.system_prompt,
-        max_turns: mockSessionInfo.max_turns,
+        last_accessed: mockSessionInfo.last_accessed.toISOString(),
         message_count: mockSessionInfo.message_count,
-        status: mockSessionInfo.status
+        expires_at: mockSessionInfo.expires_at.toISOString()
       });
       expect(mockSessionService.getSession).toHaveBeenCalledWith(sessionId);
     });
@@ -293,8 +295,7 @@ describe('Sessions Endpoints Integration Tests', () => {
         .expect(404);
 
       expect(response.body).toEqual({
-        error: 'Session not found',
-        message: `Session ${sessionId} not found`
+        detail: `Session ${sessionId} not found`
       });
     });
 
@@ -310,8 +311,7 @@ describe('Sessions Endpoints Integration Tests', () => {
         .expect(500);
 
       expect(response.body).toEqual({
-        error: 'Internal Server Error',
-        message: 'Failed to get session information'
+        detail: 'Internal Server Error'
       });
     });
 
@@ -339,13 +339,11 @@ describe('Sessions Endpoints Integration Tests', () => {
 
       // Dates get serialized to ISO strings in JSON response
       expect(response.body).toEqual({
-        id: mockSessionInfo.id,
+        session_id: mockSessionInfo.session_id,
         created_at: mockSessionInfo.created_at.toISOString(),
-        model: mockSessionInfo.model,
-        system_prompt: mockSessionInfo.system_prompt,
-        max_turns: mockSessionInfo.max_turns,
+        last_accessed: mockSessionInfo.last_accessed.toISOString(),
         message_count: mockSessionInfo.message_count,
-        status: mockSessionInfo.status
+        expires_at: mockSessionInfo.expires_at.toISOString()
       });
     });
 
@@ -374,13 +372,11 @@ describe('Sessions Endpoints Integration Tests', () => {
 
       // Dates get serialized to ISO strings in JSON response
       expect(response.body).toEqual({
-        id: mockSessionInfo.id,
+        session_id: mockSessionInfo.session_id,
         created_at: mockSessionInfo.created_at.toISOString(),
-        model: mockSessionInfo.model,
-        system_prompt: mockSessionInfo.system_prompt,
-        max_turns: mockSessionInfo.max_turns,
+        last_accessed: mockSessionInfo.last_accessed.toISOString(),
         message_count: mockSessionInfo.message_count,
-        status: mockSessionInfo.status
+        expires_at: mockSessionInfo.expires_at.toISOString()
       });
       expect(mockSessionService.getSession).toHaveBeenCalledWith(sessionId);
     });
@@ -412,8 +408,7 @@ describe('Sessions Endpoints Integration Tests', () => {
         .expect(404);
 
       expect(response.body).toEqual({
-        error: 'Session not found',
-        message: `Session ${sessionId} not found`
+        detail: `Session ${sessionId} not found`
       });
     });
 
@@ -429,8 +424,7 @@ describe('Sessions Endpoints Integration Tests', () => {
         .expect(500);
 
       expect(response.body).toEqual({
-        error: 'Internal Server Error',
-        message: 'Failed to delete session'
+        detail: 'Failed to delete session'
       });
     });
 
@@ -599,10 +593,8 @@ describe('Sessions Endpoints Integration Tests', () => {
         .get('/v1/sessions/stats')
         .expect(500);
 
-      expect(response.body).toHaveProperty('error');
-      expect(response.body).toHaveProperty('message');
-      expect(response.body.error).toBe('Internal Server Error');
-      expect(response.body.message).toBe('Failed to get session statistics');
+      expect(response.body).toHaveProperty('detail');
+      expect(response.body.detail).toBe('Failed to get session statistics');
     });
 
     it('should maintain error format consistency across endpoints', async () => {
@@ -615,8 +607,7 @@ describe('Sessions Endpoints Integration Tests', () => {
         .expect(500);
 
       expect(response.body).toEqual({
-        error: 'Internal Server Error',
-        message: 'Failed to list sessions'
+        detail: 'Failed to list sessions'
       });
     });
   });
@@ -653,9 +644,9 @@ describe('Sessions Endpoints Integration Tests', () => {
       // Dates get serialized to ISO strings in JSON response
       expect(response.body).toEqual({
         session_stats: {
-          ...pythonStats,
-          oldestSession: pythonStats.oldestSession.toISOString(),
-          newestSession: pythonStats.newestSession.toISOString()
+          active_sessions: pythonStats.activeSessions,
+          expired_sessions: 0,
+          total_messages: pythonStats.totalMessages
         },
         cleanup_interval_minutes: 5,
         default_ttl_hours: 1
@@ -686,8 +677,7 @@ describe('Sessions Endpoints Integration Tests', () => {
 
       // Verify error format matches Python HTTPException structure
       expect(response.body).toEqual({
-        error: 'Session not found',
-        message: `Session ${sessionId} not found`
+        detail: `Session ${sessionId} not found`
       });
     });
   });
