@@ -31,7 +31,7 @@ jobs:
     - name: Run integration tests
       run: |
         cd app
-        NODE_OPTIONS="--max-old-space-size=4096" npx jest --config tests/jest.integration.config.js --maxWorkers=1 --runInBand --forceExit
+        NODE_OPTIONS="--max-old-space-size=4096" npx jest --config tests/jest.integration.config.js --runInBand --forceExit
         
     - name: Test CLI functionality
       run: |
