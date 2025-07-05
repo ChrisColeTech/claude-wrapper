@@ -84,11 +84,40 @@ describe('Phase 6A: Claude Service Tests', () => {
       // Return true only if we have a result message with success
       return messages.some(msg => msg.type === 'result' && msg.subtype === 'success');
     });
-    (ClaudeResponseParser.parseToOpenAIResponse as jest.Mock).mockReturnValue({
-      content: 'Hello! How can I help you today?',
-      role: 'assistant',
-      session_id: 'test-session',
-      stop_reason: 'stop'
+    // Mock parseToOpenAIResponse to simulate real behavior by extracting content directly
+    (ClaudeResponseParser.parseToOpenAIResponse as jest.Mock).mockImplementation((messages: any[]) => {
+      // Find assistant content directly
+      let content: string | null = null;
+      for (const message of messages) {
+        if (message.type === 'assistant' && typeof message.content === 'string') {
+          content = message.content;
+          break;
+        }
+      }
+      
+      if (!content) {
+        return null;
+      }
+      
+      // Extract session ID from messages
+      let sessionId: string | undefined;
+      for (const message of messages) {
+        if (message.session_id) {
+          sessionId = message.session_id;
+          break;
+        }
+        if (message.type === 'system' && message.subtype === 'init' && message.data?.session_id) {
+          sessionId = message.data.session_id;
+          break;
+        }
+      }
+      
+      return {
+        content,
+        role: 'assistant',
+        stop_reason: 'stop',
+        session_id: sessionId
+      };
     });
     
     // Mock parseClaudeMessage to simulate real behavior
