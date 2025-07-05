@@ -8,12 +8,22 @@ import { authManager } from '../../src/auth/auth-manager';
 import { promptForApiProtection } from '../../src/utils/interactive';
 
 // Mock dependencies
+const mockCreateAndStartServer = jest.fn().mockResolvedValue({
+  server: { close: jest.fn() },
+  port: 8000,
+  url: 'http://localhost:8000'
+});
+
 jest.mock('../../src/server', () => ({
-  createAndStartServer: jest.fn().mockResolvedValue({
-    server: { close: jest.fn() },
-    port: 8000,
-    url: 'http://localhost:8000'
-  })
+  createAndStartServer: mockCreateAndStartServer
+}));
+
+// Mock security config manager (what CLI actually uses)
+const mockSetApiKey = jest.fn().mockReturnValue({ success: true });
+jest.mock('../../src/auth/security-config', () => ({
+  createSecurityConfigManager: jest.fn(() => ({
+    setApiKey: mockSetApiKey
+  }))
 }));
 
 jest.mock('../../src/auth/auth-manager', () => ({
@@ -25,6 +35,39 @@ jest.mock('../../src/auth/auth-manager', () => ({
 
 jest.mock('../../src/utils/interactive', () => ({
   promptForApiProtection: jest.fn()
+}));
+
+// Mock environment config
+jest.mock('../../src/utils/env', () => ({
+  loadEnvironmentConfig: jest.fn(() => ({
+    PORT: 8000,
+    VERBOSE: false,
+    DEBUG_MODE: false
+  }))
+}));
+
+// Mock health monitoring
+jest.mock('../../src/monitoring/health-monitor', () => ({
+  healthMonitor: null,
+  startHealthMonitoring: jest.fn()
+}));
+
+// Mock production server manager  
+jest.mock('../../src/server/production-server-manager', () => ({
+  ProductionServerManager: jest.fn().mockImplementation(() => ({
+    startServer: jest.fn().mockResolvedValue({
+      success: true,
+      server: { close: jest.fn() },
+      port: 8000,
+      url: 'http://localhost:8000'
+    })
+  }))
+}));
+
+// Mock create app
+jest.mock('../../src/server', () => ({
+  createAndStartServer: mockCreateAndStartServer,
+  createApp: jest.fn(() => ({ listen: jest.fn() }))
 }));
 
 // Mock console to capture Python-compatible output
@@ -110,7 +153,7 @@ describe('CLI Python Compatibility', () => {
       
       // Verify interactive setup was called before server startup
       expect(mockPromptForApiProtection).toHaveBeenCalledTimes(1);
-      expect(authManager.setApiKey).toHaveBeenCalledWith('test-api-key');
+      expect(mockSetApiKey).toHaveBeenCalledWith('test-api-key', 'runtime');
     });
 
     it('should skip interactive setup when --no-interactive flag is used', async () => {
@@ -128,7 +171,7 @@ describe('CLI Python Compatibility', () => {
       await runner.run(['node', 'claude-wrapper']);
       
       expect(mockPromptForApiProtection).toHaveBeenCalledTimes(1);
-      expect(authManager.setApiKey).not.toHaveBeenCalled();
+      expect(mockSetApiKey).not.toHaveBeenCalled();
     });
   });
 

@@ -14,7 +14,7 @@ import {
 } from '../tools/constants';
 import { ModelValidationHelper } from './model-validation-helper';
 import { 
-  validationHandler, 
+  getValidationHandler, 
   ValidationErrorReport,
   FieldValidationError,
   ValidationContext 
@@ -133,7 +133,7 @@ export class ParameterValidator {
     
     try {
       // Use the validation handler for comprehensive validation
-      const report = await validationHandler.validateRequest(
+      const report = await getValidationHandler().validateRequest(
         request,
         'chat_completion',
         {

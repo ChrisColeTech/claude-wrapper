@@ -17,14 +17,38 @@ import { SessionManager, Session } from '../../../src/session/manager';
 import { performanceMonitor } from '../../../src/monitoring/performance-monitor';
 
 // Mock dependencies
-jest.mock('../../../src/utils/logger');
-jest.mock('../../../src/monitoring/performance-monitor');
+const mockLogger = {
+  info: jest.fn(),
+  warn: jest.fn(),
+  error: jest.fn(),
+  debug: jest.fn()
+};
+
+jest.mock('../../../src/utils/logger', () => ({
+  getLogger: jest.fn(() => mockLogger)
+}));
+
+const mockPerformanceMonitor = {
+  startTimer: jest.fn(() => ({
+    stop: jest.fn()
+  })),
+  recordMetric: jest.fn(),
+  getStats: jest.fn(),
+  clearMetrics: jest.fn()
+};
+
+jest.mock('../../../src/monitoring/performance-monitor', () => ({
+  performanceMonitor: mockPerformanceMonitor
+}));
 
 describe('CleanupService', () => {
   let service: ICleanupService;
   let mockTask: ICleanupTask;
 
   beforeEach(() => {
+    // Clear all mocks
+    jest.clearAllMocks();
+    
     service = new CleanupService(100, 500); // 100ms interval, 500ms max duration
     
     mockTask = {

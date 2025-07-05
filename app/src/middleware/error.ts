@@ -10,13 +10,13 @@ import { Request, Response, NextFunction } from 'express';
 import { getLogger } from '../utils/logger';
 import { ValidationResult } from '../validation/validator';
 import { 
-  errorClassifier, 
+  getErrorClassifier, 
   ErrorClassification,
   ErrorCategory,
   ErrorSeverity 
 } from './error-classifier';
 import { 
-  validationHandler, 
+  getValidationHandler, 
   ValidationErrorReport 
 } from './validation-handler';
 import { 
@@ -111,7 +111,7 @@ export function errorHandler(error: Error, req: Request, res: Response, next: Ne
     }
 
     // Use comprehensive error classification
-    const classification = errorClassifier.classifyError(error, {
+    const classification = getErrorClassifier().classifyError(error, {
       requestId,
       endpoint: req.path,
       method: req.method,
@@ -324,7 +324,7 @@ export function notFoundHandler(req: Request, res: Response): void {
   logger.warn(`🔍 [${requestId}] Not Found: ${req.method} ${req.path}`);
 
   const notFoundError = new Error(`The requested endpoint ${req.method} ${req.path} was not found`);
-  const classification = errorClassifier.classifyError(notFoundError, {
+  const classification = getErrorClassifier().classifyError(notFoundError, {
     requestId,
     endpoint: req.path,
     method: req.method
@@ -371,7 +371,7 @@ export function timeoutHandler(req: Request, res: Response): void {
   logger.error(`⏰ [${requestId}] Request Timeout: ${req.method} ${req.path}`);
 
   const timeoutError = new Error('Request timeout - the server took too long to respond');
-  const classification = errorClassifier.classifyError(timeoutError, {
+  const classification = getErrorClassifier().classifyError(timeoutError, {
     requestId,
     endpoint: req.path,
     method: req.method
@@ -473,7 +473,7 @@ export function createClassifiedErrorResponse(
   context?: Record<string, any>,
   requestId?: string
 ): EnhancedErrorResponse {
-  const classification = errorClassifier.classifyError(error, context);
+  const classification = getErrorClassifier().classifyError(error, context);
   return ErrorResponseFactory.createFromClassification(error, classification, requestId);
 }
 

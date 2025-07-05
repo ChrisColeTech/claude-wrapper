@@ -12,9 +12,20 @@ const mockLogger = {
   error: jest.fn()
 };
 
+// Mock logger using automatic hoisting
 jest.mock('../../../src/utils/logger', () => ({
-  createLogger: jest.fn(() => mockLogger),
-  getLogger: jest.fn(() => mockLogger),
+  createLogger: () => ({
+    debug: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn()
+  }),
+  getLogger: () => ({
+    debug: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn()
+  }),
   LogLevel: {
     ERROR: 'error',
     WARN: 'warn',
@@ -22,19 +33,6 @@ jest.mock('../../../src/utils/logger', () => ({
     DEBUG: 'debug'
   }
 }));
-
-import {
-  ValidationHandler,
-  FieldValidationError,
-  ValidationContext,
-  ValidationErrorReport,
-  ValidationRule,
-  ValidationSchema,
-  validationHandler,
-  validateRequest,
-  createValidationResponse,
-  getValidationStats
-} from '../../../src/middleware/validation-handler';
 
 // Mock config for testing
 jest.mock('../../../src/utils/env', () => ({
@@ -46,7 +44,7 @@ jest.mock('../../../src/utils/env', () => ({
 
 // Mock error classifier
 jest.mock('../../../src/middleware/error-classifier', () => ({
-  errorClassifier: {
+  getErrorClassifier: jest.fn(() => ({
     classifyError: jest.fn(() => ({
       category: 'validation_error',
       severity: 'low',
@@ -57,13 +55,29 @@ jest.mock('../../../src/middleware/error-classifier', () => ({
       operationalImpact: 'Request rejected due to invalid input',
       clientGuidance: ['Check request parameters', 'Validate input format']
     }))
-  }
+  }))
 }));
 
 describe('ValidationHandler', () => {
-  let handler: ValidationHandler;
+  let ValidationHandler: any;
+  let validationHandler: any;
+  let validateRequest: any;
+  let createValidationResponse: any;
+  let getValidationStats: any;
+  let handler: any;
+  
+  beforeAll(async () => {
+    // Dynamically import after mocks are set up
+    const module = await import('../../../src/middleware/validation-handler');
+    ValidationHandler = module.ValidationHandler;
+    validationHandler = module.validationHandler;
+    validateRequest = module.validateRequest;
+    createValidationResponse = module.createValidationResponse;
+    getValidationStats = module.getValidationStats;
+  });
   
   beforeEach(() => {
+    jest.clearAllMocks();
     handler = new ValidationHandler();
     jest.useFakeTimers();
   });

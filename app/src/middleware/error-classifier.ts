@@ -420,11 +420,23 @@ export class ErrorClassifier {
   }
 }
 
-// Production-ready singleton instance
-export const errorClassifier = new ErrorClassifier();
+// Lazy singleton instance - only created when needed
+let _errorClassifier: ErrorClassifier | null = null;
+
+export function getErrorClassifier(): ErrorClassifier {
+  if (!_errorClassifier) {
+    _errorClassifier = new ErrorClassifier();
+  }
+  return _errorClassifier;
+}
+
+// For testing - allows resetting the singleton
+export function resetErrorClassifier(): void {
+  _errorClassifier = null;
+}
 
 // Export utilities for easy access
 export const classifyError = (error: Error, context?: Record<string, any>) => 
-  errorClassifier.classifyError(error, context);
-export const getErrorStatistics = () => errorClassifier.getStatistics();
-export const isClassificationOptimal = () => errorClassifier.isPerformanceOptimal();
+  getErrorClassifier().classifyError(error, context);
+export const getErrorStatistics = () => getErrorClassifier().getStatistics();
+export const isClassificationOptimal = () => getErrorClassifier().isPerformanceOptimal();

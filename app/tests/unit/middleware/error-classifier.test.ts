@@ -13,8 +13,8 @@ const mockLogger = {
 };
 
 jest.mock('../../../src/utils/logger', () => ({
-  createLogger: jest.fn(() => mockLogger),
-  getLogger: jest.fn(() => mockLogger),
+  createLogger: jest.fn().mockReturnValue(mockLogger),
+  getLogger: jest.fn().mockReturnValue(mockLogger),
   LogLevel: {
     ERROR: 'error',
     WARN: 'warn',

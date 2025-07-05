@@ -34,6 +34,7 @@ export interface ICleanupService {
   runCleanup(): Promise<number>;
   getStats(): CleanupStats;
   isRunning(): boolean;
+  addTask(task: ICleanupTask): void;
 }
 
 /**

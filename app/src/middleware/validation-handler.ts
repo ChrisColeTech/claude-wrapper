@@ -8,7 +8,7 @@
 
 import { createLogger } from '../utils/logger';
 import { config } from '../utils/env';
-import { ErrorClassification, errorClassifier } from './error-classifier';
+import { ErrorClassification, getErrorClassifier } from './error-classifier';
 import * as winston from 'winston';
 
 /**
@@ -363,7 +363,7 @@ export class ValidationHandler {
         suggestion: 'Contact support if error persists'
       }],
       errorCount: 1,
-      classification: errorClassifier.classifyError(
+      classification: getErrorClassifier().classifyError(
         error instanceof Error ? error : new Error(errorMessage)
       ),
       context: {
@@ -449,7 +449,7 @@ export class ValidationHandler {
     endpoint?: string
   ): ErrorClassification {
     const validationError = new Error(`Validation failed: ${errors.length} field errors`);
-    return errorClassifier.classifyError(validationError, {
+    return getErrorClassifier().classifyError(validationError, {
       fieldCount: errors.length,
       schema: schemaName,
       endpoint
@@ -765,12 +765,26 @@ export class ValidationHandler {
   }
 }
 
-// Production-ready singleton instance
-export const validationHandler = new ValidationHandler();
+// Lazy singleton instance - only created when needed
+let _validationHandler: ValidationHandler | null = null;
+
+export function getValidationHandler(): ValidationHandler {
+  if (!_validationHandler) {
+    _validationHandler = new ValidationHandler();
+  }
+  return _validationHandler;
+}
+
+// For testing - allows resetting the singleton
+export function resetValidationHandler(): void {
+  _validationHandler = null;
+}
+
+// Production-ready singleton access - use getValidationHandler() instead
 
 // Export utilities for easy access
 export const validateRequest = (data: any, schema: string, context: Partial<ValidationContext>) =>
-  validationHandler.validateRequest(data, schema, context);
+  getValidationHandler().validateRequest(data, schema, context);
 export const createValidationResponse = (report: ValidationErrorReport) =>
-  validationHandler.createValidationErrorResponse(report);
-export const getValidationStats = () => validationHandler.getPerformanceStats();
+  getValidationHandler().createValidationErrorResponse(report);
+export const getValidationStats = () => getValidationHandler().getPerformanceStats();
