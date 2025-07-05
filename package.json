@@ -12,7 +12,7 @@
     "dev": "cd app && tsx watch src/index.ts",
     "test": "cd app && jest --passWithNoTests",
     "test:watch": "cd app && jest --watch",
-    "test:coverage": "cd app && jest --config tests/jest.unit.config.js --coverage",
+    "test:coverage": "cd app && node --max-old-space-size=2048 ../node_modules/.bin/jest --config tests/jest.unit.config.js --coverage",
     "test:performance": "cd app && node performance-test.js",
     "test:stress": "cd app && node stress-test.js",
     "test:phase3a": "npm run build && npm run test:performance",
