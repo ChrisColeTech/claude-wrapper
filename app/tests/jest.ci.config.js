@@ -8,7 +8,6 @@ module.exports = {
   // Extreme memory management for CI
   maxWorkers: 1,
   workerIdleMemoryLimit: "128MB",
-  runInBand: true,
   
   // Skip memory-intensive tests in CI
   testPathIgnorePatterns: [

@@ -27,8 +27,6 @@ module.exports = {
   restoreMocks: true,
   resetMocks: true,
   
-  // Run tests serially to minimize memory usage
-  runInBand: true,
   
   // Test timeout settings
   testTimeout: 30000,
