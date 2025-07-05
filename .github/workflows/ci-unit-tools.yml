@@ -31,4 +31,4 @@ jobs:
     - name: Run tools tests
       run: |
         cd app
-        NODE_OPTIONS="--max-old-space-size=4096" npx jest --config tests/jest.unit.config.js --testPathPattern="tools" --maxWorkers=1 --runInBand --forceExit
+        NODE_OPTIONS="--max-old-space-size=4096" npx jest --config tests/jest.unit.config.js tests/unit/tools --maxWorkers=1 --runInBand --forceExit

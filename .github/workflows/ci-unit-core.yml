@@ -46,4 +46,4 @@ jobs:
     - name: Run core unit tests
       run: |
         cd app
-        NODE_OPTIONS="--max-old-space-size=4096" npx jest --config tests/jest.unit.config.js --testPathPattern="(auth|message|models|utils)" --maxWorkers=1 --runInBand
+        NODE_OPTIONS="--max-old-space-size=4096" npx jest --config tests/jest.unit.config.js tests/unit/auth tests/unit/message tests/unit/models tests/unit/utils --maxWorkers=1 --runInBand
