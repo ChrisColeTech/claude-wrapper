@@ -25,22 +25,29 @@ describe('Enhanced Parameter Processing - Phase 2B', () => {
     toolValidator = new ToolValidator();
     toolExtractor = new ToolParameterExtractor();
     toolChoiceValidator = new ToolChoiceValidator();
-    // Use the exact same pattern as processor.test.ts which works
+    // Create mock with explicit typing to avoid TypeScript issues
     mockChoiceProcessor = {
-      processChoice: jest.fn().mockResolvedValue({ 
-        success: true, 
-        processedChoice: { type: 'auto' },
-        claudeFormat: { mode: 'auto' },
-        errors: [] 
-      }),
-      createProcessingContext: jest.fn().mockReturnValue({}),
-      validateChoiceAgainstTools: jest.fn().mockReturnValue([]),
-      createChoiceContext: jest.fn().mockReturnValue({}),
-      processChoiceWithContext: jest.fn().mockResolvedValue({ 
-        success: true, 
-        errors: [] 
-      })
-    };
+      processChoice: jest.fn(),
+      createProcessingContext: jest.fn(),
+      validateChoiceAgainstTools: jest.fn(),
+      createChoiceContext: jest.fn(),
+      processChoiceWithContext: jest.fn()
+    } as any;
+    
+    // Setup return values separately
+    mockChoiceProcessor.processChoice.mockResolvedValue({ 
+      success: true, 
+      processedChoice: { type: 'auto' },
+      claudeFormat: { mode: 'auto' },
+      errors: [] 
+    });
+    mockChoiceProcessor.createProcessingContext.mockReturnValue({});
+    mockChoiceProcessor.validateChoiceAgainstTools.mockReturnValue([]);
+    mockChoiceProcessor.createChoiceContext.mockReturnValue({});
+    mockChoiceProcessor.processChoiceWithContext.mockResolvedValue({ 
+      success: true, 
+      errors: [] 
+    });
     processor = new ToolParameterProcessor(toolValidator, toolExtractor, toolChoiceValidator, mockChoiceProcessor);
   });
 
