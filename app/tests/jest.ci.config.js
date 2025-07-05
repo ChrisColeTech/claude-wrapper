@@ -15,7 +15,7 @@ module.exports = {
     "/node_modules/",
     "/unit/server.test.ts",
     "/unit/cli-python-compat.test.ts",
-    "/unit/claude/service.test.ts", // Skip heavy service tests
+    // "/unit/claude/service.test.ts", // Re-enabled after fixing memory issues
   ],
   
   // Reduce coverage requirements for CI
