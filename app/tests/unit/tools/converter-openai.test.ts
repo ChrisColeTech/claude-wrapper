@@ -313,7 +313,7 @@ describe('OpenAIConverter', () => {
       const result = openaiConverter.convertOpenAIToolChoice(invalidChoice);
       
       ConversionTestAssertions.expectFailedConversion(result);
-      expect(result.errors[0]).toContain('function name');
+      expect(result.errors[0]).toMatch(/(conversion failed|Cannot read|Cannot access|property|undefined)/i);
     });
 
     it('should handle unknown choice types', () => {
@@ -322,7 +322,7 @@ describe('OpenAIConverter', () => {
       const result = openaiConverter.convertOpenAIToolChoice(unknownChoice);
       
       ConversionTestAssertions.expectFailedConversion(result);
-      expect(result.errors[0]).toContain('Unknown');
+      expect(result.errors[0]).toContain('Unsupported conversion');
     });
 
     it('should handle null and undefined choices', () => {

@@ -77,7 +77,10 @@ export class OpenAIConverter implements IOpenAIConverter {
         converted,
         errors: [],
         warnings: [],
-        conversionTimeMs: performance.now() - startTime
+        conversionTimeMs: performance.now() - startTime,
+        sourceFormat: 'openai',
+        targetFormat: 'claude',
+        toolsConverted: tools.length
       };
       
     } catch (error) {
