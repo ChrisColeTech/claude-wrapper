@@ -10,10 +10,12 @@ import {
   ToolConverter,
   OpenAIConverter,
   ClaudeConverter,
-  ToolConversionError,
-  ConversionUtils,
   toolConverter
 } from '../../../src/tools/converter';
+import {
+  ToolConversionError,
+  ConversionUtils
+} from '../../../src/tools/conversion-utils';
 import {
   ClaudeTool,
   ClaudeToolChoice,

@@ -26,6 +26,9 @@ import {
 } from './constants';
 import { ToolConversionError, ConversionUtils } from './conversion-utils';
 
+// Re-export utility classes for tests
+export { ToolConversionError, ConversionUtils };
+
 /**
  * Conversion statistics tracking
  */
