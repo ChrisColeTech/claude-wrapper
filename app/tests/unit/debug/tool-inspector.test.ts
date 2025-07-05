@@ -36,13 +36,13 @@ const mockLogger = {
 };
 
 const mockToolStateManager = {
-  getToolCallState: jest.fn(),
-  getStateSnapshot: jest.fn()
+  getToolCallState: jest.fn() as jest.MockedFunction<any>,
+  getStateSnapshot: jest.fn() as jest.MockedFunction<any>
 };
 
 const mockToolStateTracker = {
-  getSessionMetrics: jest.fn(),
-  getAllFunctionStats: jest.fn()
+  getSessionMetrics: jest.fn() as jest.MockedFunction<any>,
+  getAllFunctionStats: jest.fn() as jest.MockedFunction<any>
 };
 
 describe('ToolInspector', () => {
