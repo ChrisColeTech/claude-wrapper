@@ -46,7 +46,7 @@ jobs:
     - name: Run tests with coverage
       run: |
         cd app
-        npm run test:coverage
+        NODE_OPTIONS="--max-old-space-size=8192" npm run test:coverage
         
     - name: Test CLI functionality
       run: |

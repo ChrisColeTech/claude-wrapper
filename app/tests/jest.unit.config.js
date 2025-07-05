@@ -32,11 +32,16 @@ module.exports = {
   coverageDirectory: "<rootDir>/logs/coverage/unit",
   
   // Memory management and performance settings
-  maxWorkers: 2,
-  workerIdleMemoryLimit: "2GB",
-  logHeapUsage: true,
+  maxWorkers: 1,
+  workerIdleMemoryLimit: "512MB",
   detectOpenHandles: true,
   forceExit: true,
+  logHeapUsage: true,
+  
+  // Aggressive memory cleanup
+  clearMocks: true,
+  restoreMocks: true,
+  resetMocks: true,
   
   // Test timeout settings
   testTimeout: 30000,
