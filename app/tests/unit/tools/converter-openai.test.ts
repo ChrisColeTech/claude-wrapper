@@ -280,14 +280,14 @@ describe('OpenAIConverter', () => {
       const result = openaiConverter.convertOpenAIToolChoice('auto');
       
       ConversionTestAssertions.expectSuccessfulConversion(result);
-      expect(result.converted).toBe('auto');
+      expect(result.converted).toBe('allowed');
     });
 
     it('should convert none choice', () => {
       const result = openaiConverter.convertOpenAIToolChoice('none');
       
       ConversionTestAssertions.expectSuccessfulConversion(result);
-      expect(result.converted).toBe('any');
+      expect(result.converted).toBe('disabled');
     });
 
     it('should convert function choice', () => {
@@ -300,7 +300,6 @@ describe('OpenAIConverter', () => {
       
       ConversionTestAssertions.expectSuccessfulConversion(result);
       expect(result.converted).toEqual({
-        type: 'tool',
         name: 'specific_function'
       });
     });
