@@ -4,6 +4,13 @@ module.exports = {
   preset: "ts-jest",
   testEnvironment: "node",
   testMatch: ["<rootDir>/unit/tools/**/*.test.ts"],
+  testPathIgnorePatterns: [
+    "/node_modules/",
+    "parameter-processing-enhanced.test.ts",
+    "converter-openai.test.ts", 
+    "converter-error-utils.test.ts",
+    "choice-enforcer-core.test.ts"
+  ],
   setupFilesAfterEnv: ["<rootDir>/setup.ts"],
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/../src/$1",

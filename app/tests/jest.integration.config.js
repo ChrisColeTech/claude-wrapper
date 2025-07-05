@@ -3,7 +3,7 @@ module.exports = {
   displayName: "Integration Tests",
   preset: "ts-jest",
   testEnvironment: "node",
-  testMatch: ["<rootDir>/integration/**/*.test.ts"],
+  testMatch: ["**/integration/**/*.test.ts"],
   setupFilesAfterEnv: ["<rootDir>/setup.ts"],
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/../src/$1",

@@ -25,7 +25,7 @@ describe('Enhanced Parameter Processing - Phase 2B', () => {
     toolValidator = new ToolValidator();
     toolExtractor = new ToolParameterExtractor();
     toolChoiceValidator = new ToolChoiceValidator();
-    // Use the same pattern as processor.test.ts which works
+    // Use the exact same pattern as processor.test.ts which works
     mockChoiceProcessor = {
       processChoice: jest.fn().mockResolvedValue({ 
         success: true, 
@@ -33,26 +33,14 @@ describe('Enhanced Parameter Processing - Phase 2B', () => {
         claudeFormat: { mode: 'auto' },
         errors: [] 
       }),
-      validateAndProcess: jest.fn().mockResolvedValue({ 
+      createProcessingContext: jest.fn().mockReturnValue({}),
+      validateChoiceAgainstTools: jest.fn().mockReturnValue([]),
+      createChoiceContext: jest.fn().mockReturnValue({}),
+      processChoiceWithContext: jest.fn().mockResolvedValue({ 
         success: true, 
         errors: [] 
-      }),
-      convertToClaudeFormat: jest.fn(),
-      createProcessingContext: jest.fn()
-    } as any;
-    mockChoiceProcessor.convertToClaudeFormat.mockReturnValue({
-      mode: 'auto',
-      allowTools: true
-    });
-    mockChoiceProcessor.createProcessingContext.mockReturnValue({
-      hasChoice: true,
-      choiceType: 'auto',
-      allowsTools: true,
-      forcesTextOnly: false,
-      forcesSpecificFunction: false,
-      claudeFormat: { mode: 'auto', allowTools: true },
-      processingTimeMs: 0
-    });
+      })
+    };
     processor = new ToolParameterProcessor(toolValidator, toolExtractor, toolChoiceValidator, mockChoiceProcessor);
   });
 
