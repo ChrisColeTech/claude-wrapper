@@ -14,6 +14,8 @@ export class ToolConversionError extends Error {
   constructor(
     message: string,
     public readonly code: string,
+    public readonly sourceFormat?: string,
+    public readonly targetFormat?: string,
     public readonly details?: Record<string, any>,
     public readonly conversionTimeMs?: number
   ) {
