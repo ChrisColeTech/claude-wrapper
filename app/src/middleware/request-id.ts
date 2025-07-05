@@ -9,7 +9,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { createLogger } from '../utils/logger';
 import { config } from '../utils/env';
-import winston from 'winston';
+import * as winston from 'winston';
 import { randomBytes, createHash } from 'crypto';
 
 /**
@@ -455,7 +455,7 @@ export class RequestIdManager {
     const initialCompletedCount = this.completedRequests.length;
 
     // Remove stale active requests
-    for (const [requestId, context] of this.activeRequests.entries()) {
+    for (const [requestId, context] of Array.from(this.activeRequests.entries())) {
       if (context.startTime.getTime() < staleThreshold) {
         this.activeRequests.delete(requestId);
         this.logger.warn('Removed stale active request', { requestId });

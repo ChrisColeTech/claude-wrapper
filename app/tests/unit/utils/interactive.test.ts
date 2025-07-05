@@ -507,10 +507,13 @@ describe('Interactive Utilities', () => {
 
   describe('Error Scenarios', () => {
     it('should handle readline interface errors gracefully', async () => {
+      // Ensure clean environment
+      delete process.env.API_KEY;
+      
       // Create a proper mock that actually rejects
       let closeCalled = false;
       const errorReadline: IReadlineInterface = {
-        question: () => Promise.reject(new Error('Readline error')),
+        question: jest.fn().mockRejectedValue(new Error('Readline error')),
         close: () => {
           closeCalled = true;
         }
@@ -518,7 +521,8 @@ describe('Interactive Utilities', () => {
       
       const setup = new InteractiveApiKeySetup(errorReadline);
       
-      await expect(setup.promptForApiProtection()).rejects.toThrow('Readline error');
+      // The error should propagate and readline should be closed
+      await expect(setup.promptForApiProtection({ skipIfSet: false })).rejects.toThrow('Readline error');
       expect(closeCalled).toBe(true);
     });
 

@@ -77,8 +77,12 @@ export function configureMiddleware(app: Express, config?: MiddlewareConfig): vo
 
   // 7. Validation middleware stack
   const validationStack = createValidationMiddlewareStack(config?.validation);
-  validationStack.forEach(middleware => app.use(middleware));
-  logger.debug('✅ Validation middleware stack configured');
+  if (validationStack && Array.isArray(validationStack)) {
+    validationStack.forEach(middleware => app.use(middleware));
+    logger.debug('✅ Validation middleware stack configured');
+  } else {
+    logger.warn('⚠️ Validation middleware stack not configured (invalid return from createValidationMiddlewareStack)');
+  }
 
   // 8. Authentication middleware (after validation, before routes)
   const authConfig = config?.auth || { skipPaths: ['/health', '/v1/models'] };

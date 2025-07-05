@@ -84,6 +84,7 @@ export class HealthMonitor {
   private monitoringInterval: NodeJS.Timeout | null = null;
   private failureCount: Map<string, number> = new Map();
   private responseTimeHistory: number[] = [];
+  private activeServerPort: number | null = null;
 
   constructor(healthConfig?: Partial<HealthMonitorConfig>) {
     this.logger = createLogger(config);
@@ -355,7 +356,8 @@ export class HealthMonitor {
     // Server port check
     this.registerHealthCheck('server-port', async (): Promise<HealthCheckResult> => {
       const startTime = Date.now();
-      const serverPort = productionConfig.getServerConfig().port;
+      // Use active server port if available, otherwise fall back to production config
+      const serverPort = this.activeServerPort || productionConfig.getServerConfig().port;
 
       try {
         const available = await PortUtils.isPortAvailable(serverPort);
@@ -368,7 +370,7 @@ export class HealthMonitor {
             : `Server port ${serverPort} is active`,
           duration: Date.now() - startTime,
           timestamp: new Date(),
-          details: { port: serverPort, available }
+          details: { port: serverPort, available, activePort: this.activeServerPort }
         };
       } catch (error) {
         return {
@@ -522,6 +524,22 @@ export class HealthMonitor {
   }
 
   /**
+   * Set the active server port for monitoring
+   */
+  setActiveServerPort(port: number): void {
+    this.activeServerPort = port;
+    this.logger.debug(`Health monitor now tracking server port: ${port}`);
+  }
+
+  /**
+   * Clear the active server port
+   */
+  clearActiveServerPort(): void {
+    this.activeServerPort = null;
+    this.logger.debug('Health monitor cleared active server port');
+  }
+
+  /**
    * Cleanup resources
    */
   shutdown(): void {
@@ -529,6 +547,7 @@ export class HealthMonitor {
     this.checks.clear();
     this.failureCount.clear();
     this.responseTimeHistory = [];
+    this.activeServerPort = null;
     this.logger.debug('HealthMonitor shutdown complete');
   }
 }

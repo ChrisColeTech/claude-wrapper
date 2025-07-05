@@ -11,9 +11,11 @@ import { Config } from './utils/env';
 import { createLogger } from './utils/logger';
 import { authMiddleware, authStatusMiddleware } from './auth/middleware';
 import { createCorsMiddleware } from './middleware/cors';
+import { createTimingMiddleware } from './middleware/timing';
 import { initializeAuthentication } from './server/auth-initializer';
 import { ServerManager, ServerStartResult } from './server/server-manager';
 import { ModelsRouter, HealthRouter, ChatRouter, AuthRouter, SessionsRouter, DebugRouter } from './routes';
+import { monitoringRoutes } from './routes/monitoring';
 
 // Re-export ServerManager and ServerStartResult for external use
 export { ServerManager, ServerStartResult };
@@ -76,6 +78,13 @@ export class ExpressAppFactory {
     // CORS middleware
     app.use(createCorsMiddleware(config.corsOrigins));
 
+    // Performance monitoring middleware (before request logging)
+    app.use(createTimingMiddleware({
+      logRequests: false, // Disable to avoid duplicate logging
+      logSlowRequests: true,
+      excludePaths: ['/health', '/monitoring/health', '/monitoring/metrics']
+    }));
+
     // Request logging middleware
     app.use((req, _res, next) => {
       this.logger.debug(`${req.method} ${req.path}`, {
@@ -91,7 +100,17 @@ export class ExpressAppFactory {
 
     // Authentication middleware for protected routes
     app.use(authMiddleware({
-      skipPaths: ['/health', '/health/detailed', '/v1/models', '/v1/auth/status', '/v1/compatibility', '/v1/debug/request'] // Skip auth for health, models, auth status, and debug endpoints
+      skipPaths: [
+        '/health', 
+        '/health/detailed', 
+        '/v1/models', 
+        '/v1/auth/status', 
+        '/v1/compatibility', 
+        '/v1/debug/request',
+        '/monitoring/health',
+        '/monitoring/status',
+        '/monitoring/system'
+      ] // Skip auth for health, models, auth status, debug, and monitoring endpoints
     }));
 
     // Set start time for health router
@@ -104,6 +123,9 @@ export class ExpressAppFactory {
     app.use(SessionsRouter.createRouter());
     app.use(DebugRouter.createRouter());
     app.use(ChatRouter.createRouter());
+    
+    // Mount monitoring routes
+    app.use('/monitoring', monitoringRoutes);
 
     // 404 handler
     app.use((_req, res) => {

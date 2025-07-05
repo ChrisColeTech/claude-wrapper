@@ -11,6 +11,7 @@
 
 import { Request } from 'express';
 import winston from 'winston';
+import { PRODUCTION_SECURITY } from '../tools/constants/production';
 
 export interface IRateLimit {
   windowMs: number;
@@ -184,6 +185,8 @@ export class SecurityHardening implements ISecurityHardening {
     let sanitizedParameters = parameters;
 
     try {
+      this.logger.debug(`Validating tool security: toolName=${toolName}, parameters=${JSON.stringify(parameters)}`);
+      
       // Validate tool name
       if (!this.isValidToolName(toolName)) {
         errors.push(`Invalid tool name: ${toolName}`);
@@ -202,6 +205,8 @@ export class SecurityHardening implements ISecurityHardening {
       const structureErrors = this.validateParameterStructure(toolName, sanitizedParameters);
       errors.push(...structureErrors);
 
+      this.logger.debug(`Security validation result: valid=${errors.length === 0}, errors=${errors.join(', ')}`);
+      
       return {
         valid: errors.length === 0,
         sanitizedParameters: errors.length === 0 ? sanitizedParameters : undefined,
@@ -296,20 +301,23 @@ export class SecurityHardening implements ISecurityHardening {
   private detectMaliciousPatterns(parameters: any): string[] {
     const patterns: string[] = [];
     const maliciousRegexes = [
-      /\$\{.*\}/g, // Template injection
-      /<%.*%>/g, // Template injection
-      /\.\.\//g, // Path traversal
-      /\/etc\/passwd/g, // System file access
-      /cmd\.exe/g, // Windows command execution
-      /bash|sh|zsh/g, // Shell execution
-      /rm\s+-rf/g, // Dangerous file operations
+      { pattern: /\$\{.*\}/g, name: 'template_injection' }, // Template injection
+      { pattern: /<%.*%>/g, name: 'template_injection' }, // Template injection
+      { pattern: /\.\.\//g, name: 'path_traversal' }, // Path traversal
+      { pattern: /\/etc\/passwd/g, name: 'system_file_access' }, // System file access
+      { pattern: /cmd\.exe/g, name: 'command_execution' }, // Windows command execution
+      { pattern: /bash|sh|zsh/g, name: 'shell_execution' }, // Shell execution
+      { pattern: /rm\s+-rf/g, name: 'dangerous_file_operations' }, // Dangerous file operations
+      { pattern: /eval\s*\(/g, name: 'code_execution' }, // Code execution
+      { pattern: /exec\s*\(/g, name: 'code_execution' }, // Code execution
+      { pattern: /system\s*\(/g, name: 'system_command' }, // System commands
     ];
 
     const jsonStr = JSON.stringify(parameters);
     
-    maliciousRegexes.forEach((regex, index) => {
-      if (regex.test(jsonStr)) {
-        patterns.push(`Pattern${index + 1}`);
+    maliciousRegexes.forEach((regex) => {
+      if (regex.pattern.test(jsonStr)) {
+        patterns.push(regex.name);
       }
     });
 
@@ -326,15 +334,38 @@ export class SecurityHardening implements ISecurityHardening {
 
     // Basic structure validation
     const parameterCount = Object.keys(parameters).length;
-    if (parameterCount > 20) {
-      errors.push('Too many parameters (max 20)');
+    if (parameterCount > PRODUCTION_SECURITY.MAX_PARAMETER_COUNT) {
+      errors.push(`Too many parameters (max ${PRODUCTION_SECURITY.MAX_PARAMETER_COUNT})`);
     }
 
     // Check for deeply nested objects
-    if (this.getObjectDepth(parameters) > 5) {
-      errors.push('Parameters too deeply nested (max depth 5)');
+    const depth = this.getObjectDepth(parameters);
+    this.logger.debug(`Parameter depth validation: depth=${depth}, max=${PRODUCTION_SECURITY.MAX_PARAMETER_DEPTH}, toolName=${toolName}`);
+    if (depth > PRODUCTION_SECURITY.MAX_PARAMETER_DEPTH) {
+      errors.push(`Parameters too deeply nested (max depth ${PRODUCTION_SECURITY.MAX_PARAMETER_DEPTH})`);
     }
 
+    // Check string lengths
+    const stringLengthErrors = this.validateStringLengths(parameters);
+    errors.push(...stringLengthErrors);
+
+    return errors;
+  }
+
+  private validateStringLengths(obj: any): string[] {
+    const errors: string[] = [];
+    
+    if (typeof obj === 'string') {
+      if (obj.length > PRODUCTION_SECURITY.MAX_STRING_LENGTH) {
+        errors.push(`String too long (max ${PRODUCTION_SECURITY.MAX_STRING_LENGTH} characters)`);
+      }
+    } else if (typeof obj === 'object' && obj !== null) {
+      for (const value of Object.values(obj)) {
+        const subErrors = this.validateStringLengths(value);
+        errors.push(...subErrors);
+      }
+    }
+    
     return errors;
   }
 

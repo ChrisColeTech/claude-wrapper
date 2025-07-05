@@ -26,6 +26,16 @@ import * as os from 'os';
 const execAsync = promisify(exec);
 
 /**
+ * Test-safe process exit
+ */
+function safeExit(code: number): void {
+  if (process.env.NODE_ENV !== 'test' && !process.env.JEST_WORKER_ID) {
+    process.exit(code);
+  }
+  // In test mode, don't exit - let the test continue
+}
+
+/**
  * CLI options interface
  */
 export interface CliOptions {
@@ -75,6 +85,11 @@ export class CliParser {
       .option('--status', 'check background server status')
       .helpOption('-h, --help', 'display help for command')
       .argument('[port]', 'port to run server on (default: 8000) - alternative to --port option');
+
+    // Only use exitOverride in test environment to prevent process.exit
+    if (process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID) {
+      this.program.exitOverride();
+    }
   }
 
   /**
@@ -89,29 +104,21 @@ export class CliParser {
       // Handle the case where a negative number is passed as a positional argument
       // Commander.js interprets -1, -2, etc. as options, but we want them as positional args
       if (error instanceof Error && error.message && error.message.includes('unknown option')) {
-        // Try multiple regex patterns to match different Commander.js versions
-        const patterns = [
-          /unknown option '(-\d+)'/,
-          /error: unknown option '(-\d+)'/,
-          /Unknown option '(-\d+)'/
-        ];
-        
-        for (const pattern of patterns) {
-          const match = error.message.match(pattern);
-          if (match) {
-            const negativeArg = match[1];
-            // Re-parse with the negative number treated as a positional argument
-            const filteredArgv = argv.filter(arg => arg !== negativeArg);
-            try {
-              this.program.parse(filteredArgv);
-              const options = this.program.opts() as CliOptions;
-              const args = [negativeArg]; // Treat the negative number as a positional arg
-              return this.processOptions(options, args);
-            } catch (innerError) {
-              // If re-parsing fails, fall through to normal error handling
-              break;
-            }
-          }
+        // Extract negative number from error message
+        const negativeNumMatch = error.message.match(/unknown option '(-\d+)'/);
+        if (negativeNumMatch) {
+          const negativeArg = negativeNumMatch[1];
+          console.log(`Invalid port number: ${negativeArg}. Using default.`);
+          
+          // Return options with no port set (will use default)
+          return {
+            port: undefined,
+            verbose: false,
+            debug: false,
+            interactive: true,
+            production: false,
+            healthMonitoring: false
+          };
         }
       }
       throw error;
@@ -205,17 +212,20 @@ export class CliRunner {
       // Handle daemon commands first
       if (options.stop) {
         await this.stopDaemon();
-        process.exit(0);
+        safeExit(0);
+        return;
       }
 
       if (options.status) {
         await this.checkDaemonStatus();
-        process.exit(0);
+        safeExit(0);
+        return;
       }
 
       if (options.start) {
         await this.startDaemon(options);
-        process.exit(0);
+        safeExit(0);
+        return;
       }
 
       // Override environment variables with CLI options
@@ -391,18 +401,23 @@ export class CliRunner {
    * @param logger Logger instance
    */
   private setupGracefulShutdown(server: any, logger: any): void {
+    // Skip signal handlers in test environment to prevent memory leaks
+    if (process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID) {
+      return;
+    }
+
     const shutdown = async (signal: string) => {
       logger.info(`Received ${signal}, starting graceful shutdown...`);
       
       server.close(() => {
         logger.info('HTTP server closed');
-        process.exit(0);
+        safeExit(0);
       });
 
       // Force exit after 10 seconds
       setTimeout(() => {
         logger.error('Forced shutdown after timeout');
-        process.exit(1);
+        safeExit(1);
       }, 10000);
     };
 
@@ -415,6 +430,11 @@ export class CliRunner {
    * @param logger Logger instance
    */
   private setupProductionGracefulShutdown(logger: any): void {
+    // Skip signal handlers in test environment to prevent memory leaks
+    if (process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID) {
+      return;
+    }
+
     const shutdown = async (signal: string) => {
       logger.info(`Received ${signal}, starting production server graceful shutdown...`);
       
@@ -440,10 +460,10 @@ export class CliRunner {
         }
 
         logger.info('All systems shutdown complete');
-        process.exit(0);
+        safeExit(0);
       } catch (error) {
         logger.error('Error during production shutdown:', error);
-        process.exit(1);
+        safeExit(1);
       }
     };
 
@@ -476,7 +496,8 @@ export class CliRunner {
     }
     
     console.log('==================================================\n');
-    process.exit(1);
+    
+    safeExit(1);
   }
 
   /**
@@ -621,6 +642,6 @@ if (require.main === module) {
   const cli = new CliRunner();
   cli.run().catch((error) => {
     console.error('Unexpected error:', error);
-    process.exit(1);
+    safeExit(1);
   });
 }

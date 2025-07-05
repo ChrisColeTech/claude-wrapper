@@ -515,7 +515,7 @@ export function clearLoggerCaches(): void {
 export function getGlobalErrorCorrelations(): ErrorCorrelation[] {
   const allCorrelations: ErrorCorrelation[] = [];
   
-  for (const logger of enhancedLoggerCache.values()) {
+  for (const logger of Array.from(enhancedLoggerCache.values())) {
     allCorrelations.push(...logger.getErrorCorrelations());
   }
   

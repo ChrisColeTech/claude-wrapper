@@ -8,7 +8,7 @@
 
 import { createLogger } from '../utils/logger';
 import { config } from '../utils/env';
-import winston from 'winston';
+import * as winston from 'winston';
 
 /**
  * Error severity levels for operational classification

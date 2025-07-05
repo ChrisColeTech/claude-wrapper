@@ -14,6 +14,7 @@ import { portManager, PortAvailabilityResult } from '../utils/port-manager';
 import { createLogger } from '../utils/logger';
 import { config } from '../utils/env';
 import { productionConfig } from '../../config/production.config';
+import { healthMonitor } from '../monitoring/health-monitor';
 
 /**
  * Production server configuration interface
@@ -77,9 +78,22 @@ export class ProductionServerManager {
   private isShuttingDown = false;
   private startupTime: Date | null = null;
   private shutdownHandlers: (() => Promise<void>)[] = [];
+  private signalHandlers: { [signal: string]: (() => void) } = {};
 
   constructor(serverConfig?: Partial<ProductionServerConfig>) {
-    this.logger = createLogger(config);
+    try {
+      this.logger = createLogger(config);
+    } catch (error) {
+      console.warn('Failed to create logger:', error instanceof Error ? error.message : String(error));
+      console.warn('ProductionServerManager will continue with fallback logging');
+      // Create a fallback console logger
+      this.logger = {
+        debug: console.log,
+        info: console.info,
+        warn: console.warn,
+        error: console.error
+      } as winston.Logger;
+    }
 
     this.config = {
       port: productionConfig.getServerConfig().port,
@@ -105,7 +119,7 @@ export class ProductionServerManager {
     const targetPort = preferredPort || this.config.port;
 
     try {
-      this.logger.info('Starting production server...');
+      this.safeLog('info', 'Starting production server...');
 
       // Preflight checks
       if (this.config.preflightChecks) {
@@ -127,7 +141,7 @@ export class ProductionServerManager {
       // Attempt startup with retries
       for (let attempt = 1; attempt <= this.config.maxStartupAttempts; attempt++) {
         try {
-          this.logger.debug(`Server startup attempt ${attempt}/${this.config.maxStartupAttempts} on port ${portResult.port}`);
+          this.safeLog('debug', `Server startup attempt ${attempt}/${this.config.maxStartupAttempts} on port ${portResult.port}`);
 
           const serverResult = await this.serverManager.startServer(app, portResult.port);
           
@@ -138,13 +152,16 @@ export class ProductionServerManager {
           this.currentPort = portResult.port;
           this.startupTime = new Date();
 
+          // Update health monitor with active server port
+          healthMonitor.setActiveServerPort(portResult.port);
+
           const startupTime = Date.now() - startTime;
           
           // Show user-friendly startup messages
           console.log(`\n🚀 Server starting on http://localhost:${portResult.port}`);
           console.log(`📝 Update your client base_url to: http://localhost:${portResult.port}/v1`);
 
-          this.logger.info(`Production server started successfully on port ${portResult.port} (startup: ${startupTime}ms)`);
+          this.safeLog('info', `Production server started successfully on port ${portResult.port} (startup: ${startupTime}ms)`);
 
           startupResult = {
             success: true,
@@ -160,7 +177,7 @@ export class ProductionServerManager {
 
         } catch (error) {
           lastError = error instanceof Error ? error : new Error(String(error));
-          this.logger.warn(`Server startup attempt ${attempt} failed: ${lastError.message}`);
+          this.safeLog('warn', `Server startup attempt ${attempt} failed: ${lastError.message}`);
           
           if (attempt < this.config.maxStartupAttempts) {
             await this.delay(this.config.startupRetryDelay);
@@ -180,7 +197,7 @@ export class ProductionServerManager {
       const startupTime = Date.now() - startTime;
       const errorMessage = error instanceof Error ? error.message : String(error);
       
-      this.logger.error(`Production server startup failed: ${errorMessage} (attempt duration: ${startupTime}ms)`);
+      this.safeLog('error', `Production server startup failed: ${errorMessage} (attempt duration: ${startupTime}ms)`);
 
       return {
         success: false,
@@ -198,7 +215,7 @@ export class ProductionServerManager {
     const resourcesReleased: string[] = [];
 
     if (this.isShuttingDown) {
-      this.logger.debug('Shutdown already in progress');
+      this.safeLog('debug', 'Shutdown already in progress');
       return {
         success: true,
         shutdownTime: 0,
@@ -207,7 +224,7 @@ export class ProductionServerManager {
     }
 
     this.isShuttingDown = true;
-    this.logger.info('Initiating graceful server shutdown...');
+    this.safeLog('info', 'Initiating graceful server shutdown...');
 
     try {
       // Run custom shutdown handlers
@@ -216,7 +233,7 @@ export class ProductionServerManager {
           await handler();
           resourcesReleased.push('custom-handler');
         } catch (error) {
-          this.logger.warn(`Shutdown handler failed: ${error}`);
+          this.safeLog('warn', `Shutdown handler failed: ${error}`);
         }
       }
 
@@ -238,8 +255,15 @@ export class ProductionServerManager {
         resourcesReleased.push('server-manager');
       }
 
+      // Remove signal handlers to prevent memory leaks
+      this.removeSignalHandlers();
+      resourcesReleased.push('signal-handlers');
+
+      // Clear active server port from health monitor
+      healthMonitor.clearActiveServerPort();
+
       const shutdownTime = Date.now() - startTime;
-      this.logger.info(`Production server shutdown completed (${shutdownTime}ms, resources: ${resourcesReleased.join(', ')})`);
+      this.safeLog('info', `Production server shutdown completed (${shutdownTime}ms, resources: ${resourcesReleased.join(', ')})`);
 
       this.currentServer = null;
       this.currentPort = null;
@@ -256,7 +280,7 @@ export class ProductionServerManager {
       const shutdownTime = Date.now() - startTime;
       const errorMessage = error instanceof Error ? error.message : String(error);
       
-      this.logger.error(`Production server shutdown failed: ${errorMessage} (duration: ${shutdownTime}ms)`);
+      this.safeLog('error', `Production server shutdown failed: ${errorMessage} (duration: ${shutdownTime}ms)`);
 
       return {
         success: false,
@@ -308,6 +332,16 @@ export class ProductionServerManager {
   }
 
   /**
+   * Remove signal handlers to prevent memory leaks
+   */
+  private removeSignalHandlers(): void {
+    Object.entries(this.signalHandlers).forEach(([signal, handler]) => {
+      process.removeListener(signal, handler);
+    });
+    this.signalHandlers = {};
+  }
+
+  /**
    * Check if server is currently running
    */
   isRunning(): boolean {
@@ -315,10 +349,24 @@ export class ProductionServerManager {
   }
 
   /**
+   * Check if logger is available
+   */
+  hasLogger(): boolean {
+    return this.logger !== null;
+  }
+
+  /**
+   * Safe logging method 
+   */
+  private safeLog(level: 'debug' | 'info' | 'warn' | 'error', message: string, ...args: any[]): void {
+    this.logger[level](message, ...args);
+  }
+
+  /**
    * Run preflight checks before server startup
    */
   private async runPreflightChecks(app: express.Application): Promise<void> {
-    this.logger.debug('Running preflight checks...');
+    this.safeLog('debug', 'Running preflight checks...');
 
     // Validate app configuration
     if (!app || typeof app.listen !== 'function') {
@@ -327,13 +375,13 @@ export class ProductionServerManager {
 
     // Validate production configuration
     const configValidation = productionConfig.getConfigSummary();
-    this.logger.debug('Production config validation:', configValidation);
+    this.safeLog('debug', 'Production config validation:', configValidation);
 
     // Check port manager status
     const portManagerStatus = portManager.getStatus();
-    this.logger.debug('Port manager status:', portManagerStatus);
+    this.safeLog('debug', 'Port manager status:', portManagerStatus);
 
-    this.logger.debug('Preflight checks completed successfully');
+    this.safeLog('debug', 'Preflight checks completed successfully');
   }
 
   /**
@@ -348,7 +396,7 @@ export class ProductionServerManager {
     // Configure maximum header size
     server.maxHeadersCount = 100;
 
-    this.logger.debug(`Production server configured for port ${port}`);
+    this.safeLog('debug', `Production server configured for port ${port}`);
   }
 
   /**
@@ -358,11 +406,14 @@ export class ProductionServerManager {
     const signals = ['SIGTERM', 'SIGINT', 'SIGUSR2'];
     
     signals.forEach(signal => {
-      process.on(signal, async () => {
-        this.logger.info(`Received ${signal}, initiating graceful shutdown...`);
+      const handler = async () => {
+        this.safeLog('info', `Received ${signal}, initiating graceful shutdown...`);
         await this.shutdown();
         process.exit(0);
-      });
+      };
+      
+      this.signalHandlers[signal] = handler;
+      process.on(signal, handler);
     });
   }
 

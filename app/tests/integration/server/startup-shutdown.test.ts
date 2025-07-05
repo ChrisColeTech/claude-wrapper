@@ -8,10 +8,13 @@ import express from 'express';
 import { Server } from 'http';
 import request from 'supertest';
 import { ProductionServerManager } from '../../../src/server/production-server-manager';
-import { PortManager } from '../../../src/utils/port-manager';
-import { HealthMonitor } from '../../../src/monitoring/health-monitor';
+import type { PortManager } from '../../../src/utils/port-manager';
+import type { HealthMonitor } from '../../../src/monitoring/health-monitor';
 import { createApp } from '../../../src/server';
 import { config } from '../../../src/utils/env';
+import { authMiddleware, authStatusMiddleware } from '../../../src/auth/middleware';
+import { createCorsMiddleware } from '../../../src/middleware/cors';
+import { ModelsRouter, HealthRouter, ChatRouter, AuthRouter, SessionsRouter, DebugRouter } from '../../../src/routes';
 
 // Increase timeout for integration tests
 jest.setTimeout(30000);
@@ -33,20 +36,17 @@ describe('Production Server Startup/Shutdown Integration', () => {
       preflightChecks: true
     });
 
-    portManager = new PortManager({
-      defaultPort: 8200, // Use high port to avoid conflicts
-      scanRangeStart: 8200,
-      scanRangeEnd: 8299,
-      maxRetries: 3,
-      reservationTimeout: 30000 // 30 seconds for tests
-    });
+    // Import the singleton port manager instead of creating a new instance
+    const { portManager: singletonPortManager } = require('../../../src/utils/port-manager');
+    portManager = singletonPortManager;
 
-    healthMonitor = new HealthMonitor({
-      checkInterval: 1000, // Fast checks for testing
-      timeout: 2000,
-      retryAttempts: 2
-    });
+    // Import the singleton health monitor instead of creating a new instance
+    const { healthMonitor: singletonHealthMonitor } = require('../../../src/monitoring/health-monitor');
+    healthMonitor = singletonHealthMonitor;
 
+    // Configure the health monitor for testing
+    healthMonitor.stopMonitoring(); // Stop any existing monitoring
+    
     // Create real Express app
     app = createApp(config);
   });
@@ -56,7 +56,8 @@ describe('Production Server Startup/Shutdown Integration', () => {
     try {
       await productionServerManager.shutdown();
       portManager.shutdown();
-      healthMonitor.shutdown();
+      healthMonitor.stopMonitoring();
+      healthMonitor.clearActiveServerPort();
       
       // Force close any remaining servers
       for (const server of runningServers) {
@@ -210,9 +211,28 @@ describe('Production Server Startup/Shutdown Integration', () => {
     });
 
     it('should handle server startup with custom middleware and routes', async () => {
-      // Add custom middleware and routes to test app
-      const customApp = createApp(config);
+      // Create custom app with authentication disabled for test endpoints
+      const customApp = express();
       
+      // Remove security headers that expose server info
+      customApp.disable('x-powered-by');
+
+      // Request parsing middleware
+      customApp.use(express.json({ limit: '10mb' }));
+      customApp.use(express.urlencoded({ extended: true }));
+
+      // CORS middleware
+      customApp.use(createCorsMiddleware(config.CORS_ORIGINS));
+
+      // Authentication status middleware
+      customApp.use(authStatusMiddleware);
+
+      // Authentication middleware with test paths included in skipPaths
+      customApp.use(authMiddleware({
+        skipPaths: ['/health', '/health/detailed', '/v1/models', '/v1/auth/status', '/v1/compatibility', '/v1/debug/request', '/test']
+      }));
+
+      // Add custom middleware and routes
       customApp.use('/test', (req, res, next) => {
         res.locals.testData = 'integration-test';
         next();
@@ -223,6 +243,33 @@ describe('Production Server Startup/Shutdown Integration', () => {
           message: 'Integration test endpoint',
           data: res.locals.testData,
           timestamp: new Date().toISOString()
+        });
+      });
+
+      // Set start time for health router
+      HealthRouter.setStartTime(Date.now());
+
+      // Mount standard route handlers
+      customApp.use(ModelsRouter.createRouter());
+      customApp.use(HealthRouter.createRouter());
+      customApp.use(AuthRouter.createRouter());
+      customApp.use(SessionsRouter.createRouter());
+      customApp.use(DebugRouter.createRouter());
+      customApp.use(ChatRouter.createRouter());
+
+      // 404 handler
+      customApp.use((_req, res) => {
+        res.status(404).json({
+          error: 'Not Found',
+          message: 'The requested endpoint does not exist'
+        });
+      });
+
+      // Error handling middleware
+      customApp.use((error: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+        res.status(500).json({
+          error: 'Internal Server Error',
+          message: 'An unexpected error occurred'
         });
       });
 
@@ -270,11 +317,20 @@ describe('Production Server Startup/Shutdown Integration', () => {
       }
 
       // Release reservation
-      portManager.releasePort(targetPort);
+      const released = portManager.releasePort(targetPort);
+      expect(released).toBe(true);
 
       // Verify port manager status
       const portManagerStatus = portManager.getStatus();
-      expect(portManagerStatus.activeReservations).toBe(0);
+      
+      // Should have 1 reservation (for the server that's currently running)
+      expect(portManagerStatus.activeReservations).toBe(1);
+      
+      // Verify the remaining reservation is for the production server
+      const remainingReservations = portManager.getReservations();
+      expect(remainingReservations).toHaveLength(1);
+      expect(remainingReservations[0].port).toBe(startupResult.port);
+      expect(remainingReservations[0].reservedBy).toBe('ProductionServerManager');
     });
 
     it('should handle port manager reservation cleanup during server lifecycle', async () => {

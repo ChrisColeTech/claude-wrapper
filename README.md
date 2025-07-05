@@ -202,9 +202,337 @@ claude-wrapper
 claude-wrapper
 ```
 
-## 📚 Documentation
+## 📚 Examples and Usage
+
+### 🚀 Quick Start Examples
+
+Get up and running in minutes with these practical examples:
+
+#### Basic Chat Completion
+```bash
+# cURL example
+curl -X POST http://localhost:8000/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "claude-3-5-sonnet-20241022",
+    "messages": [
+      {"role": "user", "content": "Hello! How are you?"}
+    ]
+  }'
+```
+
+```javascript
+// JavaScript with fetch
+const response = await fetch('http://localhost:8000/v1/chat/completions', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    model: 'claude-3-5-sonnet-20241022',
+    messages: [
+      { role: 'user', content: 'Hello! How are you?' }
+    ]
+  })
+});
+
+const data = await response.json();
+console.log(data.choices[0].message.content);
+```
+
+```typescript
+// TypeScript with OpenAI SDK
+import OpenAI from 'openai';
+
+const openai = new OpenAI({
+  baseURL: 'http://localhost:8000/v1',
+  apiKey: 'not-needed', // Claude wrapper handles auth
+});
+
+const completion = await openai.chat.completions.create({
+  model: 'claude-3-5-sonnet-20241022',
+  messages: [
+    { role: 'user', content: 'Hello! How are you?' }
+  ],
+});
+
+console.log(completion.choices[0].message.content);
+```
+
+#### Streaming Responses
+```javascript
+// JavaScript streaming example
+const response = await fetch('http://localhost:8000/v1/chat/completions', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    model: 'claude-3-5-sonnet-20241022',
+    messages: [
+      { role: 'user', content: 'Count to 5 slowly' }
+    ],
+    stream: true
+  })
+});
+
+const reader = response.body.getReader();
+const decoder = new TextDecoder();
+
+while (true) {
+  const { done, value } = await reader.read();
+  if (done) break;
+  
+  const chunk = decoder.decode(value);
+  const lines = chunk.split('\n');
+  
+  for (const line of lines) {
+    if (line.startsWith('data: ')) {
+      const data = line.slice(6);
+      if (data === '[DONE]') continue;
+      
+      try {
+        const parsed = JSON.parse(data);
+        process.stdout.write(parsed.choices[0].delta.content || '');
+      } catch (e) {
+        // Skip invalid JSON
+      }
+    }
+  }
+}
+```
+
+#### Session Management
+```bash
+# Create a session with context
+curl -X POST http://localhost:8000/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "claude-3-5-sonnet-20241022",
+    "messages": [
+      {"role": "user", "content": "My name is Alice. Remember this!"}
+    ],
+    "session_id": "my-conversation-123"
+  }'
+
+# Continue the conversation
+curl -X POST http://localhost:8000/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "claude-3-5-sonnet-20241022",
+    "messages": [
+      {"role": "user", "content": "What is my name?"}
+    ],
+    "session_id": "my-conversation-123"
+  }'
+```
+
+#### Tool Usage with OpenAI Tools API
+```javascript
+// Define tools for Claude to use
+const completion = await openai.chat.completions.create({
+  model: 'claude-3-5-sonnet-20241022',
+  messages: [
+    { role: 'user', content: 'What files are in my current directory?' }
+  ],
+  tools: [
+    {
+      type: 'function',
+      function: {
+        name: 'list_files',
+        description: 'List files in a directory',
+        parameters: {
+          type: 'object',
+          properties: {
+            path: { type: 'string', description: 'Directory path' }
+          },
+          required: ['path']
+        }
+      }
+    }
+  ],
+  tool_choice: 'auto'
+});
+
+// If Claude wants to use a tool, execute it and continue
+if (completion.choices[0].finish_reason === 'tool_calls') {
+  const toolCall = completion.choices[0].message.tool_calls[0];
+  
+  // Execute the tool (in your environment)
+  const result = await executeListFiles(JSON.parse(toolCall.function.arguments));
+  
+  // Continue conversation with tool result
+  const finalResponse = await openai.chat.completions.create({
+    model: 'claude-3-5-sonnet-20241022',
+    messages: [
+      { role: 'user', content: 'What files are in my current directory?' },
+      completion.choices[0].message,
+      {
+        role: 'tool',
+        tool_call_id: toolCall.id,
+        content: JSON.stringify(result)
+      }
+    ]
+  });
+}
+```
+
+### 📂 Complete Example Scripts
+
+Ready-to-run example scripts in multiple languages:
+
+#### Bash/cURL Examples
+- **[Basic Completion](scripts/examples/curl/basic-completion.sh)** - Simple chat completion
+- **[Streaming Responses](scripts/examples/curl/streaming-completion.sh)** - Real-time streaming
+- **[Session Management](scripts/examples/curl/session-management.sh)** - Conversation continuity
+- **[Authentication Examples](scripts/examples/curl/authentication-examples.sh)** - API key usage
+
+#### JavaScript Examples
+- **[Fetch Client](scripts/examples/javascript/fetch-client.js)** - Modern fetch API usage
+- **[OpenAI SDK Integration](scripts/examples/javascript/openai-sdk-integration.js)** - Drop-in replacement
+
+#### TypeScript Examples
+- **[Basic Usage](scripts/examples/typescript/basic-usage.ts)** - Type-safe implementation
+- **[Streaming Client](scripts/examples/typescript/streaming-client.ts)** - Streaming with types
+- **[Session Continuity](scripts/examples/typescript/session-continuity.ts)** - Session management
+
+### 🔧 Advanced Configuration Examples
+
+#### Production Configuration
+```bash
+# Production server with monitoring
+claude-wrapper --production \
+  --health-monitoring \
+  --port 8000 \
+  --api-key secure-production-key
+
+# With environment variables
+export NODE_ENV=production
+export ANTHROPIC_API_KEY=your-anthropic-key
+export API_KEY=your-wrapper-api-key
+export CLAUDE_WRAPPER_MAX_SESSIONS=1000
+claude-wrapper --production
+```
+
+#### Docker Deployment
+```dockerfile
+# Dockerfile example
+FROM node:18-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --production
+COPY . .
+RUN npm run build
+EXPOSE 8000
+CMD ["node", "app/dist/cli.js", "--production"]
+```
+
+#### Process Management with PM2
+```javascript
+// ecosystem.config.js
+module.exports = {
+  apps: [{
+    name: 'claude-wrapper',
+    script: 'app/dist/cli.js',
+    args: '--production --health-monitoring',
+    instances: 4,
+    exec_mode: 'cluster',
+    env: {
+      NODE_ENV: 'production',
+      PORT: 8000
+    }
+  }]
+};
+```
+
+### 🛠️ Development and Testing
+
+#### Running Tests
+```bash
+# Run all tests
+npm test
+
+# Performance testing
+npm run test:performance
+
+# Load testing
+npm run test:stress
+
+# Test specific functionality
+npm run test:integration
+```
+
+#### Development Setup
+```bash
+# Clone and setup
+git clone https://github.com/ChrisColeTech/claude-wrapper.git
+cd claude-wrapper
+npm install
+
+# Development mode with hot reload
+npm run dev
+
+# Build for production
+npm run build
+```
+
+### 🚨 Troubleshooting Examples
+
+#### Common Issues and Solutions
+
+**Authentication Problems**
+```bash
+# Check authentication status
+curl http://localhost:8000/v1/auth/status
+
+# Test with different auth methods
+export ANTHROPIC_API_KEY=your-key
+claude-wrapper --debug
+```
+
+**Performance Issues**
+```bash
+# Enable performance monitoring
+claude-wrapper --production --health-monitoring --debug
+
+# Check health status
+curl http://localhost:8000/health
+```
+
+**Session Problems**
+```bash
+# List all sessions
+curl http://localhost:8000/v1/sessions
+
+# Get session statistics
+curl http://localhost:8000/v1/sessions/stats
+
+# Clear specific session
+curl -X DELETE http://localhost:8000/v1/sessions/your-session-id
+```
+
+## 📚 Complete Documentation
 
 📖 **[Full Documentation](docs/README.md)** - Comprehensive guide with detailed examples, production deployment, troubleshooting, and advanced configuration.
+
+### 📋 Documentation Index
+
+#### Core Documentation
+- **[API Reference](docs/API_REFERENCE.md)** - Complete API documentation with examples
+- **[Architecture Guide](docs/ARCHITECTURE.md)** - Technical architecture and design
+- **[Setup Guide](docs/examples/SETUP_GUIDE.md)** - Detailed installation and setup
+- **[Troubleshooting](docs/TROUBLESHOOTING.md)** - Common issues and solutions
+
+#### Advanced Topics
+- **[Performance Benchmarks](docs/examples/PERFORMANCE_BENCHMARKS.md)** - Performance metrics and optimization
+- **[Security Guide](docs/SECURITY.md)** - Security best practices and configuration
+- **[Testing Documentation](docs/TESTING.md)** - Testing strategies and test suites
+- **[Debug Endpoints](docs/DEBUG_ENDPOINTS.md)** - Debugging and diagnostic tools
+
+#### Examples and Integration
+- **[Code Examples](docs/CODE_EXAMPLES.md)** - Code snippets and integration patterns
+- **[Usage Examples](docs/USAGE_EXAMPLES.md)** - Real-world usage scenarios
+- **[Production Deployment](docs/production-deployment.md)** - Production setup and monitoring
 
 ## 📄 License
 

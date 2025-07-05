@@ -33,10 +33,19 @@ describe('ProductionServerManager', () => {
   let mockApp: express.Application;
   let mockServer: jest.Mocked<Server>;
   let mockServerManagerInstance: jest.Mocked<ServerManager>;
+  let originalProcessListeners: { [key: string]: Function[] } = {};
 
   beforeEach(() => {
     jest.clearAllMocks();
     jest.useFakeTimers();
+    
+    // Prevent MaxListenersExceededWarning during tests
+    process.setMaxListeners(50);
+    
+    // Store original listeners to restore later
+    ['SIGTERM', 'SIGINT', 'SIGUSR2'].forEach(signal => {
+      originalProcessListeners[signal] = process.listeners(signal).slice();
+    });
 
     // Setup mock Express app
     mockApp = {
@@ -80,6 +89,14 @@ describe('ProductionServerManager', () => {
       uptimeThreshold: 0.99
     });
 
+    mockProductionConfig.getConfigSummary.mockReturnValue({
+      environment: 'test',
+      serverPort: 3000,
+      securityEnabled: true,
+      featuresEnabled: ['healthCheckEnabled'],
+      performanceOptimized: true
+    });
+
     // Setup port manager mocks
     mockPortManager.findAvailablePort.mockResolvedValue({
       port: 3000,
@@ -89,6 +106,12 @@ describe('ProductionServerManager', () => {
 
     mockPortManager.reservePort.mockResolvedValue(true);
     mockPortManager.releasePort.mockReturnValue(true);
+    mockPortManager.getStatus.mockReturnValue({
+      reservedPorts: [],
+      totalReservations: 0,
+      expiredReservations: 0,
+      status: 'healthy'
+    });
 
     // Create fresh instance for each test
     productionServerManager = new ProductionServerManager({
@@ -99,20 +122,47 @@ describe('ProductionServerManager', () => {
   });
 
   afterEach(async () => {
-    await productionServerManager.shutdown();
+    // Clean up any running server
+    if (productionServerManager && productionServerManager.isRunning()) {
+      await productionServerManager.shutdown();
+    }
+    
+    // Clean up timers
     jest.useRealTimers();
+    
+    // Clean up any remaining mocks
+    jest.clearAllMocks();
+    
+    // Remove all signal listeners that were added during tests
+    ['SIGTERM', 'SIGINT', 'SIGUSR2'].forEach(signal => {
+      const currentListeners = process.listeners(signal);
+      const originalListeners = originalProcessListeners[signal] || [];
+      
+      // Remove listeners that weren't there originally
+      currentListeners.forEach(listener => {
+        if (!originalListeners.includes(listener)) {
+          process.removeListener(signal, listener);
+        }
+      });
+    });
+    
+    // Reset max listeners to prevent memory leak warnings
+    process.setMaxListeners(10);
   });
 
   describe('Constructor and Configuration', () => {
-    it('should initialize with default production configuration', () => {
+    it('should initialize with default production configuration', async () => {
       const manager = new ProductionServerManager();
       
       expect(mockProductionConfig.getServerConfig).toHaveBeenCalled();
       expect(mockProductionConfig.getMonitoringConfig).toHaveBeenCalled();
       expect(manager).toBeInstanceOf(ProductionServerManager);
+      
+      // Clean up the manager
+      await manager.shutdown();
     });
 
-    it('should accept custom configuration overrides', () => {
+    it('should accept custom configuration overrides', async () => {
       const customConfig = {
         port: 4000,
         gracefulShutdownTimeout: 15000,
@@ -122,19 +172,29 @@ describe('ProductionServerManager', () => {
       const manager = new ProductionServerManager(customConfig);
       
       expect(manager).toBeInstanceOf(ProductionServerManager);
-      manager.shutdown();
+      await manager.shutdown();
     });
 
-    it('should setup signal handlers for graceful shutdown', () => {
+    it('should setup signal handlers for graceful shutdown', async () => {
       const processOnSpy = jest.spyOn(process, 'on');
+      const initialListenerCount = process.listenerCount('SIGTERM');
       
-      new ProductionServerManager();
+      const manager = new ProductionServerManager();
       
       expect(processOnSpy).toHaveBeenCalledWith('SIGTERM', expect.any(Function));
       expect(processOnSpy).toHaveBeenCalledWith('SIGINT', expect.any(Function));
       expect(processOnSpy).toHaveBeenCalledWith('SIGUSR2', expect.any(Function));
       
+      // Verify listeners were actually added
+      expect(process.listenerCount('SIGTERM')).toBe(initialListenerCount + 1);
+      
       processOnSpy.mockRestore();
+      
+      // Clean up the manager
+      await manager.shutdown();
+      
+      // Verify listeners were removed
+      expect(process.listenerCount('SIGTERM')).toBe(initialListenerCount);
     });
   });
 
@@ -298,6 +358,7 @@ describe('ProductionServerManager', () => {
       expect(result.resourcesReleased).toContain('http-server');
       expect(result.resourcesReleased).toContain('port-3000');
       expect(result.resourcesReleased).toContain('server-manager');
+      expect(result.resourcesReleased).toContain('signal-handlers');
     });
 
     it('should handle server close timeout', async () => {
@@ -556,6 +617,76 @@ describe('ProductionServerManager', () => {
       expect(() => new ProductionServerManager()).toThrow('Signal handler error');
       
       processOnSpy.mockRestore();
+    });
+  });
+
+  describe('Logger Functionality', () => {
+    it('should handle logger creation failures gracefully', async () => {
+      // Mock logger creation to fail
+      const mockCreateLogger = require('../../../src/utils/logger').createLogger;
+      mockCreateLogger.mockImplementation(() => {
+        throw new Error('Logger creation failed');
+      });
+
+      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
+      
+      const manager = new ProductionServerManager();
+      
+      expect(consoleSpy).toHaveBeenCalledWith('Failed to create logger:', 'Logger creation failed');
+      expect(consoleSpy).toHaveBeenCalledWith('ProductionServerManager will continue without logging functionality');
+      expect(manager.hasLogger()).toBe(false);
+      
+      consoleSpy.mockRestore();
+      
+      // Clean up the manager
+      await manager.shutdown();
+    });
+
+    it('should report logger availability correctly', async () => {
+      // Normal instance should have logger
+      expect(productionServerManager.hasLogger()).toBe(true);
+      
+      // Mock logger creation to fail
+      const mockCreateLogger = require('../../../src/utils/logger').createLogger;
+      mockCreateLogger.mockImplementation(() => {
+        throw new Error('Logger creation failed');
+      });
+      
+      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
+      const managerWithoutLogger = new ProductionServerManager();
+      
+      expect(managerWithoutLogger.hasLogger()).toBe(false);
+      
+      consoleSpy.mockRestore();
+      
+      // Clean up the manager
+      await managerWithoutLogger.shutdown();
+    });
+
+    it('should handle logging when logger is unavailable', async () => {
+      // Mock logger creation to fail
+      const mockCreateLogger = require('../../../src/utils/logger').createLogger;
+      mockCreateLogger.mockImplementation(() => {
+        throw new Error('Logger creation failed');
+      });
+      
+      const consoleSpy = jest.spyOn(console, 'info').mockImplementation();
+      const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
+      
+      const managerWithoutLogger = new ProductionServerManager();
+      
+      // Should use console logging when logger is unavailable
+      await managerWithoutLogger.startServer(mockApp);
+      
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining('[INFO] Starting production server...')
+      );
+      
+      consoleSpy.mockRestore();
+      consoleWarnSpy.mockRestore();
+      
+      // Clean up the manager
+      await managerWithoutLogger.shutdown();
     });
   });
 

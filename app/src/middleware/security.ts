@@ -207,6 +207,8 @@ export class ProductionSecurityMiddleware {
         const toolName = this.extractToolName(req);
         const parameters = req.body || {};
 
+        this.logger.debug(`Tool security validation middleware called: toolName=${toolName}, path=${req.path}`);
+
         if (toolName) {
           const validationResult = this.securityHardening.validateToolSecurity(
             toolName,
@@ -215,6 +217,8 @@ export class ProductionSecurityMiddleware {
 
           if (!validationResult.valid) {
             const duration = Date.now() - startTime;
+
+            this.logger.debug(`Tool security validation failed: errors=${validationResult.errors?.join(', ')}`);
 
             this.monitoring.recordToolOperation(
               "tool_security_validation",
@@ -376,18 +380,26 @@ export class ProductionSecurityMiddleware {
 
   private extractToolName(req: Request): string | undefined {
     // Extract tool name from request path or body
-    if (req.path.includes("/tools/")) {
+    let toolName: string | undefined;
+    
+    // Check if middleware is mounted at /api/tools and path is relative
+    if (req.path.startsWith("/") && !req.path.includes("/tools/")) {
+      // Path is relative to the mount point (e.g., "/read" when mounted at "/api/tools")
+      toolName = req.path.slice(1); // Remove leading slash
+    } else if (req.path.includes("/tools/")) {
+      // Full path includes "/tools/"
       const pathParts = req.path.split("/");
       const toolIndex = pathParts.indexOf("tools");
-      return pathParts[toolIndex + 1];
+      toolName = pathParts[toolIndex + 1];
     }
 
     // Check if it's in the request body
-    if (req.body && req.body.tools && Array.isArray(req.body.tools)) {
-      return req.body.tools[0]?.function?.name;
+    if (!toolName && req.body && req.body.tools && Array.isArray(req.body.tools)) {
+      toolName = req.body.tools[0]?.function?.name;
     }
 
-    return undefined;
+    // Capitalize the first letter to match the tool names in the valid tools list
+    return toolName ? toolName.charAt(0).toUpperCase() + toolName.slice(1) : undefined;
   }
 
   public destroy(): void {

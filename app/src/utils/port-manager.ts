@@ -50,13 +50,19 @@ export interface PortAvailabilityResult {
  * Follows SRP: handles only port allocation and management concerns
  */
 export class PortManager {
-  private logger: winston.Logger;
+  private logger: winston.Logger | null = null;
   private config: PortManagerConfig;
   private reservations: Map<number, PortReservation> = new Map();
   private cleanupInterval: NodeJS.Timeout | null = null;
 
   constructor(portConfig?: Partial<PortManagerConfig>) {
-    this.logger = createLogger(config);
+    try {
+      this.logger = createLogger(config);
+    } catch (error) {
+      console.warn('Failed to create logger:', error instanceof Error ? error.message : String(error));
+      console.warn('PortManager will continue without logging functionality');
+      this.logger = null;
+    }
 
     // Production-optimized defaults
     this.config = {
@@ -81,12 +87,12 @@ export class PortManager {
     const targetPort = preferredPort || this.config.defaultPort;
 
     try {
-      this.logger.debug(`Searching for available port starting from ${targetPort}`);
+      this.safeLog('debug', `Searching for available port starting from ${targetPort}`);
 
       // Check if preferred port is available and not reserved
       if (await this.isPortAvailableAndUnreserved(targetPort)) {
         const scanDuration = Date.now() - startTime;
-        this.logger.info(`Port ${targetPort} is available (scan: ${scanDuration}ms)`);
+        this.safeLog('info', `Port ${targetPort} is available (scan: ${scanDuration}ms)`);
         
         return {
           port: targetPort,
@@ -95,25 +101,25 @@ export class PortManager {
         };
       }
 
-      // Use existing PortUtils for Claude SDK compatibility
-      this.logger.warn(`Port ${targetPort} is already in use. Finding alternative port...`);
+      // Find alternative port that respects reservations
+      this.safeLog('warn', `Port ${targetPort} is already in use or reserved. Finding alternative port...`);
       
-      const alternativePort = await PortUtils.getNextAvailablePort(targetPort);
+      const alternativePort = await this.findUnreservedAlternativePort(targetPort);
       const scanDuration = Date.now() - startTime;
 
-      this.logger.info(`Alternative port found: ${alternativePort} (scan: ${scanDuration}ms)`);
+      this.safeLog('info', `Alternative port found: ${alternativePort} (scan: ${scanDuration}ms)`);
 
       return {
         port: alternativePort,
         available: true,
-        reason: `Port ${targetPort} was unavailable`,
+        reason: `Port ${targetPort} was unavailable or reserved`,
         alternativePort,
         scanDuration
       };
 
     } catch (error) {
       const scanDuration = Date.now() - startTime;
-      this.logger.error(`Port scanning failed: ${error}`);
+      this.safeLog('error', `Port scanning failed: ${error}`);
       
       return {
         port: targetPort,
@@ -132,7 +138,7 @@ export class PortManager {
     try {
       // Check if port is available
       if (!await this.isPortAvailableAndUnreserved(port)) {
-        this.logger.warn(`Cannot reserve port ${port}: already in use or reserved`);
+        this.safeLog('warn', `Cannot reserve port ${port}: already in use or reserved`);
         return false;
       }
 
@@ -145,11 +151,11 @@ export class PortManager {
       };
 
       this.reservations.set(port, reservation);
-      this.logger.info(`Port ${port} reserved for ${purpose} by ${reservedBy}`);
+      this.safeLog('info', `Port ${port} reserved for ${purpose} by ${reservedBy}`);
       
       return true;
     } catch (error) {
-      this.logger.error(`Port reservation failed for ${port}: ${error}`);
+      this.safeLog('error', `Port reservation failed for ${port}: ${error}`);
       return false;
     }
   }
@@ -161,11 +167,11 @@ export class PortManager {
     if (this.reservations.has(port)) {
       const reservation = this.reservations.get(port)!;
       this.reservations.delete(port);
-      this.logger.info(`Port ${port} released (was reserved for ${reservation.purpose})`);
+      this.safeLog('info', `Port ${port} released (was reserved for ${reservation.purpose})`);
       return true;
     }
     
-    this.logger.debug(`Port ${port} was not reserved`);
+    this.safeLog('debug', `Port ${port} was not reserved`);
     return false;
   }
 
@@ -189,11 +195,34 @@ export class PortManager {
     // Check our reservations
     const reservation = this.reservations.get(port);
     if (reservation && reservation.expiresAt > new Date()) {
-      this.logger.debug(`Port ${port} is reserved until ${reservation.expiresAt}`);
+      this.safeLog('debug', `Port ${port} is reserved until ${reservation.expiresAt}`);
       return false;
     }
 
     return true;
+  }
+
+  /**
+   * Find an alternative port that is both available and not reserved
+   */
+  private async findUnreservedAlternativePort(startPort: number): Promise<number> {
+    const maxTries = 50;
+    const maxPort = Math.min(startPort + maxTries, 65535);
+
+    for (let port = startPort + 1; port <= maxPort; port++) {
+      if (await this.isPortAvailableAndUnreserved(port)) {
+        return port;
+      }
+    }
+
+    // If no port found in the normal range, try the scan range
+    for (let port = this.config.scanRangeStart; port <= this.config.scanRangeEnd; port++) {
+      if (port !== startPort && await this.isPortAvailableAndUnreserved(port)) {
+        return port;
+      }
+    }
+
+    throw new Error(`No unreserved alternative port found starting from ${startPort}`);
   }
 
   /**
@@ -247,6 +276,11 @@ export class PortManager {
       this.cleanupExpiredReservations();
     }, 60000); // Run every minute
 
+    // Increase max listeners to prevent warnings in tests
+    if (process.getMaxListeners() < 20) {
+      process.setMaxListeners(20);
+    }
+
     // Cleanup on process exit
     process.on('exit', () => this.shutdown());
     process.on('SIGINT', () => this.shutdown());
@@ -264,12 +298,12 @@ export class PortManager {
       if (reservation.expiresAt <= now) {
         this.reservations.delete(port);
         cleanedCount++;
-        this.logger.debug(`Cleaned expired reservation for port ${port}`);
+        this.safeLog('debug', `Cleaned expired reservation for port ${port}`);
       }
     }
 
     if (cleanedCount > 0) {
-      this.logger.info(`Cleaned ${cleanedCount} expired port reservations`);
+      this.safeLog('info', `Cleaned ${cleanedCount} expired port reservations`);
     }
   }
 
@@ -287,10 +321,23 @@ export class PortManager {
     this.reservations.clear();
     
     if (activeReservations > 0) {
-      this.logger.info(`Released ${activeReservations} port reservations during shutdown`);
+      this.safeLog('info', `Released ${activeReservations} port reservations during shutdown`);
     }
 
-    this.logger.debug('PortManager shutdown complete');
+    this.safeLog('debug', 'PortManager shutdown complete');
+  }
+
+  /**
+   * Safe logging method that handles null logger
+   */
+  private safeLog(level: 'debug' | 'info' | 'warn' | 'error', message: string, ...args: any[]): void {
+    if (this.logger) {
+      this.logger[level](message, ...args);
+    } else {
+      // Fallback to console logging when logger is unavailable
+      const timestamp = new Date().toISOString();
+      console[level === 'debug' ? 'log' : level](`[${timestamp}] [${level.toUpperCase()}] PortManager: ${message}`, ...args);
+    }
   }
 }
 

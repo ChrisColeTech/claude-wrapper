@@ -4,19 +4,6 @@
  * Tests field-level validation, error reporting, and performance requirements
  */
 
-import {
-  ValidationHandler,
-  FieldValidationError,
-  ValidationContext,
-  ValidationErrorReport,
-  ValidationRule,
-  ValidationSchema,
-  validationHandler,
-  validateRequest,
-  createValidationResponse,
-  getValidationStats
-} from '../../../src/middleware/validation-handler';
-
 // Mock logger to prevent console output during tests
 const mockLogger = {
   debug: jest.fn(),
@@ -35,6 +22,19 @@ jest.mock('../../../src/utils/logger', () => ({
     DEBUG: 'debug'
   }
 }));
+
+import {
+  ValidationHandler,
+  FieldValidationError,
+  ValidationContext,
+  ValidationErrorReport,
+  ValidationRule,
+  ValidationSchema,
+  validationHandler,
+  validateRequest,
+  createValidationResponse,
+  getValidationStats
+} from '../../../src/middleware/validation-handler';
 
 // Mock config for testing
 jest.mock('../../../src/utils/env', () => ({
@@ -798,6 +798,335 @@ describe('ValidationHandler', () => {
 
       const report = await handler.validateRequest(validData, 'array_test', {});
       expect(report.isValid).toBe(true);
+    });
+  });
+
+  describe('Phase 4B Enhanced Performance Validation', () => {
+    it('should validate all requests within 25ms requirement', async () => {
+      const testRequests = [
+        {
+          schema: 'chat_completion',
+          data: { model: 'claude-3-sonnet-20240229', messages: [{ role: 'user', content: 'Hello' }] }
+        },
+        {
+          schema: 'session', 
+          data: { session_id: 'test_session_123', title: 'Test Session' }
+        }
+      ];
+
+      for (const { schema, data } of testRequests) {
+        const startTime = performance.now();
+        const report = await handler.validateRequest(data, schema, {});
+        const endTime = performance.now();
+        
+        const processingTime = endTime - startTime;
+        expect(processingTime).toBeLessThan(25); // <25ms requirement
+        expect(report.processingTime).toBeLessThan(25);
+      }
+    });
+
+    it('should maintain validation performance under load', async () => {
+      const testData = {
+        model: 'claude-3-sonnet-20240229',
+        messages: [{ role: 'user', content: 'Performance test message' }],
+        temperature: 1.0
+      };
+
+      const validationPromises = Array.from({ length: 100 }, (_, i) => 
+        handler.validateRequest(testData, 'chat_completion', { requestId: `perf_test_${i}` })
+      );
+
+      const startTime = performance.now();
+      const results = await Promise.all(validationPromises);
+      const endTime = performance.now();
+
+      const totalTime = endTime - startTime;
+      const avgTimePerValidation = totalTime / results.length;
+
+      expect(avgTimePerValidation).toBeLessThan(25); // <25ms average
+      expect(results.every(r => r.processingTime < 25)).toBe(true);
+
+      const stats = handler.getPerformanceStats();
+      expect(stats.isOptimal).toBe(true);
+    });
+
+    it('should validate complex nested objects within performance requirements', async () => {
+      const complexSchema: ValidationSchema = {
+        description: 'Complex nested validation test',
+        rules: [
+          { field: 'user.profile.personal.name.first', required: true, type: 'string' },
+          { field: 'user.profile.personal.name.last', required: true, type: 'string' },
+          { field: 'user.settings.preferences.theme', type: 'string', enum: ['light', 'dark'] },
+          { field: 'user.settings.notifications.email', type: 'boolean' },
+          { field: 'metadata.creation.timestamp', required: true, type: 'string' },
+          { field: 'metadata.tags', type: 'array' }
+        ]
+      };
+
+      handler.registerSchema('complex_nested', complexSchema);
+
+      const complexData = {
+        user: {
+          profile: {
+            personal: {
+              name: {
+                first: 'John',
+                last: 'Doe'
+              }
+            }
+          },
+          settings: {
+            preferences: {
+              theme: 'dark'
+            },
+            notifications: {
+              email: true
+            }
+          }
+        },
+        metadata: {
+          creation: {
+            timestamp: '2024-01-01T00:00:00Z'
+          },
+          tags: ['test', 'validation']
+        }
+      };
+
+      const startTime = performance.now();
+      const report = await handler.validateRequest(complexData, 'complex_nested', {});
+      const endTime = performance.now();
+
+      const processingTime = endTime - startTime;
+      expect(processingTime).toBeLessThan(25); // <25ms even for complex validation
+      expect(report.isValid).toBe(true);
+      expect(report.processingTime).toBeLessThan(25);
+    });
+
+    it('should validate large payloads within performance requirements', async () => {
+      const largePayloadSchema: ValidationSchema = {
+        description: 'Large payload validation test',
+        rules: [
+          { field: 'model', required: true, type: 'string' },
+          { field: 'messages', required: true, type: 'array' },
+          { field: 'large_content', type: 'string', maxLength: 50000 }
+        ]
+      };
+
+      handler.registerSchema('large_payload', largePayloadSchema);
+
+      const largeData = {
+        model: 'claude-3-sonnet-20240229',
+        messages: Array.from({ length: 100 }, (_, i) => ({
+          role: i % 2 === 0 ? 'user' : 'assistant',
+          content: `Message ${i}: ${'x'.repeat(1000)}` // 1KB per message
+        })),
+        large_content: 'x'.repeat(30000) // 30KB content
+      };
+
+      const startTime = performance.now();
+      const report = await handler.validateRequest(largeData, 'large_payload', {});
+      const endTime = performance.now();
+
+      const processingTime = endTime - startTime;
+      expect(processingTime).toBeLessThan(25); // <25ms even for large payloads
+      expect(report.processingTime).toBeLessThan(25);
+    });
+  });
+
+  describe('Phase 4B OpenAI Response Format Compliance', () => {
+    it('should generate OpenAI-compatible validation error responses', async () => {
+      const invalidData = {
+        // Missing required 'model' field
+        messages: [{ role: 'user', content: 'Hello' }],
+        temperature: 'invalid' // Wrong type
+      };
+
+      const report = await handler.validateRequest(invalidData, 'chat_completion', {
+        requestId: 'req_openai_test',
+        endpoint: '/v1/chat/completions',
+        method: 'POST'
+      });
+
+      expect(report.isValid).toBe(false);
+      expect(report.errors.length).toBeGreaterThan(0);
+
+      // Generate OpenAI-compatible response
+      const response = handler.createValidationErrorResponse(report);
+
+      // Verify OpenAI compatibility
+      expect(response.error).toBeDefined();
+      expect(response.error.type).toBe('validation_error');
+      expect(response.error.message).toBeDefined();
+      expect(response.error.code).toBeDefined();
+      expect(response.error.details).toBeDefined();
+      expect(response.error.details.invalid_fields).toBeDefined();
+      expect(Array.isArray(response.error.details.invalid_fields)).toBe(true);
+
+      // Verify field-level details
+      response.error.details.invalid_fields.forEach((field: any) => {
+        expect(field.field).toBeDefined();
+        expect(field.path).toBeDefined();
+        expect(field.message).toBeDefined();
+        expect(field.code).toBeDefined();
+        expect(field.suggestion).toBeDefined();
+      });
+    });
+
+    it('should provide detailed field paths for OpenAI compatibility', async () => {
+      const nestedInvalidData = {
+        model: 'claude-3-sonnet-20240229',
+        messages: [{ role: 'user' }], // Missing content
+        metadata: {
+          user: {
+            preferences: {
+              invalid_field: 'bad_value'
+            }
+          }
+        }
+      };
+
+      const nestedSchema: ValidationSchema = {
+        description: 'Nested field validation for OpenAI compatibility',
+        rules: [
+          { field: 'model', required: true, type: 'string' },
+          { field: 'messages[0].content', required: true, type: 'string' },
+          { field: 'metadata.user.preferences.theme', type: 'string', enum: ['light', 'dark'] }
+        ]
+      };
+
+      handler.registerSchema('nested_openai', nestedSchema);
+
+      const report = await handler.validateRequest(nestedInvalidData, 'nested_openai', {});
+      const response = handler.createValidationErrorResponse(report);
+
+      // Verify detailed field paths are provided
+      const invalidFields = response.error.details.invalid_fields;
+      expect(invalidFields.length).toBeGreaterThan(0);
+
+      invalidFields.forEach((field: any) => {
+        // Field paths should use dot notation or array notation
+        expect(field.path).toMatch(/^[a-zA-Z0-9_.[\]]+$/);
+        expect(field.field).toMatch(/^[a-zA-Z0-9_.[\]]+$/);
+      });
+    });
+
+    it('should sanitize sensitive data in validation responses', async () => {
+      const sensitiveData = {
+        model: 'claude-3-sonnet-20240229',
+        messages: [{ role: 'user', content: 'Hello' }],
+        api_key: 'sk-secret123456',
+        password: 'mysecretpassword',
+        auth_token: 'bearer_token_123'
+      };
+
+      const sensitiveSchema: ValidationSchema = {
+        description: 'Sensitive data validation',
+        rules: [
+          { field: 'model', required: true, type: 'string' },
+          { field: 'api_key', type: 'string', pattern: /^sk-/ },
+          { field: 'password', type: 'string', minLength: 8 },
+          { field: 'auth_token', type: 'string' }
+        ]
+      };
+
+      handler.registerSchema('sensitive_test', sensitiveSchema);
+
+      const report = await handler.validateRequest(sensitiveData, 'sensitive_test', {});
+      const response = handler.createValidationErrorResponse(report);
+
+      // Verify sensitive values are redacted
+      if (response.error.details.invalid_fields) {
+        response.error.details.invalid_fields.forEach((field: any) => {
+          if (['api_key', 'password', 'auth_token'].includes(field.field)) {
+            expect(field.value).toBe('[REDACTED]');
+          }
+        });
+      }
+
+      // Verify debug info doesn't expose sensitive data
+      if (response.error.debug_info?.request_metadata) {
+        const debugStr = JSON.stringify(response.error.debug_info);
+        expect(debugStr).not.toContain('sk-secret123456');
+        expect(debugStr).not.toContain('mysecretpassword');
+        expect(debugStr).not.toContain('bearer_token_123');
+      }
+    });
+  });
+
+  describe('Phase 4B Request ID Correlation in Validation', () => {
+    it('should maintain request ID correlation throughout validation pipeline', async () => {
+      const testRequestId = 'req_validation_correlation_456';
+      const testData = {
+        model: 'claude-3-sonnet-20240229',
+        messages: [{ role: 'user', content: 'Correlation test' }]
+      };
+
+      const context = {
+        requestId: testRequestId,
+        endpoint: '/v1/chat/completions',
+        method: 'POST',
+        timestamp: new Date(),
+        userAgent: 'Test-Agent/1.0'
+      };
+
+      const report = await handler.validateRequest(testData, 'chat_completion', context);
+
+      // Verify request ID is preserved in report context
+      expect(report.context.requestId).toBe(testRequestId);
+      
+      // Verify request ID is included in error response
+      const response = handler.createValidationErrorResponse(report);
+      expect(response.error.request_id).toBe(testRequestId);
+
+      // Verify correlation ID is present in details
+      if (response.error.details?.correlation_id) {
+        expect(response.error.details.correlation_id).toBe(testRequestId);
+      }
+    });
+
+    it('should handle multiple concurrent validations with unique request IDs', async () => {
+      const concurrentValidations = Array.from({ length: 50 }, (_, i) => ({
+        requestId: `req_concurrent_validation_${i}`,
+        data: {
+          model: 'claude-3-sonnet-20240229',
+          messages: [{ role: 'user', content: `Concurrent message ${i}` }]
+        }
+      }));
+
+      const validationPromises = concurrentValidations.map(({ requestId, data }) =>
+        handler.validateRequest(data, 'chat_completion', { requestId })
+      );
+
+      const reports = await Promise.all(validationPromises);
+
+      // Verify each report has the correct request ID
+      reports.forEach((report, index) => {
+        const expectedRequestId = concurrentValidations[index].requestId;
+        expect(report.context.requestId).toBe(expectedRequestId);
+      });
+
+      // Verify no request ID contamination
+      const uniqueRequestIds = new Set(reports.map(r => r.context.requestId));
+      expect(uniqueRequestIds.size).toBe(concurrentValidations.length);
+    });
+
+    it('should generate unique request IDs when not provided', async () => {
+      const testData = {
+        model: 'claude-3-sonnet-20240229',
+        messages: [{ role: 'user', content: 'Auto-generated ID test' }]
+      };
+
+      const reports = await Promise.all([
+        handler.validateRequest(testData, 'chat_completion', {}),
+        handler.validateRequest(testData, 'chat_completion', {}),
+        handler.validateRequest(testData, 'chat_completion', {})
+      ]);
+
+      // Verify each report has a request ID (auto-generated or default)
+      reports.forEach(report => {
+        expect(report.context.requestId).toBeDefined();
+        expect(typeof report.context.requestId).toBe('string');
+      });
     });
   });
 });

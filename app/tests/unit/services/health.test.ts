@@ -210,7 +210,7 @@ describe('Health Service Unit Tests', () => {
       const router = HealthRouter.createRouter();
       
       // Verify multiple routes are configured
-      expect(router.stack.length).toBe(2); // Basic health + detailed health
+      expect(router.stack.length).toBe(4); // Basic health + detailed health + production health + monitoring health
     });
   });
 

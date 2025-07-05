@@ -2,10 +2,13 @@
  * Session Manager with TTL and Background Cleanup
  * Based on Python session_manager.py exactly
  * Matches Python behavior and method signatures
+ * Enhanced with performance tracking and cleanup service integration
  */
 
 import { Message } from '../models/message';
 import { getLogger } from '../utils/logger';
+import { performanceMonitor, PerformanceUtils } from '../monitoring/performance-monitor';
+import { ICleanupService } from '../services/cleanup-service';
 
 const logger = getLogger('SessionManager');
 
@@ -98,20 +101,37 @@ export class SessionManager {
   private default_ttl_hours: number;
   private cleanup_interval_minutes: number;
   private cleanup_task: NodeJS.Timeout | null = null;
+  private cleanupService: ICleanupService | null = null;
+  private performanceTracking: boolean = true;
 
-  constructor(default_ttl_hours: number = 1, cleanup_interval_minutes: number = 5) {
+  constructor(
+    default_ttl_hours: number = 1, 
+    cleanup_interval_minutes: number = 5,
+    performanceTracking: boolean = true
+  ) {
     this.default_ttl_hours = default_ttl_hours;
     this.cleanup_interval_minutes = cleanup_interval_minutes;
+    this.performanceTracking = performanceTracking;
     
     logger.info('SessionManager initialized', {
       default_ttl_hours,
-      cleanup_interval_minutes
+      cleanup_interval_minutes,
+      performanceTracking
     });
+  }
+
+  /**
+   * Set cleanup service for enhanced cleanup functionality
+   */
+  setCleanupService(cleanupService: ICleanupService): void {
+    this.cleanupService = cleanupService;
+    logger.info('Cleanup service integrated with SessionManager');
   }
 
   /**
    * Start the background cleanup task
    * Based on Python start_cleanup_task method
+   * Enhanced with optional cleanup service integration
    */
   start_cleanup_task(): void {
     if (this.cleanup_task) {
@@ -119,11 +139,24 @@ export class SessionManager {
       return;
     }
 
+    // If we have a cleanup service, use it instead of built-in cleanup
+    if (this.cleanupService && !this.cleanupService.isRunning()) {
+      this.cleanupService.start();
+      logger.info('Started external cleanup service');
+      return;
+    }
+
     const intervalMs = this.cleanup_interval_minutes * 60 * 1000;
     
     this.cleanup_task = setInterval(() => {
       try {
-        this._cleanup_expired_sessions();
+        if (this.performanceTracking) {
+          PerformanceUtils.monitorSync('session-cleanup-internal', () => {
+            this._cleanup_expired_sessions();
+          });
+        } else {
+          this._cleanup_expired_sessions();
+        }
       } catch (error) {
         logger.error('Error during session cleanup', { error });
       }
@@ -137,6 +170,7 @@ export class SessionManager {
   /**
    * Stop the background cleanup task
    * Based on Python shutdown method
+   * Enhanced with cleanup service integration
    */
   shutdown(): void {
     if (this.cleanup_task) {
@@ -144,13 +178,32 @@ export class SessionManager {
       this.cleanup_task = null;
       logger.info('Background cleanup task stopped');
     }
+    
+    if (this.cleanupService && this.cleanupService.isRunning()) {
+      this.cleanupService.stop();
+      logger.info('External cleanup service stopped');
+    }
   }
 
   /**
    * Get or create a session
    * Based on Python get_or_create_session method
+   * Enhanced with performance tracking
    */
   get_or_create_session(session_id: string): Session {
+    if (this.performanceTracking) {
+      return PerformanceUtils.monitorSync('session-get-or-create', () => {
+        return this._get_or_create_session_internal(session_id);
+      }, { sessionId: session_id });
+    } else {
+      return this._get_or_create_session_internal(session_id);
+    }
+  }
+
+  /**
+   * Internal implementation of get_or_create_session
+   */
+  private _get_or_create_session_internal(session_id: string): Session {
     return this.lock.acquire(() => {
       if (this.sessions.has(session_id)) {
         const session = this.sessions.get(session_id)!;
@@ -176,8 +229,26 @@ export class SessionManager {
   /**
    * Process messages with optional session
    * Based on Python process_messages method
+   * Enhanced with performance tracking
    */
   process_messages(messages: Message[], session_id?: string | null): [Message[], string | null] {
+    if (this.performanceTracking) {
+      return PerformanceUtils.monitorSync('session-process-messages', () => {
+        return this._process_messages_internal(messages, session_id);
+      }, { 
+        sessionId: session_id,
+        messageCount: messages.length,
+        isStateless: session_id === null || session_id === undefined
+      });
+    } else {
+      return this._process_messages_internal(messages, session_id);
+    }
+  }
+
+  /**
+   * Internal implementation of process_messages
+   */
+  private _process_messages_internal(messages: Message[], session_id?: string | null): [Message[], string | null] {
     if (session_id === null || session_id === undefined) {
       // Stateless mode - return messages as-is
       return [messages, null];
@@ -251,10 +322,81 @@ export class SessionManager {
   /**
    * Get session count
    * For monitoring and statistics
+   * Enhanced with performance tracking
    */
   get_session_count(): number {
+    if (this.performanceTracking) {
+      return PerformanceUtils.monitorSync('session-get-count', () => {
+        return this.lock.acquire(() => {
+          return this.sessions.size;
+        });
+      });
+    } else {
+      return this.lock.acquire(() => {
+        return this.sessions.size;
+      });
+    }
+  }
+
+  /**
+   * Get session statistics for monitoring
+   */
+  getSessionStats(): {
+    totalSessions: number;
+    activeSessions: number;
+    expiredSessions: number;
+    averageMessageCount: number;
+    oldestSessionAge: number;
+  } {
     return this.lock.acquire(() => {
-      return this.sessions.size;
+      let activeSessions = 0;
+      let expiredSessions = 0;
+      let totalMessages = 0;
+      let oldestSessionTime = Date.now();
+
+      for (const session of this.sessions.values()) {
+        if (session.is_expired()) {
+          expiredSessions++;
+        } else {
+          activeSessions++;
+        }
+        
+        totalMessages += session.messages.length;
+        
+        if (session.created_at.getTime() < oldestSessionTime) {
+          oldestSessionTime = session.created_at.getTime();
+        }
+      }
+
+      return {
+        totalSessions: this.sessions.size,
+        activeSessions,
+        expiredSessions,
+        averageMessageCount: this.sessions.size > 0 ? totalMessages / this.sessions.size : 0,
+        oldestSessionAge: this.sessions.size > 0 ? Date.now() - oldestSessionTime : 0
+      };
     });
+  }
+
+  /**
+   * Get cleanup service reference for monitoring
+   */
+  getCleanupService(): ICleanupService | null {
+    return this.cleanupService;
+  }
+
+  /**
+   * Enable or disable performance tracking
+   */
+  setPerformanceTracking(enabled: boolean): void {
+    this.performanceTracking = enabled;
+    logger.info(`Performance tracking ${enabled ? 'enabled' : 'disabled'}`);
+  }
+
+  /**
+   * Get performance tracking status
+   */
+  isPerformanceTrackingEnabled(): boolean {
+    return this.performanceTracking;
   }
 }

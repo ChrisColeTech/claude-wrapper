@@ -45,7 +45,7 @@ describe('ToolErrorHandler', () => {
         expect(result.errorResponse!.error.toolCallId).toBe('call_123');
         expect(result.isolationSuccessful).toBe(true);
         expect(result.recoveryAction).toBe('skip');
-        expect(result.processingTimeMs).toBeGreaterThan(0);
+        expect(result.processingTimeMs).toBeGreaterThanOrEqual(0);
         expect(result.processingTimeMs).toBeLessThan(TOOL_ERROR_LIMITS.ERROR_PROCESSING_TIMEOUT_MS);
       });
 

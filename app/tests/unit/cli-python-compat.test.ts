@@ -89,10 +89,14 @@ describe('CLI Python Compatibility', () => {
       ];
 
       testCases.forEach(({ input, expected }) => {
-        jest.clearAllMocks();
+        mockConsoleLog.mockClear();
+        
         const options = parser.parseArguments(['node', 'claude-wrapper', input]);
         expect(options.port).toBeUndefined();
-        expect(mockConsoleLog).toHaveBeenCalledWith(expected);
+        
+        // Check if the expected message was logged (either by our negative number handling or processOptions)
+        const logCalls = mockConsoleLog.mock.calls.map(call => call[0]);
+        expect(logCalls).toContain(expected);
       });
     });
   });

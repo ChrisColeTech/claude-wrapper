@@ -183,7 +183,7 @@ async function testConversionPerformance() {
 
   try {
     // Check if we can access the implementation
-    const toolsPath = path.join(__dirname, 'src', 'tools');
+    const toolsPath = path.join(__dirname, '..', 'src', 'tools');
     if (!fs.existsSync(toolsPath)) {
       throw new Error(`Tools directory not found at ${toolsPath}`);
     }
@@ -192,7 +192,7 @@ async function testConversionPerformance() {
     let toolConverter;
     try {
       // Try requiring the compiled JS version from dist directory
-      const distPath = path.join(__dirname, 'dist', 'tools');
+      const distPath = path.join(__dirname, '..', 'dist', 'tools');
       const converterPath = path.join(distPath, 'converter.js');
       
       if (fs.existsSync(converterPath)) {

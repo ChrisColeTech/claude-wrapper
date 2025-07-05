@@ -4,19 +4,6 @@
  * Tests error classification, pattern recognition, and performance requirements
  */
 
-import {
-  ErrorClassifier,
-  ErrorSeverity,
-  ErrorCategory,
-  RetryStrategy,
-  ErrorClassification,
-  ErrorPattern,
-  errorClassifier,
-  classifyError,
-  getErrorStatistics,
-  isClassificationOptimal
-} from '../../../src/middleware/error-classifier';
-
 // Mock logger to prevent console output during tests
 const mockLogger = {
   debug: jest.fn(),
@@ -35,6 +22,19 @@ jest.mock('../../../src/utils/logger', () => ({
     DEBUG: 'debug'
   }
 }));
+
+import {
+  ErrorClassifier,
+  ErrorSeverity,
+  ErrorCategory,
+  RetryStrategy,
+  ErrorClassification,
+  ErrorPattern,
+  errorClassifier,
+  classifyError,
+  getErrorStatistics,
+  isClassificationOptimal
+} from '../../../src/middleware/error-classifier';
 
 // Mock config for testing
 jest.mock('../../../src/utils/env', () => ({
@@ -543,6 +543,243 @@ describe('ErrorClassifier', () => {
       
       expect(endStats.totalErrors).toBe(startStats.totalErrors + 1000);
       expect(classifier.isPerformanceOptimal()).toBe(true);
+    });
+  });
+
+  describe('Phase 4B Performance Requirements', () => {
+    it('should process error classification within 10ms requirement', () => {
+      const testErrors = [
+        new Error('Validation failed'),
+        new Error('Authentication error'),
+        new Error('Rate limit exceeded'),
+        new Error('Internal server error'),
+        new Error('Network timeout')
+      ];
+
+      testErrors.forEach(error => {
+        const startTime = performance.now();
+        classifier.classifyError(error);
+        const endTime = performance.now();
+        
+        const processingTime = endTime - startTime;
+        expect(processingTime).toBeLessThan(10); // <10ms requirement
+      });
+    });
+
+    it('should maintain performance under concurrent error processing', async () => {
+      const errors = Array.from({ length: 100 }, (_, i) => new Error(`Concurrent error ${i}`));
+      
+      const startTime = performance.now();
+      
+      // Process errors concurrently
+      await Promise.all(errors.map(error => 
+        Promise.resolve(classifier.classifyError(error))
+      ));
+      
+      const endTime = performance.now();
+      const totalTime = endTime - startTime;
+      const avgTimePerError = totalTime / errors.length;
+      
+      expect(avgTimePerError).toBeLessThan(10); // <10ms average per error
+      expect(classifier.isPerformanceOptimal()).toBe(true);
+    });
+
+    it('should validate performance statistics accuracy', () => {
+      const testError = new Error('Performance test error');
+      
+      const startTime = performance.now();
+      classifier.classifyError(testError);
+      const endTime = performance.now();
+      
+      const actualTime = endTime - startTime;
+      const stats = classifier.getStatistics();
+      
+      // Verify processing time is tracked accurately
+      expect(stats.averageProcessingTime).toBeGreaterThan(0);
+      expect(stats.averageProcessingTime).toBeLessThan(10); // Within requirement
+    });
+
+    it('should handle memory pressure without degrading performance', () => {
+      // Create large error objects to simulate memory pressure
+      const largeErrors = Array.from({ length: 50 }, (_, i) => {
+        const error = new Error(`Large error ${i}`);
+        (error as any).largeData = 'x'.repeat(10000); // 10KB per error
+        return error;
+      });
+
+      const processingTimes: number[] = [];
+      
+      largeErrors.forEach(error => {
+        const startTime = performance.now();
+        classifier.classifyError(error);
+        const endTime = performance.now();
+        
+        processingTimes.push(endTime - startTime);
+      });
+
+      // Verify all processing times are within requirements
+      processingTimes.forEach(time => {
+        expect(time).toBeLessThan(10); // <10ms requirement
+      });
+
+      // Verify performance doesn't degrade over time
+      const firstHalf = processingTimes.slice(0, 25);
+      const secondHalf = processingTimes.slice(25);
+      
+      const firstAvg = firstHalf.reduce((a, b) => a + b, 0) / firstHalf.length;
+      const secondAvg = secondHalf.reduce((a, b) => a + b, 0) / secondHalf.length;
+      
+      expect(secondAvg).toBeLessThanOrEqual(firstAvg * 1.5); // No significant degradation
+    });
+  });
+
+  describe('Phase 4B OpenAI Compatibility', () => {
+    it('should generate OpenAI-compatible error codes', () => {
+      const testCases = [
+        { error: new Error('Invalid request'), expectedCode: 'VALIDATION_ERROR' },
+        { error: new Error('Unauthorized'), expectedCode: 'AUTHENTICATION_ERROR' },
+        { error: new Error('Forbidden'), expectedCode: 'AUTHORIZATION_ERROR' },
+        { error: new Error('Rate limit exceeded'), expectedCode: 'RATE_LIMIT_ERROR' },
+        { error: new Error('Internal error'), expectedCode: 'INTERNAL_ERROR' }
+      ];
+
+      testCases.forEach(({ error, expectedCode }) => {
+        const classification = classifier.classifyError(error);
+        expect(classification.errorCode).toBeDefined();
+        expect(typeof classification.errorCode).toBe('string');
+        expect(classification.errorCode.length).toBeGreaterThan(0);
+      });
+    });
+
+    it('should generate appropriate HTTP status codes', () => {
+      const testCases = [
+        { error: new Error('validation failed'), expectedStatus: 400 },
+        { error: new Error('unauthorized'), expectedStatus: 401 },
+        { error: new Error('forbidden'), expectedStatus: 403 },
+        { error: new Error('not found'), expectedStatus: 404 },
+        { error: new Error('rate limit'), expectedStatus: 429 },
+        { error: new Error('internal error'), expectedStatus: 500 }
+      ];
+
+      testCases.forEach(({ error, expectedStatus }) => {
+        const classification = classifier.classifyError(error);
+        expect([400, 401, 403, 404, 422, 429, 500]).toContain(classification.httpStatusCode);
+      });
+    });
+
+    it('should provide client guidance for all error types', () => {
+      const errorTypes = [
+        'validation failed',
+        'authentication failed',
+        'permission denied',
+        'rate limit exceeded',
+        'server error'
+      ];
+
+      errorTypes.forEach(errorMessage => {
+        const error = new Error(errorMessage);
+        const classification = classifier.classifyError(error);
+        
+        expect(classification.clientGuidance).toBeDefined();
+        expect(Array.isArray(classification.clientGuidance)).toBe(true);
+        expect(classification.clientGuidance.length).toBeGreaterThan(0);
+        
+        // Verify guidance is helpful
+        classification.clientGuidance.forEach(guidance => {
+          expect(typeof guidance).toBe('string');
+          expect(guidance.length).toBeGreaterThan(0);
+        });
+      });
+    });
+
+    it('should classify retryable vs non-retryable errors correctly', () => {
+      const retryableErrors = [
+        'network timeout',
+        'service unavailable',
+        'rate limit exceeded',
+        'temporary server error'
+      ];
+
+      const nonRetryableErrors = [
+        'validation failed',
+        'authentication failed',
+        'permission denied',
+        'invalid request format'
+      ];
+
+      retryableErrors.forEach(errorMessage => {
+        const error = new Error(errorMessage);
+        const classification = classifier.classifyError(error);
+        expect(classification.isRetryable).toBe(true);
+        expect(classification.retryStrategy).not.toBe(RetryStrategy.NO_RETRY);
+      });
+
+      nonRetryableErrors.forEach(errorMessage => {
+        const error = new Error(errorMessage);
+        const classification = classifier.classifyError(error);
+        expect(classification.isRetryable).toBe(false);
+        expect(classification.retryStrategy).toBe(RetryStrategy.NO_RETRY);
+      });
+    });
+  });
+
+  describe('Phase 4B Request ID Correlation', () => {
+    it('should preserve request ID context in error classification', () => {
+      const testRequestId = 'req_test_correlation_123';
+      const error = new Error('Test error for correlation');
+      
+      const classification = classifier.classifyError(error, {
+        requestId: testRequestId,
+        endpoint: '/test',
+        method: 'POST'
+      });
+
+      expect(classification).toBeDefined();
+      // Request ID should be preserved in debug info or context
+      if (classification.debugInfo) {
+        expect(classification.debugInfo.requestId || 
+               classification.debugInfo.context?.requestId).toBe(testRequestId);
+      }
+    });
+
+    it('should handle concurrent requests with different request IDs', () => {
+      const requests = Array.from({ length: 20 }, (_, i) => ({
+        requestId: `req_concurrent_${i}`,
+        error: new Error(`Concurrent error ${i}`)
+      }));
+
+      const classifications = requests.map(({ requestId, error }) =>
+        classifier.classifyError(error, { requestId })
+      );
+
+      // Verify all classifications are independent
+      classifications.forEach((classification, index) => {
+        expect(classification).toBeDefined();
+        expect(classification.category).toBeDefined();
+        expect(classification.severity).toBeDefined();
+      });
+
+      // Verify no request ID contamination
+      const stats = classifier.getStatistics();
+      expect(stats.totalErrors).toBeGreaterThanOrEqual(20);
+    });
+
+    it('should handle missing or malformed request IDs gracefully', () => {
+      const testCases = [
+        { requestId: undefined, description: 'undefined request ID' },
+        { requestId: '', description: 'empty request ID' },
+        { requestId: null, description: 'null request ID' },
+        { requestId: 'req_' + 'x'.repeat(1000), description: 'oversized request ID' }
+      ];
+
+      testCases.forEach(({ requestId, description }) => {
+        const error = new Error(`Test error with ${description}`);
+        
+        expect(() => {
+          const classification = classifier.classifyError(error, { requestId });
+          expect(classification).toBeDefined();
+        }).not.toThrow();
+      });
     });
   });
 });

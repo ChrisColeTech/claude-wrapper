@@ -1,467 +1,424 @@
-#!/usr/bin/env tsx
+#!/usr/bin/env npx tsx
 
 /**
- * Claude Wrapper - TypeScript Basic Usage Example
- * 
- * This example demonstrates how to use the OpenAI TypeScript SDK
- * with the Claude Wrapper server, showcasing all major features
- * with proper TypeScript types and error handling.
- * 
- * Based on Python openai_sdk.py with enhanced TypeScript features
+ * Basic Usage TypeScript Example
+ * Demonstrates OpenAI SDK integration with claude-wrapper
+ * Based on Python OpenAI SDK examples with TypeScript enhancements
  */
 
-import OpenAI from 'openai';
+import { OpenAI } from 'openai';
+import * as fs from 'fs';
+import * as path from 'path';
 
-// Configuration
-const DEFAULT_BASE_URL = 'http://localhost:8000/v1';
-const BASE_URL = process.env.CLAUDE_WRAPPER_URL?.replace(/\/$/, '') + '/v1' || DEFAULT_BASE_URL;
-
-// Types for better development experience
-interface AuthConfig {
-  apiKeyRequired: boolean;
-  provider: string;
-  mode: string;
-}
-
-interface ServerInfo {
-  server_info: AuthConfig;
-}
-
-interface ExampleConfig {
-  baseUrl?: string;
+// Configuration with environment variable support
+interface Config {
+  baseUrl: string;
   apiKey?: string;
-  verbose?: boolean;
+  verbose: boolean;
+  timeout: number;
 }
 
-class ClaudeWrapperClient {
-  private client: OpenAI;
-  private verbose: boolean;
+const config: Config = {
+  baseUrl: process.env.CLAUDE_WRAPPER_URL || 'http://localhost:8000/v1',
+  apiKey: process.env.API_KEY,
+  verbose: process.env.VERBOSE === 'true',
+  timeout: parseInt(process.env.TIMEOUT || '30000', 10),
+};
 
-  constructor(config: ExampleConfig = {}) {
-    this.verbose = config.verbose || false;
-    
-    const baseUrl = config.baseUrl || BASE_URL;
-    const apiKey = config.apiKey || this.getApiKey(baseUrl);
-    
-    this.client = new OpenAI({
-      baseURL: baseUrl,
-      apiKey: apiKey || 'fallback-key',
+// Color codes for console output
+const colors = {
+  info: '\x1b[34m',    // Blue
+  success: '\x1b[32m', // Green
+  warning: '\x1b[33m', // Yellow
+  error: '\x1b[31m',   // Red
+  response: '\x1b[36m', // Cyan
+  reset: '\x1b[0m',    // Reset
+};
+
+// Utility functions for colored output
+const print = {
+  info: (msg: string) => console.log(`${colors.info}[INFO]${colors.reset} ${msg}`),
+  success: (msg: string) => console.log(`${colors.success}[SUCCESS]${colors.reset} ${msg}`),
+  warning: (msg: string) => console.log(`${colors.warning}[WARNING]${colors.reset} ${msg}`),
+  error: (msg: string) => console.log(`${colors.error}[ERROR]${colors.reset} ${msg}`),
+  response: (msg: string) => console.log(`${colors.response}${msg}${colors.reset}`),
+};
+
+// Enhanced error handling
+class ClaudeWrapperError extends Error {
+  constructor(message: string, public cause?: unknown) {
+    super(message);
+    this.name = 'ClaudeWrapperError';
+  }
+}
+
+// Authentication detection utility
+async function detectAuthentication(baseUrl: string): Promise<{ required: boolean; method?: string }> {
+  try {
+    const authUrl = baseUrl.replace('/v1', '/v1/auth/status');
+    const response = await fetch(authUrl, { 
+      method: 'GET',
+      signal: AbortSignal.timeout(5000)
     });
-
-    if (this.verbose) {
-      console.log(`🔧 Initialized client with base URL: ${baseUrl}`);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
+    
+    const data = await response.json();
+    
+    if (config.verbose) {
+      print.info('Authentication status response:');
+      console.log(JSON.stringify(data, null, 2));
+    }
+    
+    return {
+      required: data.server_info?.api_key_required || false,
+      method: data.server_info?.auth_method || 'unknown',
+    };
+  } catch (error) {
+    print.warning(`Could not detect authentication requirements: ${error}`);
+    return { required: false };
   }
+}
 
-  /**
-   * Auto-detect API key based on server configuration
-   */
-  private getApiKey(baseUrl: string): string {
-    // Check environment first
-    if (process.env.API_KEY) {
-      if (this.verbose) {
-        console.log('🔑 Using API key from environment variable');
+// Auto-detect API key based on server requirements
+async function getApiKey(baseUrl: string): Promise<string | undefined> {
+  const authInfo = await detectAuthentication(baseUrl);
+  
+  if (!authInfo.required) {
+    print.info('No authentication required');
+    return undefined;
+  }
+  
+  if (config.apiKey) {
+    print.info('Using provided API key');
+    return config.apiKey;
+  }
+  
+  // In a real implementation, you might prompt for the API key here
+  print.warning('API key required but not provided');
+  print.info('Set the API_KEY environment variable:');
+  print.info('  export API_KEY=your-api-key-here');
+  
+  throw new ClaudeWrapperError('Authentication required but no API key provided');
+}
+
+// Create OpenAI client with auto-detection
+async function createClient(): Promise<OpenAI> {
+  try {
+    const apiKey = await getApiKey(config.baseUrl);
+    
+    const client = new OpenAI({
+      baseURL: config.baseUrl,
+      apiKey: apiKey || 'no-auth-required',
+      timeout: config.timeout,
+      maxRetries: 3,
+    });
+    
+    print.success('OpenAI client created successfully');
+    return client;
+  } catch (error) {
+    throw new ClaudeWrapperError('Failed to create OpenAI client', error);
+  }
+}
+
+// Test server connectivity
+async function testServerConnection(baseUrl: string): Promise<void> {
+  try {
+    const healthUrl = baseUrl.replace('/v1', '/health');
+    
+    print.info(`Testing server connection to ${healthUrl}...`);
+    
+    const response = await fetch(healthUrl, {
+      method: 'GET',
+      signal: AbortSignal.timeout(5000)
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    
+    const healthData = await response.json();
+    
+    if (config.verbose) {
+      print.info('Server health response:');
+      console.log(JSON.stringify(healthData, null, 2));
+    }
+    
+    print.success('Server is running and accessible');
+  } catch (error) {
+    print.error('Server connection failed');
+    print.info('Please ensure the claude-wrapper server is running:');
+    print.info('  cd claude-wrapper && npm start');
+    throw new ClaudeWrapperError('Server connection failed', error);
+  }
+}
+
+// List available models
+async function listModels(client: OpenAI): Promise<void> {
+  try {
+    print.info('Fetching available models...');
+    
+    const response = await client.models.list();
+    
+    if (response.data && response.data.length > 0) {
+      print.success(`Found ${response.data.length} available models:`);
+      
+      response.data.forEach((model, index) => {
+        console.log(`  ${index + 1}. ${model.id}`);
+        if (config.verbose && model.owned_by) {
+          console.log(`     Owner: ${model.owned_by}`);
+        }
+      });
+    } else {
+      print.warning('No models found');
+    }
+  } catch (error) {
+    throw new ClaudeWrapperError('Failed to list models', error);
+  }
+}
+
+// Basic chat completion
+async function basicCompletion(client: OpenAI): Promise<void> {
+  try {
+    print.info('Making basic chat completion request...');
+    
+    const completion = await client.chat.completions.create({
+      model: 'claude-3-5-sonnet-20241022',
+      messages: [
+        {
+          role: 'user',
+          content: 'Hello! Can you explain what the Claude Wrapper is and how it works? Please keep your response concise but informative.',
+        },
+      ],
+      max_tokens: 200,
+      temperature: 0.7,
+    });
+    
+    if (completion.choices && completion.choices.length > 0) {
+      const message = completion.choices[0].message;
+      
+      print.success('Chat completion successful!');
+      console.log('\n📝 Claude\'s Response:');
+      console.log('----------------------------------------');
+      print.response(message.content || 'No content received');
+      console.log('----------------------------------------\n');
+      
+      // Display usage information if available
+      if (completion.usage && config.verbose) {
+        print.info('Token usage:');
+        console.log(`  Prompt tokens: ${completion.usage.prompt_tokens}`);
+        console.log(`  Completion tokens: ${completion.usage.completion_tokens}`);
+        console.log(`  Total tokens: ${completion.usage.total_tokens}`);
       }
-      return process.env.API_KEY;
+    } else {
+      print.warning('No response choices received');
     }
-
-    // For this example, we'll use a fallback key
-    // In a real application, you'd make an HTTP request to check auth status
-    console.log('⚠️  No API_KEY environment variable found');
-    console.log('   Set API_KEY if your server requires authentication');
-    
-    return 'no-auth-required';
+  } catch (error) {
+    throw new ClaudeWrapperError('Basic completion failed', error);
   }
+}
 
-  /**
-   * Check server authentication status
-   */
-  async checkAuthStatus(): Promise<AuthConfig> {
-    try {
-      const authUrl = BASE_URL.replace('/v1', '') + '/v1/auth/status';
-      const response = await fetch(authUrl);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-      
-      const data: ServerInfo = await response.json();
-      return data.server_info;
-    } catch (error) {
-      console.warn('⚠️  Could not check server auth status:', error);
-      return {
-        apiKeyRequired: false,
-        provider: 'unknown',
-        mode: 'unknown'
-      };
-    }
-  }
-
-  /**
-   * Basic chat completion example
-   */
-  async basicChatExample(): Promise<void> {
-    console.log('\n=== Basic Chat Completion ===');
+// Advanced completion with system message and parameters
+async function advancedCompletion(client: OpenAI): Promise<void> {
+  try {
+    print.info('Making advanced chat completion request...');
     
-    try {
-      const response = await this.client.chat.completions.create({
-        model: 'claude-3-5-sonnet-20241022',
-        messages: [
-          { role: 'user', content: 'What is the capital of France?' }
-        ],
-        max_tokens: 100,
-      });
-
-      console.log(`✅ Response: ${response.choices[0].message.content}`);
-      console.log(`📊 Model: ${response.model}`);
-      console.log(`📈 Usage:`, response.usage);
-      
-    } catch (error) {
-      console.error('❌ Basic chat failed:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * System message example with role-based conversation
-   */
-  async systemMessageExample(): Promise<void> {
-    console.log('\n=== Chat with System Message ===');
+    const completion = await client.chat.completions.create({
+      model: 'claude-3-5-sonnet-20241022',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a helpful TypeScript expert who explains code concepts clearly and concisely.',
+        },
+        {
+          role: 'user',
+          content: 'What are the key benefits of using TypeScript over JavaScript for API integrations like this one?',
+        },
+      ],
+      max_tokens: 250,
+      temperature: 0.8,
+      top_p: 0.9,
+      frequency_penalty: 0.1,
+      presence_penalty: 0.1,
+    });
     
-    try {
-      const response = await this.client.chat.completions.create({
-        model: 'claude-3-5-sonnet-20241022',
-        messages: [
-          { 
-            role: 'system', 
-            content: 'You are a helpful TypeScript coding assistant. Be concise and provide practical examples.' 
-          },
-          { 
-            role: 'user', 
-            content: 'How do I define an interface in TypeScript?' 
-          }
-        ],
-        temperature: 0.3,
-      });
-
-      console.log(`✅ Response: ${response.choices[0].message.content}`);
+    if (completion.choices && completion.choices.length > 0) {
+      const message = completion.choices[0].message;
       
-    } catch (error) {
-      console.error('❌ System message example failed:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Multi-turn conversation example
-   */
-  async conversationExample(): Promise<void> {
-    console.log('\n=== Multi-turn Conversation ===');
-    
-    const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
-      { role: 'user', content: 'My name is Alice and I work with TypeScript.' },
-      { 
-        role: 'assistant', 
-        content: 'Nice to meet you, Alice! TypeScript is a great language. How can I help you with your TypeScript work today?' 
-      },
-      { role: 'user', content: 'What\'s my name and what language do I work with?' }
-    ];
-
-    try {
-      const response = await this.client.chat.completions.create({
-        model: 'claude-3-5-sonnet-20241022',
-        messages,
-        temperature: 0.7,
-      });
-
-      console.log(`✅ Response: ${response.choices[0].message.content}`);
+      print.success('Advanced completion successful!');
+      console.log('\n🎯 Expert TypeScript Advice:');
+      console.log('----------------------------------------');
+      print.response(message.content || 'No content received');
+      console.log('----------------------------------------\n');
       
-    } catch (error) {
-      console.error('❌ Conversation example failed:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Streaming response example with real-time processing
-   */
-  async streamingExample(): Promise<void> {
-    console.log('\n=== Streaming Response ===');
-    
-    try {
-      const stream = await this.client.chat.completions.create({
-        model: 'claude-3-5-sonnet-20241022',
-        messages: [
-          { role: 'user', content: 'Write a TypeScript function that calculates the factorial of a number' }
-        ],
-        stream: true,
-        temperature: 0.3,
-      });
-
-      console.log('📡 Streaming response:');
-      console.log('╭─────────────────────────────────────────────────────────╮');
-      process.stdout.write('│ ');
-
-      for await (const chunk of stream) {
-        const content = chunk.choices[0]?.delta?.content;
-        if (content) {
-          process.stdout.write(content);
+      // Show additional completion info
+      if (config.verbose) {
+        const choice = completion.choices[0];
+        print.info(`Finish reason: ${choice.finish_reason}`);
+        
+        if (completion.usage) {
+          print.info('Token usage:');
+          console.log(JSON.stringify(completion.usage, null, 2));
         }
       }
-
-      console.log('\n╰─────────────────────────────────────────────────────────╯');
-      console.log('✅ Streaming completed');
-      
-    } catch (error) {
-      console.error('❌ Streaming example failed:', error);
-      throw error;
+    } else {
+      print.warning('No response choices received');
     }
+  } catch (error) {
+    throw new ClaudeWrapperError('Advanced completion failed', error);
   }
+}
 
-  /**
-   * Session-based conversation example
-   */
-  async sessionExample(): Promise<void> {
-    console.log('\n=== Session-based Conversation ===');
+// Error handling demonstration
+async function errorHandlingDemo(client: OpenAI): Promise<void> {
+  try {
+    print.info('Demonstrating error handling...');
     
-    const sessionId = `typescript-demo-${Date.now()}`;
-    console.log(`🔗 Session ID: ${sessionId}`);
-
-    try {
-      // First message in session
-      console.log('\n📝 Message 1: Setting up context');
-      const response1 = await this.client.chat.completions.create({
-        model: 'claude-3-5-sonnet-20241022',
-        messages: [
-          { role: 'user', content: 'I am building a REST API with Express.js and TypeScript. My name is Bob.' }
-        ],
-        // @ts-ignore - session_id is not in OpenAI types but our wrapper supports it
-        session_id: sessionId,
-      });
-
-      console.log(`Claude: ${response1.choices[0].message.content}`);
-
-      // Second message - test memory
-      console.log('\n📝 Message 2: Testing session memory');
-      const response2 = await this.client.chat.completions.create({
-        model: 'claude-3-5-sonnet-20241022',
-        messages: [
-          { role: 'user', content: 'What\'s my name and what am I building?' }
-        ],
-        // @ts-ignore - session_id is not in OpenAI types but our wrapper supports it
-        session_id: sessionId,
-      });
-
-      console.log(`Claude: ${response2.choices[0].message.content}`);
-
-      console.log(`✅ Session example completed with ID: ${sessionId}`);
-      
-    } catch (error) {
-      console.error('❌ Session example failed:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Error handling example
-   */
-  async errorHandlingExample(): Promise<void> {
-    console.log('\n=== Error Handling Example ===');
+    // This should trigger an error (invalid model)
+    await client.chat.completions.create({
+      model: 'non-existent-model',
+      messages: [{ role: 'user', content: 'Test' }],
+    });
     
-    try {
-      // Try to use an invalid model
-      await this.client.chat.completions.create({
-        model: 'invalid-model-name',
-        messages: [
-          { role: 'user', content: 'This should fail' }
-        ],
-      });
-      
-      console.log('⚠️  Unexpected success - error handling may not be working');
-      
-    } catch (error) {
-      if (error instanceof OpenAI.APIError) {
-        console.log(`✅ Expected API error caught:`);
-        console.log(`   Status: ${error.status}`);
-        console.log(`   Message: ${error.message}`);
-        console.log(`   Type: ${error.type || 'unknown'}`);
-      } else {
-        console.log(`✅ Expected error caught: ${error}`);
-      }
-    }
-  }
-
-  /**
-   * List available models
-   */
-  async listModelsExample(): Promise<void> {
-    console.log('\n=== Available Models ===');
+    print.warning('Expected error did not occur');
+  } catch (error) {
+    print.success('Error handling working correctly');
     
-    try {
-      const models = await this.client.models.list();
-      
-      console.log('Available models:');
-      for (const model of models.data) {
-        console.log(`  • ${model.id} (owned by: ${model.owned_by})`);
+    if (error instanceof OpenAI.APIError) {
+      print.info(`API Error: ${error.message}`);
+      if (config.verbose) {
+        print.info(`Status: ${error.status}`);
+        print.info(`Type: ${error.type}`);
       }
-      
-    } catch (error) {
-      console.error('❌ List models failed:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Performance and parameter examples
-   */
-  async parameterExamples(): Promise<void> {
-    console.log('\n=== Parameter Customization Examples ===');
-    
-    const examples = [
-      {
-        name: 'Creative Writing (high temperature)',
-        config: { temperature: 0.9, max_tokens: 150 },
-        prompt: 'Write a creative short story about a time-traveling developer'
-      },
-      {
-        name: 'Technical Documentation (low temperature)',
-        config: { temperature: 0.1, max_tokens: 200 },
-        prompt: 'Explain how TypeScript interfaces work'
-      },
-      {
-        name: 'Balanced Response',
-        config: { temperature: 0.5, max_tokens: 100, top_p: 0.9 },
-        prompt: 'Give me pros and cons of using TypeScript vs JavaScript'
-      }
-    ];
-
-    for (const example of examples) {
-      console.log(`\n📊 ${example.name}:`);
-      console.log(`   Config: ${JSON.stringify(example.config)}`);
-      
-      try {
-        const response = await this.client.chat.completions.create({
-          model: 'claude-3-5-sonnet-20241022',
-          messages: [
-            { role: 'user', content: example.prompt }
-          ],
-          ...example.config,
-        });
-
-        const content = response.choices[0].message.content;
-        const preview = content!.substring(0, 100) + (content!.length > 100 ? '...' : '');
-        console.log(`   Response: ${preview}`);
-        
-      } catch (error) {
-        console.error(`   ❌ Failed: ${error}`);
-      }
+    } else {
+      print.info(`Unexpected error: ${error}`);
     }
   }
 }
 
-/**
- * Main example runner
- */
+// Display example information
+function showExampleInfo(): void {
+  console.log();
+  print.info('🎯 TypeScript Basic Usage Example');
+  console.log('This example demonstrates:');
+  console.log('  • OpenAI SDK integration with claude-wrapper');
+  console.log('  • Automatic authentication detection');
+  console.log('  • Model listing and selection');
+  console.log('  • Basic and advanced chat completions');
+  console.log('  • Error handling and validation');
+  console.log('  • TypeScript type safety and interfaces');
+  console.log();
+  print.info(`Server: ${config.baseUrl}`);
+  print.info(`API Key provided: ${config.apiKey ? 'Yes' : 'No'}`);
+  print.info(`Verbose mode: ${config.verbose}`);
+  print.info(`Timeout: ${config.timeout}ms`);
+  console.log();
+}
+
+// Main execution function
 async function main(): Promise<void> {
-  console.log('🚀 Claude Wrapper TypeScript Examples');
-  console.log('======================================');
-
-  // Parse command line arguments
-  const args = process.argv.slice(2);
-  const verbose = args.includes('--verbose') || args.includes('-v');
-  const customUrl = args.find(arg => arg.startsWith('--url='))?.split('=')[1];
-
-  const config: ExampleConfig = {
-    verbose,
-    baseUrl: customUrl,
-  };
-
-  const client = new ClaudeWrapperClient(config);
-
   try {
-    // Check authentication status
-    const authStatus = await client.checkAuthStatus();
-    console.log('\n🔍 Server Configuration:');
-    console.log(`   API Key Required: ${authStatus.apiKeyRequired}`);
-    console.log(`   Provider: ${authStatus.provider}`);
-    console.log(`   Mode: ${authStatus.mode}`);
-
-    if (authStatus.apiKeyRequired && !process.env.API_KEY) {
-      console.log('\n⚠️  Server requires API key but none provided');
-      console.log('   Set API_KEY environment variable:');
-      console.log('   export API_KEY=your-server-key');
-      console.log('   npm run ts-example');
-      process.exit(1);
-    }
-
-    // Run all examples
-    await client.basicChatExample();
-    await client.systemMessageExample();
-    await client.conversationExample();
-    await client.streamingExample();
-    await client.sessionExample();
-    await client.parameterExamples();
-    await client.listModelsExample();
-    await client.errorHandlingExample();
-
-    console.log('\n🎉 All TypeScript examples completed successfully!');
-    console.log('\n💡 Key TypeScript Benefits:');
-    console.log('   • Strong typing prevents runtime errors');
-    console.log('   • Excellent IDE support with autocomplete');
-    console.log('   • Better refactoring capabilities');
-    console.log('   • Enhanced error detection at compile time');
-    console.log('   • Improved code documentation through types');
-
+    showExampleInfo();
+    
+    // Step 1: Test server connection
+    await testServerConnection(config.baseUrl);
+    console.log();
+    
+    // Step 2: Create OpenAI client
+    const client = await createClient();
+    console.log();
+    
+    // Step 3: List available models
+    await listModels(client);
+    console.log();
+    
+    // Step 4: Basic completion
+    await basicCompletion(client);
+    
+    // Step 5: Advanced completion
+    await advancedCompletion(client);
+    
+    // Step 6: Error handling demonstration
+    await errorHandlingDemo(client);
+    console.log();
+    
+    print.success('✅ TypeScript basic usage example completed successfully!');
+    console.log();
+    print.info('Key features demonstrated:');
+    print.info('  • TypeScript type safety and error handling');
+    print.info('  • OpenAI SDK integration patterns');
+    print.info('  • Authentication auto-detection');
+    print.info('  • Comprehensive request/response handling');
+    console.log();
+    print.info('Next steps:');
+    print.info('  • Try streaming: ./scripts/examples/typescript/streaming-client.ts');
+    print.info('  • Explore sessions: ./scripts/examples/typescript/session-continuity.ts');
+    print.info('  • View JavaScript examples: ./scripts/examples/javascript/');
+    print.info('  • Read setup guide: ./docs/examples/SETUP_GUIDE.md');
+    
   } catch (error) {
-    console.error('\n❌ Examples failed:', error);
-    console.log('\n🔧 Troubleshooting:');
-    console.log('   • Make sure the claude-wrapper server is running');
-    console.log('   • Check if API_KEY environment variable is set correctly');
-    console.log('   • Verify the server URL is accessible');
-    console.log('   • Check server logs for additional error details');
+    print.error('Example execution failed:');
+    
+    if (error instanceof ClaudeWrapperError) {
+      console.error(`  ${error.message}`);
+      if (config.verbose && error.cause) {
+        console.error(`  Caused by: ${error.cause}`);
+      }
+    } else {
+      console.error(`  ${error}`);
+    }
+    
+    console.log();
+    print.info('Troubleshooting:');
+    print.info('  • Ensure the claude-wrapper server is running');
+    print.info('  • Check your authentication configuration');
+    print.info('  • Verify network connectivity');
+    print.info('  • Review the setup guide: ./docs/examples/SETUP_GUIDE.md');
+    
     process.exit(1);
   }
 }
 
-/**
- * Show usage information
- */
-function showUsage(): void {
-  console.log('Usage: tsx basic-usage.ts [options]');
-  console.log('');
-  console.log('Options:');
-  console.log('  -h, --help         Show this help message');
-  console.log('  -v, --verbose      Enable verbose logging');
-  console.log('  --url=URL          Custom server URL (default: http://localhost:8000/v1)');
-  console.log('');
-  console.log('Environment variables:');
-  console.log('  API_KEY              API key for authentication (if required)');
-  console.log('  CLAUDE_WRAPPER_URL   Base URL for the server');
-  console.log('');
-  console.log('Examples:');
-  console.log('  tsx basic-usage.ts                    # Run with default settings');
-  console.log('  tsx basic-usage.ts --verbose          # Enable verbose output');
-  console.log('  tsx basic-usage.ts --url=http://localhost:3000/v1  # Custom URL');
-  console.log('  API_KEY=abc123 tsx basic-usage.ts     # With API key');
-  console.log('');
-  console.log('Installation:');
-  console.log('  npm install -g tsx                    # Install tsx globally');
-  console.log('  npm install openai                    # Install OpenAI SDK');
-  console.log('');
-}
-
 // Handle command line arguments
-if (process.argv.includes('--help') || process.argv.includes('-h')) {
-  showUsage();
-  process.exit(0);
+function handleArguments(): void {
+  const args = process.argv.slice(2);
+  
+  if (args.includes('--help') || args.includes('-h')) {
+    console.log('Usage: npx tsx basic-usage.ts [options]');
+    console.log();
+    console.log('Options:');
+    console.log('  -h, --help     Show this help message');
+    console.log('  -v, --verbose  Enable verbose output');
+    console.log();
+    console.log('Environment variables:');
+    console.log('  CLAUDE_WRAPPER_URL  Server URL (default: http://localhost:8000/v1)');
+    console.log('  API_KEY            API key for authentication (if required)');
+    console.log('  VERBOSE           Enable verbose output (true/false)');
+    console.log('  TIMEOUT           Request timeout in ms (default: 30000)');
+    console.log();
+    console.log('Examples:');
+    console.log('  npx tsx basic-usage.ts                    # Basic usage');
+    console.log('  npx tsx basic-usage.ts --verbose          # Verbose output');
+    console.log('  API_KEY=your-key npx tsx basic-usage.ts   # With API key');
+    console.log('  VERBOSE=true npx tsx basic-usage.ts       # Verbose via env');
+    process.exit(0);
+  }
+  
+  if (args.includes('--verbose') || args.includes('-v')) {
+    config.verbose = true;
+  }
 }
 
-// Run the examples
+// Script execution
 if (require.main === module) {
-  main().catch(error => {
-    console.error('Fatal error:', error);
+  handleArguments();
+  main().catch((error) => {
+    print.error('Unhandled error:');
+    console.error(error);
     process.exit(1);
   });
 }
 
-export { ClaudeWrapperClient, type ExampleConfig, type AuthConfig };
+export { main, createClient, Config };
