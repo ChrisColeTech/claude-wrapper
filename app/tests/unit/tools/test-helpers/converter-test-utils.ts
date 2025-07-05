@@ -167,19 +167,17 @@ export function createSuccessfulConversionResult<T>(
   converted: T,
   sourceFormat: 'openai' | 'claude' = 'openai',
   targetFormat: 'openai' | 'claude' = 'claude',
-  overrides: Partial<ToolConversionResult<T>> = {}
-): ToolConversionResult<T> {
+  overrides: Partial<ToolConversionResult> = {}
+): ToolConversionResult {
   return {
     success: true,
     converted,
     errors: [],
-    conversionDetails: {
-      sourceFormat,
-      targetFormat,
-      toolsConverted: 1,
-      conversionTimeMs: 2,
-      dataFidelity: 1.0
-    },
+    warnings: [],
+    conversionTimeMs: 2,
+    sourceFormat,
+    targetFormat,
+    toolsConverted: 1,
     ...overrides
   };
 }
@@ -191,18 +189,16 @@ export function createFailedConversionResult<T>(
   errors: string[] = ['Conversion failed'],
   sourceFormat: 'openai' | 'claude' = 'openai',
   targetFormat: 'openai' | 'claude' = 'claude',
-  overrides: Partial<ToolConversionResult<T>> = {}
-): ToolConversionResult<T> {
+  overrides: Partial<ToolConversionResult> = {}
+): ToolConversionResult {
   return {
     success: false,
     errors,
-    conversionDetails: {
-      sourceFormat,
-      targetFormat,
-      toolsConverted: 0,
-      conversionTimeMs: 1,
-      dataFidelity: 0.0
-    },
+    warnings: [],
+    conversionTimeMs: 1,
+    sourceFormat,
+    targetFormat,
+    toolsConverted: 0,
     ...overrides
   };
 }
@@ -211,18 +207,22 @@ export function createFailedConversionResult<T>(
  * Creates a bidirectional conversion result for testing
  */
 export function createBidirectionalResult<T, U>(
-  forwardResult: ToolConversionResult<T>,
-  backwardResult: ToolConversionResult<U>,
+  forwardResult: ToolConversionResult,
+  backwardResult: ToolConversionResult,
   dataFidelity: number = 1.0,
-  overrides: Partial<BidirectionalConversionResult<T, U>> = {}
-): BidirectionalConversionResult<T, U> {
+  overrides: Partial<BidirectionalConversionResult> = {}
+): BidirectionalConversionResult {
   return {
+    success: forwardResult.success && backwardResult.success,
+    errors: [...forwardResult.errors, ...backwardResult.errors],
+    dataFidelityPreserved: dataFidelity >= 0.95,
+    conversionTimeMs: (forwardResult.conversionTimeMs || 0) + (backwardResult.conversionTimeMs || 0),
     forwardConversion: forwardResult,
     backwardConversion: backwardResult,
     roundTripSuccess: forwardResult.success && backwardResult.success,
     dataFidelity,
-    totalTimeMs: (forwardResult.conversionDetails?.conversionTimeMs || 0) + 
-                 (backwardResult.conversionDetails?.conversionTimeMs || 0),
+    totalTimeMs: (forwardResult.conversionTimeMs || 0) + 
+                 (backwardResult.conversionTimeMs || 0),
     ...overrides
   };
 }
@@ -241,27 +241,27 @@ export async function measureConversionTime<T>(fn: () => Promise<T> | T): Promis
  * Common assertion helpers for conversion tests
  */
 export const ConversionTestAssertions = {
-  expectSuccessfulConversion: <T>(result: ToolConversionResult<T>) => {
+  expectSuccessfulConversion: <T>(result: ToolConversionResult) => {
     expect(result.success).toBe(true);
     expect(result.errors).toHaveLength(0);
     expect(result.converted).toBeDefined();
-    expect(result.conversionDetails).toBeDefined();
+    expect(result.conversionTimeMs).toBeGreaterThanOrEqual(0);
   },
 
-  expectFailedConversion: <T>(result: ToolConversionResult<T>, expectedErrors: number = 1) => {
+  expectFailedConversion: <T>(result: ToolConversionResult, expectedErrors: number = 1) => {
     expect(result.success).toBe(false);
     expect(result.errors).toHaveLength(expectedErrors);
     expect(result.converted).toBeUndefined();
   },
 
-  expectSuccessfulBidirectional: <T, U>(result: BidirectionalConversionResult<T, U>) => {
+  expectSuccessfulBidirectional: <T, U>(result: BidirectionalConversionResult) => {
     expect(result.roundTripSuccess).toBe(true);
     expect(result.forwardConversion.success).toBe(true);
     expect(result.backwardConversion.success).toBe(true);
     expect(result.dataFidelity).toBeGreaterThanOrEqual(0.9); // Allow 10% fidelity loss
   },
 
-  expectHighDataFidelity: <T, U>(result: BidirectionalConversionResult<T, U>, threshold: number = 0.95) => {
+  expectHighDataFidelity: <T, U>(result: BidirectionalConversionResult, threshold: number = 0.95) => {
     expect(result.dataFidelity).toBeGreaterThanOrEqual(threshold);
   },
 

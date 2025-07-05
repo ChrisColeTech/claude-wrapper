@@ -49,6 +49,12 @@ export interface BidirectionalConversionResult {
   errors: string[];
   dataFidelityPreserved: boolean;
   conversionTimeMs: number;
+  // Additional properties for test compatibility
+  forwardConversion?: ToolConversionResult;
+  backwardConversion?: ToolConversionResult;
+  roundTripSuccess?: boolean;
+  dataFidelity?: number;
+  totalTimeMs?: number;
 }
 
 /**
