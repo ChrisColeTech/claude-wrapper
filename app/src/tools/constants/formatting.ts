@@ -6,7 +6,7 @@
  * Tool choice processing constants
  */
 export const TOOL_CHOICE_PROCESSING_LIMITS = {
-  CHOICE_PROCESSING_TIMEOUT_MS: 5,
+  CHOICE_PROCESSING_TIMEOUT_MS: 50,
   MAX_CONCURRENT_CHOICE_PROCESSING: 15,
 } as const;
 

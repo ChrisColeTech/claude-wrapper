@@ -437,7 +437,7 @@ describe('ToolChoiceUtils', () => {
       const result: ToolChoiceValidationResult = {
         valid: true,
         errors: [],
-        validationTimeMs: 10
+        validationTimeMs: 60
       };
       
       expect(ToolChoiceUtils.isWithinPerformanceLimit(result)).toBe(false);

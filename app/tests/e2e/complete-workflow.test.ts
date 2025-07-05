@@ -20,18 +20,20 @@ describe('Phase 15A - End-to-End Complete Workflow Test Suite', () => {
   beforeAll(async () => {
     // Set up test environment
     process.env.NODE_ENV = 'test';
-    process.env.LOG_LEVEL = 'error';
+    process.env.LOG_LEVEL = 'debug'; // Enable debug logs for E2E tests
     
     // Find available port
     serverPort = await findAvailablePort();
     serverUrl = `http://localhost:${serverPort}`;
+    
+    logger.info(`Starting E2E test server on port ${serverPort}`);
     
     // Start server process for true E2E testing
     await startServerProcess();
     
     // Wait for server to be ready
     await waitForServerReady();
-  });
+  }, 60000); // Increase timeout for beforeAll hook
 
   afterAll(async () => {
     if (serverProcess) {
@@ -464,40 +466,77 @@ describe('Phase 15A - End-to-End Complete Workflow Test Suite', () => {
     return new Promise((resolve, reject) => {
       const serverPath = path.join(__dirname, '../../../dist/index.js');
       
+      logger.info(`Starting server process: node ${serverPath}`);
+      
       serverProcess = spawn('node', [serverPath], {
         env: {
           ...process.env,
           PORT: serverPort.toString(),
-          NODE_ENV: 'test'
+          NODE_ENV: 'test',
+          LOG_LEVEL: 'debug'
         },
         stdio: 'pipe'
       });
 
-      serverProcess.on('error', reject);
+      serverProcess.on('error', (error) => {
+        logger.error(`Server process error: ${error.message}`);
+        reject(error);
+      });
+
+      serverProcess.on('exit', (code, signal) => {
+        logger.info(`Server process exited with code ${code}, signal ${signal}`);
+      });
+
+      // Capture server output for debugging
+      if (serverProcess.stdout) {
+        serverProcess.stdout.on('data', (data) => {
+          logger.debug(`Server stdout: ${data.toString().trim()}`);
+        });
+      }
+
+      if (serverProcess.stderr) {
+        serverProcess.stderr.on('data', (data) => {
+          logger.debug(`Server stderr: ${data.toString().trim()}`);
+        });
+      }
       
-      // Wait a bit for server to start
-      setTimeout(resolve, 2000);
+      // Wait a bit longer for server to start in test mode
+      setTimeout(() => {
+        logger.info('Server startup timeout reached, proceeding to health checks');
+        resolve();
+      }, 5000);
     });
   }
 
   async function waitForServerReady(): Promise<void> {
-    const maxAttempts = 30;
-    const delayMs = 1000;
+    const maxAttempts = 15; // Reduce attempts since server should start faster now
+    const delayMs = 2000;   // Increase delay between attempts
+
+    logger.info(`Waiting for server at ${serverUrl} to become ready...`);
 
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       try {
-        const response = await request(serverUrl).get('/health');
+        logger.debug(`Health check attempt ${attempt + 1}/${maxAttempts}`);
+        const response = await request(serverUrl).get('/health').timeout(5000);
         if (response.status === 200) {
           logger.info(`Server ready after ${attempt + 1} attempts`);
           return;
         }
+        logger.debug(`Server responded with status ${response.status}`);
       } catch (error) {
-        // Server not ready yet
+        logger.debug(`Health check failed: ${error.message}`);
+        // Check if server process is still running
+        if (serverProcess && serverProcess.exitCode !== null) {
+          throw new Error(`Server process exited with code ${serverProcess.exitCode}`);
+        }
       }
       
-      await new Promise(resolve => setTimeout(resolve, delayMs));
+      if (attempt < maxAttempts - 1) {
+        logger.debug(`Waiting ${delayMs}ms before next attempt...`);
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
     }
 
-    throw new Error('Server failed to become ready within timeout');
+    throw new Error(`Server failed to become ready within ${maxAttempts * delayMs}ms timeout`);
   }
 });

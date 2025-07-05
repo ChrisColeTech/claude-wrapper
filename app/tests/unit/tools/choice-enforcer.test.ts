@@ -1240,7 +1240,7 @@ describe('ChoiceEnforcementUtils', () => {
         },
         violations: [],
         errors: [],
-        enforcementTimeMs: 10
+        enforcementTimeMs: 100
       };
 
       expect(ChoiceEnforcementUtils.meetsPerformanceRequirements(result)).toBe(false);

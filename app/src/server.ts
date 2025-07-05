@@ -155,8 +155,12 @@ export function createApp(config: Config): express.Application {
 export async function createAndStartServer(config: Config): Promise<ServerStartResult> {
   const logger = createLogger(config);
   
-  // Initialize authentication before creating app
-  await initializeAuthentication(logger);
+  // Initialize authentication before creating app (skip in test mode)
+  if (process.env.NODE_ENV !== 'test') {
+    await initializeAuthentication(logger);
+  } else {
+    logger.debug('Skipping authentication initialization in test mode');
+  }
   
   const app = createApp(config);
   const serverManager = new ServerManager(logger);

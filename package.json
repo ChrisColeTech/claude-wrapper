@@ -2,24 +2,24 @@
   "name": "claude-wrapper",
   "version": "1.0.0",
   "description": "OpenAI-compatible API wrapper for Claude Code CLI",
-  "main": "dist/index.js",
+  "main": "app/dist/index.js",
   "bin": {
-    "claude-wrapper": "dist/cli.js"
+    "claude-wrapper": "app/dist/cli.js"
   },
   "scripts": {
-    "build": "tsc",
-    "start": "node dist/index.js",
-    "dev": "tsx watch src/index.ts",
-    "test": "jest --passWithNoTests",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --config tests/jest.unit.config.js --coverage",
-    "test:performance": "node performance-test.js",
-    "test:stress": "node stress-test.js",
+    "build": "cd app && tsc",
+    "start": "node app/dist/cli.js",
+    "dev": "cd app && tsx watch src/index.ts",
+    "test": "cd app && jest --passWithNoTests",
+    "test:watch": "cd app && jest --watch",
+    "test:coverage": "cd app && jest --config tests/jest.unit.config.js --coverage",
+    "test:performance": "cd app && node performance-test.js",
+    "test:stress": "cd app && node stress-test.js",
     "test:phase3a": "npm run build && npm run test:performance",
     "test:phase3a:full": "npm run build && npm run test:performance && npm run test:stress",
-    "lint": "eslint src/**/*.ts",
-    "lint:fix": "eslint src/**/*.ts --fix",
-    "type-check": "tsc --noEmit"
+    "lint": "cd app && eslint src/**/*.ts",
+    "lint:fix": "cd app && eslint src/**/*.ts --fix",
+    "type-check": "cd app && tsc --noEmit"
   },
   "keywords": [
     "claude",

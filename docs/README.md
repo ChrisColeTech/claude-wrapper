@@ -1,279 +1,522 @@
-# Claude Code OpenAI Wrapper - Comprehensive Feature Analysis
+# Claude Wrapper
 
-This document provides a complete analysis of all features present in the Python implementation of the Claude Code OpenAI Wrapper, serving as the definitive reference for the Node.js port.
+[![npm version](https://badge.fury.io/js/claude-wrapper.svg)](https://badge.fury.io/js/claude-wrapper)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Node.js Version](https://img.shields.io/node/v/claude-wrapper.svg)](https://nodejs.org/en/download/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-4.9+-blue.svg)](https://www.typescriptlang.org/)
 
-## 📋 Overview
+**OpenAI-compatible API wrapper for Claude Code CLI**
 
-The Claude Code OpenAI Wrapper is a FastAPI-based service that provides an OpenAI-compatible API interface for Claude Code CLI. This allows applications designed for OpenAI's Chat Completions API to seamlessly integrate with Anthropic's Claude models through the Claude Code SDK.
+Transform your Claude Code CLI into a powerful HTTP API server with full OpenAI Chat Completions compatibility. Perfect for developers who want to integrate Claude's capabilities into OpenAI-based applications while maintaining security and control.
 
-## 🏗️ Core Architecture Components
+## 🛠️ Tools-First Philosophy
 
-### 1. **FastAPI Application Framework** (`main.py`)
-- **ASGI-compliant web server** with production-ready configuration
-- **Lifespan management** for startup/shutdown operations
-- **CORS middleware** with configurable origins
-- **Custom exception handling** for validation errors and HTTP exceptions
-- **Debug logging middleware** with detailed request/response tracking
-- **Health check endpoint** for monitoring
-- **Runtime API key generation** with interactive security configuration
+Claude Wrapper embraces the **OpenAI Tools API specification** with full user-defined function support:
 
-### 2. **Authentication System** (`auth.py`)
-- **Multi-provider authentication support**:
-  - **Anthropic API Key** authentication (`ANTHROPIC_API_KEY`)
-  - **AWS Bedrock** authentication (`CLAUDE_CODE_USE_BEDROCK=1`)
-  - **Google Vertex AI** authentication (`CLAUDE_CODE_USE_VERTEX=1`)
-  - **Claude Code CLI** authentication (fallback)
-- **Authentication validation** with detailed error reporting
-- **Environment variable management** for each auth method
-- **FastAPI endpoint protection** with Bearer token authentication
-- **Runtime API key support** for dynamic security
+### What This Means
+- **User-Defined Functions**: You define tools that Claude can call
+- **Client-Side Execution**: Tools execute in YOUR environment, not on the server
+- **Security First**: No server-side file access or command execution
+- **OpenAI Standard**: Uses standard `tools` array format from OpenAI specification
+- **MCP Compatible**: Works with your local MCP tool installations
 
-### 3. **Session Management System** (`session_manager.py`)
-- **Conversation session tracking** with unique session IDs
-- **Message history persistence** within session TTL
-- **Automatic session cleanup** with configurable intervals
-- **Session expiration** with customizable TTL (default 1 hour)
-- **Thread-safe operations** with locking mechanisms
-- **Session statistics** and monitoring capabilities
-- **Stateless and stateful** operation modes
+### How It Works
+1. **Define Tools**: Create function definitions with JSON schemas
+2. **Claude Calls**: Claude decides when and how to call your tools
+3. **You Execute**: Your client receives tool calls and executes them locally
+4. **Return Results**: Send results back to Claude for continued conversation
 
-### 4. **Message Processing** (`message_adapter.py`)
-- **OpenAI to Claude format conversion**
-- **Content filtering** for unsupported features:
-  - Thinking blocks removal
-  - Tool usage block filtering
-  - Image reference handling
-  - Attempt completion extraction
-- **Token estimation** for usage reporting
-- **System prompt extraction** from message arrays
-- **Content normalization** and cleanup
+This approach gives you **maximum flexibility** while maintaining **security** - Claude gets the power of tools without server-side execution risks.
 
-### 5. **Claude Code SDK Integration** (`claude_cli.py`)
-- **Python SDK wrapper** for Claude Code CLI
-- **Authentication environment management**
-- **Streaming and non-streaming** response support
-- **Error handling and recovery**
-- **Message parsing** for multiple SDK formats
-- **Metadata extraction** (costs, tokens, session info)
-- **SDK verification** and health checking
+## 🚀 Key Features
 
-### 6. **Parameter Validation** (`parameter_validator.py`)
-- **OpenAI parameter validation** with detailed error reporting
-- **Claude Code SDK compatibility** checking
-- **Custom header extraction** for Claude-specific options
-- **Model validation** against supported models
-- **Tool validation** for allowed/disallowed tools
-- **Permission mode validation**
-- **Compatibility reporting** with suggestions
+- **🔌 OpenAI Compatible**: Drop-in replacement for OpenAI Chat Completions API
+- **🛠️ Tools-First Architecture**: Full OpenAI Tools API support with client-side execution
+- **🔐 Security Focused**: Optional API protection with user-controlled authentication
+- **📡 Real-time Streaming**: Server-Sent Events support for real-time responses
+- **🔄 Session Management**: Conversation continuity with session tracking
+- **⚡ Production Ready**: Daemon mode, health checks, and monitoring
+- **🎯 Multiple Auth Methods**: Anthropic, AWS Bedrock, Google Vertex AI, and CLI support
 
-### 7. **Data Models** (`models.py`)
-- **Pydantic models** for request/response validation
-- **OpenAI API compatibility** structures
-- **Content normalization** for multimodal support
-- **Session management** models
-- **Error response** standardization
-- **Streaming response** models
+## 📦 Installation
 
-## 🚀 API Endpoints
+```bash
+# Install globally from npm
+npm install -g claude-wrapper
+```
 
-### **Core Chat Completions**
-- **`POST /v1/chat/completions`** - Main chat endpoint with streaming/non-streaming support
-- **`GET /v1/models`** - List available Claude models
+## 🚀 Quick Start
 
-### **Authentication & Status**
-- **`GET /v1/auth/status`** - Claude Code authentication status
-- **`GET /health`** - Service health check
+### 1. Start the Server
 
-### **Session Management**
-- **`GET /v1/sessions`** - List all active sessions
-- **`GET /v1/sessions/{session_id}`** - Get specific session information
-- **`DELETE /v1/sessions/{session_id}`** - Delete specific session
-- **`GET /v1/sessions/stats`** - Session manager statistics
+```bash
+claude-wrapper
+```
 
-### **Development & Debug**
-- **`POST /v1/debug/request`** - Request validation debugging
-- **`POST /v1/compatibility`** - OpenAI compatibility analysis
+You'll see this prompt:
 
-## 🔧 Configuration Features
+```
+🔐 API Key Protection Setup
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+You can optionally protect your API endpoints with a bearer token.
+This adds an extra layer of security for remote access.
 
-### **Environment Variables**
-- **`DEBUG_MODE`** - Enable detailed debug logging
-- **`VERBOSE`** - Enable verbose logging
-- **`PORT`** - Server port configuration (default: 8000)
-- **`CORS_ORIGINS`** - CORS configuration (JSON array)
-- **`MAX_TIMEOUT`** - Claude Code CLI timeout (default: 600000ms)
-- **`CLAUDE_CWD`** - Working directory for Claude Code CLI
-- **`API_KEY`** - Static API key for endpoint protection
+If enabled, clients must include: Authorization: Bearer <token>
 
-### **Claude Code Authentication**
-- **`ANTHROPIC_API_KEY`** - Anthropic API key
-- **`CLAUDE_CODE_USE_BEDROCK`** - Enable AWS Bedrock
-- **`AWS_ACCESS_KEY_ID`** - AWS credentials
-- **`AWS_SECRET_ACCESS_KEY`** - AWS credentials
-- **`AWS_REGION`** - AWS region
-- **`CLAUDE_CODE_USE_VERTEX`** - Enable Google Vertex AI
-- **`ANTHROPIC_VERTEX_PROJECT_ID`** - GCP project ID
-- **`CLOUD_ML_REGION`** - GCP region
-- **`GOOGLE_APPLICATION_CREDENTIALS`** - GCP credentials
+Would you like to enable API key protection? (y/N):
+```
 
-## 📊 Advanced Features
+**Press Enter** to skip (recommended for local development), then the server will start and check for Claude authentication.
 
-### **Streaming Support**
-- **Server-Sent Events (SSE)** for real-time responses
-- **Chunked response processing** with proper formatting
-- **Stream error handling** with graceful fallbacks
-- **Content filtering** during streaming
-- **Session integration** with streaming responses
+### 2. Configure Claude Authentication
 
-### **Tool Management**
-- **All 11 tools enabled by default** for full Claude Code power
-- **Configurable tool restrictions** (allowed/disallowed lists)
-- **Optional tool disabling** for speed optimization
-- **Permission mode support** for tool execution
+If you don't have Claude credentials configured, the server will show an error. Set up one of these:
 
-### **Custom Headers Support**
-- **`X-Claude-Max-Turns`** - Control conversation length
-- **`X-Claude-Allowed-Tools`** - Specify allowed tools
-- **`X-Claude-Disallowed-Tools`** - Specify disallowed tools
-- **`X-Claude-Permission-Mode`** - Set permission mode
-- **`X-Claude-Max-Thinking-Tokens`** - Limit thinking tokens
+```bash
+# Anthropic API (easiest)
+export ANTHROPIC_API_KEY="your-api-key-here"
+claude-wrapper
 
-### **Error Handling**
-- **Structured error responses** matching OpenAI format
-- **Detailed validation errors** with field-level feedback
-- **Authentication error handling** with helpful messages
-- **Timeout handling** for long-running requests
-- **Graceful degradation** for partial failures
+# Or use AWS Bedrock / Google Vertex AI / Claude CLI
+# (see Authentication section below)
+```
 
-### **Security Features**
-- **Interactive API key setup** during server startup
-- **Runtime API key generation** with secure tokens
-- **Bearer token authentication** for API endpoints
-- **CORS protection** with configurable origins
-- **Request validation** to prevent malicious input
+### 3. Test the API
 
-### **Monitoring & Observability**
-- **Comprehensive logging** with configurable levels
-- **Request/response debugging** in debug mode
-- **Performance timing** for request processing
-- **Session statistics** for usage monitoring
-- **Authentication status** reporting
+```bash
+curl -X POST http://localhost:8000/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "claude-3-5-sonnet-20241022",
+    "messages": [
+      {"role": "user", "content": "Hello, Claude!"}
+    ]
+  }'
+```
 
-## 🔄 OpenAI API Compatibility
+### 4. Use with OpenAI SDK
 
-### **Supported Parameters**
-- **`model`** - Claude model selection
-- **`messages`** - Conversation messages
-- **`stream`** - Streaming response control
-- **`session_id`** - Custom session management
-- **`enable_tools`** - Tool activation control
-- **`user`** - User identification for logging
+```javascript
+import OpenAI from 'openai';
 
-### **Unsupported Parameters (with warnings)**
-- **`temperature`** - Not supported by Claude Code SDK
-- **`top_p`** - Not supported by Claude Code SDK
-- **`n`** - Only single responses supported
-- **`max_tokens`** - Use `max_turns` instead
-- **`presence_penalty`** - Not supported
-- **`frequency_penalty`** - Not supported
-- **`logit_bias`** - Not supported
-- **`stop`** - Not supported
+const client = new OpenAI({
+  baseURL: 'http://localhost:8000/v1',
+  apiKey: 'not-needed' // Optional API key protection
+});
 
-### **Extensions to OpenAI API**
-- **`session_id`** - Conversation continuity
-- **`disable_tools`** - Speed optimization (tools enabled by default)
-- **Custom headers** for Claude-specific parameters
+const response = await client.chat.completions.create({
+  model: 'claude-3-5-sonnet-20241022',
+  messages: [
+    { role: 'user', content: 'Explain quantum computing' }
+  ]
+});
+```
 
-## 🧪 Testing Infrastructure
+## 🚀 CLI Usage Examples
 
-### **Test Categories**
-- **Basic functionality** (`test_basic.py`)
-- **Endpoint testing** (`test_endpoints.py`)
-- **Parameter mapping** (`test_parameter_mapping.py`)
-- **Session management** (`test_session_*.py`)
-- **Content filtering** (`test_textblock_fix.py`)
-- **Streaming responses** (`test_non_streaming.py`)
+### Basic Server Management
 
-### **Example Implementations**
-- **cURL examples** (`curl_example.sh`)
-- **OpenAI SDK integration** (`openai_sdk.py`)
-- **Session continuity** (`session_continuity.py`)
-- **Streaming examples** (`streaming.py`)
+```bash
+# Start on default port 8000
+claude-wrapper
 
-## 🏃 Runtime Behavior
+# Custom port (two ways)
+claude-wrapper 3000
+claude-wrapper --port 3000
 
-### **Server Startup Sequence**
-1. **Environment variable loading** from `.env` file
-2. **Debug mode configuration** and logging setup
-3. **Interactive API key setup** (if not configured)
-4. **Claude Code authentication** validation
-5. **CLI verification** with test query
-6. **Session manager initialization**
-7. **Automatic cleanup task** startup
-8. **Port availability checking** with fallback
+# Skip API protection prompt
+claude-wrapper --no-interactive
+```
 
-### **Request Processing Flow**
-1. **API key validation** (if configured)
-2. **Request model validation** against Pydantic schemas
-3. **Claude Code authentication** verification
-4. **Custom header extraction** for Claude options
-5. **Session message processing** (if session_id provided)
-6. **Message format conversion** (OpenAI → Claude)
-7. **Content filtering** for unsupported features
-8. **Claude Code SDK execution** with proper options
-9. **Response processing** and format conversion
-10. **Session state updates** (if applicable)
+### Development & Debugging
 
-### **Error Recovery**
-- **Port conflicts** resolved with automatic port finding
-- **Authentication failures** with detailed guidance
-- **Request validation** with helpful error messages
-- **SDK errors** with graceful fallbacks
-- **Session cleanup** for expired sessions
+```bash
+# Verbose logging
+claude-wrapper --verbose
 
-## 📈 Performance Considerations
+# Debug mode with verbose
+claude-wrapper --debug --verbose
 
-### **Optimization Features**
-- **Automatic session cleanup** to prevent memory leaks
-- **Connection pooling** through FastAPI/Uvicorn
-- **Streaming responses** for better perceived performance
-- **Efficient message filtering** with compiled regex patterns
-- **Minimal token estimation** for usage reporting
+# Custom port with debugging
+claude-wrapper --port 8080 --debug --verbose
+```
 
-### **Resource Management**
-- **Configurable timeouts** for long-running operations
-- **Session TTL management** with automatic expiration
-- **Memory-efficient message storage** in sessions
-- **Graceful shutdown** with cleanup operations
+### Daemon Mode (Background Server)
 
-## 🔧 Deployment Features
+```bash
+# Start background server
+claude-wrapper --start
 
-### **Production Readiness**
-- **ASGI-compatible** for production deployment
-- **Environment-based configuration**
-- **Health check endpoints** for load balancers
-- **Structured logging** for monitoring systems
-- **Error tracking** with detailed context
-- **Graceful shutdown** handling
+# Start background with custom port
+claude-wrapper --start --port 3000
 
-### **Docker Compatibility**
-- **Environment variable configuration**
-- **Port configuration** with fallbacks
-- **Working directory** support for Claude Code CLI
-- **Credential management** for cloud deployments
+# Check if running
+claude-wrapper --status
 
-## 📚 Dependencies
+# Stop background server
+claude-wrapper --stop
+```
 
-### **Core Dependencies**
-- **FastAPI** - Web framework with automatic API documentation
-- **Uvicorn** - ASGI server for production deployment
-- **Pydantic** - Data validation and serialization
-- **Claude Code SDK** - Python integration for Claude Code CLI
-- **python-dotenv** - Environment variable management
+### Real-World Scenarios
 
-### **Development Dependencies**
-- **pytest** - Testing framework
-- **requests** - HTTP client for testing
-- **poetry** - Dependency management and packaging
+```bash
+# Production server
+claude-wrapper --port 80 --no-interactive
 
-This comprehensive analysis covers all features, capabilities, and implementation details of the Python Claude Code OpenAI Wrapper, providing the complete foundation needed for the Node.js port.
+# Development with debug
+claude-wrapper 8080 --debug --verbose
+
+# Secure remote server
+claude-wrapper --port 443
+# (then answer 'y' to API protection prompt)
+```
+
+## 📋 All CLI Options
+
+```bash
+Usage: claude-wrapper [options] [port]
+
+Arguments:
+  port               Port to run server on (default: 8000)
+
+Options:
+  -V, --version      Output the version number
+  -p, --port <port>  Port to run server on (default: 8000)
+  -v, --verbose      Enable verbose logging
+  -d, --debug        Enable debug mode
+  --no-interactive   Disable interactive API key setup
+  --start            Start server in background (daemon mode)
+  --stop             Stop background server
+  --status           Check background server status
+  -h, --help         Display help for command
+```
+
+## 🔐 Understanding Authentication vs API Protection
+
+### Claude Authentication (Required)
+- **Purpose**: Authenticate with Claude services (Anthropic/Bedrock/Vertex)
+- **Required**: Yes, or the server won't work
+- **Setup**: Environment variables before starting
+
+### API Protection (Optional)
+- **Purpose**: Protect your local server endpoints with Bearer tokens
+- **Required**: No, purely optional
+- **Setup**: Interactive prompt when starting server
+
+## 🔐 Authentication Methods
+
+### Option 1: Anthropic Direct
+
+```bash
+export ANTHROPIC_API_KEY="your-api-key-here"
+claude-wrapper
+```
+
+### Option 2: AWS Bedrock
+
+```bash
+export CLAUDE_CODE_USE_BEDROCK=1
+export AWS_ACCESS_KEY_ID="your-access-key"
+export AWS_SECRET_ACCESS_KEY="your-secret-key"
+export AWS_REGION="us-east-1"
+claude-wrapper
+```
+
+### Option 3: Google Vertex AI
+
+```bash
+export CLAUDE_CODE_USE_VERTEX=1
+export ANTHROPIC_VERTEX_PROJECT_ID="your-project-id"
+export GOOGLE_APPLICATION_CREDENTIALS="path/to/credentials.json"
+claude-wrapper
+```
+
+### Option 4: Claude CLI
+
+```bash
+# Uses existing Claude CLI authentication
+claude-wrapper
+```
+
+## 🛠️ OpenAI Tools API Examples
+
+Define tools that Claude can call, with execution handled by your client:
+
+```javascript
+const response = await client.chat.completions.create({
+  model: 'claude-3-5-sonnet-20241022',
+  messages: [
+    { role: 'user', content: 'Read the file config.json' }
+  ],
+  tools: [
+    {
+      type: 'function',
+      function: {
+        name: 'read_file',
+        description: 'Read content from a file',
+        parameters: {
+          type: 'object',
+          properties: {
+            path: {
+              type: 'string',
+              description: 'Path to the file to read'
+            }
+          },
+          required: ['path']
+        }
+      }
+    }
+  ],
+  tool_choice: 'auto'
+});
+
+// Claude will return a tool call that you execute in your environment
+if (response.choices[0].message.tool_calls) {
+  const toolCall = response.choices[0].message.tool_calls[0];
+  const args = JSON.parse(toolCall.function.arguments);
+  
+  // Execute the tool in YOUR environment
+  const fileContent = fs.readFileSync(args.path, 'utf8');
+  
+  // Send the result back to Claude
+  const followUp = await client.chat.completions.create({
+    model: 'claude-3-5-sonnet-20241022',
+    messages: [
+      ...previousMessages,
+      response.choices[0].message,
+      {
+        role: 'tool',
+        tool_call_id: toolCall.id,
+        content: fileContent
+      }
+    ]
+  });
+}
+```
+
+### Example Tools You Can Define
+- File operations (read/write files in your project)
+- API calls to your services
+- Database queries
+- System commands
+- Custom business logic
+- Integration with your development tools
+
+## 🔄 Daemon Mode Examples
+
+### Basic Daemon Operations
+
+```bash
+# Start daemon
+$ claude-wrapper --start
+✅ Server started in background
+   PID: 12345
+   Port: 8000
+   Logs: /tmp/claude-wrapper.log
+   Stop: claude-wrapper --stop
+
+# Check status
+$ claude-wrapper --status
+📊 Server Status: RUNNING
+   PID: 12345
+   Logs: /tmp/claude-wrapper.log
+   Health: ✅ OK (port 8000)
+
+# Stop daemon
+$ claude-wrapper --stop
+✅ Server stopped (PID: 12345)
+```
+
+## 📡 API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/v1/chat/completions` | Main chat completions with streaming support |
+| `GET` | `/v1/models` | List available Claude models |
+| `GET` | `/v1/auth/status` | Claude Code authentication status |
+| `GET` | `/health` | Service health check |
+| `GET` | `/v1/sessions` | List active sessions |
+| `POST` | `/v1/sessions` | Create new session |
+| `DELETE` | `/v1/sessions/{id}` | Delete specific session |
+
+### Available Models
+
+- `claude-3-5-sonnet-20241022` (Latest)
+- `claude-3-5-haiku-20241022`
+- `claude-3-opus-20240229`
+- `claude-3-sonnet-20240229`
+- `claude-3-haiku-20240307`
+
+## ⚙️ Configuration
+
+### Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `PORT` | Server port | `8000` |
+| `API_KEY` | Optional API protection | `none` |
+| `DEBUG_MODE` | Enable debug logging | `false` |
+| `VERBOSE` | Enable verbose logging | `false` |
+| `CORS_ORIGINS` | Allowed CORS origins | `["*"]` |
+| `MAX_TIMEOUT` | Request timeout (ms) | `600000` |
+
+### Custom Headers
+
+| Header | Description | Type |
+|--------|-------------|------|
+| `X-Claude-Max-Turns` | Maximum conversation turns | `integer` |
+| `X-Claude-Permission-Mode` | Permission mode | `default`, `acceptEdits`, `bypassPermissions` |
+| `X-Claude-Max-Thinking-Tokens` | Maximum thinking tokens | `integer` |
+
+## 🛠️ Development
+
+### Prerequisites
+
+- **Node.js**: 18.0.0 or higher
+- **npm**: 8.0.0 or higher
+- **TypeScript**: 4.9.0 or higher
+- **Claude Code CLI** (automatically installed as optional dependency)
+
+### Development Commands
+
+```bash
+# Clone the repository
+git clone https://github.com/ChrisColeTech/claude-wrapper.git
+cd claude-wrapper
+
+# Install dependencies
+npm install
+
+# Build the project
+npm run build
+
+# Development with hot reload
+npm run dev
+
+# Run tests
+npm test
+npm run test:watch
+npm run test:coverage
+
+# Performance tests
+npm run test:performance
+npm run test:stress
+
+# Code quality
+npm run lint
+npm run lint:fix
+npm run type-check
+
+# Install CLI globally for testing
+npm install -g .
+```
+
+### Project Structure
+
+See [PROJECT_STRUCTURE.md](docs/PROJECT_STRUCTURE.md) for detailed codebase organization and file mapping.
+
+## 🚀 Production Deployment
+
+### Docker Deployment
+
+```dockerfile
+FROM node:18-alpine
+
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+
+COPY . .
+RUN npm run build
+
+EXPOSE 8000
+ENV NODE_ENV=production
+
+CMD ["claude-wrapper", "--no-interactive"]
+```
+
+```bash
+# Build and run
+docker build -t claude-wrapper .
+docker run -p 8000:8000 \
+  -e ANTHROPIC_API_KEY="your-key" \
+  claude-wrapper
+```
+
+### Environment Setup
+
+```bash
+# Production environment variables
+export NODE_ENV=production
+export PORT=8000
+export ANTHROPIC_API_KEY="your-production-key"
+export API_KEY="secure-api-protection-key"
+export CORS_ORIGINS='["https://your-domain.com"]'
+export MAX_TIMEOUT=300000
+
+# Start in production mode
+claude-wrapper --no-interactive
+```
+
+## 🔧 Troubleshooting
+
+### Common Issues
+
+#### Authentication Errors
+
+```bash
+# Check authentication status
+curl http://localhost:8000/v1/auth/status
+
+# Test with debug mode
+claude-wrapper --debug --verbose
+
+# Verify environment variables
+echo $ANTHROPIC_API_KEY
+```
+
+#### Port Already in Use
+
+```bash
+# Use a different port
+claude-wrapper --port 3001
+
+# Or find what's using the port
+lsof -i :8000
+```
+
+#### Debug Mode
+
+```bash
+# Full debug output
+claude-wrapper --debug --verbose
+```
+
+## 🤝 Contributing
+
+We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
+
+### Development Guidelines
+
+1. Follow TypeScript strict mode
+2. Maintain 100% test coverage
+3. Use conventional commits
+4. Update documentation
+
+## 📄 License
+
+MIT License - see [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- **Anthropic** for the powerful Claude models and Claude Code CLI
+- **OpenAI** for the standardized Chat Completions API
+- **The open source community** for the foundational tools and libraries
+
+---
+
+⭐ **Star this repository** if you find it useful!  
+🐛 **Report issues** or suggest features  
+🔧 **Contribute** to make it even better!
+
+**Get started today** - `npm install -g claude-wrapper` and unlock Claude's power in your existing OpenAI applications!

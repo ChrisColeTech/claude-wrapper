@@ -1,513 +1,207 @@
-# Claude Code OpenAI API Wrapper
+# Claude Wrapper
 
-[![CI Status](https://github.com/ChrisColeTech/claude-wrapper/workflows/Continuous%20Integration/badge.svg)](https://github.com/ChrisColeTech/claude-wrapper/actions)
-[![Node Version](https://img.shields.io/node/v/claude-wrapper.svg)](https://nodejs.org/)
-[![Platform Support](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-blue.svg)](https://github.com/ChrisColeTech/claude-wrapper)
-[![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![GitHub CI](https://github.com/ChrisColeTech/claude-wrapper/workflows/Continuous%20Integration/badge.svg)](https://github.com/ChrisColeTech/claude-wrapper/actions)
+[![NPM Publish](https://github.com/ChrisColeTech/claude-wrapper/workflows/Publish%20to%20NPM/badge.svg)](https://github.com/ChrisColeTech/claude-wrapper/actions)
+[![npm version](https://badge.fury.io/js/claude-wrapper.svg)](https://badge.fury.io/js/claude-wrapper)
+[![npm downloads](https://img.shields.io/npm/dm/claude-wrapper.svg)](https://www.npmjs.com/package/claude-wrapper)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Node.js Version](https://img.shields.io/node/v/claude-wrapper.svg)](https://nodejs.org/en/download/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-4.9+-blue.svg)](https://www.typescriptlang.org/)
+[![GitHub stars](https://img.shields.io/github/stars/ChrisColeTech/claude-wrapper?style=social)](https://github.com/ChrisColeTech/claude-wrapper/stargazers)
 
-An OpenAI API-compatible wrapper for Claude Code, allowing you to use Claude Code with any OpenAI client library. **Powered by the official Claude Code Node.js SDK** with comprehensive authentication support and advanced features.
+**OpenAI-compatible API wrapper for Claude Code CLI**
 
-## 📋 Current Status
+Transform your Claude Code CLI into a powerful HTTP API server with full OpenAI Chat Completions compatibility. Perfect for developers who want to integrate Claude's capabilities into OpenAI-based applications while maintaining security and control.
 
-🚧 **Active Development** - TypeScript port from production-ready Python version:
+## 🛠️ Tools-First Philosophy
 
-### ✅ **Completed Foundation**
-- ✅ Complete project architecture and documentation (7 comprehensive docs)
-- ✅ CLI with daemon mode, port management, and debug features
-- ✅ Express server with OpenAI-compatible endpoints and middleware
-- ✅ Multi-provider authentication system (4 auth methods)
-- ✅ Session management with in-memory storage (TTL-based)
-- ✅ Custom testing framework with automatic log cleanup
-- ✅ Production-ready error handling and CORS
-- ✅ Health monitoring and status endpoints
+Claude Wrapper embraces the **OpenAI Tools API specification** with full user-defined function support:
 
-### 🚧 **Current Development Phase**
-- 🟡 **Phase 1: Claude Service Foundation** - Core Claude SDK integration
-- 🟡 **Message format conversion** - OpenAI ↔ Claude format adapters
-- 🟡 **Real completions** - Non-streaming and streaming responses
+- **User-Defined Functions**: You define tools that Claude can call
+- **Client-Side Execution**: Tools execute in YOUR environment, not on the server
+- **Security First**: No server-side file access or command execution
+- **OpenAI Standard**: Uses standard `tools` array format from OpenAI specification
+- **MCP Compatible**: Works with your local MCP tool installations
 
-### 🔮 **Next Phases (Planned)**
-- ⚪ **Phase 2**: Model validation and selection
-- ⚪ **Phase 3**: Tools integration (11 Claude Code tools)
-- ⚪ **Phase 4**: Advanced features (system prompts, custom headers)
-- ⚪ **Phase 5**: Production hardening and monitoring
+This approach gives you **maximum flexibility** while maintaining **security** - Claude gets the power of tools without server-side execution risks.
 
-## 🎯 Features
+## 🚀 Key Features
 
-### 🔥 **Core API Compatibility**
-- OpenAI-compatible `/v1/chat/completions` endpoint
-- Support for both streaming and non-streaming responses
-- Compatible with OpenAI Node.js SDK and all OpenAI client libraries
-- Session continuity for multi-turn conversations
+- **🔌 OpenAI Compatible**: Drop-in replacement for OpenAI Chat Completions API
+- **🛠️ Tools-First Architecture**: Full OpenAI Tools API support with client-side execution
+- **🔐 Security Focused**: Optional API protection with user-controlled authentication
+- **📡 Real-time Streaming**: Server-Sent Events support for real-time responses
+- **🔄 Session Management**: Conversation continuity with session tracking
+- **⚡ Production Ready**: Daemon mode, health checks, and monitoring
+- **🎯 Multiple Auth Methods**: Anthropic, AWS Bedrock, Google Vertex AI, and CLI support
 
-### 🛠 **Claude Code SDK Integration**
-- **Official Claude Code Node.js SDK** integration
-- **Real-time cost tracking** from SDK metadata
-- **Accurate token counting** from Claude responses
-- **Session management** with conversation history
-- **Enhanced error handling** with detailed diagnostics
+## 📦 Installation
 
-### 🔐 **Multi-Provider Authentication**
-- **Automatic detection** of authentication method
-- **Claude CLI auth** - works with existing `claude auth` setup
-- **Direct API key** - `ANTHROPIC_API_KEY` environment variable
-- **AWS Bedrock** - enterprise authentication with AWS credentials
-- **Google Vertex AI** - GCP authentication support
+```bash
+# Install globally from npm
+npm install -g claude-wrapper
+```
 
-### ⚡ **Advanced CLI Features**
-- **Daemon mode** - Start/stop server in background
-- **Port management** - Automatic port conflict resolution
-- **Debug and verbose modes** - Comprehensive logging
-- **Interactive setup** - Optional API key protection
-- **Status monitoring** - Health checks and server status
+## 🛠️ Development
+
+```bash
+# Clone and setup
+git clone https://github.com/ChrisColeTech/claude-wrapper.git
+cd claude-wrapper
+npm install
+npm run build
+
+# Development commands
+npm run dev          # Hot reload
+npm test            # Run tests
+npm run lint        # Code quality
+
+# Install CLI globally for testing
+npm install -g .
+```
+
+See [PROJECT_STRUCTURE.md](docs/PROJECT_STRUCTURE.md) for detailed codebase organization.
 
 ## 🚀 Quick Start
 
-Get started in under 2 minutes:
+### 1. Start the Server
 
 ```bash
-# 1. Install Claude Code CLI (if not already installed)
-npm install -g @anthropic-ai/claude-code
+claude-wrapper
+```
 
-# 2. Authenticate (choose one method)
-claude auth login  # Recommended for development
-# OR set: export ANTHROPIC_API_KEY=your-api-key
+You'll see this prompt:
 
-# 3. Clone and setup the wrapper
-git clone https://github.com/ChrisColeTech/claude-wrapper
-cd claude-wrapper
-./scripts/init-app.sh
-cd app && npm install && npm run build
+```
+🔐 API Key Protection Setup
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+You can optionally protect your API endpoints with a bearer token.
+This adds an extra layer of security for remote access.
 
-# 4. Start the server
+If enabled, clients must include: Authorization: Bearer <token>
+
+Would you like to enable API key protection? (y/N):
+```
+
+**Press Enter** to skip (recommended for local development), then the server will start.
+
+### 2. Configure Claude Authentication
+
+Set up one of these authentication methods:
+
+```bash
+# Anthropic API (easiest)
+export ANTHROPIC_API_KEY="your-api-key-here"
 claude-wrapper
 
-# 5. Test it works
+# AWS Bedrock
+export CLAUDE_CODE_USE_BEDROCK=1
+# + AWS credentials
+
+# Google Vertex AI  
+export CLAUDE_CODE_USE_VERTEX=1
+# + GCP credentials
+
+# Claude CLI (uses existing auth)
+claude-wrapper
+```
+
+### 3. Test the API
+
+```bash
 curl -X POST http://localhost:8000/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
     "model": "claude-3-5-sonnet-20241022",
-    "messages": [{"role": "user", "content": "Hello!"}]
+    "messages": [
+      {"role": "user", "content": "Hello, Claude!"}
+    ]
   }'
 ```
 
-🎉 **That's it!** Your OpenAI-compatible Claude Code API is running on `http://localhost:8000`
 
-## 📦 Installation
-
-### Development Install
-```bash
-# Clone the repository
-git clone https://github.com/ChrisColeTech/claude-wrapper
-cd claude-wrapper
-
-# Initialize the application
-./scripts/init-app.sh
-cd app
-
-# Install dependencies and build
-npm install
-npm run build
-
-# Link globally for CLI access
-npm link
-```
-
-## 🔧 CLI Usage
-
-The `claude-wrapper` CLI provides comprehensive server management with daemon capabilities:
+## 🚀 CLI Usage
 
 ### Basic Commands
 
 ```bash
-# Start server (foreground)
+# Start on default port 8000
 claude-wrapper
 
-# Start with custom port
-claude-wrapper 8080
-claude-wrapper --port 9000
+# Custom port
+claude-wrapper 3000
+claude-wrapper --port 3000
 
-# Start in background (daemon mode)
-claude-wrapper --start
-
-# Check server status
-claude-wrapper --status
-
-# Stop background server
-claude-wrapper --stop
-
-# Show help
-claude-wrapper --help
-
-# Show version
-claude-wrapper --version
-```
-
-### Advanced Options
-
-```bash
-# Debug mode (detailed logging)
-claude-wrapper --debug
-
-# Verbose mode (verbose logging)
-claude-wrapper --verbose
-
-# Disable interactive setup
+# Skip API protection prompt
 claude-wrapper --no-interactive
 
-# Combined options
-claude-wrapper 8080 --debug --no-interactive
-claude-wrapper --start --port 9000 --verbose
-```
-
-### Complete CLI Reference
-
-| Option | Short | Description | Example |
-|--------|-------|-------------|---------|
-| `--port <port>` | `-p` | Set server port (1-65535) | `--port 8080` |
-| `--verbose` | `-v` | Enable verbose logging | `--verbose` |
-| `--debug` | `-d` | Enable debug mode | `--debug` |
-| `--no-interactive` | | Disable interactive setup | `--no-interactive` |
-| `--start` | | Start server in background | `--start` |
-| `--stop` | | Stop background server | `--stop` |
-| `--status` | | Check server status | `--status` |
-| `--help` | `-h` | Show help message | `--help` |
-| `--version` | `-V` | Show version | `--version` |
-
-### Daemon Mode Examples
-
-```bash
-# Start server in background on port 8080 with debug logging
-claude-wrapper --start --port 8080 --debug
-
-# Check if background server is running
-claude-wrapper --status
-# Output:
-# 📊 Server Status: RUNNING
-#    PID: 12345
-#    Logs: /tmp/claude-wrapper.log
-#    Health: ✅ OK (port 8080)
-
-# Stop background server
-claude-wrapper --stop
-# Output: ✅ Server stopped (PID: 12345)
-```
-
-### Port Conflict Handling
-
-The CLI automatically handles port conflicts:
-
-```bash
-claude-wrapper 8000
-# Output if port 8000 is busy:
-# ⚠️  Port 8000 is already in use. Finding alternative port...
-# 🚀 Server starting on http://localhost:8006
-# 📝 Update your client base_url to: http://localhost:8006/v1
-```
-
-## ⚙️ Configuration
-
-The server can be configured via environment variables or `.env` file:
-
-```env
-# Server Configuration
-PORT=8000                    # Server port (default: 8000)
-DEBUG_MODE=false             # Enable debug logging (default: false)
-VERBOSE=false                # Enable verbose logging (default: false)
-MAX_TIMEOUT=600000           # Request timeout in ms (default: 10 minutes)
-CORS_ORIGINS=["*"]           # CORS allowed origins (default: allow all)
-
-# Optional API Key Protection
-API_KEY=your-optional-key    # Server protection (if not set, interactive prompt)
-
-# Claude Authentication (choose one)
-ANTHROPIC_API_KEY=sk-ant-... # Direct API key
-# OR Claude CLI auth (claude auth login)
-# OR AWS Bedrock
-CLAUDE_CODE_USE_BEDROCK=1
-AWS_ACCESS_KEY_ID=...
-AWS_SECRET_ACCESS_KEY=...
-AWS_REGION=us-east-1
-# OR Google Vertex AI
-CLAUDE_CODE_USE_VERTEX=1
-GOOGLE_CLOUD_PROJECT=...
-GOOGLE_CLOUD_REGION=us-central1
-```
-
-### 🔐 Interactive API Key Protection
-
-The server supports interactive API key protection for secure remote access:
-
-```bash
-claude-wrapper
-# Output:
-# 🔐 API Endpoint Security Configuration
-# ===================================
-# Would you like to protect your API endpoint with an API key?
-# This adds a security layer when accessing your server remotely.
-# 
-# Enable API key protection? (y/N): y
-# 
-# 🔑 API Key Generated!
-# ===================================
-# API Key: Xf8k2mN9-vLp3qR5_zA7bW1cE4dY6sT0uI
-# ===================================
-```
-
-To disable interactive prompts:
-```bash
-claude-wrapper --no-interactive
-```
-
-## 📡 API Endpoints
-
-### Core Endpoints
-- `POST /v1/chat/completions` - OpenAI-compatible chat completions (supports `session_id`)
-- `GET /v1/models` - List available Claude models
-- `GET /health` - Health check endpoint
-- `GET /v1/auth/status` - Authentication status and configuration
-
-### Session Management
-- `GET /v1/sessions` - List active sessions
-- `GET /v1/sessions/{session_id}` - Get session details
-- `DELETE /v1/sessions/{session_id}` - Delete session
-- `GET /v1/sessions/stats` - Session manager statistics
-
-## 🧪 Usage Examples
-
-### Using curl
-
-```bash
-# Basic chat completion
-curl -X POST http://localhost:8000/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "claude-3-5-sonnet-20241022",
-    "messages": [
-      {"role": "user", "content": "What is 2 + 2?"}
-    ]
-  }'
-
-# With API key protection (when enabled)
-curl -X POST http://localhost:8000/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer your-generated-api-key" \
-  -d '{
-    "model": "claude-3-5-sonnet-20241022",
-    "messages": [
-      {"role": "user", "content": "Write a TypeScript hello world script"}
-    ],
-    "stream": true
-  }'
-
-# Session continuity
-curl -X POST http://localhost:8000/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "claude-3-5-sonnet-20241022",
-    "messages": [
-      {"role": "user", "content": "Remember my name is Alice"}
-    ],
-    "session_id": "my-conversation"
-  }'
-```
-
-### Using OpenAI Node.js SDK
-
-```javascript
-import OpenAI from 'openai';
-
-// Configure client
-const client = new OpenAI({
-    baseURL: "http://localhost:8000/v1",
-    apiKey: "your-api-key-if-protection-enabled"
-});
-
-// Basic chat completion
-const response = await client.chat.completions.create({
-    model: "claude-3-5-sonnet-20241022",
-    messages: [
-        {"role": "user", "content": "Explain TypeScript in simple terms"}
-    ]
-});
-
-console.log(response.choices[0].message.content);
-
-// Streaming response
-const stream = await client.chat.completions.create({
-    model: "claude-3-5-sonnet-20241022",
-    messages: [
-        {"role": "user", "content": "Write a Python script to sort a list"}
-    ],
-    stream: true
-});
-
-for await (const chunk of stream) {
-    if (chunk.choices[0]?.delta?.content) {
-        process.stdout.write(chunk.choices[0].delta.content);
-    }
-}
-
-// Session continuity
-const response1 = await client.chat.completions.create({
-    model: "claude-3-5-sonnet-20241022",
-    messages: [
-        {"role": "user", "content": "My name is Bob and I like Python."}
-    ],
-    session_id: "conversation-with-bob"
-});
-
-const response2 = await client.chat.completions.create({
-    model: "claude-3-5-sonnet-20241022",
-    messages: [
-        {"role": "user", "content": "What's my name and what language do I like?"}
-    ],
-    session_id: "conversation-with-bob"  // Same session
-});
-// Claude will remember: "Your name is Bob and you like Python."
-```
-
-## 🎯 Supported Models
-
-The wrapper supports all Claude models available through the Claude Code SDK:
-
-- `claude-sonnet-4-20250514` (Latest Sonnet)
-- `claude-opus-4-20250514` (Latest Opus)
-- `claude-3-7-sonnet-20250219`
-- `claude-3-5-sonnet-20241022`
-- `claude-3-5-haiku-20241022`
-
-Model validation is performed against actual Claude SDK capabilities.
-
-## 🔄 Development Workflow
-
-### Building and Testing
-
-```bash
-# Development mode with auto-reload
-npm run dev
-
-# Build for production
-npm run build
-
-# Run tests
-npm test
-
-# Type checking
-npm run type-check
-
-# Linting
-npm run lint
-npm run lint:fix
-
-# Full development cycle
-npm run build && npm test && npm run lint
-```
-
-### Development Status
-
-The project follows a systematic phase-based implementation plan:
-
-1. **Phase 1**: Claude Service Foundation (🚧 Current Phase)
-2. **Phase 2**: Message Format Conversion
-3. **Phase 3**: Model Selection and Validation
-4. **Phase 4**: Non-Streaming Completions
-5. **Phase 5**: Streaming Completions
-6. **Phase 6**: Tools Integration (11 Claude Code tools)
-7. **Phase 7**: Advanced Features Integration
-8. **Phase 8**: Production Hardening
-
-See `docs/claude-sdk-phases/` and `docs/IMPLEMENTATION_PLAN.md` for detailed implementation specifications.
-
-## 🛠 Troubleshooting
-
-### Common Issues
-
-1. **Claude CLI not found**:
-   ```bash
-   # Check Claude is installed and in PATH
-   which claude
-   claude --version
-   ```
-
-2. **Authentication errors**:
-   ```bash
-   # Test authentication
-   claude --print --model claude-3-5-haiku-20241022 "Hello"
-   
-   # Check auth status
-   curl http://localhost:8000/v1/auth/status
-   ```
-
-3. **Port conflicts**:
-   ```bash
-   # Use a different port
-   claude-wrapper --port 9000
-   
-   # Check what's using a port (Linux/macOS)
-   lsof -i :8000
-   ```
-
-4. **Server not starting**:
-   ```bash
-   # Check logs with debug mode
-   claude-wrapper --debug
-   
-   # For daemon mode, check logs
-   claude-wrapper --status
-   tail -f /tmp/claude-wrapper.log
-   ```
-
-### Debug Mode
-
-Enable comprehensive logging for troubleshooting:
-
-```bash
-# Start with debug logging
-claude-wrapper --debug
-
-# Or with verbose logging
-claude-wrapper --verbose
-
-# Both debug and verbose
+# Debug mode
 claude-wrapper --debug --verbose
 ```
 
-## 📚 Documentation
+### Daemon Mode
 
-- **[Architecture](docs/ARCHITECTURE.md)** - SOLID/DRY principles and anti-pattern prevention
-- **[Implementation Plan](docs/IMPLEMENTATION_PLAN.md)** - 15 feature-complete phases
-- **[API Reference](docs/API_REFERENCE.md)** - Complete endpoint documentation
-- **[Testing Guide](docs/TESTING.md)** - Custom testing framework with automatic log cleanup
-- **[Code Examples](docs/CODE_EXAMPLES.md)** - Python-to-TypeScript porting examples
-- **[Claude SDK Reference](docs/CLAUDE_SDK_REFERENCE.md)** - Node.js SDK integration patterns
-- **[Project Structure](docs/PROJECT_STRUCTURE.md)** - Centralized file organization reference
+```bash
+# Start in background
+claude-wrapper --start
 
-## 🤝 Contributing
+# Check status
+claude-wrapper --status
 
-Contributions are welcome! Please follow our development process:
+# Stop background server
+claude-wrapper --stop
+```
 
-1. Review the [Implementation Plan](docs/IMPLEMENTATION_PLAN.md) for current phases
-2. Follow [Architecture Guidelines](docs/ARCHITECTURE.md) with SOLID/DRY principles
-3. Use the [Testing Framework](docs/TESTING.md) with automatic log cleanup
-4. Reference [Code Examples](docs/CODE_EXAMPLES.md) for porting patterns
-5. Ensure comprehensive test coverage for all new code
+## 📋 All CLI Options
+
+```bash
+Usage: claude-wrapper [options] [port]
+
+Arguments:
+  port               Port to run server on (default: 8000)
+
+Options:
+  -V, --version      Output the version number
+  -p, --port <port>  Port to run server on (default: 8000)
+  -v, --verbose      Enable verbose logging
+  -d, --debug        Enable debug mode
+  --no-interactive   Disable interactive API key setup
+  --start            Start server in background (daemon mode)
+  --stop             Stop background server
+  --status           Check background server status
+  -h, --help         Display help for command
+```
+
+## 🔐 Authentication vs API Protection
+
+### Claude Authentication (Required)
+- **Purpose**: Authenticate with Claude services (Anthropic/Bedrock/Vertex)
+- **Required**: Yes, or the server won't work
+- **Setup**: Environment variables before starting
+
+### API Protection (Optional)
+- **Purpose**: Protect your local server endpoints with Bearer tokens
+- **Required**: No, purely optional
+- **Setup**: Interactive prompt when starting server
+
+## 📡 API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/v1/chat/completions` | Main chat completions with streaming support |
+| `GET` | `/v1/models` | List available Claude models |
+| `GET` | `/v1/auth/status` | Claude Code authentication status |
+| `GET` | `/health` | Service health check |
+| `GET` | `/v1/sessions` | List active sessions |
+
 
 ## 📄 License
 
-MIT License - see [LICENSE](LICENSE) for details.
-
-## 🔗 Links
-
-- **Repository**: [GitHub](https://github.com/ChrisColeTech/claude-wrapper)
-- **Issues**: [GitHub Issues](https://github.com/ChrisColeTech/claude-wrapper/issues)
-- **Claude Code**: [Official Claude Code CLI](https://github.com/anthropics/claude-code)
+MIT License - see [LICENSE](LICENSE) file for details.
 
 ---
 
-⭐ **Star this repo** if you find it useful!
+⭐ **Star this repository** if you find it useful!  
+🐛 **Report issues** or suggest features at [GitHub Issues](https://github.com/ChrisColeTech/claude-wrapper/issues)
 
-🐛 **Report issues** via [GitHub Issues](https://github.com/ChrisColeTech/claude-wrapper/issues)
-
-💡 **Request features** via [GitHub Issues](https://github.com/ChrisColeTech/claude-wrapper/issues)
+**Get started today** - `npm install -g claude-wrapper` and unlock Claude's power in your existing OpenAI applications!

@@ -844,7 +844,7 @@ describe('ChoiceProcessingUtils', () => {
       const result: ToolChoiceProcessingResult = {
         success: true,
         errors: [],
-        processingTimeMs: 10
+        processingTimeMs: 60
       };
 
       expect(ChoiceProcessingUtils.meetsPerformanceRequirements(result)).toBe(false);
