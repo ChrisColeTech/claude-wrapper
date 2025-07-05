@@ -180,15 +180,18 @@ Arguments:
   port               Port to run server on (default: 8000)
 
 Options:
-  -V, --version      Output the version number
-  -p, --port <port>  Port to run server on (default: 8000)
-  -v, --verbose      Enable verbose logging
-  -d, --debug        Enable debug mode
-  --no-interactive   Disable interactive API key setup
-  --start            Start server in background (daemon mode)
-  --stop             Stop background server
-  --status           Check background server status
-  -h, --help         Display help for command
+  -V, --version          Output the version number
+  -p, --port <port>      Port to run server on (default: 8000)
+  -v, --verbose          Enable verbose logging
+  -d, --debug            Enable debug mode
+  --api-key <key>        Set API key for endpoint protection
+  --no-interactive       Disable interactive API key setup
+  --production           Enable production server management features
+  --health-monitoring    Enable health monitoring system
+  --start                Start server in background (daemon mode)
+  --stop                 Stop background server
+  --status               Check background server status
+  -h, --help             Display help for command
 ```
 
 ## 🔐 Understanding Authentication vs API Protection
@@ -458,7 +461,42 @@ export MAX_TIMEOUT=300000
 claude-wrapper --no-interactive
 ```
 
+## 📚 Documentation
+
+### Core Documentation
+
+- **[API Reference](API_REFERENCE.md)** - Complete endpoint documentation with authentication details
+- **[Security Guide](SECURITY.md)** - Comprehensive security documentation including API key protection
+- **[Usage Examples](USAGE_EXAMPLES.md)** - Practical examples for all features and deployment scenarios
+- **[Troubleshooting Guide](TROUBLESHOOTING.md)** - Detailed solutions for common issues
+
+### Technical Documentation
+
+- **[Architecture Guide](ARCHITECTURE.md)** - System architecture including security component integration  
+- **[Implementation Rules](IMPLEMENTATION_RULES.md)** - Coding standards and best practices
+- **[Testing Guide](TESTING.md)** - Testing strategies and procedures
+- **[Project Structure](PROJECT_STRUCTURE.md)** - Codebase organization and file mapping
+
+### Development Documentation
+
+- **[Phase Implementation Plans](critical-gaps-phases/)** - Detailed development phases
+- **[Claude SDK Integration](claude-sdk-phases/)** - Claude SDK integration documentation
+- **[OpenAI Tools API](openai-tools-phases/)** - Tools API implementation details
+
 ## 🔧 Troubleshooting
+
+### Quick Diagnostics
+
+```bash
+# Check server status
+curl http://localhost:8000/health
+
+# Check authentication status  
+curl http://localhost:8000/v1/auth/status
+
+# Enable debug mode
+claude-wrapper --debug --verbose
+```
 
 ### Common Issues
 
@@ -485,12 +523,20 @@ claude-wrapper --port 3001
 lsof -i :8000
 ```
 
-#### Debug Mode
+#### API Key Protection Issues
 
 ```bash
-# Full debug output
-claude-wrapper --debug --verbose
+# Check security status
+curl http://localhost:8000/v1/auth/status | jq '.security_config'
+
+# Disable protection for testing
+claude-wrapper --no-interactive
+
+# Set API key directly
+claude-wrapper --api-key your-secure-key
 ```
+
+**For detailed troubleshooting, see [TROUBLESHOOTING.md](TROUBLESHOOTING.md)**
 
 ## 🤝 Contributing
 

@@ -1,10 +1,10 @@
-# Phase 04A & 04B: Production Server Management
+# Phase 03A & 03B: Production Server Management
 
-## Phase 04A: Production Server Management Implementation
+## Phase 03A: Production Server Management Implementation
 
 **Goal**: Implement robust production server management with automatic port conflict resolution  
 **Complete Feature**: Production-ready server management with enhanced startup and shutdown  
-**Dependencies**: Phase 03B must be 100% complete with all tests passing
+**Dependencies**: Phase 02B must be 100% complete with all tests passing
 **Claude SDK Reference**: main.py:835-887 - find_available_port() and run_server() functions
 **Performance Requirement**: Port scan <1s, server startup <3s, shutdown <2s
 
@@ -40,7 +40,7 @@ UPDATE: src/routes/health.ts - Add detailed health status reporting
   - **OCP**: Extensible for new server management strategies via strategy pattern
   - **LSP**: All server managers implement IProductionServerManager interface consistently
   - **ISP**: Separate interfaces for IPortManager, IHealthMonitor
-  - **DIP**: Depend on ISessionService from Phase 03 and session abstractions from prior phases
+  - **DIP**: Depend on ISessionService from Phase 02 and session abstractions from prior phases
 - **File Size Limits**: All files <200 lines, functions <50 lines, max 5 parameters
 - **DRY Compliance**: Extract common server management patterns to ServerManagementUtils
 - **No Magic numbers**: All port ranges and server configuration values in src/claude/constants.ts
@@ -58,19 +58,19 @@ UPDATE: src/routes/health.ts - Add detailed health status reporting
 
 ### Testing Requirements (MANDATORY)
 
-- **100% test coverage** for all production server management logic before proceeding to Phase 04B
+- **100% test passing** for all production server management logic before proceeding to Phase 03B
 - **Unit tests**: Port manager, production server manager, health monitor edge cases
 - **Integration tests**: Complete server lifecycle with port conflicts and health monitoring
 - **Mock objects**: Mock system ports for testing, real server lifecycle for integration
 - **Error scenario tests**: Port unavailable, startup failures, shutdown timeouts, health check failures
 - **Performance tests**: Port scan <1s, server startup <3s, shutdown <2s
 
-### Quality Gates for Phase 04A Completion
+### Quality Gates for Phase 03A Completion
 
 - ✅ All SOLID principles followed (verified via code review checklist)
 - ✅ No anti-patterns present (ESLint max-lines, complexity, depth rules pass)
-- ✅ 100% test coverage achieved (Jest coverage report)
-- ✅ **All tests must pass** before proceeding to Phase 04B (unit + integration + performance)
+- ✅ 100% test passing achieved (Jest passing report)
+- ✅ **All tests must pass** before proceeding to Phase 03B (unit + integration + performance)
 - ✅ TypeScript strict mode passes (tsc --strict --noEmit)
 - ✅ ESLint passes without warnings (npm run lint)
 - ✅ production server management demonstrable (integration test passing)
@@ -92,16 +92,15 @@ UPDATE: src/routes/health.ts - Add detailed health status reporting
 - Graceful shutdown with proper resource cleanup
 - Health monitoring with detailed status reporting
 - Error handling for all server management scenarios
-
 - **Ready for immediate demonstration** with production server management examples
 
 ---
 
-## Phase 04B: Production Server Management - Comprehensive Review
+## Phase 03B: Production Server Management - Comprehensive Review
 
 **Goal**: Ensure 100% production server management compatibility and production-quality implementation
 **Review Focus**: Reliability, robustness, and performance
-**Dependencies**: Phase 04A must be 100% complete with all tests passing
+**Dependencies**: Phase 03A must be 100% complete with all tests passing
 **Reference Standards**: `docs/CLAUDE_SDK_REFERENCE.md`, `docs/ARCHITECTURE.md`, `docs/IMPLEMENTATION_RULES.md`
 
 ### Comprehensive Review Requirements (MANDATORY)
@@ -116,7 +115,7 @@ UPDATE: src/routes/health.ts - Add detailed health status reporting
 #### 2. Test Quality Review
 
 - **Replace ALL placeholder tests** with real production server management functionality tests
-  - **Port Conflict Tests**: Simulate port conflicts and verify resolution.
+- **Port Conflict Tests**: Simulate port conflicts and verify resolution.
 - **Lifecycle Tests**: Test server startup, shutdown, and signal handling.
 - **Health Check Tests**: Verify health monitoring and reporting.
 - **Logging Tests**: Ensure logs are comprehensive and correctly formatted.
@@ -148,21 +147,21 @@ UPDATE: src/routes/health.ts - Add detailed health status reporting
 - **Operations Guide**: Provide instructions for operating the server in production.
 - **Health Checks**: Document the health monitoring endpoints and their meanings.
 
-### Quality Gates for Phase 04B Completion
+### Quality Gates for Phase 03B Completion
 
 - ✅ **100% production server management functionality verified**
 - ✅ **All production server management tests are comprehensive and production-ready** - no placeholders
 - ✅ **production server management integrates correctly** with Production server environment
 - ✅ **Architecture compliance achieved** - SOLID/DRY principles followed, ESLint passes
 - ✅ **Performance validation completed** - all speed requirements met (port scanning <1s, server startup <3s, graceful shutdown <2s)
-- ✅ **All tests must pass** before proceeding to Phase 05A (unit + integration + performance)
+- ✅ **All tests must pass** before proceeding to Phase 04A (unit + integration + performance)
 - ✅ **Documentation accuracy verified** - all docs reflect actual implementation
 
-### Failure Criteria (Phase 04B Must Restart)
+### Failure Criteria (Phase 03B Must Restart)
 
 - ❌ Port conflict resolution doesn't work or fails to find ports
 - ❌ Server startup unreliable or lacks proper validation
 - ❌ Graceful shutdown doesn't work or leaves resources uncleaned
 - ❌ Health monitoring incomplete or provides inaccurate status
 - ❌ Performance criteria not met (startup >3s, shutdown >2s)
-- ❌ Test coverage below 100% or tests failing
+- ❌ Test passing below 100% or tests failing

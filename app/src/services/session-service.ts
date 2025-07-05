@@ -273,6 +273,22 @@ export class SessionService {
   }
 
   /**
+   * Get count of expired sessions
+   * For Python compatibility in session stats
+   */
+  getExpiredSessionCount(): number {
+    try {
+      // For now, return 0 as expired sessions are cleaned up automatically
+      // In a more complete implementation, this could track expired session count
+      // before cleanup or query a persistent store for historical data
+      return 0;
+    } catch (error) {
+      logger.error('Failed to get expired session count', { error });
+      return 0;
+    }
+  }
+
+  /**
    * Get session with messages
    * For chat completion processing
    */

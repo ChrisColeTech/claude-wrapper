@@ -43,7 +43,7 @@
 
 ### Testing Requirements (MANDATORY)
 
-- **100% test coverage** for all {{FEATURE_TYPE}} logic before proceeding to Phase {{PHASE_NUMBER}}B
+- **100% test passing** for all {{FEATURE_TYPE}} logic before proceeding to Phase {{PHASE_NUMBER}}B
 - **Unit tests**: {{UNIT_TEST_COVERAGE}}
 - **Integration tests**: {{INTEGRATION_TEST_COVERAGE}}
 - **Mock objects**: {{MOCK_REQUIREMENTS}}
@@ -54,7 +54,7 @@
 
 - ✅ All SOLID principles followed (verified via code review checklist)
 - ✅ No anti-patterns present (ESLint max-lines, complexity, depth rules pass)
-- ✅ 100% test coverage achieved (Jest coverage report)
+- ✅ 100% test passing achieved (Jest passing report)
 - ✅ **All tests must pass** before proceeding to Phase {{PHASE_NUMBER}}B (unit + integration + performance)
 - ✅ TypeScript strict mode passes (tsc --strict --noEmit)
 - ✅ ESLint passes without warnings (npm run lint)

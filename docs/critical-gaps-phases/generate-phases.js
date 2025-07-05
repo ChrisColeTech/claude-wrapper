@@ -101,111 +101,10 @@ UPDATE: src/auth/middleware.ts - Enhance bearer token validation with generated 
 - ❌ CLI integration broken or flags non-functional
 - ❌ Error handling inadequate or confusing
 - ❌ Security vulnerabilities in key generation or storage
-- ❌ Test coverage below 100% or tests failing`,
+- ❌ Test passing below 100% or tests failing`,
   },
   {
     number: "02",
-    title: "Claude Code SDK Integration Verification",
-    goal: "Verify and complete real Claude Code SDK integration replacing all mock responses",
-    completeFeature:
-      "Real Claude Code SDK integration with verified functionality",
-    claudeReference:
-      "claude_cli.py:45-120 - ClaudeCodeCLI.run_completion() method",
-    performanceRequirement:
-      "Single completion <2s, streaming first chunk <500ms",
-    filesCreate: `CREATE: src/claude/verification.ts - SDK verification service with connection testing
-CREATE: src/claude/real-sdk-client.ts - Real SDK implementation replacing mocks
-CREATE: src/claude/sdk-factory.ts - Factory for SDK client creation with fallback logic
-CREATE: tests/unit/claude/verification.test.ts - SDK verification tests
-CREATE: tests/unit/claude/real-sdk-client.test.ts - Real SDK client tests
-CREATE: tests/integration/claude/sdk-integration.test.ts - End-to-end SDK integration tests
-UPDATE: src/claude/service.ts - Replace mock responses with real SDK calls
-UPDATE: src/claude/client.ts - Integrate real SDK client implementation
-UPDATE: package.json - Ensure @anthropic-ai/claude-code dependency is properly configured`,
-    implementationDetails: `- Load and verify real @anthropic-ai/claude-code SDK availability
-- Replace all mock responses with actual Claude API calls via SDK
-- Implement SDK verification with connection testing and health checks
-- Authentication integration with all 4 methods (Anthropic, Bedrock, Vertex, CLI)
-- Error handling for SDK unavailable, authentication failures, timeouts
-- Real streaming and non-streaming completion implementations
-- Metadata extraction from actual Claude responses (tokens, costs, timing)
-- Environment variable management for Claude Code SDK operation`,
-    srpRequirement:
-      "RealSDKClient handles only SDK communication operations (<200 lines)",
-    extensionType: "SDK implementation strategies",
-    componentType: "SDK clients",
-    interfaceName: "IRealSDKClient",
-    interfaceList: "ISDKVerification, IClaudeClient",
-    dependencyAbstractions:
-      "IAuthManager from Phase 01 and existing auth infrastructure",
-    patternType: "SDK integration",
-    utilsName: "SDKIntegrationUtils",
-    magicType: "strings",
-    constantType: "SDK configuration and timeout values",
-    errorType: "SDKIntegrationError",
-    errorInfo: "SDK operation status and connectivity information",
-    mainClass: "RealSDKClient",
-    focusArea: "Claude Code SDK integration",
-    logicType: "SDK communication",
-    ruleType: "SDK integration",
-    configType: "SDK configuration and authentication",
-    magicValues: "numbers",
-    constantExamples: "SDK_TIMEOUTS.CONNECTION, AUTH_RETRY_LIMITS.MAX_ATTEMPTS",
-    featureType: "Claude Code SDK integration",
-    unitTestCoverage:
-      "SDK client, verification service, factory creation edge cases",
-    integrationTestCoverage:
-      "Real Claude SDK integration with all authentication methods",
-    mockRequirements:
-      "Mock external SDK for unit tests, real SDK for integration tests",
-    errorScenarios:
-      "SDK unavailable, authentication failures, network timeouts, API errors",
-    performanceTests: "Single completion <2s, streaming first chunk <500ms",
-    compatibilityRequirement:
-      "Matches Python claude_cli.py SDK integration behavior exactly",
-    performanceCriteria: "single completion response <2s, SDK verification <1s",
-    compatibilityChecklist: `- ✅ Real @anthropic-ai/claude-code SDK loads and functions correctly
-- ✅ All mock responses replaced with actual Claude API calls
-- ✅ SDK verification confirms real connectivity to Claude services
-- ✅ Authentication works with all 4 methods (Anthropic, Bedrock, Vertex, CLI)
-- ✅ Error handling covers all SDK failure scenarios gracefully`,
-    testableFeatures: `- Real Claude Code SDK integration working with all auth methods
-- No mock responses in any completion endpoints
-- SDK verification and health checking functional
-- Error handling for all SDK failure scenarios
-- Performance requirements met with real SDK`,
-    demoType: "real Claude Code SDK integration",
-    reviewFocus:
-      "SDK integration correctness, authentication handling, error management",
-    auditTitle: "Claude SDK Integration Audit",
-    auditRequirements: `- **SDK Integration**: All mock responses must be replaced with actual Claude calls.
-- **Authentication**: All 4 authentication methods must be fully functional.
-- **Error Handling**: All SDK-related errors must be handled gracefully.
-- **Performance**: Must meet response time requirements for completions and streaming.`,
-    testReviewRequirements: `- **SDK Integration Tests**: Verify real SDK calls and responses.
-- **Authentication Tests**: Test all 4 auth methods with positive and negative cases.
-- **Performance Tests**: Measure completion and streaming performance against benchmarks.
-- **Error Handling Tests**: Simulate all possible SDK failure scenarios.`,
-    integrationValidation: `- **End-to-End Completions**: Test non-streaming and streaming completions with real SDK.
-- **Authentication Flow**: Verify full authentication lifecycle for all methods.
-- **Health Checks**: Ensure health checks accurately reflect SDK status.`,
-    performanceValidation: `- **Non-Streaming Completion**: <2s response time.
-- **Streaming First Chunk**: <500ms response time.
-- **SDK Verification**: <1s completion time.`,
-    documentationReview: `- **SDK Setup Guide**: Document how to configure and use the real SDK.
-- **Authentication Guide**: Detail all 4 authentication methods.
-- **Error Guide**: List all possible SDK errors and their solutions.`,
-    integrationTarget: "actual Claude Code SDK",
-    nextPhase: "03",
-    failureCriteria: `- ❌ Any mock responses remain in completion endpoints
-- ❌ SDK integration doesn't work with real Claude Code SDK
-- ❌ Authentication failures not handled properly for any method
-- ❌ Performance criteria not met (responses >2s, verification >1s)
-- ❌ SDK verification unreliable or health checks broken
-- ❌ Test coverage below 100% or tests failing`,
-  },
-  {
-    number: "03",
     title: "Complete Session Management Endpoints",
     goal: "Implement complete session management API endpoints matching Python functionality",
     completeFeature: "Full session management API with all CRUD operations",
@@ -236,7 +135,8 @@ UPDATE: src/models/session.ts - Add session API response models`,
     componentType: "session controllers",
     interfaceName: "ISessionController",
     interfaceList: "ISessionService, ISessionManager",
-    dependencyAbstractions: "IClaudeService from Phase 02 and SDK abstractions",
+    dependencyAbstractions:
+      "Existing auth middleware and interactive setup from Phase 01",
     patternType: "session management",
     utilsName: "SessionAPIUtils",
     magicType: "strings",
@@ -295,16 +195,16 @@ UPDATE: src/models/session.ts - Add session API response models`,
 - **Examples**: Provide examples for using the session management API.
 - **Session Lifecycle**: Document the session lifecycle and management.`,
     integrationTarget: "Session management API",
-    nextPhase: "04",
+    nextPhase: "03",
     failureCriteria: `- ❌ Any session endpoints missing or non-functional
 - ❌ Session operations don't match Python behavior or response format
 - ❌ Error handling inadequate or status codes incorrect
 - ❌ Performance criteria not met (operations exceed time limits)
 - ❌ Session data persistence unreliable or corrupted
-- ❌ Test coverage below 100% or tests failing`,
+- ❌ Test passing below 100% or tests failing`,
   },
   {
-    number: "04",
+    number: "03",
     title: "Production Server Management",
     goal: "Implement robust production server management with automatic port conflict resolution",
     completeFeature:
@@ -336,7 +236,7 @@ UPDATE: src/routes/health.ts - Add detailed health status reporting`,
     interfaceName: "IProductionServerManager",
     interfaceList: "IPortManager, IHealthMonitor",
     dependencyAbstractions:
-      "ISessionService from Phase 03 and session abstractions",
+      "ISessionService from Phase 02 and session abstractions",
     patternType: "server management",
     utilsName: "ServerManagementUtils",
     magicType: "numbers",
@@ -396,16 +296,16 @@ UPDATE: src/routes/health.ts - Add detailed health status reporting`,
 - **Operations Guide**: Provide instructions for operating the server in production.
 - **Health Checks**: Document the health monitoring endpoints and their meanings.`,
     integrationTarget: "Production server environment",
-    nextPhase: "05",
+    nextPhase: "04",
     failureCriteria: `- ❌ Port conflict resolution doesn't work or fails to find ports
 - ❌ Server startup unreliable or lacks proper validation
 - ❌ Graceful shutdown doesn't work or leaves resources uncleaned
 - ❌ Health monitoring incomplete or provides inaccurate status
 - ❌ Performance criteria not met (startup >3s, shutdown >2s)
-- ❌ Test coverage below 100% or tests failing`,
+- ❌ Test passing below 100% or tests failing`,
   },
   {
-    number: "05",
+    number: "04",
     title: "Comprehensive Error Handling",
     goal: "Implement comprehensive error handling system with detailed validation and debugging",
     completeFeature:
@@ -438,7 +338,7 @@ UPDATE: src/utils/logger.ts - Add error correlation and request tracking`,
     interfaceName: "IErrorClassifier",
     interfaceList: "IValidationHandler, IRequestIdManager",
     dependencyAbstractions:
-      "IProductionServerManager from Phase 04 and server abstractions",
+      "IProductionServerManager from Phase 03 and server abstractions",
     patternType: "error handling",
     utilsName: "ErrorHandlingUtils",
     magicType: "strings",
@@ -496,16 +396,16 @@ UPDATE: src/utils/logger.ts - Add error correlation and request tracking`,
 - **Debugging Guide**: Provide instructions for using request IDs and logs.
 - **Validation Errors**: Document the format of detailed validation errors.`,
     integrationTarget: "Global error handling middleware",
-    nextPhase: "06",
+    nextPhase: "05",
     failureCriteria: `- ❌ Error handling doesn't provide adequate detail or debugging information
 - ❌ Validation errors don't match Python format or lack field-level detail
 - ❌ Request ID tracking broken or inconsistent
 - ❌ Error classification inaccurate or status codes incorrect
 - ❌ Performance criteria not met (processing >25ms)
-- ❌ Test coverage below 100% or tests failing`,
+- ❌ Test passing below 100% or tests failing`,
   },
   {
-    number: "06",
+    number: "05",
     title: "Model Validation System",
     goal: "Implement comprehensive model validation system with Claude SDK capabilities",
     completeFeature:
@@ -537,7 +437,7 @@ UPDATE: src/claude/service.ts - Add model parameter validation before SDK calls`
     interfaceName: "IModelRegistry",
     interfaceList: "IModelValidator, IModelCapabilities",
     dependencyAbstractions:
-      "IErrorClassifier from Phase 05 and error handling abstractions",
+      "IErrorClassifier from Phase 04 and error handling abstractions",
     patternType: "model validation",
     utilsName: "ModelValidationUtils",
     magicType: "strings",
@@ -596,16 +496,16 @@ UPDATE: src/claude/service.ts - Add model parameter validation before SDK calls`
 - **API Reference**: Document the /v1/models endpoint.
 - **Error Reference**: Document model validation errors.`,
     integrationTarget: "Model validation system",
-    nextPhase: "07",
+    nextPhase: "06",
     failureCriteria: `- ❌ Model validation doesn't match Python supported models list
 - ❌ Invalid models not properly rejected or error messages unclear
 - ❌ Models endpoint doesn't return accurate capability information
 - ❌ Performance criteria not met (validation >10ms)
 - ❌ Integration with chat endpoints broken or incomplete
-- ❌ Test coverage below 100% or tests failing`,
+- ❌ Test passing below 100% or tests failing`,
   },
   {
-    number: "07",
+    number: "06",
     title: "Production Monitoring Features",
     goal: "Implement comprehensive production monitoring with session cleanup and performance tracking",
     completeFeature:
@@ -639,7 +539,7 @@ UPDATE: src/routes/health.ts - Enhance health endpoints with monitoring data`,
     interfaceName: "IPerformanceMonitor",
     interfaceList: "ICleanupService, ITimingMiddleware",
     dependencyAbstractions:
-      "IModelValidator from Phase 06 and validation abstractions",
+      "IModelValidator from Phase 05 and validation abstractions",
     patternType: "monitoring and cleanup",
     utilsName: "MonitoringUtils",
     magicType: "numbers",
@@ -699,16 +599,16 @@ UPDATE: src/routes/health.ts - Enhance health endpoints with monitoring data`,
 - **API Reference**: Document the monitoring API endpoints.
 - **Cleanup Guide**: Document the session cleanup service.`,
     integrationTarget: "Production monitoring system",
-    nextPhase: "08",
+    nextPhase: "07",
     failureCriteria: `- ❌ Performance monitoring inaccurate or missing key metrics
 - ❌ Session cleanup not operating automatically or statistics incorrect
 - ❌ Monitoring API endpoints non-functional or provide poor visibility
 - ❌ Performance criteria not met (overhead >5ms)
 - ❌ Resource monitoring unreliable or health checks inadequate
-- ❌ Test coverage below 100% or tests failing`,
+- ❌ Test passing below 100% or tests failing`,
   },
   {
-    number: "08",
+    number: "07",
     title: "Examples and Documentation",
     goal: "Create comprehensive examples and documentation matching Python implementation quality",
     completeFeature:

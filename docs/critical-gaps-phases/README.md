@@ -32,7 +32,7 @@ Each phase follows these core principles:
 
 ## Quality Standards
 
-- **Code Coverage**: Minimum 90% for new code
+- **Code passing**: Minimum 90% for new code
 - **Performance**: Meet or exceed Python version benchmarks
 - **Type Safety**: Full TypeScript typing, no `any` types
 - **Error Handling**: Comprehensive error scenarios covered

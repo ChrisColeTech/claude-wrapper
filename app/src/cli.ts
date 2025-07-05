@@ -13,6 +13,10 @@ import { createLogger } from './utils/logger';
 import { createAndStartServer } from './server';
 import { authManager } from './auth/auth-manager';
 import { promptForApiProtection } from './utils/interactive';
+import { createSecurityConfigManager } from './auth/security-config';
+import { ProductionServerManager } from './server/production-server-manager';
+import { healthMonitor, startHealthMonitoring } from './monitoring/health-monitor';
+import { createApp } from './server';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import * as fs from 'fs';
@@ -29,11 +33,14 @@ export interface CliOptions {
   verbose?: boolean;
   debug?: boolean;
   interactive?: boolean;
+  apiKey?: string;
   help?: boolean;
   version?: boolean;
   start?: boolean;
   stop?: boolean;
   status?: boolean;
+  production?: boolean;
+  healthMonitoring?: boolean;
 }
 
 /**
@@ -59,7 +66,10 @@ export class CliParser {
       .option('-p, --port <port>', 'port to run server on (default: 8000)')
       .option('-v, --verbose', 'enable verbose logging')
       .option('-d, --debug', 'enable debug mode')
+      .option('--api-key <key>', 'set API key for endpoint protection')
       .option('--no-interactive', 'disable interactive API key setup')
+      .option('--production', 'enable production server management with enhanced features')
+      .option('--health-monitoring', 'enable health monitoring system')
       .option('--start', 'start server in background (daemon mode)')
       .option('--stop', 'stop background server')
       .option('--status', 'check background server status')
@@ -145,6 +155,16 @@ export class CliParser {
         throw new Error(`Invalid port number: ${options.port}. Must be between 1 and 65535.`);
       }
     }
+
+    if (options.apiKey) {
+      // Basic API key validation
+      if (typeof options.apiKey !== 'string' || options.apiKey.trim().length < 8) {
+        throw new Error('API key must be at least 8 characters long.');
+      }
+      if (options.apiKey.length > 256) {
+        throw new Error('API key must be at most 256 characters long.');
+      }
+    }
   }
 }
 
@@ -153,6 +173,7 @@ export class CliParser {
  */
 export class CliRunner {
   private parser: CliParser;
+  private productionServerManager: ProductionServerManager | null = null;
 
   constructor() {
     this.parser = new CliParser();
@@ -193,6 +214,9 @@ export class CliRunner {
       if (options.debug) {
         process.env.DEBUG_MODE = 'true';
       }
+      if (options.production) {
+        process.env.NODE_ENV = 'production';
+      }
 
       // Reload config after setting environment variables
       const { loadEnvironmentConfig } = await import('./utils/env');
@@ -204,10 +228,12 @@ export class CliRunner {
       // Show startup banner
       console.log('\n🚀 Claude Code OpenAI Wrapper v1.0.0');
       console.log('==================================================');
-      console.log('Starting server...');
+      console.log(`Starting server... ${options.production ? '(Production Mode)' : '(Development Mode)'}`);
       console.log(`Port: ${updatedConfig.PORT}`);
       console.log(`Debug: ${updatedConfig.DEBUG_MODE ? 'enabled' : 'disabled'}`);
       console.log(`Verbose: ${updatedConfig.VERBOSE ? 'enabled' : 'disabled'}`);
+      console.log(`Production Features: ${options.production ? 'enabled' : 'disabled'}`);
+      console.log(`Health Monitoring: ${options.healthMonitoring ? 'enabled' : 'disabled'}`);
       console.log('==================================================\n');
       
       logger.info('Starting Claude Code OpenAI Wrapper', {
@@ -216,29 +242,101 @@ export class CliRunner {
           port: updatedConfig.PORT,
           verbose: updatedConfig.VERBOSE,
           debug: updatedConfig.DEBUG_MODE,
-          interactive: options.interactive !== false
+          interactive: options.interactive !== false,
+          production: options.production || false,
+          healthMonitoring: options.healthMonitoring || false
         }
       });
 
-      // Interactive API key setup (matches Python main.py lines 859-861)
-      // This MUST run BEFORE server start
-      if (options.interactive !== false) {
-        logger.debug('Running interactive API key setup...');
-        const runtimeApiKey = await promptForApiProtection();
-        if (runtimeApiKey) {
-          authManager.setApiKey(runtimeApiKey);
-          logger.info('Runtime API key configured for server protection');
+      // Initialize security configuration manager
+      const securityConfig = createSecurityConfigManager(authManager);
+
+      // Handle CLI API key flag
+      if (options.apiKey) {
+        logger.debug('Setting API key from CLI flag...');
+        const setResult = securityConfig.setApiKey(options.apiKey, 'runtime');
+        if (setResult.success) {
+          logger.info('API key configured from CLI flag');
+        } else {
+          throw new Error(`Invalid API key: ${setResult.message}`);
         }
       }
 
-      // Start the server with progress indicators
-      console.log('🔧 Initializing authentication providers...');
-      const result = await createAndStartServer(updatedConfig);
+      // Interactive API key setup (matches Python main.py lines 859-861)
+      // This MUST run BEFORE server start (skip if CLI key provided)
+      if (options.interactive !== false && !options.apiKey) {
+        logger.debug('Running interactive API key setup...');
+        const runtimeApiKey = await promptForApiProtection();
+        if (runtimeApiKey) {
+          const setResult = securityConfig.setApiKey(runtimeApiKey, 'runtime');
+          if (setResult.success) {
+            logger.info('Runtime API key configured for server protection');
+          } else {
+            logger.warn(`Interactive API key setup failed: ${setResult.message}`);
+          }
+        }
+      }
+
+      // Start health monitoring if enabled
+      if (options.healthMonitoring) {
+        console.log('🔍 Starting health monitoring system...');
+        startHealthMonitoring();
+        logger.info('Health monitoring system started');
+      }
+
+      let result: any;
+
+      if (options.production) {
+        // Use production server management
+        console.log('🔧 Initializing production server management...');
+        this.productionServerManager = new ProductionServerManager({
+          port: updatedConfig.PORT,
+          gracefulShutdownTimeout: 10000,
+          maxStartupAttempts: 3,
+          healthCheckEnabled: options.healthMonitoring || false,
+          preflightChecks: true
+        });
+
+        console.log('🔧 Creating application instance...');
+        const app = createApp(updatedConfig);
+        
+        console.log('🚀 Starting production server...');
+        const startupResult = await this.productionServerManager.startServer(app, updatedConfig.PORT);
+        
+        if (!startupResult.success) {
+          throw new Error(`Production server startup failed: ${startupResult.errors?.join(', ')}`);
+        }
+
+        result = {
+          server: startupResult.server,
+          port: startupResult.port,
+          url: startupResult.url
+        };
+
+        logger.info('Production server started successfully', {
+          port: startupResult.port,
+          url: startupResult.url,
+          startupTime: startupResult.startupTime,
+          healthCheckUrl: startupResult.healthCheckUrl
+        });
+
+      } else {
+        // Use standard server startup
+        console.log('🔧 Initializing authentication providers...');
+        result = await createAndStartServer(updatedConfig);
+      }
       
       console.log('\n🎉 Server is ready and running!');
       console.log('==================================================');
       console.log(`🌐 Server URL: ${result.url}`);
       console.log(`📡 Port: ${result.port}`);
+      if (options.production) {
+        console.log(`🏭 Mode: Production (Enhanced features enabled)`);
+      }
+      if (options.healthMonitoring) {
+        console.log(`💚 Health Monitoring: Active`);
+        console.log(`   Health URL:      ${result.url}/health`);
+      }
       console.log('\n📋 Available endpoints:');
       console.log(`   Health:          ${result.url}/health`);
       console.log(`   Chat:            ${result.url}/v1/chat/completions`);
@@ -252,6 +350,8 @@ export class CliRunner {
       logger.info('🚀 Server is ready!', {
         url: result.url,
         port: result.port,
+        productionMode: options.production || false,
+        healthMonitoring: options.healthMonitoring || false,
         endpoints: [
           `${result.url}/health`,
           `${result.url}/v1/chat/completions`,
@@ -260,7 +360,11 @@ export class CliRunner {
       });
 
       // Setup graceful shutdown
-      this.setupGracefulShutdown(result.server, logger);
+      if (options.production && this.productionServerManager) {
+        this.setupProductionGracefulShutdown(logger);
+      } else {
+        this.setupGracefulShutdown(result.server, logger);
+      }
 
     } catch (error) {
       this.handleError(error as Error);
@@ -290,6 +394,48 @@ export class CliRunner {
 
     process.on('SIGTERM', () => shutdown('SIGTERM'));
     process.on('SIGINT', () => shutdown('SIGINT'));
+  }
+
+  /**
+   * Setup graceful shutdown handlers for production server
+   * @param logger Logger instance
+   */
+  private setupProductionGracefulShutdown(logger: any): void {
+    const shutdown = async (signal: string) => {
+      logger.info(`Received ${signal}, starting production server graceful shutdown...`);
+      
+      try {
+        if (this.productionServerManager) {
+          const shutdownResult = await this.productionServerManager.shutdown();
+          if (shutdownResult.success) {
+            logger.info('Production server shutdown completed successfully', {
+              shutdownTime: shutdownResult.shutdownTime,
+              resourcesReleased: shutdownResult.resourcesReleased
+            });
+          } else {
+            logger.error('Production server shutdown failed', {
+              errors: shutdownResult.errors
+            });
+          }
+        }
+
+        // Stop health monitoring if it was started
+        if (healthMonitor) {
+          healthMonitor.shutdown();
+          logger.info('Health monitoring stopped');
+        }
+
+        logger.info('All systems shutdown complete');
+        process.exit(0);
+      } catch (error) {
+        logger.error('Error during production shutdown:', error);
+        process.exit(1);
+      }
+    };
+
+    process.on('SIGTERM', () => shutdown('SIGTERM'));
+    process.on('SIGINT', () => shutdown('SIGINT'));
+    process.on('SIGUSR2', () => shutdown('SIGUSR2'));
   }
 
   /**
@@ -360,6 +506,8 @@ export class CliRunner {
     const args = [port, '--no-interactive'];
     if (options.verbose) args.push('--verbose');
     if (options.debug) args.push('--debug');
+    if (options.production) args.push('--production');
+    if (options.healthMonitoring) args.push('--health-monitoring');
 
     // Spawn detached process using node directly to avoid recursion
     const { spawn } = require('child_process');

@@ -1,10 +1,10 @@
-# Phase 07A & 07B: Production Monitoring Features
+# Phase 06A & 06B: Production Monitoring Features
 
-## Phase 07A: Production Monitoring Features Implementation
+## Phase 06A: Production Monitoring Features Implementation
 
 **Goal**: Implement comprehensive production monitoring with session cleanup and performance tracking  
 **Complete Feature**: Production-ready monitoring with automated cleanup and performance metrics  
-**Dependencies**: Phase 06B must be 100% complete with all tests passing
+**Dependencies**: Phase 05B must be 100% complete with all tests passing
 **Claude SDK Reference**: session_manager.py cleanup and main.py monitoring features
 **Performance Requirement**: Monitoring overhead <5ms, cleanup operations <500ms
 
@@ -41,7 +41,7 @@ UPDATE: src/routes/health.ts - Enhance health endpoints with monitoring data
   - **OCP**: Extensible for new monitoring strategies via strategy pattern
   - **LSP**: All monitoring services implement IPerformanceMonitor interface consistently
   - **ISP**: Separate interfaces for ICleanupService, ITimingMiddleware
-  - **DIP**: Depend on IModelValidator from Phase 06 and validation abstractions from prior phases
+  - **DIP**: Depend on IModelValidator from Phase 05 and validation abstractions from prior phases
 - **File Size Limits**: All files <200 lines, functions <50 lines, max 5 parameters
 - **DRY Compliance**: Extract common monitoring and cleanup patterns to MonitoringUtils
 - **No Magic numbers**: All monitoring intervals and performance thresholds in src/claude/constants.ts
@@ -59,19 +59,19 @@ UPDATE: src/routes/health.ts - Enhance health endpoints with monitoring data
 
 ### Testing Requirements (MANDATORY)
 
-- **100% test coverage** for all production monitoring features logic before proceeding to Phase 07B
+- **100% test passing** for all production monitoring features logic before proceeding to Phase 06B
 - **Unit tests**: Performance monitor, cleanup service, timing middleware edge cases
 - **Integration tests**: Complete monitoring system with session cleanup and performance tracking
 - **Mock objects**: Mock system resources for testing, real monitoring for integration
 - **Error scenario tests**: Monitoring failures, cleanup errors, performance threshold breaches
 - **Performance tests**: Monitoring overhead <5ms, cleanup operations <500ms
 
-### Quality Gates for Phase 07A Completion
+### Quality Gates for Phase 06A Completion
 
 - ✅ All SOLID principles followed (verified via code review checklist)
 - ✅ No anti-patterns present (ESLint max-lines, complexity, depth rules pass)
-- ✅ 100% test coverage achieved (Jest coverage report)
-- ✅ **All tests must pass** before proceeding to Phase 07B (unit + integration + performance)
+- ✅ 100% test passing achieved (Jest passing report)
+- ✅ **All tests must pass** before proceeding to Phase 06B (unit + integration + performance)
 - ✅ TypeScript strict mode passes (tsc --strict --noEmit)
 - ✅ ESLint passes without warnings (npm run lint)
 - ✅ production monitoring features demonstrable (integration test passing)
@@ -93,16 +93,15 @@ UPDATE: src/routes/health.ts - Enhance health endpoints with monitoring data
 - Monitoring API endpoints providing operational visibility
 - Resource usage tracking within performance thresholds
 - Health monitoring with comprehensive status reporting
-
 - **Ready for immediate demonstration** with production monitoring and cleanup system examples
 
 ---
 
-## Phase 07B: Production Monitoring Features - Comprehensive Review
+## Phase 06B: Production Monitoring Features - Comprehensive Review
 
 **Goal**: Ensure 100% production monitoring features compatibility and production-quality implementation
 **Review Focus**: Accuracy, performance, and operational value
-**Dependencies**: Phase 07A must be 100% complete with all tests passing
+**Dependencies**: Phase 06A must be 100% complete with all tests passing
 **Reference Standards**: `docs/CLAUDE_SDK_REFERENCE.md`, `docs/ARCHITECTURE.md`, `docs/IMPLEMENTATION_RULES.md`
 
 ### Comprehensive Review Requirements (MANDATORY)
@@ -117,7 +116,7 @@ UPDATE: src/routes/health.ts - Enhance health endpoints with monitoring data
 #### 2. Test Quality Review
 
 - **Replace ALL placeholder tests** with real production monitoring features functionality tests
-  - **Metrics Accuracy Tests**: Verify the accuracy of collected metrics.
+- **Metrics Accuracy Tests**: Verify the accuracy of collected metrics.
 - **Cleanup Logic Tests**: Test session cleanup logic and scheduling.
 - **API Endpoint Tests**: Verify monitoring API endpoints return correct data.
 - **Performance Tests**: Measure the performance overhead of the monitoring system.
@@ -149,21 +148,21 @@ UPDATE: src/routes/health.ts - Enhance health endpoints with monitoring data
 - **API Reference**: Document the monitoring API endpoints.
 - **Cleanup Guide**: Document the session cleanup service.
 
-### Quality Gates for Phase 07B Completion
+### Quality Gates for Phase 06B Completion
 
 - ✅ **100% production monitoring features functionality verified**
 - ✅ **All production monitoring features tests are comprehensive and production-ready** - no placeholders
 - ✅ **production monitoring features integrates correctly** with Production monitoring system
 - ✅ **Architecture compliance achieved** - SOLID/DRY principles followed, ESLint passes
 - ✅ **Performance validation completed** - all speed requirements met (monitoring overhead <5ms per request, cleanup efficiency optimized)
-- ✅ **All tests must pass** before proceeding to Phase 08A (unit + integration + performance)
+- ✅ **All tests must pass** before proceeding to Phase 07A (unit + integration + performance)
 - ✅ **Documentation accuracy verified** - all docs reflect actual implementation
 
-### Failure Criteria (Phase 07B Must Restart)
+### Failure Criteria (Phase 06B Must Restart)
 
 - ❌ Performance monitoring inaccurate or missing key metrics
 - ❌ Session cleanup not operating automatically or statistics incorrect
 - ❌ Monitoring API endpoints non-functional or provide poor visibility
 - ❌ Performance criteria not met (overhead >5ms)
 - ❌ Resource monitoring unreliable or health checks inadequate
-- ❌ Test coverage below 100% or tests failing
+- ❌ Test passing below 100% or tests failing

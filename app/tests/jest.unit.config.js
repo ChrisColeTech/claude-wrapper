@@ -35,8 +35,6 @@ module.exports = {
   maxWorkers: 1,
   workerIdleMemoryLimit: "256MB",
   detectOpenHandles: true,
-  forceExit: true,
-  logHeapUsage: true,
   
   // Aggressive memory cleanup
   clearMocks: true,
@@ -44,7 +42,6 @@ module.exports = {
   resetMocks: true,
   
   // Run tests serially to minimize memory usage
-  runInBand: true,
   
   // Skip problematic tests in CI
   testPathIgnorePatterns: [
@@ -54,5 +51,4 @@ module.exports = {
   ].filter(Boolean),
   
   // Test timeout settings
-  testTimeout: 30000,
 };

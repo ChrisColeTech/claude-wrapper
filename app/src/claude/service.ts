@@ -14,6 +14,7 @@ import { ChatCompletionRequest } from '../models/chat';
 import { ClaudeClientError, StreamingError } from '../models/error';
 import { ClaudeSDKError, handleClaudeSDKCall } from './error-types';
 import { getLogger } from '../utils/logger';
+import { modelValidator, ModelValidationError } from '../validation/model-validator';
 
 const logger = getLogger('ClaudeService');
 
@@ -96,7 +97,7 @@ export class ClaudeService {
 
   /**
    * Create a completion using Claude Code SDK
-   * Based on Python run_completion method
+   * Phase 5A: Enhanced with model validation before SDK calls
    */
   async createCompletion(
     messages: Message[],
@@ -109,6 +110,11 @@ export class ClaudeService {
           model: options.model,
           maxTurns: options.max_turns 
         });
+
+        // Phase 5A: Validate model before proceeding
+        if (options.model) {
+          this.validateModelForCompletion(options.model, ['streaming']);
+        }
 
         // Convert messages to prompt format
         const prompt = this.messageAdapter.convertToClaudePrompt(messages);
@@ -171,6 +177,7 @@ export class ClaudeService {
 
   /**
    * Create a streaming completion using Claude Code SDK
+   * Phase 5A: Enhanced with model validation before SDK calls
    */
   async *createStreamingCompletion(
     messages: Message[],
@@ -181,6 +188,11 @@ export class ClaudeService {
         messageCount: messages.length,
         model: options.model 
       });
+
+      // Phase 5A: Validate model before proceeding
+      if (options.model) {
+        this.validateModelForCompletion(options.model, ['streaming']);
+      }
 
       // Convert messages to prompt format
       const prompt = this.messageAdapter.convertToClaudePrompt(messages);
@@ -344,6 +356,44 @@ export class ClaudeService {
     }
 
     return claudeOptions;
+  }
+
+  /**
+   * Validate model for completion with specific feature requirements
+   * Phase 5A: Enhanced model validation before SDK calls
+   */
+  private validateModelForCompletion(model: string, requiredFeatures: string[] = []): void {
+    try {
+      // Strict validation - will throw if model is invalid
+      modelValidator.validateModelStrict(model);
+      
+      // Check feature compatibility if features are specified
+      if (requiredFeatures.length > 0) {
+        const compatibilityResult = modelValidator.validateModelCompatibility(model, requiredFeatures);
+        if (!compatibilityResult.valid) {
+          const featureErrors = compatibilityResult.errors.join('; ');
+          logger.error(`Model compatibility validation failed for '${model}': ${featureErrors}`);
+          throw new ModelValidationError(
+            `Model '${model}' does not support required features: ${featureErrors}`,
+            'MODEL_CAPABILITY_MISMATCH',
+            compatibilityResult.suggestions?.map(s => s.suggested_model) || [],
+            compatibilityResult.alternative_models
+          );
+        }
+        
+        // Log warnings if any
+        if (compatibilityResult.warnings.length > 0) {
+          logger.warn(`Model compatibility warnings for '${model}': ${compatibilityResult.warnings.join('; ')}`);
+        }
+      }
+      
+      logger.debug(`Model validation passed for '${model}'`);
+    } catch (error) {
+      if (error instanceof ModelValidationError) {
+        throw new ClaudeSDKError(`Model validation failed: ${error.message}`);
+      }
+      throw new ClaudeSDKError(`Model validation error: ${error instanceof Error ? error.message : String(error)}`);
+    }
   }
 }
 

@@ -274,14 +274,26 @@ interface ISessionStorage {
   retrieve(sessionId: string): Promise<Session | null>;
 }
 
+interface IAuthService {
+  authenticate(request: AuthRequest): Promise<AuthResult>;
+  validateApiKey(key: string): boolean;
+}
+
 // High-level service depends on abstractions
 class ChatService {
   constructor(
     private claudeClient: IClaudeClient,
-    private sessionStorage: ISessionStorage
+    private sessionStorage: ISessionStorage,
+    private authService: IAuthService
   ) {}
   
   async processChat(request: ChatRequest): Promise<ChatResponse> {
+    // Authentication check
+    const authResult = await this.authService.authenticate(request);
+    if (!authResult.success) {
+      throw new UnauthorizedError('Authentication failed');
+    }
+    
     const session = await this.sessionStorage.retrieve(request.sessionId);
     const response = await this.claudeClient.query(request.prompt, {});
     return this.formatResponse(response);
@@ -291,7 +303,8 @@ class ChatService {
 // Dependency injection with concrete implementations
 const claudeClient = new ClaudeCodeClient();
 const sessionStorage = new InMemorySessionStorage();
-const chatService = new ChatService(claudeClient, sessionStorage);
+const authService = new AuthService();
+const chatService = new ChatService(claudeClient, sessionStorage, authService);
 ```
 
 #### **❌ Anti-Pattern Examples**
@@ -604,4 +617,207 @@ Before merging any code, verify:
 - [ ] **Type Safety**: Full TypeScript typing with no `any` types
 - [ ] **Error Handling**: Proper error handling with specific error types
 
-This architecture guide ensures clean, maintainable, and scalable code that follows industry best practices while preventing common anti-patterns that lead to technical debt.
+## 🔐 Security Architecture
+
+### Security Component Integration
+
+The security system follows the same SOLID principles as the rest of the architecture:
+
+#### **Security Component Diagram**
+
+```
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   CLI Layer     │    │  Auth Middleware │    │ Security Config │
+│                 │    │                  │    │    Manager      │
+│ • Interactive   │────│ • Bearer Token   │────│ • Key Generation│
+│   Setup         │    │   Validation     │    │ • Policy Mgmt   │
+│ • CLI Flags     │    │ • Request Auth   │    │ • Event Logging │
+│ • Env Variables │    │ • Error Handling │    │ • Storage Info  │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
+         │                        │                        │
+         └────────────────────────┼────────────────────────┘
+                                  │
+                    ┌─────────────────────────┐
+                    │   Auth Manager (Core)   │
+                    │                         │
+                    │ • Provider Management   │
+                    │ • Credential Storage    │
+                    │ • Multi-Auth Support    │
+                    │ • Session Integration   │
+                    └─────────────────────────┘
+```
+
+#### **Security Service Architecture**
+
+```typescript
+// ✅ GOOD: Security follows same SOLID principles
+interface ISecurityConfigManager {
+  generateApiKey(length?: number): Promise<SecurityResult>;
+  setApiKey(key: string, source: KeySource): SecurityResult;
+  validateApiKey(key: string): ValidationResult;
+  getSecurityPolicy(): SecurityPolicy;
+}
+
+interface IInteractiveSetup {
+  promptForApiProtection(options?: SetupOptions): Promise<string | null>;
+  displaySecurityStatus(config: SecurityConfig): void;
+}
+
+interface ICryptoService {
+  generateSecureToken(length: number): string;
+  validateTokenFormat(token: string): boolean;
+  createSafeHash(input: string): string;
+}
+
+// Security components use dependency injection
+class SecurityConfigManager implements ISecurityConfigManager {
+  constructor(
+    private authManager: IAuthManager,
+    private cryptoService: ICryptoService,
+    private logger: ILogger
+  ) {}
+  
+  async generateApiKey(length = 32): Promise<SecurityResult> {
+    // Secure key generation with validation
+    const token = this.cryptoService.generateSecureToken(length);
+    const validation = this.validateApiKey(token);
+    
+    if (!validation.valid) {
+      throw new SecurityError('Generated key failed validation');
+    }
+    
+    this.authManager.setApiKey(token);
+    this.logger.info('API key generated', { length, hash: this.createHash(token) });
+    
+    return { success: true, apiKey: token };
+  }
+}
+```
+
+### Security Integration Points
+
+#### **1. CLI Integration**
+- **Interactive Setup**: `InteractiveApiKeySetup` class handles user prompts
+- **CLI Flags**: Direct integration with `CliParser` for `--api-key` and `--no-interactive`
+- **Environment Detection**: Automatic detection of `API_KEY` environment variable
+
+#### **2. Middleware Integration**
+- **Auth Middleware**: `authMiddleware` validates Bearer tokens on protected routes
+- **Error Handling**: Consistent error responses for authentication failures
+- **Request Logging**: Security events logged for audit purposes
+
+#### **3. Server Integration**
+- **Startup Configuration**: Security setup during server initialization
+- **Runtime Management**: Dynamic security policy updates
+- **Graceful Degradation**: Server operates with or without API key protection
+
+### Security Architecture Compliance
+
+#### **Single Responsibility Principle**
+- `SecurityConfigManager`: API key policy and configuration management
+- `InteractiveApiKeySetup`: User interaction and setup prompts
+- `CryptoUtils`: Cryptographic operations and key generation
+- `AuthMiddleware`: Request authentication and validation
+
+#### **Open/Closed Principle**
+```typescript
+// ✅ Extensible security providers
+abstract class SecurityProvider {
+  abstract validateCredentials(request: AuthRequest): Promise<AuthResult>;
+  abstract getRequiredConfiguration(): SecurityConfig;
+}
+
+class ApiKeySecurityProvider extends SecurityProvider {
+  async validateCredentials(request: AuthRequest): Promise<AuthResult> {
+    // API key validation logic
+  }
+}
+
+class JwtSecurityProvider extends SecurityProvider {
+  async validateCredentials(request: AuthRequest): Promise<AuthResult> {
+    // JWT validation logic (future extension)
+  }
+}
+```
+
+#### **Dependency Inversion**
+```typescript
+// ✅ High-level security depends on abstractions
+class SecureEndpointHandler {
+  constructor(
+    private securityManager: ISecurityConfigManager,
+    private authValidator: IAuthValidator,
+    private auditLogger: IAuditLogger
+  ) {}
+  
+  async handleRequest(request: SecureRequest): Promise<Response> {
+    const authResult = await this.authValidator.validate(request.headers);
+    if (!authResult.success) {
+      this.auditLogger.logAuthFailure(request);
+      throw new UnauthorizedError();
+    }
+    
+    // Process authenticated request
+    return this.processSecureRequest(request);
+  }
+}
+```
+
+### Security Event Flow
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant M as Auth Middleware
+    participant S as Security Manager
+    participant A as Auth Manager
+    participant L as Logger
+
+    C->>M: Request with Bearer Token
+    M->>S: Validate API Key
+    S->>A: Check Stored Key
+    A->>S: Key Validation Result
+    S->>L: Log Security Event
+    S->>M: Validation Result
+    alt Valid Key
+        M->>C: Allow Request
+    else Invalid Key
+        M->>L: Log Auth Failure
+        M->>C: 401 Unauthorized
+    end
+```
+
+### Performance Considerations
+
+#### **Security Operation Performance**
+- **Key Generation**: <100ms for 32-character keys
+- **Validation**: <50ms per request
+- **Interactive Prompts**: <500ms response time
+- **Memory Usage**: Minimal overhead for security events (max 100 events stored)
+
+#### **Security Caching**
+```typescript
+// ✅ Efficient key validation with caching
+class CachedAuthValidator implements IAuthValidator {
+  private validationCache = new Map<string, boolean>();
+  private cacheExpiry = 5 * 60 * 1000; // 5 minutes
+  
+  async validate(headers: Headers): Promise<AuthResult> {
+    const token = this.extractBearerToken(headers);
+    const cacheKey = this.createCacheKey(token);
+    
+    if (this.validationCache.has(cacheKey)) {
+      return { success: true, cached: true };
+    }
+    
+    const result = await this.performValidation(token);
+    if (result.success) {
+      this.cacheValidation(cacheKey);
+    }
+    
+    return result;
+  }
+}
+```
+
+This architecture guide ensures clean, maintainable, and scalable code that follows industry best practices while preventing common anti-patterns that lead to technical debt. The security components are fully integrated while maintaining separation of concerns and following the same architectural principles as the rest of the system.

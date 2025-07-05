@@ -9,6 +9,14 @@
 import { Router, Request, Response } from 'express';
 import { SessionService } from '../services/session-service';
 import { getLogger } from '../utils/logger';
+import { 
+  SessionAPIUtils, 
+  SESSION_API_CONSTANTS,
+  PythonSessionInfo,
+  PythonSessionStats,
+  PythonSessionList,
+  PythonSessionDelete
+} from '../models/session-api';
 
 const logger = getLogger('SessionsRouter');
 
@@ -183,23 +191,33 @@ export class SessionsRouter {
       const sessionStats = this.sessionService.getSessionStats();
       const config = this.sessionService.getConfig();
 
-      const response: SessionStatsResponse = {
-        session_stats: sessionStats,
-        cleanup_interval_minutes: config.cleanupIntervalMinutes,
-        default_ttl_hours: config.defaultTtlHours
-      };
+      // Count expired sessions for Python compatibility
+      const allSessions = this.sessionService.listSessions();
+      const expiredSessions = this.sessionService.getExpiredSessionCount();
+
+      const pythonResponse: PythonSessionStats = SessionAPIUtils.toPythonSessionStats(
+        {
+          activeSessions: sessionStats.activeSessions,
+          totalMessages: sessionStats.totalMessages,
+          expiredSessions: expiredSessions
+        },
+        {
+          cleanupIntervalMinutes: config.cleanupIntervalMinutes,
+          defaultTtlHours: config.defaultTtlHours
+        }
+      );
 
       logger.debug('Session statistics retrieved', {
         activeSessions: sessionStats.activeSessions,
-        totalMessages: sessionStats.totalMessages
+        totalMessages: sessionStats.totalMessages,
+        expiredSessions: expiredSessions
       });
 
-      res.json(response);
+      res.status(SESSION_API_CONSTANTS.HTTP_STATUS.OK).json(pythonResponse);
     } catch (error) {
       logger.error('Failed to get session statistics', { error });
-      res.status(500).json({
-        error: 'Internal Server Error',
-        message: 'Failed to get session statistics'
+      res.status(SESSION_API_CONSTANTS.HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+        detail: SESSION_API_CONSTANTS.ERROR_MESSAGES.SESSION_STATS_FAILED
       });
     }
   }
@@ -214,29 +232,27 @@ export class SessionsRouter {
 
       const sessionList = this.sessionService.listSessions();
 
-      // Format response to match Python SessionListResponse format
-      const response = {
-        sessions: sessionList.sessions.map(session => ({
+      // Convert to Python-compatible format
+      const pythonResponse: PythonSessionList = SessionAPIUtils.toPythonSessionList(
+        sessionList.sessions.map(session => ({
           session_id: session.session_id,
           created_at: session.created_at,
           last_accessed: session.last_accessed,
           message_count: session.message_count,
           expires_at: session.expires_at
-        })),
-        total: sessionList.total
-      };
+        }))
+      );
 
       logger.debug('Sessions listed', {
-        total: sessionList.total,
-        count: sessionList.sessions.length
+        total: pythonResponse.total,
+        count: pythonResponse.sessions.length
       });
 
-      res.json(response);
+      res.status(SESSION_API_CONSTANTS.HTTP_STATUS.OK).json(pythonResponse);
     } catch (error) {
       logger.error('Failed to list sessions', { error });
-      res.status(500).json({
-        error: 'Internal Server Error',
-        message: 'Failed to list sessions'
+      res.status(SESSION_API_CONSTANTS.HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+        detail: SESSION_API_CONSTANTS.ERROR_MESSAGES.SESSION_LIST_FAILED
       });
     }
   }
@@ -250,9 +266,8 @@ export class SessionsRouter {
       const { session_id } = req.params;
 
       if (!session_id) {
-        res.status(400).json({
-          error: 'Bad Request',
-          message: 'session_id parameter is required'
+        res.status(SESSION_API_CONSTANTS.HTTP_STATUS.BAD_REQUEST).json({
+          detail: SESSION_API_CONSTANTS.ERROR_MESSAGES.SESSION_ID_REQUIRED
         });
         return;
       }
@@ -263,9 +278,8 @@ export class SessionsRouter {
 
       if (!sessionInfo) {
         logger.debug('Session not found', { sessionId: session_id });
-        res.status(404).json({
-          error: 'Session not found',
-          message: `Session ${session_id} not found`
+        res.status(SESSION_API_CONSTANTS.HTTP_STATUS.NOT_FOUND).json({
+          detail: `Session ${session_id} not found`
         });
         return;
       }
@@ -275,21 +289,20 @@ export class SessionsRouter {
         messageCount: sessionInfo.message_count
       });
 
-      // Return session in expected format
-      res.json({
-        id: sessionInfo.id,
+      // Return session in Python-compatible format
+      const pythonResponse: PythonSessionInfo = SessionAPIUtils.toPythonSessionInfo({
+        session_id: sessionInfo.session_id,
         created_at: sessionInfo.created_at,
-        model: sessionInfo.model,
-        system_prompt: sessionInfo.system_prompt,
-        max_turns: sessionInfo.max_turns,
+        last_accessed: sessionInfo.last_accessed,
         message_count: sessionInfo.message_count,
-        status: sessionInfo.status
+        expires_at: sessionInfo.expires_at
       });
+
+      res.status(SESSION_API_CONSTANTS.HTTP_STATUS.OK).json(pythonResponse);
     } catch (error) {
       logger.error('Failed to get session', { error, sessionId: req.params.session_id });
-      res.status(500).json({
-        error: 'Internal Server Error',
-        message: 'Failed to get session information'
+      res.status(SESSION_API_CONSTANTS.HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+        detail: SESSION_API_CONSTANTS.ERROR_MESSAGES.INTERNAL_ERROR
       });
     }
   }
@@ -303,9 +316,8 @@ export class SessionsRouter {
       const { session_id } = req.params;
 
       if (!session_id) {
-        res.status(400).json({
-          error: 'Bad Request',
-          message: 'session_id parameter is required'
+        res.status(SESSION_API_CONSTANTS.HTTP_STATUS.BAD_REQUEST).json({
+          detail: SESSION_API_CONSTANTS.ERROR_MESSAGES.SESSION_ID_REQUIRED
         });
         return;
       }
@@ -316,9 +328,8 @@ export class SessionsRouter {
 
       if (!deleted) {
         logger.debug('Session not found for deletion', { sessionId: session_id });
-        res.status(404).json({
-          error: 'Session not found',
-          message: `Session ${session_id} not found`
+        res.status(SESSION_API_CONSTANTS.HTTP_STATUS.NOT_FOUND).json({
+          detail: `Session ${session_id} not found`
         });
         return;
       }
@@ -326,14 +337,12 @@ export class SessionsRouter {
       logger.info('Session deleted successfully', { sessionId: session_id });
       
       // Return message format matching Python main.py:817
-      res.status(200).json({
-        message: `Session ${session_id} deleted successfully`
-      });
+      const pythonResponse: PythonSessionDelete = SessionAPIUtils.toPythonDeleteResponse(session_id);
+      res.status(SESSION_API_CONSTANTS.HTTP_STATUS.OK).json(pythonResponse);
     } catch (error) {
       logger.error('Failed to delete session', { error, sessionId: req.params.session_id });
-      res.status(500).json({
-        error: 'Internal Server Error',
-        message: 'Failed to delete session'
+      res.status(SESSION_API_CONSTANTS.HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+        detail: SESSION_API_CONSTANTS.ERROR_MESSAGES.SESSION_DELETION_FAILED
       });
     }
   }

@@ -1,10 +1,10 @@
-# Phase 06A & 06B: Model Validation System
+# Phase 05A & 05B: Model Validation System
 
-## Phase 06A: Model Validation System Implementation
+## Phase 05A: Model Validation System Implementation
 
 **Goal**: Implement comprehensive model validation system with Claude SDK capabilities  
 **Complete Feature**: Complete model management with validation and capability reporting  
-**Dependencies**: Phase 05B must be 100% complete with all tests passing
+**Dependencies**: Phase 04B must be 100% complete with all tests passing
 **Claude SDK Reference**: parameter_validator.py:15-40 - SUPPORTED_MODELS and validate_model() function
 **Performance Requirement**: Model validation <10ms, capability lookup <5ms
 
@@ -40,7 +40,7 @@ UPDATE: src/claude/service.ts - Add model parameter validation before SDK calls
   - **OCP**: Extensible for new model management strategies via strategy pattern
   - **LSP**: All model validators implement IModelRegistry interface consistently
   - **ISP**: Separate interfaces for IModelValidator, IModelCapabilities
-  - **DIP**: Depend on IErrorClassifier from Phase 05 and error handling abstractions from prior phases
+  - **DIP**: Depend on IErrorClassifier from Phase 04 and error handling abstractions from prior phases
 - **File Size Limits**: All files <200 lines, functions <50 lines, max 5 parameters
 - **DRY Compliance**: Extract common model validation patterns to ModelValidationUtils
 - **No Magic strings**: All model names and capability definitions in src/claude/constants.ts
@@ -58,19 +58,19 @@ UPDATE: src/claude/service.ts - Add model parameter validation before SDK calls
 
 ### Testing Requirements (MANDATORY)
 
-- **100% test coverage** for all model validation system logic before proceeding to Phase 06B
+- **100% test passing** for all model validation system logic before proceeding to Phase 05B
 - **Unit tests**: Model registry, validator logic, capability checking edge cases
 - **Integration tests**: Model validation with real Claude SDK and error handling
 - **Mock objects**: Mock Claude SDK for model testing, real validation logic
 - **Error scenario tests**: Invalid models, deprecated models, capability mismatches, SDK issues
 - **Performance tests**: Model validation <10ms, capability lookup <5ms
 
-### Quality Gates for Phase 06A Completion
+### Quality Gates for Phase 05A Completion
 
 - ✅ All SOLID principles followed (verified via code review checklist)
 - ✅ No anti-patterns present (ESLint max-lines, complexity, depth rules pass)
-- ✅ 100% test coverage achieved (Jest coverage report)
-- ✅ **All tests must pass** before proceeding to Phase 06B (unit + integration + performance)
+- ✅ 100% test passing achieved (Jest passing report)
+- ✅ **All tests must pass** before proceeding to Phase 05B (unit + integration + performance)
 - ✅ TypeScript strict mode passes (tsc --strict --noEmit)
 - ✅ ESLint passes without warnings (npm run lint)
 - ✅ model validation system demonstrable (integration test passing)
@@ -92,16 +92,15 @@ UPDATE: src/claude/service.ts - Add model parameter validation before SDK calls
 - Invalid model rejection with helpful error messages and suggestions
 - Model capability reporting and feature compatibility checking
 - Integration with chat endpoints for early model validation
-
 - **Ready for immediate demonstration** with complete model validation system examples
 
 ---
 
-## Phase 06B: Model Validation System - Comprehensive Review
+## Phase 05B: Model Validation System - Comprehensive Review
 
 **Goal**: Ensure 100% model validation system compatibility and production-quality implementation
 **Review Focus**: Accuracy, completeness, and performance
-**Dependencies**: Phase 06A must be 100% complete with all tests passing
+**Dependencies**: Phase 05A must be 100% complete with all tests passing
 **Reference Standards**: `docs/CLAUDE_SDK_REFERENCE.md`, `docs/ARCHITECTURE.md`, `docs/IMPLEMENTATION_RULES.md`
 
 ### Comprehensive Review Requirements (MANDATORY)
@@ -116,7 +115,7 @@ UPDATE: src/claude/service.ts - Add model parameter validation before SDK calls
 #### 2. Test Quality Review
 
 - **Replace ALL placeholder tests** with real model validation system functionality tests
-  - **Model Registry Tests**: Verify accuracy and completeness of the model registry.
+- **Model Registry Tests**: Verify accuracy and completeness of the model registry.
 - **Validation Logic Tests**: Test model validation with valid and invalid models.
 - **API Endpoint Tests**: Verify the /v1/models endpoint returns correct data.
 - **Integration Tests**: Test model validation within the chat completion flow.
@@ -148,21 +147,21 @@ UPDATE: src/claude/service.ts - Add model parameter validation before SDK calls
 - **API Reference**: Document the /v1/models endpoint.
 - **Error Reference**: Document model validation errors.
 
-### Quality Gates for Phase 06B Completion
+### Quality Gates for Phase 05B Completion
 
 - ✅ **100% model validation system functionality verified**
 - ✅ **All model validation system tests are comprehensive and production-ready** - no placeholders
 - ✅ **model validation system integrates correctly** with Model validation system
 - ✅ **Architecture compliance achieved** - SOLID/DRY principles followed, ESLint passes
 - ✅ **Performance validation completed** - all speed requirements met (model validation <10ms per request, capability lookup <5ms)
-- ✅ **All tests must pass** before proceeding to Phase 07A (unit + integration + performance)
+- ✅ **All tests must pass** before proceeding to Phase 06A (unit + integration + performance)
 - ✅ **Documentation accuracy verified** - all docs reflect actual implementation
 
-### Failure Criteria (Phase 06B Must Restart)
+### Failure Criteria (Phase 05B Must Restart)
 
 - ❌ Model validation doesn't match Python supported models list
 - ❌ Invalid models not properly rejected or error messages unclear
 - ❌ Models endpoint doesn't return accurate capability information
 - ❌ Performance criteria not met (validation >10ms)
 - ❌ Integration with chat endpoints broken or incomplete
-- ❌ Test coverage below 100% or tests failing
+- ❌ Test passing below 100% or tests failing

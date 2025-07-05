@@ -1,7 +1,8 @@
 /**
- * Parameter validator for chat completion requests
+ * Enhanced Parameter Validator with Detailed Error Reporting
+ * Integrates with Phase 4A comprehensive error handling system
  * Based on Python parameter_validator.py ParameterValidator class
- * Implements Python-compatible validation logic for Phase 3B
+ * Implements Python-compatible validation logic with enhanced reporting
  */
 
 import { ChatCompletionRequest } from '../models/chat';
@@ -13,6 +14,13 @@ import {
   MESSAGE_PROCESSING_MESSAGES,
   TOOL_MESSAGE_VALIDATION 
 } from '../tools/constants';
+import { ModelValidationHelper } from './model-validation-helper';
+import { 
+  validationHandler, 
+  ValidationErrorReport,
+  FieldValidationError,
+  ValidationContext 
+} from '../middleware/validation-handler';
 
 const logger = getLogger('ParameterValidator');
 
@@ -20,6 +28,18 @@ export interface ValidationResult {
   valid: boolean;
   errors: string[];
   warnings: string[];
+}
+
+/**
+ * Enhanced validation result with detailed field-level reporting
+ */
+export interface EnhancedValidationResult {
+  valid: boolean;
+  errors: FieldValidationError[];
+  warnings: string[];
+  processingTime: number;
+  classification?: any;
+  context?: ValidationContext;
 }
 
 export class ParameterValidator {
@@ -107,28 +127,326 @@ export class ParameterValidator {
   }
 
   /**
+   * Enhanced request validation with detailed field-level error reporting
+   * Integrates with Phase 4A error handling system
+   */
+  static async validateRequestEnhanced(
+    request: ChatCompletionRequest,
+    context: Partial<ValidationContext>
+  ): Promise<ValidationErrorReport> {
+    const startTime = Date.now();
+    
+    try {
+      // Use the validation handler for comprehensive validation
+      const report = await validationHandler.validateRequest(
+        request,
+        'chat_completion',
+        {
+          endpoint: '/v1/chat/completions',
+          method: 'POST',
+          timestamp: new Date(),
+          ...context
+        }
+      );
+
+      // Add additional Claude-specific validations
+      const additionalErrors = await this.performClaudeSpecificValidation(request);
+      report.errors.push(...additionalErrors);
+      report.errorCount = report.errors.length;
+      report.isValid = report.errors.length === 0;
+
+      // Update processing time
+      report.processingTime = Date.now() - startTime;
+
+      return report;
+    } catch (error) {
+      return {
+        isValid: false,
+        errors: [{
+          field: 'request',
+          path: 'request',
+          value: null,
+          message: `Validation system error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          code: 'VALIDATION_SYSTEM_ERROR',
+          suggestion: 'Contact support if error persists'
+        }],
+        errorCount: 1,
+        classification: {
+          category: 'validation_error' as any,
+          severity: 'high' as any,
+          retryStrategy: 'no_retry' as any,
+          httpStatusCode: 500,
+          errorCode: 'VALIDATION_SYSTEM_ERROR',
+          isRetryable: false,
+          operationalImpact: 'Validation system failure',
+          clientGuidance: ['Contact support']
+        },
+        context: {
+          endpoint: '/v1/chat/completions',
+          method: 'POST',
+          timestamp: new Date(),
+          ...context
+        },
+        suggestions: ['Contact support for validation system issues'],
+        processingTime: Date.now() - startTime
+      };
+    }
+  }
+
+  /**
+   * Perform Claude-specific validation that extends base validation
+   */
+  private static async performClaudeSpecificValidation(
+    request: ChatCompletionRequest
+  ): Promise<FieldValidationError[]> {
+    const errors: FieldValidationError[] = [];
+
+    // Validate model with enhanced error details
+    if (!this.SUPPORTED_MODELS.has(request.model)) {
+      errors.push({
+        field: 'model',
+        path: 'model',
+        value: request.model,
+        message: `Model '${request.model}' is not supported by Claude Code SDK`,
+        code: 'UNSUPPORTED_MODEL',
+        suggestion: `Use one of the supported models: ${Array.from(this.SUPPORTED_MODELS).join(', ')}`,
+        constraint: `supported_models: [${Array.from(this.SUPPORTED_MODELS).join(', ')}]`
+      });
+    }
+
+    // Validate n parameter with detailed error
+    if (request.n && request.n > 1) {
+      errors.push({
+        field: 'n',
+        path: 'n',
+        value: request.n,
+        message: 'Claude Code SDK does not support multiple choices',
+        code: 'MULTIPLE_CHOICES_NOT_SUPPORTED',
+        suggestion: 'Set n to 1 or omit the parameter',
+        constraint: 'max_value: 1'
+      });
+    }
+
+    // Validate temperature with enhanced details
+    if (request.temperature !== undefined && (request.temperature < 0 || request.temperature > 2)) {
+      errors.push({
+        field: 'temperature',
+        path: 'temperature',
+        value: request.temperature,
+        message: 'Temperature must be between 0 and 2',
+        code: 'INVALID_TEMPERATURE_RANGE',
+        suggestion: 'Use a temperature value between 0.0 and 2.0',
+        constraint: 'range: [0, 2]'
+      });
+    }
+
+    // Validate top_p with enhanced details
+    if (request.top_p !== undefined && (request.top_p < 0 || request.top_p > 1)) {
+      errors.push({
+        field: 'top_p',
+        path: 'top_p',
+        value: request.top_p,
+        message: 'Top_p must be between 0 and 1',
+        code: 'INVALID_TOP_P_RANGE',
+        suggestion: 'Use a top_p value between 0.0 and 1.0',
+        constraint: 'range: [0, 1]'
+      });
+    }
+
+    // Validate max_tokens with enhanced details
+    if (request.max_tokens !== undefined && request.max_tokens < 0) {
+      errors.push({
+        field: 'max_tokens',
+        path: 'max_tokens',
+        value: request.max_tokens,
+        message: 'Max_tokens must be non-negative',
+        code: 'INVALID_MAX_TOKENS',
+        suggestion: 'Use a positive integer or omit the parameter',
+        constraint: 'min_value: 0'
+      });
+    }
+
+    // Validate messages array with enhanced details
+    if (!request.messages || !Array.isArray(request.messages)) {
+      errors.push({
+        field: 'messages',
+        path: 'messages',
+        value: request.messages,
+        message: 'Messages must be a non-empty array',
+        code: 'INVALID_MESSAGES_ARRAY',
+        suggestion: 'Provide an array of message objects with role and content'
+      });
+    } else if (request.messages.length === 0) {
+      errors.push({
+        field: 'messages',
+        path: 'messages',
+        value: request.messages,
+        message: 'Messages array cannot be empty',
+        code: 'EMPTY_MESSAGES_ARRAY',
+        suggestion: 'Include at least one message in the conversation'
+      });
+    } else {
+      // Validate individual messages
+      const messageErrors = await this.validateMessagesEnhanced(request.messages);
+      errors.push(...messageErrors);
+    }
+
+    return errors;
+  }
+
+  /**
+   * Enhanced message validation with detailed field-level reporting
+   */
+  private static async validateMessagesEnhanced(messages: Message[]): Promise<FieldValidationError[]> {
+    const errors: FieldValidationError[] = [];
+
+    for (let i = 0; i < messages.length; i++) {
+      const message = messages[i];
+      const basePath = `messages[${i}]`;
+
+      // Validate role
+      if (!message.role) {
+        errors.push({
+          field: 'role',
+          path: `${basePath}.role`,
+          value: message.role,
+          message: 'Message role is required',
+          code: 'MISSING_MESSAGE_ROLE',
+          suggestion: `Specify a valid role: ${Object.values(MESSAGE_ROLES).join(', ')}`
+        });
+      } else if (!Object.values(MESSAGE_ROLES).includes(message.role as any)) {
+        errors.push({
+          field: 'role',
+          path: `${basePath}.role`,
+          value: message.role,
+          message: `Invalid message role '${message.role}'`,
+          code: 'INVALID_MESSAGE_ROLE',
+          suggestion: `Use one of the valid roles: ${Object.values(MESSAGE_ROLES).join(', ')}`,
+          constraint: `allowed_values: [${Object.values(MESSAGE_ROLES).join(', ')}]`
+        });
+      }
+
+      // Validate content
+      if (!message.content) {
+        errors.push({
+          field: 'content',
+          path: `${basePath}.content`,
+          value: message.content,
+          message: 'Message content is required',
+          code: 'MISSING_MESSAGE_CONTENT',
+          suggestion: 'Provide content for the message'
+        });
+      } else if (typeof message.content === 'string' && message.content.trim().length === 0) {
+        errors.push({
+          field: 'content',
+          path: `${basePath}.content`,
+          value: message.content,
+          message: 'Message content cannot be empty',
+          code: 'EMPTY_MESSAGE_CONTENT',
+          suggestion: 'Provide meaningful content for the message'
+        });
+      }
+
+      // Validate tool messages
+      if (message.role === MESSAGE_ROLES.TOOL) {
+        const toolErrors = await this.validateToolMessageEnhanced(message, i);
+        errors.push(...toolErrors);
+      }
+    }
+
+    return errors;
+  }
+
+  /**
+   * Enhanced tool message validation with detailed error reporting
+   */
+  private static async validateToolMessageEnhanced(message: Message, index: number): Promise<FieldValidationError[]> {
+    const errors: FieldValidationError[] = [];
+    const basePath = `messages[${index}]`;
+
+    // Validate tool_call_id
+    if (!message.tool_call_id) {
+      errors.push({
+        field: 'tool_call_id',
+        path: `${basePath}.tool_call_id`,
+        value: message.tool_call_id,
+        message: 'Tool call ID is required for tool messages',
+        code: 'MISSING_TOOL_CALL_ID',
+        suggestion: 'Provide a valid tool_call_id that matches a previous tool call'
+      });
+    } else if (typeof message.tool_call_id !== 'string') {
+      errors.push({
+        field: 'tool_call_id',
+        path: `${basePath}.tool_call_id`,
+        value: message.tool_call_id,
+        message: 'Tool call ID must be a string',
+        code: 'INVALID_TOOL_CALL_ID_TYPE',
+        suggestion: 'Provide tool_call_id as a string value'
+      });
+    } else if (!TOOL_MESSAGE_VALIDATION.TOOL_CALL_ID_PATTERN.test(message.tool_call_id)) {
+      errors.push({
+        field: 'tool_call_id',
+        path: `${basePath}.tool_call_id`,
+        value: message.tool_call_id,
+        message: 'Tool call ID format is invalid',
+        code: 'INVALID_TOOL_CALL_ID_FORMAT',
+        suggestion: 'Use a valid tool call ID format that matches the expected pattern',
+        constraint: `pattern: ${TOOL_MESSAGE_VALIDATION.TOOL_CALL_ID_PATTERN.source}`
+      });
+    }
+
+    // Validate content length for tool messages
+    if (message.content) {
+      const contentLength = typeof message.content === 'string' 
+        ? message.content.length 
+        : JSON.stringify(message.content).length;
+
+      if (contentLength > TOOL_MESSAGE_VALIDATION.MAX_CONTENT_LENGTH) {
+        errors.push({
+          field: 'content',
+          path: `${basePath}.content`,
+          value: message.content,
+          message: `Tool message content exceeds maximum length of ${TOOL_MESSAGE_VALIDATION.MAX_CONTENT_LENGTH} characters`,
+          code: 'TOOL_MESSAGE_CONTENT_TOO_LONG',
+          suggestion: `Reduce content length to ${TOOL_MESSAGE_VALIDATION.MAX_CONTENT_LENGTH} characters or less`,
+          constraint: `max_length: ${TOOL_MESSAGE_VALIDATION.MAX_CONTENT_LENGTH}`
+        });
+      }
+    }
+
+    return errors;
+  }
+
+  /**
    * Validate model parameter
-   * Based on Python ParameterValidator.validate_model()
+   * Phase 5A: Enhanced with strict validation and model registry integration
    */
   static validateModel(model: string): ValidationResult {
-    const errors: string[] = [];
-    const warnings: string[] = [];
-
-    if (!model || typeof model !== 'string') {
-      errors.push('Model parameter is required and must be a string');
-      return { valid: false, errors, warnings };
-    }
-
-    if (!this.SUPPORTED_MODELS.has(model)) {
-      warnings.push(`Model '${model}' is not officially supported by Claude Code SDK. Supported models: ${Array.from(this.SUPPORTED_MODELS).join(', ')}`);
-    }
-
-    return {
-      valid: errors.length === 0,
-      errors,
-      warnings
-    };
+    return ModelValidationHelper.validateModelForRequest(model);
   }
+
+  /**
+   * Legacy model validation for backwards compatibility
+   */
+  static validateModelBasic(model: string): ValidationResult {
+      const errors: string[] = [];
+      const warnings: string[] = [];
+
+      if (!model || typeof model !== 'string') {
+        errors.push('Model parameter is required and must be a string');
+        return { valid: false, errors, warnings };
+      }
+
+      if (!this.SUPPORTED_MODELS.has(model)) {
+        warnings.push(`Model '${model}' is not officially supported by Claude Code SDK. Supported models: ${Array.from(this.SUPPORTED_MODELS).join(', ')}`);
+      }
+
+      return {
+        valid: errors.length === 0,
+        errors,
+        warnings
+      };
+    }
 
   /**
    * Validate OpenAI tools array and tool choice

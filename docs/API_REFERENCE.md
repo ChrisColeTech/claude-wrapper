@@ -14,14 +14,52 @@ The wrapper provides an OpenAI-compatible REST API that translates OpenAI Chat C
 
 ### API Key Authentication (Optional)
 
-If an API key is configured (via `API_KEY` environment variable or interactive setup), all endpoints require Bearer token authentication:
+The wrapper supports optional API key protection for enhanced security. When enabled, all endpoints require Bearer token authentication.
+
+#### Configuration Methods
+
+1. **Interactive Setup** (Recommended)
+   ```bash
+   claude-wrapper
+   # Follow the interactive prompt to generate a secure API key
+   ```
+
+2. **CLI Flag**
+   ```bash
+   claude-wrapper --api-key your-secure-api-key-here
+   ```
+
+3. **Environment Variable**
+   ```bash
+   export API_KEY="your-secure-api-key-here"
+   claude-wrapper
+   ```
+
+4. **Skip Protection**
+   ```bash
+   claude-wrapper --no-interactive
+   # Disables API key protection entirely
+   ```
+
+#### Authentication Headers
+
+When API key protection is enabled, include the Bearer token in all requests:
 
 ```http
 Authorization: Bearer your-api-key-here
 ```
 
+#### Security Features
+
+- **Secure Generation**: Interactive setup generates cryptographically secure 32-character tokens
+- **Multiple Sources**: Supports environment variables, CLI flags, and interactive generation
+- **Validation**: Enforces key format and length requirements (8-256 characters, alphanumeric + -_)
+- **Logging**: Security events are logged for audit purposes
+- **Flexible Policy**: Can be enabled/disabled per deployment
+
 **Status Codes for Auth Errors**:
 - `401 Unauthorized` - Missing or invalid API key
+- `403 Forbidden` - Valid key but insufficient permissions
 
 ## 📋 Core Chat Endpoints
 
@@ -379,9 +417,7 @@ GET /health
 
 ### GET /v1/auth/status
 
-**Python Reference**: `main.py:754-769`
-
-Returns Claude Code authentication status and server configuration.
+Returns Claude Code authentication status and server security configuration.
 
 #### Request
 
@@ -407,12 +443,36 @@ GET /v1/auth/status
     "environment_variables": ["ANTHROPIC_API_KEY"]
   },
   "server_info": {
-    "api_key_required": true,
-    "api_key_source": "environment",
+    "api_key_required": false,
+    "api_key_source": "none",
     "version": "1.0.0"
+  },
+  "security_config": {
+    "protection_enabled": false,
+    "api_key_configured": false,
+    "key_source": "none",
+    "policy": {
+      "require_api_key": false,
+      "min_key_length": 16,
+      "max_key_length": 128,
+      "allow_environment_key": true,
+      "allow_runtime_key": true
+    },
+    "storage_info": null
   }
 }
 ```
+
+#### Response Fields
+
+- `claude_code_auth`: Claude service authentication status
+- `server_info`: Basic server configuration  
+- `security_config`: API key protection configuration
+  - `protection_enabled`: Whether endpoints require API keys
+  - `api_key_configured`: Whether a valid API key is set
+  - `key_source`: Source of the API key (`environment`, `runtime`, or `none`)
+  - `policy`: Current security policy settings
+  - `storage_info`: API key storage metadata (without exposing the actual key)
 
 ---
 

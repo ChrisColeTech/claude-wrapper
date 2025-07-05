@@ -1,6 +1,7 @@
 # Phase 02A & 02B: Message Format Conversion
 
 ## Phase 02A: Message Format Conversion Implementation
+
 **Goal**: Implement proper OpenAI ↔ Claude message format conversion  
 **Complete Feature**: Complete message format conversion with session continuity  
 **Dependencies**: Phase 01B must be 100% complete with all tests passing
@@ -8,6 +9,7 @@
 **Performance Requirement**: Message conversion processing <50ms per request
 
 ### Files to Create/Update
+
 ```
 CREATE: src/message/claude-converter.ts - OpenAI to Claude format conversion implementing OpenAIToClaudeMapping
 CREATE: src/message/openai-converter.ts - Claude to OpenAI format conversion
@@ -20,6 +22,7 @@ UPDATE: src/routes/chat.ts - Remove mock response, use real conversion and mapTo
 ```
 
 ### What Gets Implemented
+
 - OpenAI message format to Claude prompt conversion using mapToClaudeOptions
 - Claude response to OpenAI format conversion with proper structure
 - Message parsing with content filtering (thinking blocks, tool usage)
@@ -30,7 +33,8 @@ UPDATE: src/routes/chat.ts - Remove mock response, use real conversion and mapTo
 - Named constants for all message format configurations
 
 ### Architecture Compliance Requirements (MANDATORY)
-- **SOLID Principles**: 
+
+- **SOLID Principles**:
   - **SRP**: ClaudeConverter handles only format conversion operations (<200 lines)
   - **OCP**: Extensible for new message conversion strategies via strategy pattern
   - **LSP**: All message converters implement IClaudeConverter interface consistently
@@ -44,6 +48,7 @@ UPDATE: src/routes/chat.ts - Remove mock response, use real conversion and mapTo
 - **Interface Design**: Maximum 5 methods per interface, single-purpose interfaces
 
 ### Anti-Pattern Prevention (MANDATORY)
+
 - **No God Classes**: ClaudeConverter <200 lines, focused on message format conversion only
 - **No Deep Nesting**: Maximum 3 levels in message conversion logic, use early returns
 - **No Inline Complex Logic**: Extract format conversion rules to named methods
@@ -51,7 +56,8 @@ UPDATE: src/routes/chat.ts - Remove mock response, use real conversion and mapTo
 - **No Magic Values**: Use MESSAGE_FORMATS.OPENAI, CONVERSION_MODES.CLAUDE_TO_OPENAI
 
 ### Testing Requirements (MANDATORY)
-- **100% test coverage** for all message format conversion logic before proceeding to Phase 02B
+
+- **100% test passing** for all message format conversion logic before proceeding to Phase 02B
 - **Unit tests**: ClaudeConverter, OpenAI conversion, message parsing edge cases
 - **Integration tests**: Message conversion with complete Claude SDK integration
 - **Mock objects**: Mock IClaudeSDKClient for conversion testing
@@ -59,9 +65,10 @@ UPDATE: src/routes/chat.ts - Remove mock response, use real conversion and mapTo
 - **Performance tests**: Message conversion processing <50ms per request
 
 ### Quality Gates for Phase 02A Completion
+
 - ✅ All SOLID principles followed (verified via code review checklist)
 - ✅ No anti-patterns present (ESLint max-lines, complexity, depth rules pass)
-- ✅ 100% test coverage achieved (Jest coverage report)
+- ✅ 100% test passing achieved (Jest passing report)
 - ✅ **All tests must pass** before proceeding to Phase 02B (unit + integration + performance)
 - ✅ TypeScript strict mode passes (tsc --strict --noEmit)
 - ✅ ESLint passes without warnings (npm run lint)
@@ -70,6 +77,7 @@ UPDATE: src/routes/chat.ts - Remove mock response, use real conversion and mapTo
 - ✅ Performance criteria met (message conversion processing <50ms per request)
 
 ### Claude SDK Compatibility Verification
+
 - ✅ OpenAI messages convert correctly to Claude format using mapToClaudeOptions
 - ✅ Claude responses convert correctly to OpenAI format
 - ✅ System messages handled properly
@@ -78,6 +86,7 @@ UPDATE: src/routes/chat.ts - Remove mock response, use real conversion and mapTo
 - ✅ Edge cases (empty messages, special characters)
 
 ### Testable Features
+
 - Chat completion returns actual Claude responses (not mock data)
 - Message history preserved correctly with session continuity
 - All message formats handled properly matching Python behavior
@@ -88,6 +97,7 @@ UPDATE: src/routes/chat.ts - Remove mock response, use real conversion and mapTo
 ---
 
 ## Phase 02B: Message Format Conversion - Comprehensive Review
+
 **Goal**: Ensure 100% message format conversion compatibility and production-quality implementation
 **Review Focus**: Conversion accuracy, format compatibility, content filtering
 **Dependencies**: Phase 02A must be 100% complete with all tests passing
@@ -96,6 +106,7 @@ UPDATE: src/routes/chat.ts - Remove mock response, use real conversion and mapTo
 ### Comprehensive Review Requirements (MANDATORY)
 
 #### 1. Message Format Conversion Audit
+
 - **Conversion accuracy** must maintain message content and context
 - **Format compatibility** must preserve OpenAI API structure
 - **Content filtering** must match Python implementation patterns
@@ -103,6 +114,7 @@ UPDATE: src/routes/chat.ts - Remove mock response, use real conversion and mapTo
 - **Performance requirements** must achieve <50ms conversion times
 
 #### 2. Test Quality Review
+
 - **Replace ALL placeholder tests** with real message format conversion functionality tests
 - **Conversion tests**: Test OpenAI ↔ Claude format conversion accuracy
 - **Format tests**: Test OpenAI API format preservation
@@ -111,12 +123,14 @@ UPDATE: src/routes/chat.ts - Remove mock response, use real conversion and mapTo
 - **Performance tests**: Test conversion speed requirements
 
 #### 3. Integration Validation
+
 - **SDK Integration**: Verify conversion works with actual Claude SDK
 - **Format Integration**: Verify OpenAI format compatibility maintained
 - **Session Integration**: Verify session continuity with message history
 - **Content Integration**: Verify content filtering matches Python behavior
 
 #### 4. Architecture Compliance Review
+
 - **Single Responsibility**: message converters components have single purposes
 - **Dependency Injection**: ClaudeConverter depend on abstractions, not concrete implementations
 - **Interface Segregation**: IOpenAIConverter, IMessageParser interfaces are focused (max 5 methods)
@@ -125,18 +139,21 @@ UPDATE: src/routes/chat.ts - Remove mock response, use real conversion and mapTo
 - **DRY Compliance**: No duplicate message conversion logic
 
 #### 5. Performance Validation
+
 - **Conversion speed**: <50ms for message format conversion per request
 - **Processing efficiency**: Fast message parsing and content extraction
 - **Memory usage**: Efficient message conversion without memory accumulation
 - **Concurrent conversion**: Support for multiple simultaneous conversions
 
 #### 6. Documentation Review
+
 - **Conversion documentation**: Document message format conversion process
 - **Format guide**: Document OpenAI and Claude format differences
 - **Content filtering guide**: Document content processing and filtering
 - **Session guide**: Document session continuity and message history
 
 ### Quality Gates for Phase 02B Completion
+
 - ✅ **100% message format conversion functionality verified**
 - ✅ **All message format conversion tests are comprehensive and production-ready** - no placeholders
 - ✅ **message format conversion integrates correctly** with Claude SDK with message conversion
@@ -146,9 +163,10 @@ UPDATE: src/routes/chat.ts - Remove mock response, use real conversion and mapTo
 - ✅ **Documentation accuracy verified** - all docs reflect actual implementation
 
 ### Failure Criteria (Phase 02B Must Restart)
+
 - ❌ Message conversion doesn't maintain OpenAI format compatibility
 - ❌ Any placeholder conversion logic remains in codebase
 - ❌ Performance criteria not met (conversion >50ms)
 - ❌ Content filtering doesn't match Python patterns
 - ❌ Session continuity broken or message history lost
-- ❌ Test coverage below 100% or tests failing
+- ❌ Test passing below 100% or tests failing

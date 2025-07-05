@@ -40,8 +40,10 @@ describe('Sessions Router Unit Tests', () => {
       getSession: jest.fn(),
       deleteSession: jest.fn(),
       getConfig: jest.fn(),
+      getExpiredSessionCount: jest.fn(),
       isHealthy: jest.fn(),
-      cleanupExpiredSessions: jest.fn()
+      cleanupExpiredSessions: jest.fn(),
+      shutdown: jest.fn()
     } as any;
 
     // Mock the static sessionService property
@@ -101,6 +103,8 @@ describe('Sessions Router Unit Tests', () => {
 
       mockSessionService.getSessionStats.mockReturnValue(mockStats);
       mockSessionService.getConfig.mockReturnValue(mockConfig);
+      mockSessionService.listSessions.mockReturnValue({ sessions: [], total: 0 });
+      mockSessionService.getExpiredSessionCount.mockReturnValue(0);
 
       await SessionsRouter.getSessionStats(mockReq, mockRes);
 
@@ -108,11 +112,15 @@ describe('Sessions Router Unit Tests', () => {
       expect(mockSessionService.getConfig).toHaveBeenCalledTimes(1);
       
       expect(mockJson).toHaveBeenCalledWith({
-        session_stats: mockStats,
+        session_stats: {
+          active_sessions: mockStats.activeSessions,
+          expired_sessions: 0,
+          total_messages: mockStats.totalMessages
+        },
         cleanup_interval_minutes: 5,
         default_ttl_hours: 1
       });
-      expect(mockStatus).not.toHaveBeenCalled();
+      expect(mockStatus).toHaveBeenCalledWith(200);
     });
 
     it('should handle session stats service errors', async () => {
@@ -124,8 +132,7 @@ describe('Sessions Router Unit Tests', () => {
 
       expect(mockStatus).toHaveBeenCalledWith(500);
       expect(mockJson).toHaveBeenCalledWith({
-        error: 'Internal Server Error',
-        message: 'Failed to get session statistics'
+        detail: 'Failed to get session statistics'
       });
     });
 
@@ -150,11 +157,17 @@ describe('Sessions Router Unit Tests', () => {
 
       mockSessionService.getSessionStats.mockReturnValue(mockEmptyStats);
       mockSessionService.getConfig.mockReturnValue(mockConfig);
+      mockSessionService.listSessions.mockReturnValue({ sessions: [], total: 0 });
+      mockSessionService.getExpiredSessionCount.mockReturnValue(0);
 
       await SessionsRouter.getSessionStats(mockReq, mockRes);
 
       expect(mockJson).toHaveBeenCalledWith({
-        session_stats: mockEmptyStats,
+        session_stats: {
+          active_sessions: 0,
+          expired_sessions: 0,
+          total_messages: 0
+        },
         cleanup_interval_minutes: 5,
         default_ttl_hours: 1
       });
@@ -192,22 +205,22 @@ describe('Sessions Router Unit Tests', () => {
         sessions: [
           {
             session_id: 'session_1',
-            created_at: new Date('2024-01-01T10:00:00Z'),
-            last_accessed: new Date('2024-01-01T10:30:00Z'),
+            created_at: '2024-01-01T10:00:00.000Z',
+            last_accessed: '2024-01-01T10:30:00.000Z',
             message_count: 3,
-            expires_at: new Date('2024-01-01T11:00:00Z')
+            expires_at: '2024-01-01T11:00:00.000Z'
           },
           {
             session_id: 'session_2',
-            created_at: new Date('2024-01-01T11:00:00Z'),
-            last_accessed: new Date('2024-01-01T11:15:00Z'),
+            created_at: '2024-01-01T11:00:00.000Z',
+            last_accessed: '2024-01-01T11:15:00.000Z',
             message_count: 2,
-            expires_at: new Date('2024-01-01T12:00:00Z')
+            expires_at: '2024-01-01T12:00:00.000Z'
           }
         ],
         total: 2
       });
-      expect(mockStatus).not.toHaveBeenCalled();
+      expect(mockStatus).toHaveBeenCalledWith(200);
     });
 
     it('should return empty list when no sessions exist', async () => {
@@ -235,8 +248,7 @@ describe('Sessions Router Unit Tests', () => {
 
       expect(mockStatus).toHaveBeenCalledWith(500);
       expect(mockJson).toHaveBeenCalledWith({
-        error: 'Internal Server Error',
-        message: 'Failed to list sessions'
+        detail: 'Failed to list sessions'
       });
     });
   });
@@ -266,15 +278,13 @@ describe('Sessions Router Unit Tests', () => {
 
       expect(mockSessionService.getSession).toHaveBeenCalledWith(sessionId);
       expect(mockJson).toHaveBeenCalledWith({
-        id: mockSessionInfo.id,
-        created_at: mockSessionInfo.created_at,
-        model: mockSessionInfo.model,
-        system_prompt: mockSessionInfo.system_prompt,
-        max_turns: mockSessionInfo.max_turns,
+        session_id: mockSessionInfo.session_id,
+        created_at: mockSessionInfo.created_at.toISOString(),
+        last_accessed: mockSessionInfo.last_accessed.toISOString(),
         message_count: mockSessionInfo.message_count,
-        status: mockSessionInfo.status
+        expires_at: mockSessionInfo.expires_at.toISOString()
       });
-      expect(mockStatus).not.toHaveBeenCalled();
+      expect(mockStatus).toHaveBeenCalledWith(200);
     });
 
     it('should return 404 when session does not exist', async () => {
@@ -288,8 +298,7 @@ describe('Sessions Router Unit Tests', () => {
       expect(mockSessionService.getSession).toHaveBeenCalledWith(sessionId);
       expect(mockStatus).toHaveBeenCalledWith(404);
       expect(mockJson).toHaveBeenCalledWith({
-        error: 'Session not found',
-        message: `Session ${sessionId} not found`
+        detail: `Session ${sessionId} not found`
       });
     });
 
@@ -301,8 +310,7 @@ describe('Sessions Router Unit Tests', () => {
 
       expect(mockStatus).toHaveBeenCalledWith(400);
       expect(mockJson).toHaveBeenCalledWith({
-        error: 'Bad Request',
-        message: 'session_id parameter is required'
+        detail: 'session_id parameter is required'
       });
       expect(mockSessionService.getSession).not.toHaveBeenCalled();
     });
@@ -319,8 +327,7 @@ describe('Sessions Router Unit Tests', () => {
 
       expect(mockStatus).toHaveBeenCalledWith(500);
       expect(mockJson).toHaveBeenCalledWith({
-        error: 'Internal Server Error',
-        message: 'Failed to get session information'
+        detail: 'Internal Server Error'
       });
     });
   });
@@ -352,8 +359,7 @@ describe('Sessions Router Unit Tests', () => {
       expect(mockSessionService.deleteSession).toHaveBeenCalledWith(sessionId);
       expect(mockStatus).toHaveBeenCalledWith(404);
       expect(mockJson).toHaveBeenCalledWith({
-        error: 'Session not found',
-        message: `Session ${sessionId} not found`
+        detail: `Session ${sessionId} not found`
       });
     });
 
@@ -365,8 +371,7 @@ describe('Sessions Router Unit Tests', () => {
 
       expect(mockStatus).toHaveBeenCalledWith(400);
       expect(mockJson).toHaveBeenCalledWith({
-        error: 'Bad Request',
-        message: 'session_id parameter is required'
+        detail: 'session_id parameter is required'
       });
       expect(mockSessionService.deleteSession).not.toHaveBeenCalled();
     });
@@ -383,8 +388,7 @@ describe('Sessions Router Unit Tests', () => {
 
       expect(mockStatus).toHaveBeenCalledWith(500);
       expect(mockJson).toHaveBeenCalledWith({
-        error: 'Internal Server Error',
-        message: 'Failed to delete session'
+        detail: 'Failed to delete session'
       });
     });
   });
@@ -579,8 +583,7 @@ describe('Sessions Router Unit Tests', () => {
 
       expect(mockStatus).toHaveBeenCalledWith(400);
       expect(mockJson).toHaveBeenCalledWith({
-        error: 'Bad Request',
-        message: 'session_id parameter is required'
+        detail: 'session_id parameter is required'
       });
     });
 

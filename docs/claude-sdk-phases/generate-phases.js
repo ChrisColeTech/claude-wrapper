@@ -1,17 +1,20 @@
 #!/usr/bin/env node
 
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 
 // Claude SDK Integration phase definitions with all the specific details
 const phases = [
   {
-    number: '01',
-    title: 'Claude Service Foundation',
-    goal: 'Create the core Claude service interface and basic SDK integration',
-    completeFeature: 'Actual Claude Code SDK integration replacing mock responses',
-    claudeReference: 'Based on CLAUDE_SDK_REFERENCE.md: Authentication Integration, Core SDK Integration Pattern, CLI Verification',
-    performanceRequirement: 'Single-turn completion response <2s with actual Claude',
+    number: "01",
+    title: "Claude Service Foundation",
+    goal: "Create the core Claude service interface and basic SDK integration",
+    completeFeature:
+      "Actual Claude Code SDK integration replacing mock responses",
+    claudeReference:
+      "Based on CLAUDE_SDK_REFERENCE.md: Authentication Integration, Core SDK Integration Pattern, CLI Verification",
+    performanceRequirement:
+      "Single-turn completion response <2s with actual Claude",
     filesCreate: `CREATE: src/claude/sdk-client.ts - Direct Claude Code SDK wrapper implementing patterns from CLAUDE_SDK_REFERENCE.md
 CREATE: src/claude/interfaces.ts - Claude service interfaces and types matching Python claude_cli.py
 CREATE: src/claude/error-types.ts - Error classes (ClaudeSDKError, AuthenticationError, StreamingError)
@@ -28,33 +31,40 @@ UPDATE: package.json - Add Claude Code SDK dependency: @anthropic-ai/claude-code
 - Authentication detection (API key, Bedrock, Vertex AI, CLI)
 - Basic text completion working (simple prompt → response)
 - Named constants for all Claude SDK configurations`,
-    srpRequirement: 'ClaudeSDKClient handles only SDK communication operations (<200 lines)',
-    extensionType: 'Claude SDK integration',
-    componentType: 'SDK handlers',
-    interfaceName: 'IClaudeSDKClient',
-    interfaceList: 'IClaudeService, ISDKVerifier',
-    dependencyAbstractions: 'Authentication and environment abstractions',
-    patternType: 'SDK integration',
-    utilsName: 'ClaudeSDKUtils',
-    magicType: 'Values',
-    constantType: 'SDK configuration values and timeouts',
-    errorType: 'ClaudeSDKError',
-    errorInfo: 'SDK operation status information',
-    mainClass: 'ClaudeSDKClient',
-    focusArea: 'Claude SDK integration',
-    logicType: 'SDK communication',
-    ruleType: 'SDK integration',
-    configType: 'SDK configuration and authentication',
-    magicValues: 'Values',
-    constantExamples: 'SDK_TIMEOUTS.DEFAULT, AUTH_METHODS.ANTHROPIC_API_KEY',
-    featureType: 'Claude SDK foundation',
-    unitTestCoverage: 'ClaudeSDKClient, error handling, authentication detection edge cases',
-    integrationTestCoverage: 'Basic Claude SDK integration with real authentication',
-    mockRequirements: 'Mock external SDK calls, test business logic with actual auth',
-    errorScenarios: 'Authentication failures, SDK unavailable, connection timeouts',
-    performanceTests: 'Single-turn completion response <2s with actual Claude',
-    compatibilityRequirement: 'SDK integration maintains OpenAI API compatibility',
-    performanceCriteria: 'single-turn completion response <2s with actual Claude',
+    srpRequirement:
+      "ClaudeSDKClient handles only SDK communication operations (<200 lines)",
+    extensionType: "Claude SDK integration",
+    componentType: "SDK handlers",
+    interfaceName: "IClaudeSDKClient",
+    interfaceList: "IClaudeService, ISDKVerifier",
+    dependencyAbstractions: "Authentication and environment abstractions",
+    patternType: "SDK integration",
+    utilsName: "ClaudeSDKUtils",
+    magicType: "Values",
+    constantType: "SDK configuration values and timeouts",
+    errorType: "ClaudeSDKError",
+    errorInfo: "SDK operation status information",
+    mainClass: "ClaudeSDKClient",
+    focusArea: "Claude SDK integration",
+    logicType: "SDK communication",
+    ruleType: "SDK integration",
+    configType: "SDK configuration and authentication",
+    magicValues: "Values",
+    constantExamples: "SDK_TIMEOUTS.DEFAULT, AUTH_METHODS.ANTHROPIC_API_KEY",
+    featureType: "Claude SDK foundation",
+    unitTestCoverage:
+      "ClaudeSDKClient, error handling, authentication detection edge cases",
+    integrationTestCoverage:
+      "Basic Claude SDK integration with real authentication",
+    mockRequirements:
+      "Mock external SDK calls, test business logic with actual auth",
+    errorScenarios:
+      "Authentication failures, SDK unavailable, connection timeouts",
+    performanceTests: "Single-turn completion response <2s with actual Claude",
+    compatibilityRequirement:
+      "SDK integration maintains OpenAI API compatibility",
+    performanceCriteria:
+      "single-turn completion response <2s with actual Claude",
     compatibilityChecklist: `- ✅ SDK client can be instantiated with different auth methods
 - ✅ Basic text completion works (simple prompt → response)
 - ✅ Error handling for authentication failures using patterns from CLAUDE_SDK_REFERENCE.md
@@ -65,9 +75,10 @@ UPDATE: package.json - Add Claude Code SDK dependency: @anthropic-ai/claude-code
 - Authentication method detection and validation
 - SDK availability verification and connection testing
 - Basic Claude response parsing and content extraction`,
-    demoType: 'Claude SDK foundation',
-    reviewFocus: 'SDK integration correctness, authentication handling, error management',
-    auditTitle: 'Claude SDK Foundation',
+    demoType: "Claude SDK foundation",
+    reviewFocus:
+      "SDK integration correctness, authentication handling, error management",
+    auditTitle: "Claude SDK Foundation",
     auditRequirements: `- **SDK integration** must replace all mock responses with actual Claude calls
 - **Authentication handling** must support all methods from CLAUDE_SDK_REFERENCE.md
 - **Error management** must handle all failure scenarios gracefully
@@ -90,22 +101,24 @@ UPDATE: package.json - Add Claude Code SDK dependency: @anthropic-ai/claude-code
 - **Authentication guide**: Document all authentication methods and configuration
 - **Error handling guide**: Document error scenarios and troubleshooting
 - **Performance guide**: Document performance optimization and monitoring`,
-    integrationTarget: 'actual Claude Code SDK',
-    nextPhase: '02',
+    integrationTarget: "actual Claude Code SDK",
+    nextPhase: "02",
     failureCriteria: `- ❌ Mock responses still present in any completion endpoints
 - ❌ Any placeholder SDK implementations remain in codebase
 - ❌ Performance criteria not met (responses >2s with Claude)
 - ❌ Authentication failures not handled properly
 - ❌ SDK integration failures or connection issues
-- ❌ Test coverage below 100% or tests failing`
+- ❌ Test passing below 100% or tests failing`,
   },
   {
-    number: '02',
-    title: 'Message Format Conversion',
-    goal: 'Implement proper OpenAI ↔ Claude message format conversion',
-    completeFeature: 'Complete message format conversion with session continuity',
-    claudeReference: 'Based on CLAUDE_SDK_REFERENCE.md: Parameter Mapping, Message Processing',
-    performanceRequirement: 'Message conversion processing <50ms per request',
+    number: "02",
+    title: "Message Format Conversion",
+    goal: "Implement proper OpenAI ↔ Claude message format conversion",
+    completeFeature:
+      "Complete message format conversion with session continuity",
+    claudeReference:
+      "Based on CLAUDE_SDK_REFERENCE.md: Parameter Mapping, Message Processing",
+    performanceRequirement: "Message conversion processing <50ms per request",
     filesCreate: `CREATE: src/message/claude-converter.ts - OpenAI to Claude format conversion implementing OpenAIToClaudeMapping
 CREATE: src/message/openai-converter.ts - Claude to OpenAI format conversion
 CREATE: src/message/message-parser.ts - Claude message parsing using ClaudeMessageProcessor pattern
@@ -122,33 +135,39 @@ UPDATE: src/routes/chat.ts - Remove mock response, use real conversion and mapTo
 - Content filtering matching Python patterns (extractContent method)
 - Session continuity with proper message history management
 - Named constants for all message format configurations`,
-    srpRequirement: 'ClaudeConverter handles only format conversion operations (<200 lines)',
-    extensionType: 'message conversion strategies',
-    componentType: 'message converters',
-    interfaceName: 'IClaudeConverter',
-    interfaceList: 'IOpenAIConverter, IMessageParser',
-    dependencyAbstractions: 'IClaudeSDKClient and SDK abstractions',
-    patternType: 'message conversion',
-    utilsName: 'MessageConversionUtils',
-    magicType: 'Values',
-    constantType: 'message format values and conversion rules',
-    errorType: 'MessageConversionError',
-    errorInfo: 'message conversion status information',
-    mainClass: 'ClaudeConverter',
-    focusArea: 'message format conversion',
-    logicType: 'message conversion',
-    ruleType: 'format conversion',
-    configType: 'message format configuration and conversion rules',
-    magicValues: 'Values',
-    constantExamples: 'MESSAGE_FORMATS.OPENAI, CONVERSION_MODES.CLAUDE_TO_OPENAI',
-    featureType: 'message format conversion',
-    unitTestCoverage: 'ClaudeConverter, OpenAI conversion, message parsing edge cases',
-    integrationTestCoverage: 'Message conversion with complete Claude SDK integration',
-    mockRequirements: 'Mock IClaudeSDKClient for conversion testing',
-    errorScenarios: 'Invalid message formats, conversion failures, parsing errors',
-    performanceTests: 'Message conversion processing <50ms per request',
-    compatibilityRequirement: 'message conversion maintains OpenAI format compatibility',
-    performanceCriteria: 'message conversion processing <50ms per request',
+    srpRequirement:
+      "ClaudeConverter handles only format conversion operations (<200 lines)",
+    extensionType: "message conversion strategies",
+    componentType: "message converters",
+    interfaceName: "IClaudeConverter",
+    interfaceList: "IOpenAIConverter, IMessageParser",
+    dependencyAbstractions: "IClaudeSDKClient and SDK abstractions",
+    patternType: "message conversion",
+    utilsName: "MessageConversionUtils",
+    magicType: "Values",
+    constantType: "message format values and conversion rules",
+    errorType: "MessageConversionError",
+    errorInfo: "message conversion status information",
+    mainClass: "ClaudeConverter",
+    focusArea: "message format conversion",
+    logicType: "message conversion",
+    ruleType: "format conversion",
+    configType: "message format configuration and conversion rules",
+    magicValues: "Values",
+    constantExamples:
+      "MESSAGE_FORMATS.OPENAI, CONVERSION_MODES.CLAUDE_TO_OPENAI",
+    featureType: "message format conversion",
+    unitTestCoverage:
+      "ClaudeConverter, OpenAI conversion, message parsing edge cases",
+    integrationTestCoverage:
+      "Message conversion with complete Claude SDK integration",
+    mockRequirements: "Mock IClaudeSDKClient for conversion testing",
+    errorScenarios:
+      "Invalid message formats, conversion failures, parsing errors",
+    performanceTests: "Message conversion processing <50ms per request",
+    compatibilityRequirement:
+      "message conversion maintains OpenAI format compatibility",
+    performanceCriteria: "message conversion processing <50ms per request",
     compatibilityChecklist: `- ✅ OpenAI messages convert correctly to Claude format using mapToClaudeOptions
 - ✅ Claude responses convert correctly to OpenAI format
 - ✅ System messages handled properly
@@ -160,9 +179,9 @@ UPDATE: src/routes/chat.ts - Remove mock response, use real conversion and mapTo
 - All message formats handled properly matching Python behavior
 - Content filtering removes thinking blocks and tool usage correctly
 - OpenAI API structure maintained while using Claude backend`,
-    demoType: 'message format conversion',
-    reviewFocus: 'Conversion accuracy, format compatibility, content filtering',
-    auditTitle: 'Message Format Conversion',
+    demoType: "message format conversion",
+    reviewFocus: "Conversion accuracy, format compatibility, content filtering",
+    auditTitle: "Message Format Conversion",
     auditRequirements: `- **Conversion accuracy** must maintain message content and context
 - **Format compatibility** must preserve OpenAI API structure
 - **Content filtering** must match Python implementation patterns
@@ -185,22 +204,22 @@ UPDATE: src/routes/chat.ts - Remove mock response, use real conversion and mapTo
 - **Format guide**: Document OpenAI and Claude format differences
 - **Content filtering guide**: Document content processing and filtering
 - **Session guide**: Document session continuity and message history`,
-    integrationTarget: 'Claude SDK with message conversion',
-    nextPhase: '03',
+    integrationTarget: "Claude SDK with message conversion",
+    nextPhase: "03",
     failureCriteria: `- ❌ Message conversion doesn't maintain OpenAI format compatibility
 - ❌ Any placeholder conversion logic remains in codebase
 - ❌ Performance criteria not met (conversion >50ms)
 - ❌ Content filtering doesn't match Python patterns
 - ❌ Session continuity broken or message history lost
-- ❌ Test coverage below 100% or tests failing`
+- ❌ Test passing below 100% or tests failing`,
   },
   {
-    number: '03',
-    title: 'Model Selection and Validation',
-    goal: 'Implement proper model selection and validation with Claude SDK',
-    completeFeature: 'Complete model management with Claude SDK capabilities',
-    claudeReference: 'Based on CLAUDE_SDK_REFERENCE.md: Configuration Options',
-    performanceRequirement: 'Model validation processing <10ms per request',
+    number: "03",
+    title: "Model Selection and Validation",
+    goal: "Implement proper model selection and validation with Claude SDK",
+    completeFeature: "Complete model management with Claude SDK capabilities",
+    claudeReference: "Based on CLAUDE_SDK_REFERENCE.md: Configuration Options",
+    performanceRequirement: "Model validation processing <10ms per request",
     filesCreate: `CREATE: src/claude/model-manager.ts - Model validation and selection
 CREATE: src/claude/model-config.ts - Model configurations and capabilities
 CREATE: tests/unit/claude/model-manager.test.ts - Model management tests
@@ -215,33 +234,38 @@ UPDATE: src/claude/service.ts - Add model parameter to SDK calls`,
 - Model configuration management and capability mapping
 - Integration with Claude SDK model parameter passing
 - Named constants for all supported models and configurations`,
-    srpRequirement: 'ModelManager handles only model management operations (<200 lines)',
-    extensionType: 'model management strategies',
-    componentType: 'model validators',
-    interfaceName: 'IModelManager',
-    interfaceList: 'IModelValidator, IModelConfig',
-    dependencyAbstractions: 'IClaudeConverter and conversion abstractions',
-    patternType: 'model management',
-    utilsName: 'ModelManagementUtils',
-    magicType: 'Values',
-    constantType: 'model values and validation rules',
-    errorType: 'ModelValidationError',
-    errorInfo: 'model validation status information',
-    mainClass: 'ModelManager',
-    focusArea: 'model validation',
-    logicType: 'model management',
-    ruleType: 'model validation',
-    configType: 'model configuration and validation rules',
-    magicValues: 'Values',
-    constantExamples: 'CLAUDE_MODELS.SONNET_3_5, MODEL_CAPABILITIES.TOOLS_SUPPORT',
-    featureType: 'model selection and validation',
-    unitTestCoverage: 'ModelManager, model validation, configuration edge cases',
-    integrationTestCoverage: 'Model management with Claude SDK integration',
-    mockRequirements: 'Mock IClaudeConverter, model capability services',
-    errorScenarios: 'Invalid model requests, unsupported models, validation failures',
-    performanceTests: 'Model validation processing <10ms per request',
-    compatibilityRequirement: 'model validation maintains OpenAI model API compatibility',
-    performanceCriteria: 'model validation processing <10ms per request',
+    srpRequirement:
+      "ModelManager handles only model management operations (<200 lines)",
+    extensionType: "model management strategies",
+    componentType: "model validators",
+    interfaceName: "IModelManager",
+    interfaceList: "IModelValidator, IModelConfig",
+    dependencyAbstractions: "IClaudeConverter and conversion abstractions",
+    patternType: "model management",
+    utilsName: "ModelManagementUtils",
+    magicType: "Values",
+    constantType: "model values and validation rules",
+    errorType: "ModelValidationError",
+    errorInfo: "model validation status information",
+    mainClass: "ModelManager",
+    focusArea: "model validation",
+    logicType: "model management",
+    ruleType: "model validation",
+    configType: "model configuration and validation rules",
+    magicValues: "Values",
+    constantExamples:
+      "CLAUDE_MODELS.SONNET_3_5, MODEL_CAPABILITIES.TOOLS_SUPPORT",
+    featureType: "model selection and validation",
+    unitTestCoverage:
+      "ModelManager, model validation, configuration edge cases",
+    integrationTestCoverage: "Model management with Claude SDK integration",
+    mockRequirements: "Mock IClaudeConverter, model capability services",
+    errorScenarios:
+      "Invalid model requests, unsupported models, validation failures",
+    performanceTests: "Model validation processing <10ms per request",
+    compatibilityRequirement:
+      "model validation maintains OpenAI model API compatibility",
+    performanceCriteria: "model validation processing <10ms per request",
     compatibilityChecklist: `- ✅ Model validation against actual Claude SDK capabilities
 - ✅ Model selection works correctly and affects Claude behavior
 - ✅ Invalid model requests rejected with proper errors
@@ -251,9 +275,10 @@ UPDATE: src/claude/service.ts - Add model parameter to SDK calls`,
 - Proper error messages for invalid models
 - Model capabilities correctly reported through /v1/models endpoint
 - Default model handling works consistently`,
-    demoType: 'model selection and validation',
-    reviewFocus: 'Model validation accuracy, capability detection, error handling',
-    auditTitle: 'Model Selection and Validation',
+    demoType: "model selection and validation",
+    reviewFocus:
+      "Model validation accuracy, capability detection, error handling",
+    auditTitle: "Model Selection and Validation",
     auditRequirements: `- **Model validation accuracy** must validate against actual Claude capabilities
 - **Capability detection** must correctly identify model features
 - **Error handling** must provide clear invalid model messages
@@ -276,22 +301,24 @@ UPDATE: src/claude/service.ts - Add model parameter to SDK calls`,
 - **Validation guide**: Document model validation process and requirements
 - **Error guide**: Document model error handling and troubleshooting
 - **Capability guide**: Document model capabilities and feature support`,
-    integrationTarget: 'Claude SDK with model management',
-    nextPhase: '04',
+    integrationTarget: "Claude SDK with model management",
+    nextPhase: "04",
     failureCriteria: `- ❌ Model validation doesn't work with actual Claude SDK
 - ❌ Any placeholder model implementations remain
 - ❌ Performance criteria not met (validation >10ms)
 - ❌ Invalid models not properly rejected
 - ❌ Model selection doesn't affect Claude behavior
-- ❌ Test coverage below 100% or tests failing`
+- ❌ Test passing below 100% or tests failing`,
   },
   {
-    number: '04',
-    title: 'Non-Streaming Completions',
-    goal: 'Complete non-streaming chat completions with full SDK integration',
-    completeFeature: 'Production-ready non-streaming completions with actual Claude',
-    claudeReference: 'Based on CLAUDE_SDK_REFERENCE.md: Core SDK Integration Pattern, Usage Metadata Extraction',
-    performanceRequirement: 'Non-streaming completion response <3s end-to-end',
+    number: "04",
+    title: "Non-Streaming Completions",
+    goal: "Complete non-streaming chat completions with full SDK integration",
+    completeFeature:
+      "Production-ready non-streaming completions with actual Claude",
+    claudeReference:
+      "Based on CLAUDE_SDK_REFERENCE.md: Core SDK Integration Pattern, Usage Metadata Extraction",
+    performanceRequirement: "Non-streaming completion response <3s end-to-end",
     filesCreate: `CREATE: src/claude/completion-manager.ts - Non-streaming completion logic using executeQuery pattern
 CREATE: src/claude/metadata-extractor.ts - Token and cost extraction using extractUsageFromClaudeResponse
 CREATE: tests/integration/claude/non-streaming.test.ts - Non-streaming integration tests
@@ -306,33 +333,37 @@ UPDATE: src/routes/chat.ts - Remove all mock logic from non-streaming path`,
 - Multi-turn conversation support with proper session management
 - Tool configuration (disabled by default for OpenAI compatibility)
 - Named constants for all completion configurations and parameters`,
-    srpRequirement: 'CompletionManager handles only completion operations (<200 lines)',
-    extensionType: 'completion strategies',
-    componentType: 'completion handlers',
-    interfaceName: 'ICompletionManager',
-    interfaceList: 'IMetadataExtractor, ISessionManager',
-    dependencyAbstractions: 'IModelManager and model abstractions',
-    patternType: 'completion management',
-    utilsName: 'CompletionUtils',
-    magicType: 'Values',
-    constantType: 'completion values and configuration',
-    errorType: 'CompletionError',
-    errorInfo: 'completion status information',
-    mainClass: 'CompletionManager',
-    focusArea: 'non-streaming completions',
-    logicType: 'completion',
-    ruleType: 'completion processing',
-    configType: 'completion configuration and parameters',
-    magicValues: 'Values',
-    constantExamples: 'COMPLETION_MODES.NON_STREAMING, TOKEN_ESTIMATION.CLAUDE',
-    featureType: 'non-streaming completions',
-    unitTestCoverage: 'CompletionManager, metadata extraction, session management edge cases',
-    integrationTestCoverage: 'Non-streaming completions with complete Claude SDK',
-    mockRequirements: 'Mock IModelManager, external completion services',
-    errorScenarios: 'Completion failures, timeout issues, session errors',
-    performanceTests: 'Non-streaming completion response <3s end-to-end',
-    compatibilityRequirement: 'non-streaming completions maintain OpenAI API compatibility',
-    performanceCriteria: 'non-streaming completion response <3s end-to-end',
+    srpRequirement:
+      "CompletionManager handles only completion operations (<200 lines)",
+    extensionType: "completion strategies",
+    componentType: "completion handlers",
+    interfaceName: "ICompletionManager",
+    interfaceList: "IMetadataExtractor, ISessionManager",
+    dependencyAbstractions: "IModelManager and model abstractions",
+    patternType: "completion management",
+    utilsName: "CompletionUtils",
+    magicType: "Values",
+    constantType: "completion values and configuration",
+    errorType: "CompletionError",
+    errorInfo: "completion status information",
+    mainClass: "CompletionManager",
+    focusArea: "non-streaming completions",
+    logicType: "completion",
+    ruleType: "completion processing",
+    configType: "completion configuration and parameters",
+    magicValues: "Values",
+    constantExamples: "COMPLETION_MODES.NON_STREAMING, TOKEN_ESTIMATION.CLAUDE",
+    featureType: "non-streaming completions",
+    unitTestCoverage:
+      "CompletionManager, metadata extraction, session management edge cases",
+    integrationTestCoverage:
+      "Non-streaming completions with complete Claude SDK",
+    mockRequirements: "Mock IModelManager, external completion services",
+    errorScenarios: "Completion failures, timeout issues, session errors",
+    performanceTests: "Non-streaming completion response <3s end-to-end",
+    compatibilityRequirement:
+      "non-streaming completions maintain OpenAI API compatibility",
+    performanceCriteria: "non-streaming completion response <3s end-to-end",
     compatibilityChecklist: `- ✅ Simple Q&A completions work correctly (e.g., "What is 2+2?" → "4")
 - ✅ Multi-turn conversations work with session continuity
 - ✅ Token counting is accurate using extractUsageFromClaudeResponse pattern
@@ -343,9 +374,9 @@ UPDATE: src/routes/chat.ts - Remove all mock logic from non-streaming path`,
 - Proper session continuity with continue_conversation option
 - Complete error handling for all completion scenarios
 - Multi-turn conversations work correctly with message history`,
-    demoType: 'non-streaming completions',
-    reviewFocus: 'Completion accuracy, session continuity, error handling',
-    auditTitle: 'Non-Streaming Completions',
+    demoType: "non-streaming completions",
+    reviewFocus: "Completion accuracy, session continuity, error handling",
+    auditTitle: "Non-Streaming Completions",
     auditRequirements: `- **Completion accuracy** must provide correct Claude responses
 - **Session continuity** must maintain conversation context
 - **Error handling** must handle all failure scenarios gracefully
@@ -368,22 +399,24 @@ UPDATE: src/routes/chat.ts - Remove all mock logic from non-streaming path`,
 - **Session guide**: Document session management and continuity
 - **Error guide**: Document completion error handling and troubleshooting
 - **Performance guide**: Document completion optimization and monitoring`,
-    integrationTarget: 'complete Claude SDK with completions',
-    nextPhase: '05',
+    integrationTarget: "complete Claude SDK with completions",
+    nextPhase: "05",
     failureCriteria: `- ❌ Non-streaming completions don't work with actual Claude
 - ❌ Any mock completion logic remains in codebase
 - ❌ Performance criteria not met (completions >3s)
 - ❌ Session continuity broken or unreliable
 - ❌ Token counting inaccurate or missing
-- ❌ Test coverage below 100% or tests failing`
+- ❌ Test passing below 100% or tests failing`,
   },
   {
-    number: '05',
-    title: 'Streaming Completions',
-    goal: 'Implement real-time streaming responses',
-    completeFeature: 'Production-ready streaming completions with Claude SDK',
-    claudeReference: 'Based on CLAUDE_SDK_REFERENCE.md: Streaming Implementation',
-    performanceRequirement: 'First streaming chunk response <500ms, subsequent chunks <100ms',
+    number: "05",
+    title: "Streaming Completions",
+    goal: "Implement real-time streaming responses",
+    completeFeature: "Production-ready streaming completions with Claude SDK",
+    claudeReference:
+      "Based on CLAUDE_SDK_REFERENCE.md: Streaming Implementation",
+    performanceRequirement:
+      "First streaming chunk response <500ms, subsequent chunks <100ms",
     filesCreate: `CREATE: src/claude/streaming-manager.ts - Streaming completion logic using processClaudeStream pattern
 CREATE: src/claude/sse-formatter.ts - Server-Sent Events formatting for OpenAI compatibility
 CREATE: tests/integration/claude/streaming.test.ts - Streaming integration tests
@@ -398,33 +431,40 @@ UPDATE: src/routes/chat.ts - Replace mock streaming logic with real SDK calls`,
 - Stream termination and completion detection
 - Chunk processing and delta calculation for incremental updates
 - Named constants for all streaming configurations and parameters`,
-    srpRequirement: 'StreamingManager handles only streaming operations (<200 lines)',
-    extensionType: 'streaming strategies',
-    componentType: 'streaming handlers',
-    interfaceName: 'IStreamingManager',
-    interfaceList: 'ISSEFormatter, IStreamProcessor',
-    dependencyAbstractions: 'ICompletionManager and completion abstractions',
-    patternType: 'streaming',
-    utilsName: 'StreamingUtils',
-    magicType: 'Values',
-    constantType: 'streaming values and configuration',
-    errorType: 'StreamingError',
-    errorInfo: 'streaming status information',
-    mainClass: 'StreamingManager',
-    focusArea: 'streaming completions',
-    logicType: 'streaming',
-    ruleType: 'streaming processing',
-    configType: 'streaming configuration and parameters',
-    magicValues: 'Values',
-    constantExamples: 'STREAMING_MODES.REAL_TIME, SSE_FORMATS.OPENAI_COMPATIBLE',
-    featureType: 'streaming completions',
-    unitTestCoverage: 'StreamingManager, SSE formatting, stream processing edge cases',
-    integrationTestCoverage: 'Streaming completions with complete Claude SDK',
-    mockRequirements: 'Mock ICompletionManager, streaming services for testing',
-    errorScenarios: 'Stream interruption, client disconnection, streaming failures',
-    performanceTests: 'First streaming chunk response <500ms, subsequent chunks <100ms',
-    compatibilityRequirement: 'streaming completions maintain OpenAI streaming API compatibility',
-    performanceCriteria: 'first streaming chunk response <500ms, subsequent chunks <100ms',
+    srpRequirement:
+      "StreamingManager handles only streaming operations (<200 lines)",
+    extensionType: "streaming strategies",
+    componentType: "streaming handlers",
+    interfaceName: "IStreamingManager",
+    interfaceList: "ISSEFormatter, IStreamProcessor",
+    dependencyAbstractions: "ICompletionManager and completion abstractions",
+    patternType: "streaming",
+    utilsName: "StreamingUtils",
+    magicType: "Values",
+    constantType: "streaming values and configuration",
+    errorType: "StreamingError",
+    errorInfo: "streaming status information",
+    mainClass: "StreamingManager",
+    focusArea: "streaming completions",
+    logicType: "streaming",
+    ruleType: "streaming processing",
+    configType: "streaming configuration and parameters",
+    magicValues: "Values",
+    constantExamples:
+      "STREAMING_MODES.REAL_TIME, SSE_FORMATS.OPENAI_COMPATIBLE",
+    featureType: "streaming completions",
+    unitTestCoverage:
+      "StreamingManager, SSE formatting, stream processing edge cases",
+    integrationTestCoverage: "Streaming completions with complete Claude SDK",
+    mockRequirements: "Mock ICompletionManager, streaming services for testing",
+    errorScenarios:
+      "Stream interruption, client disconnection, streaming failures",
+    performanceTests:
+      "First streaming chunk response <500ms, subsequent chunks <100ms",
+    compatibilityRequirement:
+      "streaming completions maintain OpenAI streaming API compatibility",
+    performanceCriteria:
+      "first streaming chunk response <500ms, subsequent chunks <100ms",
     compatibilityChecklist: `- ✅ Streaming responses work in real-time with actual Claude
 - ✅ Proper SSE formatting and chunking for OpenAI compatibility
 - ✅ Stream termination handled correctly
@@ -435,9 +475,9 @@ UPDATE: src/routes/chat.ts - Replace mock streaming logic with real SDK calls`,
 - Robust error handling and connection management
 - Real-time response delivery with appropriate chunk timing
 - Clean stream termination and resource cleanup`,
-    demoType: 'streaming completions',
-    reviewFocus: 'Streaming reliability, format compatibility, error handling',
-    auditTitle: 'Streaming Completions',
+    demoType: "streaming completions",
+    reviewFocus: "Streaming reliability, format compatibility, error handling",
+    auditTitle: "Streaming Completions",
     auditRequirements: `- **Streaming reliability** must provide consistent real-time responses
 - **Format compatibility** must maintain OpenAI streaming API structure
 - **Error handling** must handle stream interruptions gracefully
@@ -460,22 +500,25 @@ UPDATE: src/routes/chat.ts - Replace mock streaming logic with real SDK calls`,
 - **Format guide**: Document OpenAI streaming format compatibility
 - **Error guide**: Document streaming error handling and troubleshooting
 - **Performance guide**: Document streaming optimization and monitoring`,
-    integrationTarget: 'complete Claude SDK with streaming',
-    nextPhase: '06',
+    integrationTarget: "complete Claude SDK with streaming",
+    nextPhase: "06",
     failureCriteria: `- ❌ Streaming doesn't work with actual Claude SDK
 - ❌ Any mock streaming logic remains in codebase
 - ❌ Performance criteria not met (first chunk >500ms or subsequent >100ms)
 - ❌ OpenAI streaming format compatibility broken
 - ❌ Stream error handling unreliable
-- ❌ Test coverage below 100% or tests failing`
+- ❌ Test passing below 100% or tests failing`,
   },
   {
-    number: '06',
-    title: 'Tools Integration (Optional - Disabled by Default)',
-    goal: 'Support Claude Code tools when explicitly enabled',
-    completeFeature: 'Complete tools integration with Claude SDK (disabled by default)',
-    claudeReference: 'Based on CLAUDE_SDK_REFERENCE.md: Parameter Mapping (tools configuration)',
-    performanceRequirement: 'Tool-enabled completion response <5s with tools processing',
+    number: "06",
+    title: "Tools Integration (Optional - Disabled by Default)",
+    goal: "Support Claude Code tools when explicitly enabled",
+    completeFeature:
+      "Complete tools integration with Claude SDK (disabled by default)",
+    claudeReference:
+      "Based on CLAUDE_SDK_REFERENCE.md: Parameter Mapping (tools configuration)",
+    performanceRequirement:
+      "Tool-enabled completion response <5s with tools processing",
     filesCreate: `CREATE: src/tools/claude-tools-manager.ts - Claude tools integration using CLAUDE_CODE_TOOLS
 CREATE: src/tools/tools-converter.ts - OpenAI ↔ Claude tools format conversion
 CREATE: tests/unit/tools/claude-tools-manager.test.ts - Tools management tests
@@ -490,33 +533,39 @@ UPDATE: src/routes/chat.ts - Handle enable_tools parameter with proper tool conf
 - Error handling for tool operation failures
 - Tool call result processing and OpenAI format conversion
 - Named constants for all tool configurations and tool lists`,
-    srpRequirement: 'ClaudeToolsManager handles only tools management operations (<200 lines)',
-    extensionType: 'tools integration strategies',
-    componentType: 'tools handlers',
-    interfaceName: 'IClaudeToolsManager',
-    interfaceList: 'IToolsConverter, IToolsConfig',
-    dependencyAbstractions: 'IStreamingManager and streaming abstractions',
-    patternType: 'tools integration',
-    utilsName: 'ToolsUtils',
-    magicType: 'Values',
-    constantType: 'tools values and configuration',
-    errorType: 'ToolsError',
-    errorInfo: 'tools operation status information',
-    mainClass: 'ClaudeToolsManager',
-    focusArea: 'tools integration',
-    logicType: 'tools management',
-    ruleType: 'tools processing',
-    configType: 'tools configuration and management',
-    magicValues: 'Values',
-    constantExamples: 'CLAUDE_CODE_TOOLS.ALL, TOOLS_CONFIG.DISABLED_BY_DEFAULT',
-    featureType: 'tools integration',
-    unitTestCoverage: 'ClaudeToolsManager, tools conversion, configuration edge cases',
-    integrationTestCoverage: 'Tools integration with complete Claude SDK',
-    mockRequirements: 'Mock IStreamingManager, tools services for testing',
-    errorScenarios: 'Tool failures, configuration errors, tools processing issues',
-    performanceTests: 'Tool-enabled completion response <5s with tools processing',
-    compatibilityRequirement: 'tools integration maintains OpenAI compatibility (disabled by default)',
-    performanceCriteria: 'tool-enabled completion response <5s with tools processing',
+    srpRequirement:
+      "ClaudeToolsManager handles only tools management operations (<200 lines)",
+    extensionType: "tools integration strategies",
+    componentType: "tools handlers",
+    interfaceName: "IClaudeToolsManager",
+    interfaceList: "IToolsConverter, IToolsConfig",
+    dependencyAbstractions: "IStreamingManager and streaming abstractions",
+    patternType: "tools integration",
+    utilsName: "ToolsUtils",
+    magicType: "Values",
+    constantType: "tools values and configuration",
+    errorType: "ToolsError",
+    errorInfo: "tools operation status information",
+    mainClass: "ClaudeToolsManager",
+    focusArea: "tools integration",
+    logicType: "tools management",
+    ruleType: "tools processing",
+    configType: "tools configuration and management",
+    magicValues: "Values",
+    constantExamples: "CLAUDE_CODE_TOOLS.ALL, TOOLS_CONFIG.DISABLED_BY_DEFAULT",
+    featureType: "tools integration",
+    unitTestCoverage:
+      "ClaudeToolsManager, tools conversion, configuration edge cases",
+    integrationTestCoverage: "Tools integration with complete Claude SDK",
+    mockRequirements: "Mock IStreamingManager, tools services for testing",
+    errorScenarios:
+      "Tool failures, configuration errors, tools processing issues",
+    performanceTests:
+      "Tool-enabled completion response <5s with tools processing",
+    compatibilityRequirement:
+      "tools integration maintains OpenAI compatibility (disabled by default)",
+    performanceCriteria:
+      "tool-enabled completion response <5s with tools processing",
     compatibilityChecklist: `- ✅ Tools disabled by default (OpenAI compatibility)
 - ✅ Tools work when explicitly enabled via enable_tools=true
 - ✅ Custom tool configuration via X-Claude-Allowed-Tools header
@@ -527,9 +576,10 @@ UPDATE: src/routes/chat.ts - Handle enable_tools parameter with proper tool conf
 - Proper tool response formatting and filtering
 - Custom tool configuration through headers
 - Tool error handling and graceful degradation`,
-    demoType: 'tools integration',
-    reviewFocus: 'Tools functionality, default disabled behavior, error handling',
-    auditTitle: 'Tools Integration',
+    demoType: "tools integration",
+    reviewFocus:
+      "Tools functionality, default disabled behavior, error handling",
+    auditTitle: "Tools Integration",
     auditRequirements: `- **Tools functionality** must work correctly when enabled
 - **Default behavior** must disable tools for OpenAI compatibility
 - **Configuration management** must handle tool selection properly
@@ -552,22 +602,24 @@ UPDATE: src/routes/chat.ts - Handle enable_tools parameter with proper tool conf
 - **Configuration guide**: Document tool configuration and selection
 - **Error guide**: Document tool error handling and troubleshooting
 - **Compatibility guide**: Document OpenAI compatibility with tools disabled`,
-    integrationTarget: 'complete Claude SDK with optional tools',
-    nextPhase: '07',
+    integrationTarget: "complete Claude SDK with optional tools",
+    nextPhase: "07",
     failureCriteria: `- ❌ Tools don't work when enabled or break OpenAI compatibility
 - ❌ Tools not properly disabled by default
 - ❌ Performance criteria not met (tool completions >5s)
 - ❌ Tool configuration or error handling broken
 - ❌ Tool response formatting incompatible
-- ❌ Test coverage below 100% or tests failing`
+- ❌ Test passing below 100% or tests failing`,
   },
   {
-    number: '07',
-    title: 'Advanced Features Integration',
-    goal: 'Implement advanced Claude SDK features (system prompts, advanced options)',
-    completeFeature: 'Complete advanced Claude SDK features integration',
-    claudeReference: 'Based on CLAUDE_SDK_REFERENCE.md: Configuration Options, Environment Configuration',
-    performanceRequirement: 'Advanced features processing overhead <100ms per request',
+    number: "07",
+    title: "Advanced Features Integration",
+    goal: "Implement advanced Claude SDK features (system prompts, advanced options)",
+    completeFeature: "Complete advanced Claude SDK features integration",
+    claudeReference:
+      "Based on CLAUDE_SDK_REFERENCE.md: Configuration Options, Environment Configuration",
+    performanceRequirement:
+      "Advanced features processing overhead <100ms per request",
     filesCreate: `CREATE: src/claude/advanced-options.ts - Advanced Claude options handling
 CREATE: src/claude/system-prompt-manager.ts - System prompt management
 CREATE: src/claude/header-processor.ts - Custom Claude headers processing
@@ -583,33 +635,40 @@ UPDATE: src/validation/headers.ts - Process X-Claude-* headers`,
 - Resume functionality for conversation continuation
 - Max thinking tokens configuration and processing
 - Named constants for all advanced configurations and options`,
-    srpRequirement: 'AdvancedOptionsManager handles only advanced options operations (<200 lines)',
-    extensionType: 'advanced features strategies',
-    componentType: 'advanced options handlers',
-    interfaceName: 'IAdvancedOptionsManager',
-    interfaceList: 'ISystemPromptManager, IHeaderProcessor',
-    dependencyAbstractions: 'IClaudeToolsManager and tools abstractions',
-    patternType: 'advanced features',
-    utilsName: 'AdvancedFeaturesUtils',
-    magicType: 'Values',
-    constantType: 'advanced options values and configuration',
-    errorType: 'AdvancedOptionsError',
-    errorInfo: 'advanced options status information',
-    mainClass: 'AdvancedOptionsManager',
-    focusArea: 'advanced features',
-    logicType: 'advanced options',
-    ruleType: 'advanced processing',
-    configType: 'advanced configuration and options',
-    magicValues: 'Values',
-    constantExamples: 'ADVANCED_OPTIONS.MAX_TURNS, PERMISSION_MODES.BYPASS_PERMISSIONS',
-    featureType: 'advanced features integration',
-    unitTestCoverage: 'AdvancedOptionsManager, system prompts, header processing edge cases',
-    integrationTestCoverage: 'Advanced features with complete Claude SDK',
-    mockRequirements: 'Mock IClaudeToolsManager, advanced options services',
-    errorScenarios: 'Invalid options, header processing failures, configuration errors',
-    performanceTests: 'Advanced features processing overhead <100ms per request',
-    compatibilityRequirement: 'advanced features maintain OpenAI API compatibility',
-    performanceCriteria: 'advanced features processing overhead <100ms per request',
+    srpRequirement:
+      "AdvancedOptionsManager handles only advanced options operations (<200 lines)",
+    extensionType: "advanced features strategies",
+    componentType: "advanced options handlers",
+    interfaceName: "IAdvancedOptionsManager",
+    interfaceList: "ISystemPromptManager, IHeaderProcessor",
+    dependencyAbstractions: "IClaudeToolsManager and tools abstractions",
+    patternType: "advanced features",
+    utilsName: "AdvancedFeaturesUtils",
+    magicType: "Values",
+    constantType: "advanced options values and configuration",
+    errorType: "AdvancedOptionsError",
+    errorInfo: "advanced options status information",
+    mainClass: "AdvancedOptionsManager",
+    focusArea: "advanced features",
+    logicType: "advanced options",
+    ruleType: "advanced processing",
+    configType: "advanced configuration and options",
+    magicValues: "Values",
+    constantExamples:
+      "ADVANCED_OPTIONS.MAX_TURNS, PERMISSION_MODES.BYPASS_PERMISSIONS",
+    featureType: "advanced features integration",
+    unitTestCoverage:
+      "AdvancedOptionsManager, system prompts, header processing edge cases",
+    integrationTestCoverage: "Advanced features with complete Claude SDK",
+    mockRequirements: "Mock IClaudeToolsManager, advanced options services",
+    errorScenarios:
+      "Invalid options, header processing failures, configuration errors",
+    performanceTests:
+      "Advanced features processing overhead <100ms per request",
+    compatibilityRequirement:
+      "advanced features maintain OpenAI API compatibility",
+    performanceCriteria:
+      "advanced features processing overhead <100ms per request",
     compatibilityChecklist: `- ✅ System prompts work correctly
 - ✅ Claude-specific options (max_turns, permission_mode, etc.) work
 - ✅ Custom headers processed properly (X-Claude-Max-Turns, etc.)
@@ -620,9 +679,10 @@ UPDATE: src/validation/headers.ts - Process X-Claude-* headers`,
 - Comprehensive Claude integration matching CLAUDE_SDK_REFERENCE.md patterns
 - System prompt processing and custom header handling
 - Environment configuration management`,
-    demoType: 'advanced features integration',
-    reviewFocus: 'Advanced options functionality, header processing, configuration management',
-    auditTitle: 'Advanced Features Integration',
+    demoType: "advanced features integration",
+    reviewFocus:
+      "Advanced options functionality, header processing, configuration management",
+    auditTitle: "Advanced Features Integration",
     auditRequirements: `- **Advanced options functionality** must support all Claude SDK features
 - **Header processing** must handle all X-Claude-* headers correctly
 - **Configuration management** must handle all advanced options
@@ -645,22 +705,24 @@ UPDATE: src/validation/headers.ts - Process X-Claude-* headers`,
 - **Options guide**: Document advanced configuration options
 - **Header guide**: Document X-Claude-* header processing
 - **Environment guide**: Document environment variable configuration`,
-    integrationTarget: 'complete Claude SDK with advanced features',
-    nextPhase: '08',
+    integrationTarget: "complete Claude SDK with advanced features",
+    nextPhase: "08",
     failureCriteria: `- ❌ Advanced features don't work with Claude SDK
 - ❌ Header processing broken or incomplete
 - ❌ Performance criteria not met (processing >100ms)
 - ❌ Configuration management unreliable
 - ❌ System prompt processing broken
-- ❌ Test coverage below 100% or tests failing`
+- ❌ Test passing below 100% or tests failing`,
   },
   {
-    number: '08',
-    title: 'Production Hardening',
-    goal: 'Production-ready error handling, monitoring, and performance',
-    completeFeature: 'Production-grade Claude SDK integration with comprehensive monitoring',
-    claudeReference: 'Based on CLAUDE_SDK_REFERENCE.md: Error Handling, CLI Verification',
-    performanceRequirement: 'Production monitoring overhead <5ms per request',
+    number: "08",
+    title: "Production Hardening",
+    goal: "Production-ready error handling, monitoring, and performance",
+    completeFeature:
+      "Production-grade Claude SDK integration with comprehensive monitoring",
+    claudeReference:
+      "Based on CLAUDE_SDK_REFERENCE.md: Error Handling, CLI Verification",
+    performanceRequirement: "Production monitoring overhead <5ms per request",
     filesCreate: `CREATE: src/claude/error-handler.ts - Comprehensive Claude error handling using error types from reference
 CREATE: src/claude/metrics-collector.ts - Claude SDK metrics and monitoring
 CREATE: src/claude/retry-manager.ts - Retry logic for Claude API
@@ -678,33 +740,39 @@ UPDATE: src/monitoring/health-check.ts - Add Claude health checks using verifica
 - Performance optimization for production workloads
 - Claude-specific logging and audit trails
 - Named constants for all production configurations and thresholds`,
-    srpRequirement: 'ErrorHandler handles only error management operations (<200 lines)',
-    extensionType: 'production hardening strategies',
-    componentType: 'production handlers',
-    interfaceName: 'IErrorHandler',
-    interfaceList: 'IMetricsCollector, IRetryManager',
-    dependencyAbstractions: 'IAdvancedOptionsManager and advanced features abstractions',
-    patternType: 'production hardening',
-    utilsName: 'ProductionUtils',
-    magicType: 'Values',
-    constantType: 'production values and thresholds',
-    errorType: 'ProductionError',
-    errorInfo: 'production status information',
-    mainClass: 'ErrorHandler',
-    focusArea: 'production hardening',
-    logicType: 'production',
-    ruleType: 'production validation',
-    configType: 'production configuration and thresholds',
-    magicValues: 'Values',
-    constantExamples: 'PRODUCTION_LIMITS.RETRY_COUNT, MONITORING_INTERVALS.HEALTH_CHECK',
-    featureType: 'production hardening',
-    unitTestCoverage: 'ErrorHandler, metrics collection, retry logic edge cases',
-    integrationTestCoverage: 'Production hardening with complete Claude SDK',
-    mockRequirements: 'Mock IAdvancedOptionsManager, production services for testing',
-    errorScenarios: 'Production failures, monitoring issues, retry exhaustion',
-    performanceTests: 'Production monitoring overhead <5ms per request',
-    compatibilityRequirement: 'production hardening maintains OpenAI API compatibility',
-    performanceCriteria: 'production monitoring overhead <5ms per request',
+    srpRequirement:
+      "ErrorHandler handles only error management operations (<200 lines)",
+    extensionType: "production hardening strategies",
+    componentType: "production handlers",
+    interfaceName: "IErrorHandler",
+    interfaceList: "IMetricsCollector, IRetryManager",
+    dependencyAbstractions:
+      "IAdvancedOptionsManager and advanced features abstractions",
+    patternType: "production hardening",
+    utilsName: "ProductionUtils",
+    magicType: "Values",
+    constantType: "production values and thresholds",
+    errorType: "ProductionError",
+    errorInfo: "production status information",
+    mainClass: "ErrorHandler",
+    focusArea: "production hardening",
+    logicType: "production",
+    ruleType: "production validation",
+    configType: "production configuration and thresholds",
+    magicValues: "Values",
+    constantExamples:
+      "PRODUCTION_LIMITS.RETRY_COUNT, MONITORING_INTERVALS.HEALTH_CHECK",
+    featureType: "production hardening",
+    unitTestCoverage:
+      "ErrorHandler, metrics collection, retry logic edge cases",
+    integrationTestCoverage: "Production hardening with complete Claude SDK",
+    mockRequirements:
+      "Mock IAdvancedOptionsManager, production services for testing",
+    errorScenarios: "Production failures, monitoring issues, retry exhaustion",
+    performanceTests: "Production monitoring overhead <5ms per request",
+    compatibilityRequirement:
+      "production hardening maintains OpenAI API compatibility",
+    performanceCriteria: "production monitoring overhead <5ms per request",
     compatibilityChecklist: `- ✅ Comprehensive error scenarios covered using SDK error types
 - ✅ Retry logic works correctly
 - ✅ Performance monitoring functional
@@ -715,9 +783,10 @@ UPDATE: src/monitoring/health-check.ts - Add Claude health checks using verifica
 - Robust retry and failover logic
 - Health checks including Claude SDK status
 - Rate limiting and performance optimization`,
-    demoType: 'production hardening',
-    reviewFocus: 'Error handling robustness, monitoring accuracy, production readiness',
-    auditTitle: 'Production Hardening',
+    demoType: "production hardening",
+    reviewFocus:
+      "Error handling robustness, monitoring accuracy, production readiness",
+    auditTitle: "Production Hardening",
     auditRequirements: `- **Error handling robustness** must handle all production scenarios
 - **Monitoring accuracy** must provide comprehensive metrics
 - **Production readiness** must meet all operational requirements
@@ -740,26 +809,32 @@ UPDATE: src/monitoring/health-check.ts - Add Claude health checks using verifica
 - **Error handling guide**: Document error scenarios and troubleshooting
 - **Monitoring guide**: Document metrics collection and monitoring setup
 - **Health check guide**: Document Claude SDK health validation`,
-    integrationTarget: 'complete production-ready Claude SDK integration',
-    nextPhase: 'COMPLETE',
+    integrationTarget: "complete production-ready Claude SDK integration",
+    nextPhase: "COMPLETE",
     failureCriteria: `- ❌ Error handling doesn't cover production scenarios
 - ❌ Any placeholder production implementations remain
 - ❌ Performance criteria not met (monitoring >5ms overhead)
 - ❌ Retry logic unreliable or health checks broken
 - ❌ Monitoring incomplete or metrics inaccurate
-- ❌ Test coverage below 100% or tests failing`
-  }
+- ❌ Test passing below 100% or tests failing`,
+  },
 ];
 
 function generatePhaseFile(phase) {
-  const template = fs.readFileSync(path.join(__dirname, 'PHASE_TEMPLATE.md'), 'utf8');
-  
+  const template = fs.readFileSync(
+    path.join(__dirname, "PHASE_TEMPLATE.md"),
+    "utf8"
+  );
+
   let content = template
     .replace(/\{\{PHASE_NUMBER\}\}/g, phase.number)
     .replace(/\{\{PHASE_TITLE\}\}/g, phase.title)
     .replace(/\{\{PHASE_GOAL\}\}/g, phase.goal)
     .replace(/\{\{COMPLETE_FEATURE\}\}/g, phase.completeFeature)
-    .replace(/\{\{PREV_PHASE\}\}/g, (parseInt(phase.number) - 1).toString().padStart(2, '0'))
+    .replace(
+      /\{\{PREV_PHASE\}\}/g,
+      (parseInt(phase.number) - 1).toString().padStart(2, "0")
+    )
     .replace(/\{\{CLAUDE_REFERENCE\}\}/g, phase.claudeReference)
     .replace(/\{\{PERFORMANCE_REQUIREMENT\}\}/g, phase.performanceRequirement)
     .replace(/\{\{FILES_TO_CREATE\}\}/g, phase.filesCreate)
@@ -785,11 +860,17 @@ function generatePhaseFile(phase) {
     .replace(/\{\{CONSTANT_EXAMPLES\}\}/g, phase.constantExamples)
     .replace(/\{\{FEATURE_TYPE\}\}/g, phase.featureType)
     .replace(/\{\{UNIT_TEST_COVERAGE\}\}/g, phase.unitTestCoverage)
-    .replace(/\{\{INTEGRATION_TEST_COVERAGE\}\}/g, phase.integrationTestCoverage)
+    .replace(
+      /\{\{INTEGRATION_TEST_COVERAGE\}\}/g,
+      phase.integrationTestCoverage
+    )
     .replace(/\{\{MOCK_REQUIREMENTS\}\}/g, phase.mockRequirements)
     .replace(/\{\{ERROR_SCENARIOS\}\}/g, phase.errorScenarios)
     .replace(/\{\{PERFORMANCE_TESTS\}\}/g, phase.performanceTests)
-    .replace(/\{\{COMPATIBILITY_REQUIREMENT\}\}/g, phase.compatibilityRequirement)
+    .replace(
+      /\{\{COMPATIBILITY_REQUIREMENT\}\}/g,
+      phase.compatibilityRequirement
+    )
     .replace(/\{\{PERFORMANCE_CRITERIA\}\}/g, phase.performanceCriteria)
     .replace(/\{\{COMPATIBILITY_CHECKLIST\}\}/g, phase.compatibilityChecklist)
     .replace(/\{\{TESTABLE_FEATURES\}\}/g, phase.testableFeatures)
@@ -804,8 +885,11 @@ function generatePhaseFile(phase) {
     .replace(/\{\{INTEGRATION_TARGET\}\}/g, phase.integrationTarget)
     .replace(/\{\{NEXT_PHASE\}\}/g, phase.nextPhase)
     .replace(/\{\{FAILURE_CRITERIA\}\}/g, phase.failureCriteria);
-  
-  const filename = `PHASE_${phase.number}_${phase.title.toUpperCase().replace(/\s+/g, '_').replace(/[^A-Z_]/g, '')}.md`;
+
+  const filename = `PHASE_${phase.number}_${phase.title
+    .toUpperCase()
+    .replace(/\s+/g, "_")
+    .replace(/[^A-Z_]/g, "")}.md`;
   fs.writeFileSync(path.join(__dirname, filename), content);
   console.log(`Generated: ${filename}`);
 }
@@ -813,13 +897,15 @@ function generatePhaseFile(phase) {
 // Generate all phase files
 phases.forEach(generatePhaseFile);
 
-console.log('\nGenerated all Claude SDK integration phase files with comprehensive standards enforcement!');
-console.log('Each phase includes:');
-console.log('- Complete SOLID/DRY principle enforcement');
-console.log('- Anti-pattern prevention rules');
-console.log('- 100% test coverage requirements');
+console.log(
+  "\nGenerated all Claude SDK integration phase files with comprehensive standards enforcement!"
+);
+console.log("Each phase includes:");
+console.log("- Complete SOLID/DRY principle enforcement");
+console.log("- Anti-pattern prevention rules");
+console.log("- 100% test passing requirements");
 console.log('- "All tests must pass" explicitly stated');
-console.log('- Performance requirements for each phase');
-console.log('- Claude SDK compatibility verification');
-console.log('- Architecture compliance review processes');
-console.log('- References to CLAUDE_SDK_REFERENCE.md patterns');
+console.log("- Performance requirements for each phase");
+console.log("- Claude SDK compatibility verification");
+console.log("- Architecture compliance review processes");
+console.log("- References to CLAUDE_SDK_REFERENCE.md patterns");

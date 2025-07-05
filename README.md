@@ -98,6 +98,12 @@ claude-wrapper --port 3000
 # Skip API protection prompt
 claude-wrapper --no-interactive
 
+# Set API key directly (bypasses interactive setup)
+claude-wrapper --api-key your-secure-api-key-here
+
+# Production mode with enhanced features
+claude-wrapper --production --health-monitoring
+
 # Debug mode
 claude-wrapper --debug --verbose
 ```
@@ -124,15 +130,18 @@ Arguments:
   port               Port to run server on (default: 8000)
 
 Options:
-  -V, --version      Output the version number
-  -p, --port <port>  Port to run server on (default: 8000)
-  -v, --verbose      Enable verbose logging
-  -d, --debug        Enable debug mode
-  --no-interactive   Disable interactive API key setup
-  --start            Start server in background (daemon mode)
-  --stop             Stop background server
-  --status           Check background server status
-  -h, --help         Display help for command
+  -V, --version          Output the version number
+  -p, --port <port>      Port to run server on (default: 8000)
+  -v, --verbose          Enable verbose logging
+  -d, --debug            Enable debug mode
+  --api-key <key>        Set API key for endpoint protection
+  --no-interactive       Disable interactive API key setup
+  --production           Enable production server management features
+  --health-monitoring    Enable health monitoring system
+  --start                Start server in background (daemon mode)
+  --stop                 Stop background server
+  --status               Check background server status
+  -h, --help             Display help for command
 ```
 
 ## 📡 API Endpoints
@@ -144,6 +153,9 @@ Options:
 | `GET` | `/v1/auth/status` | Claude Code authentication status |
 | `GET` | `/health` | Service health check |
 | `GET` | `/v1/sessions` | List active sessions |
+| `GET` | `/v1/sessions/stats` | Session manager statistics |
+| `GET` | `/v1/sessions/{id}` | Get specific session info |
+| `DELETE` | `/v1/sessions/{id}` | Delete specific session |
 
 ## 🔐 Authentication vs API Protection
 
@@ -154,8 +166,15 @@ Options:
 
 ### API Protection (Optional)
 - **Purpose**: Protect your local server endpoints with Bearer tokens
-- **Required**: No, purely optional
-- **Setup**: Interactive prompt when starting server
+- **Required**: No, purely optional for added security
+- **Setup**: Interactive prompt when starting server, or via CLI flags
+- **Methods**: 
+  - Interactive setup (generates secure 32-character token)
+  - `--api-key` flag for direct configuration
+  - `API_KEY` environment variable
+  - `--no-interactive` to skip setup entirely
+
+When enabled, all API requests must include: `Authorization: Bearer <your-api-key>`
 
 ## 🔐 Configure Claude Authentication
 

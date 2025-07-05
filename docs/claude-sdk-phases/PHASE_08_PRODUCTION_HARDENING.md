@@ -1,6 +1,7 @@
 # Phase 08A & 08B: Production Hardening
 
 ## Phase 08A: Production Hardening Implementation
+
 **Goal**: Production-ready error handling, monitoring, and performance  
 **Complete Feature**: Production-grade Claude SDK integration with comprehensive monitoring  
 **Dependencies**: Phase 07B must be 100% complete with all tests passing
@@ -8,6 +9,7 @@
 **Performance Requirement**: Production monitoring overhead <5ms per request
 
 ### Files to Create/Update
+
 ```
 CREATE: src/claude/error-handler.ts - Comprehensive Claude error handling using error types from reference
 CREATE: src/claude/metrics-collector.ts - Claude SDK metrics and monitoring
@@ -21,6 +23,7 @@ UPDATE: src/monitoring/health-check.ts - Add Claude health checks using verifica
 ```
 
 ### What Gets Implemented
+
 - Comprehensive error handling using ClaudeSDKError, AuthenticationError, StreamingError
 - Claude SDK metrics collection and monitoring
 - Retry logic and failover for Claude API calls
@@ -31,7 +34,8 @@ UPDATE: src/monitoring/health-check.ts - Add Claude health checks using verifica
 - Named constants for all production configurations and thresholds
 
 ### Architecture Compliance Requirements (MANDATORY)
-- **SOLID Principles**: 
+
+- **SOLID Principles**:
   - **SRP**: ErrorHandler handles only error management operations (<200 lines)
   - **OCP**: Extensible for new production hardening strategies via strategy pattern
   - **LSP**: All production handlers implement IErrorHandler interface consistently
@@ -45,6 +49,7 @@ UPDATE: src/monitoring/health-check.ts - Add Claude health checks using verifica
 - **Interface Design**: Maximum 5 methods per interface, single-purpose interfaces
 
 ### Anti-Pattern Prevention (MANDATORY)
+
 - **No God Classes**: ErrorHandler <200 lines, focused on production hardening only
 - **No Deep Nesting**: Maximum 3 levels in production logic, use early returns
 - **No Inline Complex Logic**: Extract production validation rules to named methods
@@ -52,7 +57,8 @@ UPDATE: src/monitoring/health-check.ts - Add Claude health checks using verifica
 - **No Magic Values**: Use PRODUCTION_LIMITS.RETRY_COUNT, MONITORING_INTERVALS.HEALTH_CHECK
 
 ### Testing Requirements (MANDATORY)
-- **100% test coverage** for all production hardening logic before proceeding to Phase 08B
+
+- **100% test passing** for all production hardening logic before proceeding to Phase 08B
 - **Unit tests**: ErrorHandler, metrics collection, retry logic edge cases
 - **Integration tests**: Production hardening with complete Claude SDK
 - **Mock objects**: Mock IAdvancedOptionsManager, production services for testing
@@ -60,9 +66,10 @@ UPDATE: src/monitoring/health-check.ts - Add Claude health checks using verifica
 - **Performance tests**: Production monitoring overhead <5ms per request
 
 ### Quality Gates for Phase 08A Completion
+
 - ✅ All SOLID principles followed (verified via code review checklist)
 - ✅ No anti-patterns present (ESLint max-lines, complexity, depth rules pass)
-- ✅ 100% test coverage achieved (Jest coverage report)
+- ✅ 100% test passing achieved (Jest passing report)
 - ✅ **All tests must pass** before proceeding to Phase 08B (unit + integration + performance)
 - ✅ TypeScript strict mode passes (tsc --strict --noEmit)
 - ✅ ESLint passes without warnings (npm run lint)
@@ -71,6 +78,7 @@ UPDATE: src/monitoring/health-check.ts - Add Claude health checks using verifica
 - ✅ Performance criteria met (production monitoring overhead <5ms per request)
 
 ### Claude SDK Compatibility Verification
+
 - ✅ Comprehensive error scenarios covered using SDK error types
 - ✅ Retry logic works correctly
 - ✅ Performance monitoring functional
@@ -78,6 +86,7 @@ UPDATE: src/monitoring/health-check.ts - Add Claude health checks using verifica
 - ✅ Rate limiting and throttling handled
 
 ### Testable Features
+
 - Production-ready error handling matching Python patterns
 - Comprehensive monitoring and metrics
 - Robust retry and failover logic
@@ -88,6 +97,7 @@ UPDATE: src/monitoring/health-check.ts - Add Claude health checks using verifica
 ---
 
 ## Phase 08B: Production Hardening - Comprehensive Review
+
 **Goal**: Ensure 100% production hardening compatibility and production-quality implementation
 **Review Focus**: Error handling robustness, monitoring accuracy, production readiness
 **Dependencies**: Phase 08A must be 100% complete with all tests passing
@@ -96,6 +106,7 @@ UPDATE: src/monitoring/health-check.ts - Add Claude health checks using verifica
 ### Comprehensive Review Requirements (MANDATORY)
 
 #### 1. Production Hardening Audit
+
 - **Error handling robustness** must handle all production scenarios
 - **Monitoring accuracy** must provide comprehensive metrics
 - **Production readiness** must meet all operational requirements
@@ -103,6 +114,7 @@ UPDATE: src/monitoring/health-check.ts - Add Claude health checks using verifica
 - **Health check accuracy** must validate Claude SDK status
 
 #### 2. Test Quality Review
+
 - **Replace ALL placeholder tests** with real production hardening functionality tests
 - **Error handling tests**: Test all production error scenarios
 - **Monitoring tests**: Test metrics collection and monitoring
@@ -111,12 +123,14 @@ UPDATE: src/monitoring/health-check.ts - Add Claude health checks using verifica
 - **Performance tests**: Test production monitoring overhead
 
 #### 3. Integration Validation
+
 - **SDK Integration**: Verify production hardening works with Claude SDK
 - **Advanced Features Integration**: Verify hardening works with all features
 - **Monitoring Integration**: Verify monitoring captures all system metrics
 - **Error Integration**: Verify error handling works across entire system
 
 #### 4. Architecture Compliance Review
+
 - **Single Responsibility**: production handlers components have single purposes
 - **Dependency Injection**: ErrorHandler depend on abstractions, not concrete implementations
 - **Interface Segregation**: IMetricsCollector, IRetryManager interfaces are focused (max 5 methods)
@@ -125,18 +139,21 @@ UPDATE: src/monitoring/health-check.ts - Add Claude health checks using verifica
 - **DRY Compliance**: No duplicate production logic
 
 #### 5. Performance Validation
+
 - **Monitoring overhead**: <5ms for production monitoring per request
 - **Error handling performance**: Minimal overhead for error detection and handling
 - **Retry performance**: Fast retry logic and failover
 - **Health check performance**: Efficient Claude SDK status validation
 
 #### 6. Documentation Review
+
 - **Production documentation**: Complete production deployment and operations guide
 - **Error handling guide**: Document error scenarios and troubleshooting
 - **Monitoring guide**: Document metrics collection and monitoring setup
 - **Health check guide**: Document Claude SDK health validation
 
 ### Quality Gates for Phase 08B Completion
+
 - ✅ **100% production hardening functionality verified**
 - ✅ **All production hardening tests are comprehensive and production-ready** - no placeholders
 - ✅ **production hardening integrates correctly** with complete production-ready Claude SDK integration
@@ -146,9 +163,10 @@ UPDATE: src/monitoring/health-check.ts - Add Claude health checks using verifica
 - ✅ **Documentation accuracy verified** - all docs reflect actual implementation
 
 ### Failure Criteria (Phase 08B Must Restart)
+
 - ❌ Error handling doesn't cover production scenarios
 - ❌ Any placeholder production implementations remain
 - ❌ Performance criteria not met (monitoring >5ms overhead)
 - ❌ Retry logic unreliable or health checks broken
 - ❌ Monitoring incomplete or metrics inaccurate
-- ❌ Test coverage below 100% or tests failing
+- ❌ Test passing below 100% or tests failing

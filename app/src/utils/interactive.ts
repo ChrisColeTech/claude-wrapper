@@ -7,6 +7,7 @@
 
 import { createInterface, Interface } from 'readline';
 import { generateSecureToken } from './crypto';
+import { SECURITY_PROMPTS, API_KEY_SECURITY } from '../auth/security-constants';
 
 /**
  * Interface for readline operations (DIP compliance)
@@ -94,18 +95,12 @@ export class InteractiveApiKeySetup {
       }
 
       // Display information about API key protection
-      console.log('\n🔐 API Key Protection Setup');
-      console.log('━'.repeat(50));
-      console.log('You can optionally protect your API endpoints with a bearer token.');
-      console.log('This adds an extra layer of security for remote access.');
-      console.log('');
-      console.log('If enabled, clients must include: Authorization: Bearer <token>');
-      console.log('');
+      console.log('\n' + SECURITY_PROMPTS.HEADER);
+      console.log(SECURITY_PROMPTS.DIVIDER);
+      SECURITY_PROMPTS.DESCRIPTION.forEach(line => console.log(line));
 
       // Prompt user for choice
-      const choice = await this.readline.question(
-        'Would you like to enable API key protection? (y/N): '
-      );
+      const choice = await this.readline.question(SECURITY_PROMPTS.QUESTION);
 
       const normalizedChoice = choice.toLowerCase().trim();
 
@@ -114,14 +109,11 @@ export class InteractiveApiKeySetup {
         const apiKey = generateSecureToken(tokenLength);
         
         console.log('');
-        console.log('✅ API key protection enabled!');
-        console.log('━'.repeat(50));
+        console.log(SECURITY_PROMPTS.SUCCESS_HEADER);
+        console.log(SECURITY_PROMPTS.DIVIDER);
         console.log(`🔑 Your API key: ${apiKey}`);
         console.log('');
-        console.log('⚠️  IMPORTANT: Save this key securely!');
-        console.log('   • This key will not be shown again');
-        console.log('   • You can also set it via API_KEY environment variable');
-        console.log('   • Include it in requests: Authorization: Bearer <key>');
+        SECURITY_PROMPTS.SUCCESS_MESSAGES.forEach(line => console.log(line));
         console.log('');
 
         return {
@@ -131,8 +123,8 @@ export class InteractiveApiKeySetup {
         };
       } else {
         console.log('');
-        console.log('ℹ️  API key protection disabled.');
-        console.log('   Endpoints will be accessible without authentication.');
+        console.log(SECURITY_PROMPTS.DISABLED_MESSAGE);
+        console.log(SECURITY_PROMPTS.DISABLED_DESCRIPTION);
         console.log('');
 
         return {
@@ -152,12 +144,12 @@ export class InteractiveApiKeySetup {
    * @param apiKey Existing API key (masked for security)
    */
   displayExistingApiKeyInfo(apiKey: string): void {
-    console.log('\n🔐 API Key Protection Status');
-    console.log('━'.repeat(50));
-    console.log('✅ API key protection is ENABLED');
+    console.log('\n' + SECURITY_PROMPTS.STATUS_HEADER);
+    console.log(SECURITY_PROMPTS.DIVIDER);
+    console.log(SECURITY_PROMPTS.STATUS_ENABLED);
     console.log(`🔑 API key: ${this.maskApiKey(apiKey)}`);
     console.log('');
-    console.log('ℹ️  Clients must include: Authorization: Bearer <token>');
+    console.log(SECURITY_PROMPTS.CLIENT_AUTH_FORMAT);
     console.log('');
   }
 
@@ -199,10 +191,10 @@ export function displayApiKeyStatus(apiKey?: string): void {
   if (apiKey) {
     setup.displayExistingApiKeyInfo(apiKey);
   } else {
-    console.log('\n🔐 API Key Protection Status');
-    console.log('━'.repeat(50));
-    console.log('⚪ API key protection is DISABLED');
-    console.log('   Endpoints are accessible without authentication');
+    console.log('\n' + SECURITY_PROMPTS.STATUS_HEADER);
+    console.log(SECURITY_PROMPTS.DIVIDER);
+    console.log(SECURITY_PROMPTS.STATUS_DISABLED);
+    console.log(SECURITY_PROMPTS.STATUS_DISABLED_DESCRIPTION);
     console.log('');
   }
 }
