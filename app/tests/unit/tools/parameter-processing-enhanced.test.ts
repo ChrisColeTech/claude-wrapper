@@ -27,23 +27,19 @@ describe('Enhanced Parameter Processing - Phase 2B', () => {
     toolChoiceValidator = new ToolChoiceValidator();
     // Use the same pattern as processor.test.ts which works
     mockChoiceProcessor = {
-      processChoice: jest.fn(),
-      validateAndProcess: jest.fn(), 
+      processChoice: jest.fn().mockResolvedValue({ 
+        success: true, 
+        processedChoice: { type: 'auto' },
+        claudeFormat: { mode: 'auto' },
+        errors: [] 
+      }),
+      validateAndProcess: jest.fn().mockResolvedValue({ 
+        success: true, 
+        errors: [] 
+      }),
       convertToClaudeFormat: jest.fn(),
       createProcessingContext: jest.fn()
-    };
-    
-    // Setup mock return values
-    mockChoiceProcessor.processChoice.mockResolvedValue({ 
-      success: true, 
-      processedChoice: { type: 'auto' },
-      claudeFormat: { mode: 'auto' },
-      errors: [] 
-    });
-    mockChoiceProcessor.validateAndProcess.mockResolvedValue({ 
-      success: true, 
-      errors: [] 
-    });
+    } as any;
     mockChoiceProcessor.convertToClaudeFormat.mockReturnValue({
       mode: 'auto',
       allowTools: true
