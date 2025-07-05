@@ -33,6 +33,10 @@ export interface ToolConversionResult {
   errors: string[];
   warnings: string[];
   conversionTimeMs: number;
+  // Additional properties for test compatibility
+  sourceFormat?: string;
+  targetFormat?: string;
+  toolsConverted?: number;
 }
 
 /**

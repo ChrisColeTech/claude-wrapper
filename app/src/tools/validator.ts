@@ -146,7 +146,7 @@ export class ToolArrayValidator implements IToolArrayValidator {
       const result = ToolsArraySchema.safeParse(tools);
       
       if (result.success) {
-        return { valid: true, errors: [], validTools: result.data };
+        return { valid: true, errors: [], validTools: result.data as OpenAITool[] };
       }
       
       const errors = ValidationUtils.extractErrorMessages(result);
@@ -155,7 +155,7 @@ export class ToolArrayValidator implements IToolArrayValidator {
       const validTools = tools.filter(tool => {
         const toolResult = OpenAIToolSchema.safeParse(tool);
         return toolResult.success;
-      });
+      }) as OpenAITool[];
       
       return { valid: false, errors, validTools };
       
@@ -267,7 +267,7 @@ export class ToolValidator implements IToolValidator {
       const result = ToolsRequestSchema.safeParse(requestData);
       
       if (result.success) {
-        return { valid: true, errors: [], validTools: result.data.tools };
+        return { valid: true, errors: [], validTools: result.data.tools as OpenAITool[] };
       }
       
       const errors = ValidationUtils.extractErrorMessages(result);
@@ -276,7 +276,7 @@ export class ToolValidator implements IToolValidator {
       const validTools = tools.filter(tool => {
         const toolResult = OpenAIToolSchema.safeParse(tool);
         return toolResult.success;
-      });
+      }) as OpenAITool[];
       
       return { valid: false, errors, validTools };
       
@@ -306,7 +306,7 @@ export class ToolValidator implements IToolValidator {
       );
       
       if (result.success) {
-        return { valid: true, errors: [], validTools: result.data.tools };
+        return { valid: true, errors: [], validTools: result.data.tools as OpenAITool[] };
       }
       
       const errors = ValidationUtils.extractErrorMessages(result);
@@ -315,7 +315,7 @@ export class ToolValidator implements IToolValidator {
       const validTools = tools.filter(tool => {
         const toolResult = OpenAIToolSchema.safeParse(tool);
         return toolResult.success;
-      });
+      }) as OpenAITool[];
       
       return { valid: false, errors, validTools };
       
