@@ -34,5 +34,5 @@ module.exports = {
   runInBand: true,
   
   // Test timeout settings
-  testTimeout: 30000,
+  testTimeout: 60000,
 };

@@ -108,7 +108,7 @@ describe('OpenAIConverter', () => {
       
       ConversionTestAssertions.expectSuccessfulConversion(result);
       expect(result.converted).toHaveLength(3);
-      expect(result.converted?.map(t => t.name)).toEqual(['tool1', 'tool2', 'tool3']);
+      expect(result.converted?.map((t: any) => t.name)).toEqual(['tool1', 'tool2', 'tool3']);
     });
 
     it('should handle empty tools array', () => {
@@ -242,7 +242,7 @@ describe('OpenAIConverter', () => {
       
       ConversionTestAssertions.expectSuccessfulConversion(result);
       expect(result.converted).toHaveLength(3);
-      expect(result.converted?.map(t => t.function.name)).toEqual(['claude1', 'claude2', 'claude3']);
+      expect(result.converted?.map((t: any) => t.function.name)).toEqual(['claude1', 'claude2', 'claude3']);
     });
 
     it('should handle validation failures for Claude format', () => {
@@ -354,7 +354,7 @@ describe('OpenAIConverter', () => {
         { function: { name: 'test' } }, // Missing type
         null,
         undefined
-      ] as OpenAITool[];
+      ] as unknown as OpenAITool[];
 
       // Should not throw but may produce warnings
       expect(() => openaiConverter.toClaudeFormat(malformedTools)).not.toThrow();
