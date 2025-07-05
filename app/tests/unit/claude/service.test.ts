@@ -57,7 +57,15 @@ describe('Phase 6A: Claude Service Tests', () => {
         addMessage: jest.fn().mockImplementation((message: any) => {
           messages.push(message);
         }),
-        getCurrentContent: jest.fn().mockReturnValue('Once upon'),
+        getCurrentContent: jest.fn().mockImplementation(() => {
+          // Parse content from messages like the real implementation
+          for (const message of messages) {
+            if (message.type === 'assistant' && typeof message.content === 'string') {
+              return message.content;
+            }
+          }
+          return null;
+        }),
         isComplete: jest.fn().mockImplementation(() => {
           // Return true only when we have both assistant and result messages
           const hasAssistant = messages.some(msg => msg.type === 'assistant');
@@ -175,6 +183,9 @@ describe('Phase 6A: Claude Service Tests', () => {
     // Clean up any hanging promises or timers
     jest.clearAllTimers();
     
+    // Clear all mocks to prevent memory leaks
+    jest.clearAllMocks();
+    
     // If service has cleanup methods, call them
     if (service && typeof (service as any).cleanup === 'function') {
       await (service as any).cleanup();
@@ -276,8 +287,6 @@ describe('Phase 6A: Claude Service Tests', () => {
 
       const result = await service.createCompletion(testMessages, options);
 
-      console.log('DEBUG - Actual result:', JSON.stringify(result, null, 2));
-      console.log('DEBUG - Expected content: Hello! How can I help you today?');
       expect(result.content).toBe('Hello! How can I help you today?');
       expect(result.role).toBe('assistant');
       expect(result.session_id).toBe('test-session');
@@ -396,23 +405,17 @@ describe('Phase 6A: Claude Service Tests', () => {
         }
       ];
 
-      console.log('📝 Mock messages setup:', JSON.stringify(streamingMessages, null, 2));
-
       mockSDKClient.runCompletion.mockImplementation(async function* () {
         for (const message of streamingMessages) {
-          console.log('🔄 Yielding message:', JSON.stringify(message, null, 2));
           yield message;
         }
       });
 
       const chunks: ClaudeStreamChunk[] = [];
       for await (const chunk of service.createStreamingCompletion(testMessages)) {
-        console.log('📦 Received chunk:', JSON.stringify(chunk, null, 2));
         chunks.push(chunk);
       }
 
-      console.log('📊 Total chunks received:', chunks.length);
-      console.log('📊 Expected: 2 chunks');
       expect(chunks).toHaveLength(2); // 1 content update + 1 final
 
       // First chunk
@@ -452,23 +455,17 @@ describe('Phase 6A: Claude Service Tests', () => {
         }
       ];
 
-      console.log('📝 Duplicate messages setup:', JSON.stringify(duplicateMessages, null, 2));
-
       mockSDKClient.runCompletion.mockImplementation(async function* () {
         for (const message of duplicateMessages) {
-          console.log('🔄 Yielding duplicate message:', JSON.stringify(message, null, 2));
           yield message;
         }
       });
 
       const chunks: ClaudeStreamChunk[] = [];
       for await (const chunk of service.createStreamingCompletion(testMessages)) {
-        console.log('📦 Received delta chunk:', JSON.stringify(chunk, null, 2));
         chunks.push(chunk);
       }
 
-      console.log('📊 Total delta chunks received:', chunks.length);
-      console.log('📊 Expected: 2 chunks');
       expect(chunks).toHaveLength(2); // 1 content update + 1 final
       expect(chunks[0].delta).toBe('Hello');
       expect(chunks[1].finished).toBe(true);
@@ -502,9 +499,6 @@ describe('Phase 6A: Claude Service Tests', () => {
 
       const result = await service.createChatCompletion(request);
 
-      console.log('📤 Chat completion result:', JSON.stringify(result, null, 2));
-      console.log('📤 Expected content: Chat response');
-      console.log('📤 Expected role: assistant');
       expect(result.content).toBe('Chat response');
       expect(result.role).toBe('assistant');
     });
@@ -553,12 +547,9 @@ describe('Phase 6A: Claude Service Tests', () => {
 
       const chunks: ClaudeStreamChunk[] = [];
       for await (const chunk of service.createStreamingChatCompletion(request)) {
-        console.log('📦 Received streaming chat chunk:', JSON.stringify(chunk, null, 2));
         chunks.push(chunk);
       }
 
-      console.log('📊 Total streaming chat chunks received:', chunks.length);
-      console.log('📊 Expected: 2 chunks');
       expect(chunks).toHaveLength(2);
       expect(chunks[0].content).toBe('Streaming response');
       expect(chunks[1].finished).toBe(true);
@@ -574,10 +565,7 @@ describe('Phase 6A: Claude Service Tests', () => {
         }
       ];
 
-      console.log('📝 Input messages:', JSON.stringify(messages, null, 2));
       const result = service.parseClaudeMessages(messages);
-      console.log('📤 Parse result:', result);
-      console.log('📤 Expected: Test message');
       expect(result).toBe('Test message');
     });
 
@@ -591,10 +579,7 @@ describe('Phase 6A: Claude Service Tests', () => {
         }
       ];
 
-      console.log('📝 Input messages for metadata:', JSON.stringify(messages, null, 2));
       const result = service.extractMetadata(messages);
-      console.log('📤 Metadata result:', JSON.stringify(result, null, 2));
-      console.log('📤 Expected total_cost_usd: 0.05');
       expect(result.total_cost_usd).toBe(0.05);
     });
 
