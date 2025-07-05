@@ -189,7 +189,7 @@ describe.skip('Tools System Integration', () => {
       );
       expect(dangerousReport.overall_valid).toBe(true);
       expect(dangerousReport.all_warnings.length).toBeGreaterThan(0);
-      expect(dangerousReport.all_warnings.some(warning => 
+      expect(dangerousReport.all_warnings.some((warning: string) => 
         warning.includes('Both write and execution tools requested')
       )).toBe(true);
       

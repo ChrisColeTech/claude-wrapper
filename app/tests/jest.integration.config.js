@@ -4,10 +4,6 @@ module.exports = {
   preset: "ts-jest",
   testEnvironment: "node",
   testMatch: ["**/integration/**/*.test.ts"],
-  testPathIgnorePatterns: [
-    "/node_modules/",
-    "/integration/tools/system.test.ts", // Skip due to outdated ToolValidator API usage
-  ],
   setupFilesAfterEnv: ["<rootDir>/setup.ts"],
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/../src/$1",

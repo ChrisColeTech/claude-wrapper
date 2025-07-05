@@ -12,7 +12,7 @@ import { describe, it, expect, jest } from '@jest/globals';
 import {
   ToolConversionError,
   ConversionUtils
-} from '../../../src/tools/converter';
+} from '../../../src/tools/conversion-utils';
 
 describe('ToolConversionError', () => {
   it('should create error with all fields', () => {
@@ -131,7 +131,7 @@ describe('ConversionUtils', () => {
     });
 
     it('should handle async functions', async () => {
-      const asyncFn = jest.fn().mockResolvedValue('async result');
+      const asyncFn = (jest.fn() as any).mockResolvedValue('async result');
       
       const result = await ConversionUtils.validateWithTimeout(asyncFn, 100);
       
@@ -140,7 +140,7 @@ describe('ConversionUtils', () => {
     });
 
     it('should handle async function rejections', async () => {
-      const rejectFn = jest.fn().mockRejectedValue(new Error('Async error'));
+      const rejectFn = (jest.fn() as any).mockRejectedValue(new Error('Async error'));
       
       await expect(ConversionUtils.validateWithTimeout(rejectFn, 100))
         .rejects.toThrow('Async error');

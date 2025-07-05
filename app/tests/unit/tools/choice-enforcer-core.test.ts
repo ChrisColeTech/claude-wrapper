@@ -241,7 +241,7 @@ describe('ToolChoiceEnforcer Core Enforcement', () => {
 
         // Create enforcer that throws error during validation
         const errorEnforcer = new (class extends ToolChoiceEnforcer {
-          validateResponseAgainstChoice(context: any, response: any) {
+          validateResponseAgainstChoice(context: any, response: any): any[] {
             throw new Error('Validation error');
           }
         })();

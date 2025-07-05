@@ -58,6 +58,7 @@ export interface IDebugRouter {
  */
 export class DebugRouter implements IDebugRouter {
   private router: Router;
+  private logger = getLogger('DebugRouter');
 
   constructor() {
     this.router = Router();
@@ -119,7 +120,7 @@ export class DebugRouter implements IDebugRouter {
     this.router.post('/debug/request', this.handleDebugRequest.bind(this));
     this.router.get('/debug/request', this.handleDebugRequest.bind(this));
 
-    logger.debug('Debug routes configured', {
+    this.logger?.debug('Debug routes configured', {
       routes: Object.keys(DEBUG_ENDPOINTS),
       totalRoutes: this.router.stack ? this.router.stack.length : 0
     });

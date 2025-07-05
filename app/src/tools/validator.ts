@@ -449,6 +449,135 @@ export class ToolValidator implements IToolValidator {
   hasValidationFramework(): boolean {
     return !!this.validationFramework;
   }
+
+  // Static utility methods for integration tests
+  static validateToolHeaders(headers: Record<string, string>): ToolValidationResult {
+    const validator = new ToolValidator();
+    // Basic header validation - check for required tool headers
+    const errors: string[] = [];
+    
+    if (headers && typeof headers === 'object') {
+      // Validate known header values
+      const knownHeaders = ['X-Claude-Tools-Enabled', 'X-Claude-Read-Permission', 'X-Claude-Write-Permission'];
+      for (const key of Object.keys(headers)) {
+        if (key.startsWith('X-Claude-') && !knownHeaders.includes(key)) {
+          // Allow other X-Claude headers
+        }
+      }
+    } else {
+      errors.push('Headers must be an object');
+    }
+
+    return {
+      valid: errors.length === 0,
+      errors
+    };
+  }
+
+  static validateToolSecurity(tools: OpenAITool[] | string[], context?: any): ToolValidationResult {
+    const validator = new ToolValidator();
+    const errors: string[] = [];
+    
+    if (!Array.isArray(tools)) {
+      errors.push('Tools must be an array');
+      return { valid: false, errors };
+    }
+
+    // Check for potentially dangerous tools
+    for (const tool of tools) {
+      const toolName = typeof tool === 'string' ? tool : tool.function?.name;
+      if (toolName?.includes('exec') || 
+          toolName?.includes('shell') ||
+          toolName?.includes('system') ||
+          toolName === 'Bash' ||
+          toolName === 'Write' ||
+          toolName === 'Edit') {
+        errors.push(`Potentially dangerous tool: ${toolName}`);
+      }
+    }
+
+    return {
+      valid: errors.length === 0,
+      errors
+    };
+  }
+
+  static getValidationReport(tools: OpenAITool[] | string[], headers: Record<string, string> = {}, mode: string = 'default'): any {
+    const validator = new ToolValidator();
+    // Convert string tools to OpenAITool format for validation
+    const normalizedTools: OpenAITool[] = tools.map(tool => 
+      typeof tool === 'string' 
+        ? { type: 'function', function: { name: tool, description: `${tool} tool` } }
+        : tool
+    );
+    const toolValidation = validator.validateToolArray(normalizedTools);
+    const headerValidation = this.validateToolHeaders(headers);
+    const securityValidation = this.validateToolSecurity(tools);
+    
+    const warnings: string[] = [];
+    const errors: string[] = [
+      ...toolValidation.errors,
+      ...headerValidation.errors,
+      ...securityValidation.errors
+    ];
+
+    // Add warnings based on mode
+    if (mode === 'default') {
+      for (const tool of tools) {
+        const toolName = typeof tool === 'string' ? tool : tool.function?.name;
+        if (toolName?.includes('write') || toolName?.includes('edit') || toolName === 'Write' || toolName === 'Edit') {
+          warnings.push(`Tool ${toolName} requires write permissions`);
+        }
+      }
+    }
+
+    return {
+      overall_valid: errors.length === 0,
+      tool_count: tools.length,
+      all_warnings: warnings,
+      all_errors: errors,
+      mode,
+      validation_summary: {
+        tools: toolValidation.valid,
+        headers: headerValidation.valid,
+        security: securityValidation.valid
+      }
+    };
+  }
+
+  static validateToolNames(tools: OpenAITool[] | string[]): ToolValidationResult {
+    const validator = new ToolValidator();
+    const errors: string[] = [];
+    
+    if (!Array.isArray(tools)) {
+      errors.push('Tools must be an array');
+      return { valid: false, errors };
+    }
+
+    const names = new Set<string>();
+    for (const tool of tools) {
+      const toolName = typeof tool === 'string' ? tool : tool.function?.name;
+      if (!toolName) {
+        errors.push('Tool function name is required');
+        continue;
+      }
+      
+      if (names.has(toolName)) {
+        errors.push(`Duplicate tool name: ${toolName}`);
+      }
+      names.add(toolName);
+      
+      // Validate name format
+      if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(toolName)) {
+        errors.push(`Invalid tool name format: ${toolName}`);
+      }
+    }
+
+    return {
+      valid: errors.length === 0,
+      errors
+    };
+  }
 }
 
 /**

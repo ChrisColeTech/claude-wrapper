@@ -141,7 +141,7 @@ describe("Production Readiness Integration", () => {
         if (err instanceof SyntaxError && "body" in err) {
           return res.status(400).json({ error: err.message });
         }
-        next(err);
+        return next(err);
       }
     );
   });

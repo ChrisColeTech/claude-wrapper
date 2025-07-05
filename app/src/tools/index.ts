@@ -147,7 +147,10 @@ export {
 
 export {
   ToolConversionError,
-  ConversionUtils,
+  ConversionUtils
+} from './conversion-utils';
+
+export {
   OpenAIConverter,
   ClaudeConverter,
   ToolConverter,

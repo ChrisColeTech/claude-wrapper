@@ -5,11 +5,7 @@ module.exports = {
   testEnvironment: "node",
   testMatch: ["<rootDir>/unit/tools/**/*.test.ts"],
   testPathIgnorePatterns: [
-    "/node_modules/",
-    // "parameter-processing-enhanced.test.ts", // Re-enabled after fixing TypeScript errors
-    "converter-openai.test.ts", 
-    "converter-error-utils.test.ts",
-    "choice-enforcer-core.test.ts"
+    "/node_modules/"
   ],
   setupFilesAfterEnv: ["<rootDir>/setup.ts"],
   moduleNameMapper: {

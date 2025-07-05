@@ -525,3 +525,8 @@ export class ToolRegistry implements IToolRegistry {
 export function createToolRegistry(): IToolRegistry {
   return new ToolRegistry();
 }
+
+/**
+ * Default tool registry instance
+ */
+export const toolRegistry = new ToolRegistry();

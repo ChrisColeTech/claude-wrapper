@@ -77,7 +77,7 @@ describe("AuthManager Integration Tests", () => {
     // Reset mocks
     jest.clearAllMocks();
     mockExistsSync.mockReturnValue(false);
-    mockPromisify.mockReturnValue(mockExecAsync);
+    // mockPromisify.mockReturnValue(mockExecAsync); // Not needed since we mock directly
   });
 
   afterEach(() => {

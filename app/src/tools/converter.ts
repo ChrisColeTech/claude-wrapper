@@ -24,22 +24,7 @@ import {
   FORMAT_MAPPINGS,
   FORMAT_SPECIFICATIONS
 } from './constants';
-
-/**
- * Tool conversion error class
- */
-export class ToolConversionError extends Error {
-  constructor(
-    message: string,
-    public readonly code: string,
-    public readonly sourceFormat?: string,
-    public readonly targetFormat?: string,
-    public readonly details?: any
-  ) {
-    super(message);
-    this.name = 'ToolConversionError';
-  }
-}
+import { ToolConversionError, ConversionUtils } from './conversion-utils';
 
 /**
  * Conversion statistics tracking
@@ -49,86 +34,6 @@ interface ConversionStats {
   successfulConversions: number;
   failedConversions: number;
   totalConversionTime: number;
-}
-
-/**
- * Conversion utilities
- */
-export class ConversionUtils {
-  /**
-   * Validate conversion within timeout
-   */
-  static async validateWithTimeout<T>(
-    conversionFn: () => T,
-    timeoutMs: number = TOOL_CONVERSION_LIMITS.CONVERSION_TIMEOUT_MS
-  ): Promise<T> {
-    return new Promise((resolve, reject) => {
-      let hasResolved = false;
-      
-      const timeout = setTimeout(() => {
-        if (!hasResolved) {
-          hasResolved = true;
-          reject(new ToolConversionError(
-            TOOL_CONVERSION_MESSAGES.CONVERSION_TIMEOUT,
-            TOOL_CONVERSION_ERRORS.TIMEOUT
-          ));
-        }
-      }, timeoutMs);
-      
-      try {
-        // Execute function in next tick to allow timeout to be processed
-        setImmediate(() => {
-          try {
-            const result = conversionFn();
-            if (!hasResolved) {
-              hasResolved = true;
-              clearTimeout(timeout);
-              resolve(result);
-            }
-          } catch (error) {
-            if (!hasResolved) {
-              hasResolved = true;
-              clearTimeout(timeout);
-              reject(error);
-            }
-          }
-        });
-      } catch (error) {
-        if (!hasResolved) {
-          hasResolved = true;
-          clearTimeout(timeout);
-          reject(error);
-        }
-      }
-    });
-  }
-
-  /**
-   * Deep compare objects for equality
-   */
-  static deepEqual(obj1: any, obj2: any): boolean {
-    if (obj1 === obj2) return true;
-    if (obj1 === null || obj2 === null) return false;
-    if (typeof obj1 !== typeof obj2) return false;
-    
-    if (typeof obj1 === 'object') {
-      if (Array.isArray(obj1) !== Array.isArray(obj2)) return false;
-      
-      if (Array.isArray(obj1)) {
-        if (obj1.length !== obj2.length) return false;
-        return obj1.every((item, index) => this.deepEqual(item, obj2[index]));
-      }
-      
-      const keys1 = Object.keys(obj1).sort();
-      const keys2 = Object.keys(obj2).sort();
-      if (keys1.length !== keys2.length) return false;
-      if (!keys1.every((key, index) => key === keys2[index])) return false;
-      
-      return keys1.every(key => this.deepEqual(obj1[key], obj2[key]));
-    }
-    
-    return false;
-  }
 }
 
 /**
