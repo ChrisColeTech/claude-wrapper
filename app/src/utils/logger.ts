@@ -5,7 +5,7 @@
  * Single Responsibility: Logger configuration and creation
  */
 
-import winston from 'winston';
+import * as winston from 'winston';
 import { Config } from './env';
 
 /**

@@ -81,14 +81,19 @@ export interface CompatibilityReport {
 export interface EndpointComplianceResult {
   endpoint: string;
   compliant: boolean;
+  isCompliant?: boolean; // Alias for compliant for test compatibility
   complianceScore: number;
   supportedMethods: string[];
   unsupportedMethods: string[];
+  supportedFeatures: string[]; // Added for test compatibility
+  unsupportedFeatures: string[]; // Added for test compatibility
+  limitations: string[]; // Added for test compatibility
   headerCompatibility: Record<string, boolean>;
   responseFormatCompatibility: boolean;
   authenticationCompatibility: boolean;
   issues: ComplianceIssue[];
   recommendations: string[];
+  verificationTimestamp: number; // Added for test compatibility
 }
 
 /**

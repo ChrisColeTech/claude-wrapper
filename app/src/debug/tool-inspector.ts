@@ -51,7 +51,7 @@ export class ToolInspector implements IToolInspector {
 
     try {
       // Get tool call state
-      const state = await toolStateManager.getToolCallState(toolCallId, sessionId);
+      const state = await toolStateManager.getToolCallState(sessionId, toolCallId);
       if (!state) {
         throw new Error(`Tool call ${toolCallId} not found in session ${sessionId}`);
       }

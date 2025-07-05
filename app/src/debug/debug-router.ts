@@ -423,7 +423,6 @@ export class DebugRouter implements IDebugRouter {
       
       // Try to validate the request if it looks like a chat completion request
       let validationResult: any = { valid: false, errors: [] };
-      const jsonParseError = null;
       
       try {
         if (Object.keys(body).length > 0) {
