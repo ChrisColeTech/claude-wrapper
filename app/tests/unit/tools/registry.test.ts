@@ -121,10 +121,13 @@ describe('ToolRegistry', () => {
       // Mock performance.now to simulate timeout
       const originalNow = performance.now;
       let callCount = 0;
-      performance.now = jest.fn(() => {
-        callCount++;
-        if (callCount === 1) return 0; // Start time
-        return REGISTRY_LIMITS.REGISTRY_OPERATION_TIMEOUT_MS + 1; // End time exceeds limit
+      Object.defineProperty(performance, 'now', {
+        writable: true,
+        value: jest.fn(() => {
+          callCount++;
+          if (callCount === 1) return 0; // Start time
+          return REGISTRY_LIMITS.REGISTRY_OPERATION_TIMEOUT_MS + 1; // End time exceeds limit
+        })
       });
 
       try {
@@ -132,7 +135,10 @@ describe('ToolRegistry', () => {
         expect(result.success).toBe(false);
         expect(result.errors).toContain(REGISTRY_MESSAGES.REGISTRY_OPERATION_TIMEOUT);
       } finally {
-        performance.now = originalNow;
+        Object.defineProperty(performance, 'now', {
+          writable: true,
+          value: originalNow
+        });
       }
     });
 
@@ -204,10 +210,13 @@ describe('ToolRegistry', () => {
       // Mock performance.now to simulate timeout
       const originalNow = performance.now;
       let callCount = 0;
-      performance.now = jest.fn(() => {
-        callCount++;
-        if (callCount === 1) return 0; // Start time
-        return REGISTRY_LIMITS.REGISTRY_OPERATION_TIMEOUT_MS + 1; // End time exceeds limit
+      Object.defineProperty(performance, 'now', {
+        writable: true,
+        value: jest.fn(() => {
+          callCount++;
+          if (callCount === 1) return 0; // Start time
+          return REGISTRY_LIMITS.REGISTRY_OPERATION_TIMEOUT_MS + 1; // End time exceeds limit
+        })
       });
 
       try {
@@ -215,7 +224,10 @@ describe('ToolRegistry', () => {
         expect(result.success).toBe(false);
         expect(result.errors).toContain(REGISTRY_MESSAGES.REGISTRY_OPERATION_TIMEOUT);
       } finally {
-        performance.now = originalNow;
+        Object.defineProperty(performance, 'now', {
+          writable: true,
+          value: originalNow
+        });
       }
     });
 
@@ -302,10 +314,13 @@ describe('ToolRegistry', () => {
       // Mock performance.now to simulate timeout
       const originalNow = performance.now;
       let callCount = 0;
-      performance.now = jest.fn(() => {
-        callCount++;
-        if (callCount === 1) return 0; // Start time
-        return REGISTRY_LIMITS.REGISTRY_OPERATION_TIMEOUT_MS + 1; // End time exceeds limit
+      Object.defineProperty(performance, 'now', {
+        writable: true,
+        value: jest.fn(() => {
+          callCount++;
+          if (callCount === 1) return 0; // Start time
+          return REGISTRY_LIMITS.REGISTRY_OPERATION_TIMEOUT_MS + 1; // End time exceeds limit
+        })
       });
 
       try {
@@ -313,7 +328,10 @@ describe('ToolRegistry', () => {
         expect(result.success).toBe(false);
         expect(result.errors).toContain(REGISTRY_MESSAGES.REGISTRY_OPERATION_TIMEOUT);
       } finally {
-        performance.now = originalNow;
+        Object.defineProperty(performance, 'now', {
+          writable: true,
+          value: originalNow
+        });
       }
     });
   });
@@ -369,10 +387,13 @@ describe('ToolRegistry', () => {
       // Mock performance.now to simulate timeout
       const originalNow = performance.now;
       let callCount = 0;
-      performance.now = jest.fn(() => {
-        callCount++;
-        if (callCount === 1) return 0; // Start time
-        return REGISTRY_LIMITS.REGISTRY_OPERATION_TIMEOUT_MS + 1; // End time exceeds limit
+      Object.defineProperty(performance, 'now', {
+        writable: true,
+        value: jest.fn(() => {
+          callCount++;
+          if (callCount === 1) return 0; // Start time
+          return REGISTRY_LIMITS.REGISTRY_OPERATION_TIMEOUT_MS + 1; // End time exceeds limit
+        })
       });
 
       try {
@@ -380,7 +401,10 @@ describe('ToolRegistry', () => {
         expect(result.success).toBe(false);
         expect(result.errors.length).toBeGreaterThan(0);
       } finally {
-        performance.now = originalNow;
+        Object.defineProperty(performance, 'now', {
+          writable: true,
+          value: originalNow
+        });
       }
     });
 
