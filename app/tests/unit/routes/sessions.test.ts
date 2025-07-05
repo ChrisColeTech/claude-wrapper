@@ -469,7 +469,9 @@ describe('Sessions Router Unit Tests', () => {
           cleanupIntervalMinutes: 10,
           maxSessionsPerUser: 50,
           maxMessagesPerSession: 500,
-          enableAutoCleanup: false
+          enableAutoCleanup: false,
+          enableToolStateTracking: true,
+          toolStateCleanupIntervalMinutes: 15
         };
 
         mockSessionService.getConfig.mockReturnValue(mockConfig);

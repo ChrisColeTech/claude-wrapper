@@ -185,9 +185,13 @@ export class CompatibilityChecker implements ICompatibilityChecker {
     return {
       endpoint,
       compliant,
+      isCompliant: compliant, // Alias for test compatibility
       complianceScore: compliant ? 100 : 0,
       supportedMethods: ['POST'],
       unsupportedMethods: ['GET', 'PUT', 'DELETE'],
+      supportedFeatures: compliant ? ['chat completions', 'function calling', 'streaming'] : ['model listing'],
+      unsupportedFeatures: compliant ? ['embeddings', 'fine-tuning'] : ['chat completions', 'function calling'],
+      limitations: compliant ? [] : ['Endpoint not recognized or supported'],
       headerCompatibility: {
         'Content-Type': true,
         'Authorization': true,
@@ -201,7 +205,8 @@ export class CompatibilityChecker implements ICompatibilityChecker {
         severity: 'critical' as const,
         impact: 'Request will fail'
       }],
-      recommendations: compliant ? [] : ['Use /chat/completions endpoint']
+      recommendations: compliant ? [] : ['Use /chat/completions endpoint'],
+      verificationTimestamp: Date.now()
     };
   }
 
@@ -278,7 +283,7 @@ export class CompatibilityChecker implements ICompatibilityChecker {
       }
     });
 
-    return [...new Set(recommendations)].slice(0, 10); // Limit to 10 recommendations
+    return Array.from(new Set(recommendations)).slice(0, 10); // Limit to 10 recommendations
   }
 
   private generateMigrationGuidance(result: CompatibilityResult): MigrationGuidance {

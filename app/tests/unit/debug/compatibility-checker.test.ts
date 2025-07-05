@@ -193,7 +193,7 @@ describe('CompatibilityChecker', () => {
     it('should handle errors gracefully', async () => {
       // Arrange
       const error = new Error('Registry error');
-      mockToolRegistry.getAll.mockRejectedValue(error);
+      mockToolRegistry.getAll.mockRejectedValue(error as any);
 
       // Act & Assert
       await expect(compatibilityChecker.checkOpenAICompatibility(mockChatCompletionRequest))
@@ -515,7 +515,7 @@ describe('CompatibilityChecker', () => {
     it('should handle registry errors gracefully', async () => {
       // Arrange
       const error = new Error('Tool registry unavailable');
-      mockToolRegistry.getAll.mockRejectedValue(error);
+      mockToolRegistry.getAll.mockRejectedValue(error as any);
 
       // Act & Assert
       await expect(compatibilityChecker.checkOpenAICompatibility(mockChatCompletionRequest))
