@@ -153,8 +153,11 @@ export class PerformanceMonitor implements IPerformanceMonitor {
   getAllStats(): Map<string, PerformanceStats> {
     const allStats = new Map<string, PerformanceStats>();
     
-    for (const [operation, operationMetrics] of this.metrics) {
-      if (operationMetrics.length > 0) {
+    const operations = Array.from(this.metrics.keys());
+    for (let i = 0; i < operations.length; i++) {
+      const operation = operations[i];
+      const operationMetrics = this.metrics.get(operation);
+      if (operationMetrics && operationMetrics.length > 0) {
         allStats.set(operation, this.calculateStats(operationMetrics));
       }
     }
@@ -215,13 +218,18 @@ export class PerformanceMonitor implements IPerformanceMonitor {
   private cleanupOldMetrics(): void {
     const cutoffTime = Date.now() - this.retentionMs;
     
-    for (const [operation, operationMetrics] of this.metrics) {
-      const filteredMetrics = operationMetrics.filter(m => m.timestamp > cutoffTime);
-      
-      if (filteredMetrics.length === 0) {
-        this.metrics.delete(operation);
-      } else {
-        this.metrics.set(operation, filteredMetrics);
+    const operations = Array.from(this.metrics.keys());
+    for (let i = 0; i < operations.length; i++) {
+      const operation = operations[i];
+      const operationMetrics = this.metrics.get(operation);
+      if (operationMetrics) {
+        const filteredMetrics = operationMetrics.filter(m => m.timestamp > cutoffTime);
+        
+        if (filteredMetrics.length === 0) {
+          this.metrics.delete(operation);
+        } else {
+          this.metrics.set(operation, filteredMetrics);
+        }
       }
     }
   }

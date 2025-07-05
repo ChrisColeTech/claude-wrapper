@@ -1,5 +1,5 @@
 /**
- * Detailed Validation Error Handling System
+ * Compact Validation Error Handling System
  * Field-level validation error reporting matching Python implementation
  * 
  * Single Responsibility: Validation error processing and detailed reporting
@@ -9,6 +9,12 @@
 import { createLogger } from '../utils/logger';
 import { config } from '../utils/env';
 import { ErrorClassification, getErrorClassifier } from './error-classifier';
+import { getDefaultSchemas } from './validation-schemas';
+import { 
+  getFieldValue, 
+  validateRequiredField, 
+  applyFieldValidationRules 
+} from './validation-helpers';
 import * as winston from 'winston';
 
 /**
@@ -90,7 +96,6 @@ export class ValidationHandler {
 
   /**
    * Validate request with detailed field-level error reporting
-   * Performance requirement: <25ms processing time
    */
   async validateRequest(
     data: any,
@@ -100,8 +105,6 @@ export class ValidationHandler {
     const startTime = Date.now();
     
     try {
-      this.logValidationStart(schemaName, context.requestId);
-      
       const schema = this.getValidationSchema(schemaName);
       const validationContext = this.buildValidationContext(context);
       const errors = await this.processValidationRules(data, schema, validationContext);
@@ -110,10 +113,7 @@ export class ValidationHandler {
       const processingTime = Date.now() - startTime;
       this.updateProcessingStats(processingTime);
       
-      const report = this.buildValidationReport(errors, classification, validationContext, schema, data, processingTime);
-      
-      this.logValidationCompletion(report, context.requestId);
-      return report;
+      return this.buildValidationReport(errors, classification, validationContext, schema, data, processingTime);
 
     } catch (error) {
       return this.handleValidationError(error, schemaName, context, Date.now() - startTime);
@@ -202,11 +202,11 @@ export class ValidationHandler {
     context: ValidationContext
   ): Promise<FieldValidationError[]> {
     const errors: FieldValidationError[] = [];
-    const value = this.getFieldValue(data, rule.field);
+    const value = getFieldValue(data, rule.field);
     const path = rule.field;
 
     // Check required field first
-    const requiredError = this.validateRequiredField(rule, value, path);
+    const requiredError = validateRequiredField(rule, value, path);
     if (requiredError) {
       return [requiredError]; // Skip other validations if required field is missing
     }
@@ -217,54 +217,10 @@ export class ValidationHandler {
     }
 
     // Apply all validation rules
-    const validationErrors = this.applyFieldValidationRules(rule, value, path);
+    const validationErrors = applyFieldValidationRules(rule, value, path);
     errors.push(...validationErrors);
 
     return errors;
-  }
-
-  /**
-   * Get field value from nested object using dot notation
-   */
-  private getFieldValue(data: any, fieldPath: string): any {
-    const parts = fieldPath.split('.');
-    let value = data;
-    
-    for (const part of parts) {
-      if (value === null || value === undefined) {
-        return undefined;
-      }
-      
-      // Handle array indices
-      if (/^\[\d+\]$/.test(part)) {
-        const index = parseInt(part.slice(1, -1), 10);
-        value = Array.isArray(value) ? value[index] : undefined;
-      } else {
-        value = value[part];
-      }
-    }
-    
-    return value;
-  }
-
-  /**
-   * Validate value type
-   */
-  private validateType(value: any, expectedType: string): boolean {
-    switch (expectedType.toLowerCase()) {
-      case 'string':
-        return typeof value === 'string';
-      case 'number':
-        return typeof value === 'number' && !isNaN(value);
-      case 'boolean':
-        return typeof value === 'boolean';
-      case 'array':
-        return Array.isArray(value);
-      case 'object':
-        return typeof value === 'object' && value !== null && !Array.isArray(value);
-      default:
-        return true; // Unknown type, allow any
-    }
   }
 
   /**
@@ -342,14 +298,7 @@ export class ValidationHandler {
     return value;
   }
 
-  /**
-   * Create error report for validation failures
-   */
-  private createErrorReport(
-    error: any,
-    context: Partial<ValidationContext>,
-    processingTime: number
-  ): ValidationErrorReport {
+  private createErrorReport(error: any, context: Partial<ValidationContext>, processingTime: number): ValidationErrorReport {
     const errorMessage = error instanceof Error ? error.message : String(error);
     
     return {
@@ -377,9 +326,6 @@ export class ValidationHandler {
     };
   }
 
-  /**
-   * Update processing time statistics
-   */
   private updateProcessingStats(processingTime: number): void {
     this.processingTimes.push(processingTime);
     
@@ -389,19 +335,6 @@ export class ValidationHandler {
     }
   }
 
-  /**
-   * Log validation start
-   */
-  private logValidationStart(schemaName: string, requestId?: string): void {
-    this.logger.debug('Starting validation', { 
-      schema: schemaName,
-      requestId 
-    });
-  }
-
-  /**
-   * Get validation schema by name
-   */
   private getValidationSchema(schemaName: string): ValidationSchema {
     const schema = this.schemas.get(schemaName);
     if (!schema) {
@@ -410,9 +343,6 @@ export class ValidationHandler {
     return schema;
   }
 
-  /**
-   * Build validation context
-   */
   private buildValidationContext(context: Partial<ValidationContext>): ValidationContext {
     return {
       endpoint: 'unknown',
@@ -422,9 +352,6 @@ export class ValidationHandler {
     };
   }
 
-  /**
-   * Process all validation rules for a schema
-   */
   private async processValidationRules(
     data: any,
     schema: ValidationSchema,
@@ -440,9 +367,6 @@ export class ValidationHandler {
     return errors;
   }
 
-  /**
-   * Classify validation errors
-   */
   private classifyValidationErrors(
     errors: FieldValidationError[],
     schemaName: string,
@@ -456,9 +380,6 @@ export class ValidationHandler {
     });
   }
 
-  /**
-   * Build validation report
-   */
   private buildValidationReport(
     errors: FieldValidationError[],
     classification: ErrorClassification,
@@ -483,21 +404,6 @@ export class ValidationHandler {
     };
   }
 
-  /**
-   * Log validation completion
-   */
-  private logValidationCompletion(report: ValidationErrorReport, requestId?: string): void {
-    this.logger.debug('Validation completed', {
-      isValid: report.isValid,
-      errorCount: report.errorCount,
-      processingTime: report.processingTime,
-      requestId
-    });
-  }
-
-  /**
-   * Handle validation error
-   */
   private handleValidationError(
     error: any,
     schemaName: string,
@@ -515,253 +421,13 @@ export class ValidationHandler {
   }
 
   /**
-   * Validate required field
-   */
-  private validateRequiredField(
-    rule: ValidationRule,
-    value: any,
-    path: string
-  ): FieldValidationError | null {
-    if (rule.required && (value === undefined || value === null || value === '')) {
-      return {
-        field: rule.field,
-        path,
-        value,
-        message: rule.message || `Field '${rule.field}' is required`,
-        code: 'REQUIRED_FIELD_MISSING',
-        suggestion: `Provide a value for '${rule.field}'`
-      };
-    }
-    return null;
-  }
-
-  /**
-   * Apply all field validation rules
-   */
-  private applyFieldValidationRules(
-    rule: ValidationRule,
-    value: any,
-    path: string
-  ): FieldValidationError[] {
-    const errors: FieldValidationError[] = [];
-
-    // Type validation
-    const typeError = this.validateFieldType(rule, value, path);
-    if (typeError) errors.push(typeError);
-
-    // String length validation
-    if (typeof value === 'string') {
-      errors.push(...this.validateStringLength(rule, value, path));
-    }
-
-    // Pattern validation
-    const patternError = this.validateFieldPattern(rule, value, path);
-    if (patternError) errors.push(patternError);
-
-    // Enum validation
-    const enumError = this.validateFieldEnum(rule, value, path);
-    if (enumError) errors.push(enumError);
-
-    // Custom validation
-    const customError = this.validateFieldCustom(rule, value, path);
-    if (customError) errors.push(customError);
-
-    return errors;
-  }
-
-  /**
-   * Validate field type
-   */
-  private validateFieldType(
-    rule: ValidationRule,
-    value: any,
-    path: string
-  ): FieldValidationError | null {
-    if (rule.type && !this.validateType(value, rule.type)) {
-      return {
-        field: rule.field,
-        path,
-        value,
-        message: `Field '${rule.field}' must be of type ${rule.type}`,
-        code: 'INVALID_TYPE',
-        suggestion: `Convert '${rule.field}' to ${rule.type}`
-      };
-    }
-    return null;
-  }
-
-  /**
-   * Validate string length constraints
-   */
-  private validateStringLength(
-    rule: ValidationRule,
-    value: string,
-    path: string
-  ): FieldValidationError[] {
-    const errors: FieldValidationError[] = [];
-
-    if (rule.minLength && value.length < rule.minLength) {
-      errors.push({
-        field: rule.field,
-        path,
-        value,
-        message: `Field '${rule.field}' must be at least ${rule.minLength} characters`,
-        code: 'TOO_SHORT',
-        constraint: `min_length: ${rule.minLength}`,
-        suggestion: `Increase length of '${rule.field}' to at least ${rule.minLength} characters`
-      });
-    }
-
-    if (rule.maxLength && value.length > rule.maxLength) {
-      errors.push({
-        field: rule.field,
-        path,
-        value,
-        message: `Field '${rule.field}' must be at most ${rule.maxLength} characters`,
-        code: 'TOO_LONG',
-        constraint: `max_length: ${rule.maxLength}`,
-        suggestion: `Reduce length of '${rule.field}' to at most ${rule.maxLength} characters`
-      });
-    }
-
-    return errors;
-  }
-
-  /**
-   * Validate field pattern
-   */
-  private validateFieldPattern(
-    rule: ValidationRule,
-    value: any,
-    path: string
-  ): FieldValidationError | null {
-    if (rule.pattern && typeof value === 'string' && !rule.pattern.test(value)) {
-      return {
-        field: rule.field,
-        path,
-        value,
-        message: `Field '${rule.field}' format is invalid`,
-        code: 'INVALID_FORMAT',
-        constraint: `pattern: ${rule.pattern.source}`,
-        suggestion: `Ensure '${rule.field}' matches the required format`
-      };
-    }
-    return null;
-  }
-
-  /**
-   * Validate field enum constraint
-   */
-  private validateFieldEnum(
-    rule: ValidationRule,
-    value: any,
-    path: string
-  ): FieldValidationError | null {
-    if (rule.enum && !rule.enum.includes(value)) {
-      return {
-        field: rule.field,
-        path,
-        value,
-        message: `Field '${rule.field}' must be one of: ${rule.enum.join(', ')}`,
-        code: 'INVALID_ENUM_VALUE',
-        constraint: `allowed_values: [${rule.enum.join(', ')}]`,
-        suggestion: `Choose a valid value for '${rule.field}' from the allowed list`
-      };
-    }
-    return null;
-  }
-
-  /**
-   * Validate field custom constraint
-   */
-  private validateFieldCustom(
-    rule: ValidationRule,
-    value: any,
-    path: string
-  ): FieldValidationError | null {
-    if (rule.custom && !rule.custom(value)) {
-      return {
-        field: rule.field,
-        path,
-        value,
-        message: rule.message || `Field '${rule.field}' failed custom validation`,
-        code: 'CUSTOM_VALIDATION_FAILED',
-        suggestion: `Review the requirements for '${rule.field}'`
-      };
-    }
-    return null;
-  }
-
-  /**
-   * Register chat completion validation schema
-   */
-  private registerChatCompletionSchema(): void {
-    this.registerSchema('chat_completion', {
-      description: 'OpenAI Chat Completion API request validation',
-      rules: [
-        {
-          field: 'model',
-          required: true,
-          type: 'string',
-          message: 'Model parameter is required'
-        },
-        {
-          field: 'messages',
-          required: true,
-          type: 'array',
-          message: 'Messages array is required'
-        },
-        {
-          field: 'temperature',
-          type: 'number',
-          custom: (value) => value >= 0 && value <= 2,
-          message: 'Temperature must be between 0 and 2'
-        },
-        {
-          field: 'max_tokens',
-          type: 'number',
-          custom: (value) => value > 0,
-          message: 'Max tokens must be positive'
-        }
-      ],
-      examples: {
-        basic: {
-          model: 'claude-3-sonnet-20240229',
-          messages: [{ role: 'user', content: 'Hello' }]
-        }
-      }
-    });
-  }
-
-  /**
-   * Register session validation schema
-   */
-  private registerSessionSchema(): void {
-    this.registerSchema('session', {
-      description: 'Session management request validation',
-      rules: [
-        {
-          field: 'session_id',
-          type: 'string',
-          pattern: /^[a-zA-Z0-9_-]+$/,
-          message: 'Session ID must contain only alphanumeric characters, hyphens, and underscores'
-        },
-        {
-          field: 'title',
-          type: 'string',
-          maxLength: 200,
-          message: 'Session title must be 200 characters or less'
-        }
-      ]
-    });
-  }
-
-  /**
    * Register default validation schemas
    */
   private registerDefaultSchemas(): void {
-    this.registerChatCompletionSchema();
-    this.registerSessionSchema();
+    const schemas = getDefaultSchemas();
+    Object.entries(schemas).forEach(([name, schema]) => {
+      this.registerSchema(name, schema);
+    });
   }
 }
 
@@ -779,8 +445,6 @@ export function getValidationHandler(): ValidationHandler {
 export function resetValidationHandler(): void {
   _validationHandler = null;
 }
-
-// Production-ready singleton access - use getValidationHandler() instead
 
 // Export utilities for easy access
 export const validateRequest = (data: any, schema: string, context: Partial<ValidationContext>) =>
