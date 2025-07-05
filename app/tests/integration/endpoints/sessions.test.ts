@@ -10,6 +10,9 @@ import { SessionsRouter } from '../../../src/routes/sessions';
 import { SessionService } from '../../../src/services/session-service';
 import { authMiddleware } from '../../../src/auth/middleware';
 
+// Mock the SessionService class
+jest.mock('../../../src/services/session-service');
+
 // Mock dependencies
 jest.mock('../../../src/auth/middleware', () => ({
   authMiddleware: jest.fn(() => (_req: any, _res: any, next: any) => next())
@@ -38,13 +41,14 @@ describe('Sessions Endpoints Integration Tests', () => {
       (_req: any, _res: any, next: any) => next()
     );
 
-    // Mock session service
+    // Setup the mocked SessionService instance
     mockSessionService = {
       getSessionStats: jest.fn(),
       listSessions: jest.fn(),
       getSession: jest.fn(),
       deleteSession: jest.fn(),
       getConfig: jest.fn(),
+      getExpiredSessionCount: jest.fn(),
       isHealthy: jest.fn(),
       cleanupExpiredSessions: jest.fn(),
       createSession: jest.fn(),
@@ -52,8 +56,8 @@ describe('Sessions Endpoints Integration Tests', () => {
       shutdown: jest.fn()
     } as any;
 
-    // Replace the static sessionService in SessionsRouter
-    (SessionsRouter as any).sessionService = mockSessionService;
+    // Mock the SessionService constructor to return our mock instance
+    (SessionService as jest.MockedClass<typeof SessionService>).mockImplementation(() => mockSessionService);
 
     // Mount the sessions router
     app.use(SessionsRouter.createRouter());
@@ -84,17 +88,18 @@ describe('Sessions Endpoints Integration Tests', () => {
 
       mockSessionService.getSessionStats.mockReturnValue(mockStats);
       mockSessionService.getConfig.mockReturnValue(mockConfig);
+      mockSessionService.getExpiredSessionCount.mockReturnValue(2);
 
       const response = await request(app)
         .get('/v1/sessions/stats')
         .expect(200);
 
-      // Dates get serialized to ISO strings in JSON response
+      // Verify Python-compatible response format
       expect(response.body).toEqual({
         session_stats: {
-          ...mockStats,
-          oldestSession: mockStats.oldestSession.toISOString(),
-          newestSession: mockStats.newestSession.toISOString()
+          active_sessions: mockStats.activeSessions,
+          expired_sessions: 2, // From mock
+          total_messages: mockStats.totalMessages
         },
         cleanup_interval_minutes: 5,
         default_ttl_hours: 1

@@ -111,7 +111,7 @@ describe('Error Handling Integration', () => {
             req.requestId
           );
 
-          res.status(classification.httpStatusCode).json(errorResponse);
+          return res.status(classification.httpStatusCode).json(errorResponse);
         }
       });
 
@@ -236,7 +236,7 @@ describe('Error Handling Integration', () => {
 
   describe('Request ID and Correlation Integration', () => {
     it('should track requests through entire error flow', async () => {
-      let capturedRequestId: string;
+      let capturedRequestId: string = '';
       let capturedContext: any;
 
       app.post('/api/tracked', (req, res) => {
@@ -264,7 +264,7 @@ describe('Error Handling Integration', () => {
           req.requestMetadata!
         );
 
-        res.status(500).json(enhancedResponse);
+        return res.status(500).json(enhancedResponse);
       });
 
       const response = await request(app)
@@ -339,7 +339,7 @@ describe('Error Handling Integration', () => {
           return res.status(400).json(errorResponse);
         }
 
-        res.json({ success: true });
+        return res.json({ success: true });
       });
 
       const invalidPayload = { messages: 'invalid' }; // Missing model
@@ -448,7 +448,7 @@ describe('Error Handling Integration', () => {
           return res.status(400).json(errorResponse);
         }
 
-        res.json({ success: true });
+        return res.json({ success: true });
       });
 
       const response = await request(app)
@@ -504,7 +504,7 @@ describe('Error Handling Integration', () => {
           return res.status(401).json(errorResponse);
         }
 
-        res.status(400).json({ error: 'Bad request' });
+        return res.status(400).json({ error: 'Bad request' });
       });
 
       // Test rate limit headers

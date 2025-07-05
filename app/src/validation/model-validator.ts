@@ -195,47 +195,9 @@ export class ModelValidator implements IModelValidator {
 
       // Check each capability requirement
       for (const [requirement, required] of Object.entries(requirements)) {
-        switch (requirement) {
-          case 'streaming':
-            if (required && !capabilities.streaming) {
-              errors.push(`Model '${modelId}' does not support streaming`);
-            }
-            break;
-          case 'function_calling':
-            if (required && !capabilities.function_calling) {
-              errors.push(`Model '${modelId}' does not support function calling`);
-            }
-            break;
-          case 'vision':
-            if (required && !capabilities.vision) {
-              errors.push(`Model '${modelId}' does not support vision/image processing`);
-            }
-            break;
-          case 'json_mode':
-            if (required && !capabilities.json_mode) {
-              errors.push(`Model '${modelId}' does not support JSON mode`);
-            }
-            break;
-          case 'tools':
-            if (required && !capabilities.tools) {
-              errors.push(`Model '${modelId}' does not support tools`);
-            }
-            break;
-          case 'min_context_length':
-            if (typeof required === 'number' && capabilities.max_context_length < required) {
-              errors.push(`Model '${modelId}' context length (${capabilities.max_context_length}) is less than required (${required})`);
-            }
-            break;
-          case 'reasoning_mode':
-            if (required && !capabilities.reasoning_mode) {
-              errors.push(`Model '${modelId}' does not support reasoning mode`);
-            }
-            break;
-          case 'code_execution':
-            if (required && !capabilities.code_execution) {
-              errors.push(`Model '${modelId}' does not support code execution`);
-            }
-            break;
+        const error = this.validateSingleCapability(modelId, requirement, required, capabilities);
+        if (error) {
+          errors.push(error);
         }
       }
 
@@ -338,6 +300,34 @@ export class ModelValidator implements IModelValidator {
       }
     }
     return true;
+  }
+
+  /**
+   * Validate a single capability requirement and return error message if invalid
+   */
+  private validateSingleCapability(modelId: string, requirement: string, required: any, capabilities: ModelCapabilities): string | null {
+    switch (requirement) {
+      case 'streaming':
+        return (required && !capabilities.streaming) ? `Model '${modelId}' does not support streaming` : null;
+      case 'function_calling':
+        return (required && !capabilities.function_calling) ? `Model '${modelId}' does not support function calling` : null;
+      case 'vision':
+        return (required && !capabilities.vision) ? `Model '${modelId}' does not support vision/image processing` : null;
+      case 'json_mode':
+        return (required && !capabilities.json_mode) ? `Model '${modelId}' does not support JSON mode` : null;
+      case 'tools':
+        return (required && !capabilities.tools) ? `Model '${modelId}' does not support tools` : null;
+      case 'min_context_length':
+        return (typeof required === 'number' && capabilities.max_context_length < required) 
+          ? `Model '${modelId}' context length (${capabilities.max_context_length}) is less than required (${required})` 
+          : null;
+      case 'reasoning_mode':
+        return (required && !capabilities.reasoning_mode) ? `Model '${modelId}' does not support reasoning mode` : null;
+      case 'code_execution':
+        return (required && !capabilities.code_execution) ? `Model '${modelId}' does not support code execution` : null;
+      default:
+        return null;
+    }
   }
 
   /**

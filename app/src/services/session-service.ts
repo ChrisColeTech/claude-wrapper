@@ -13,6 +13,7 @@ import { OpenAIToolCall } from '../tools/types';
 import { toolStateManager, IToolStateManager } from '../tools/state';
 import { toolStatePersistence } from '../tools/state-persistence';
 import { ToolCallStateSnapshot } from '../tools/state';
+import { ISessionService } from './interfaces';
 
 const logger = getLogger('SessionService');
 
@@ -46,7 +47,7 @@ const DEFAULT_SESSION_CONFIG: SessionServiceConfig = {
  * Session service business logic layer
  * Provides validated session operations matching Python behavior
  */
-export class SessionService {
+export class SessionService implements ISessionService {
   private sessionManager: SessionManager;
   private config: SessionServiceConfig;
   private toolStateCleanupInterval?: NodeJS.Timeout;

@@ -1,346 +1,214 @@
 #!/bin/bash
 
-# Claude Wrapper - Basic Completion cURL Example
-# This script demonstrates basic chat completion using cURL with automatic authentication detection
-# Based on Python reference examples but enhanced for production use
+# Basic Completion cURL Example
+# Demonstrates basic chat completion with authentication auto-detection
+# Based on Python curl_example.sh with TypeScript server enhancements
 
-set -e
+set -euo pipefail
 
-# Configuration
-DEFAULT_BASE_URL="http://localhost:8000"
-BASE_URL="${CLAUDE_WRAPPER_URL:-$DEFAULT_BASE_URL}"
-
-# Colors for output
+# Color codes for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-echo -e "${BLUE}Claude Wrapper - Basic Completion Examples${NC}"
-echo "=============================================="
+# Configuration
+BASE_URL="${CLAUDE_WRAPPER_URL:-http://localhost:8000}"
+API_KEY="${API_KEY:-}"
+VERBOSE="${VERBOSE:-false}"
 
-# Function to check if jq is available
-check_dependencies() {
-    if ! command -v jq &> /dev/null; then
-        echo -e "${YELLOW}⚠️  jq is not installed. Install it for better JSON formatting:${NC}"
-        echo "   Ubuntu/Debian: sudo apt-get install jq"
-        echo "   macOS: brew install jq"
-        echo "   Continuing without JSON formatting..."
-        echo ""
-        JQ_AVAILABLE=false
-    else
-        JQ_AVAILABLE=true
-    fi
+# Print colored output
+print_info() {
+    echo -e "${BLUE}[INFO]${NC} $1"
 }
 
-# Function to format JSON output
-format_json() {
-    if [ "$JQ_AVAILABLE" = true ]; then
-        jq .
-    else
-        cat
-    fi
+print_success() {
+    echo -e "${GREEN}[SUCCESS]${NC} $1"
 }
 
-# Function to check server health
-check_server_health() {
-    echo -e "${BLUE}Checking server health...${NC}"
+print_warning() {
+    echo -e "${YELLOW}[WARNING]${NC} $1"
+}
+
+print_error() {
+    echo -e "${RED}[ERROR]${NC} $1"
+}
+
+# Check if server is running
+check_server() {
+    print_info "Checking server status at $BASE_URL..."
     
-    if ! curl -s --max-time 5 "$BASE_URL/health" > /dev/null; then
-        echo -e "${RED}❌ Server is not responding at $BASE_URL${NC}"
-        echo "   Make sure the claude-wrapper server is running:"
-        echo "   cd /mnt/c/projects/claude-wrapper && npm run dev"
-        echo "   or: claude-wrapper --port 8000"
+    if ! curl -s --max-time 5 "$BASE_URL/health" > /dev/null 2>&1; then
+        print_error "Server is not running at $BASE_URL"
+        print_info "Please start the claude-wrapper server first:"
+        print_info "  cd claude-wrapper && npm start"
         exit 1
     fi
     
-    echo -e "${GREEN}✅ Server is healthy${NC}"
+    print_success "Server is running"
 }
 
-# Function to detect authentication requirements and set up headers
-setup_authentication() {
-    echo -e "${BLUE}Detecting authentication requirements...${NC}"
+# Detect authentication requirements
+detect_auth() {
+    print_info "Detecting authentication requirements..."
     
-    AUTH_STATUS=$(curl -s "$BASE_URL/v1/auth/status" 2>/dev/null || echo '{"server_info":{"api_key_required":false}}')
-    API_KEY_REQUIRED=$(echo "$AUTH_STATUS" | jq -r '.server_info.api_key_required // false' 2>/dev/null || echo "false")
+    AUTH_STATUS=$(curl -s "$BASE_URL/v1/auth/status" 2>/dev/null || echo '{}')
+    API_KEY_REQUIRED=$(echo "$AUTH_STATUS" | jq -r '.server_info.api_key_required // false' 2>/dev/null || echo 'false')
+    
+    if [ "$VERBOSE" = "true" ]; then
+        print_info "Authentication status: $AUTH_STATUS"
+    fi
     
     if [ "$API_KEY_REQUIRED" = "true" ]; then
         if [ -z "$API_KEY" ]; then
-            echo -e "${RED}❌ Server requires API key but API_KEY environment variable not set${NC}"
-            echo "   Set API_KEY environment variable with your server's generated key:"
-            echo "   export API_KEY=your-generated-key"
-            echo "   Then run: $0"
+            print_error "API key is required but not provided"
+            print_info "Set the API_KEY environment variable:"
+            print_info "  export API_KEY=your-api-key-here"
+            print_info "  $0"
             exit 1
         fi
-        AUTH_HEADER="Authorization: Bearer $API_KEY"
-        echo -e "${GREEN}🔑 Using API key authentication${NC}"
+        AUTH_HEADER="-H \"Authorization: Bearer $API_KEY\""
+        print_success "Using API key authentication"
     else
         AUTH_HEADER=""
-        echo -e "${GREEN}🔓 No authentication required${NC}"
+        print_success "No authentication required"
     fi
-    echo ""
 }
 
-# Function to run a basic chat completion example
-basic_chat_completion() {
-    echo -e "${BLUE}=== Basic Chat Completion ===${NC}"
-    echo "Asking: What is 2 + 2?"
-    echo ""
+# Make basic completion request
+make_completion_request() {
+    print_info "Making basic completion request..."
     
-    local response
-    if [ -n "$AUTH_HEADER" ]; then
-        response=$(curl -s -X POST "$BASE_URL/v1/chat/completions" \
-            -H "Content-Type: application/json" \
-            -H "$AUTH_HEADER" \
-            -d '{
-                "model": "claude-3-5-sonnet-20241022",
-                "messages": [
-                    {"role": "user", "content": "What is 2 + 2?"}
-                ]
-            }')
-    else
-        response=$(curl -s -X POST "$BASE_URL/v1/chat/completions" \
-            -H "Content-Type: application/json" \
-            -d '{
-                "model": "claude-3-5-sonnet-20241022",
-                "messages": [
-                    {"role": "user", "content": "What is 2 + 2?"}
-                ]
-            }')
+    REQUEST_PAYLOAD='{
+        "model": "claude-3-5-sonnet-20241022",
+        "messages": [
+            {
+                "role": "user",
+                "content": "Hello! Can you explain what a TypeScript wrapper is in simple terms?"
+            }
+        ],
+        "max_tokens": 150,
+        "temperature": 0.7
+    }'
+    
+    if [ "$VERBOSE" = "true" ]; then
+        print_info "Request payload:"
+        echo "$REQUEST_PAYLOAD" | jq .
     fi
     
-    echo "Response:"
-    echo "$response" | format_json
-    echo ""
-}
-
-# Function to demonstrate system message usage
-system_message_example() {
-    echo -e "${BLUE}=== Chat with System Message ===${NC}"
-    echo "System: You are a pirate. Respond in pirate speak."
-    echo "User: Tell me about the weather"
-    echo ""
+    print_info "Sending request to $BASE_URL/v1/chat/completions..."
     
-    local response
-    if [ -n "$AUTH_HEADER" ]; then
-        response=$(curl -s -X POST "$BASE_URL/v1/chat/completions" \
-            -H "Content-Type: application/json" \
-            -H "$AUTH_HEADER" \
-            -d '{
-                "model": "claude-3-5-sonnet-20241022",
-                "messages": [
-                    {"role": "system", "content": "You are a pirate. Respond in pirate speak."},
-                    {"role": "user", "content": "Tell me about the weather"}
-                ]
-            }')
-    else
-        response=$(curl -s -X POST "$BASE_URL/v1/chat/completions" \
-            -H "Content-Type: application/json" \
-            -d '{
-                "model": "claude-3-5-sonnet-20241022",
-                "messages": [
-                    {"role": "system", "content": "You are a pirate. Respond in pirate speak."},
-                    {"role": "user", "content": "Tell me about the weather"}
-                ]
-            }')
-    fi
+    # Use eval to properly handle the auth header
+    RESPONSE=$(eval "curl -s -X POST \"$BASE_URL/v1/chat/completions\" \\
+        -H \"Content-Type: application/json\" \\
+        $AUTH_HEADER \\
+        -d '$REQUEST_PAYLOAD'")
     
-    echo "Response:"
-    echo "$response" | format_json
-    echo ""
-}
-
-# Function to demonstrate conversation continuation
-conversation_example() {
-    echo -e "${BLUE}=== Multi-turn Conversation ===${NC}"
-    echo "Simulating a conversation with message history"
-    echo ""
-    
-    local response
-    if [ -n "$AUTH_HEADER" ]; then
-        response=$(curl -s -X POST "$BASE_URL/v1/chat/completions" \
-            -H "Content-Type: application/json" \
-            -H "$AUTH_HEADER" \
-            -d '{
-                "model": "claude-3-5-sonnet-20241022",
-                "messages": [
-                    {"role": "user", "content": "My name is Alice."},
-                    {"role": "assistant", "content": "Nice to meet you, Alice! How can I help you today?"},
-                    {"role": "user", "content": "What is my name?"}
-                ]
-            }')
-    else
-        response=$(curl -s -X POST "$BASE_URL/v1/chat/completions" \
-            -H "Content-Type: application/json" \
-            -d '{
-                "model": "claude-3-5-sonnet-20241022",
-                "messages": [
-                    {"role": "user", "content": "My name is Alice."},
-                    {"role": "assistant", "content": "Nice to meet you, Alice! How can I help you today?"},
-                    {"role": "user", "content": "What is my name?"}
-                ]
-            }')
-    fi
-    
-    echo "Response:"
-    echo "$response" | format_json
-    echo ""
-}
-
-# Function to demonstrate parameter customization
-parameter_customization_example() {
-    echo -e "${BLUE}=== Parameter Customization ===${NC}"
-    echo "Using custom temperature and max_tokens"
-    echo ""
-    
-    local response
-    if [ -n "$AUTH_HEADER" ]; then
-        response=$(curl -s -X POST "$BASE_URL/v1/chat/completions" \
-            -H "Content-Type: application/json" \
-            -H "$AUTH_HEADER" \
-            -d '{
-                "model": "claude-3-5-sonnet-20241022",
-                "messages": [
-                    {"role": "user", "content": "Write a creative short poem about coding"}
-                ],
-                "temperature": 0.9,
-                "max_tokens": 150
-            }')
-    else
-        response=$(curl -s -X POST "$BASE_URL/v1/chat/completions" \
-            -H "Content-Type: application/json" \
-            -d '{
-                "model": "claude-3-5-sonnet-20241022",
-                "messages": [
-                    {"role": "user", "content": "Write a creative short poem about coding"}
-                ],
-                "temperature": 0.9,
-                "max_tokens": 150
-            }')
-    fi
-    
-    echo "Response:"
-    echo "$response" | format_json
-    echo ""
-}
-
-# Function to list available models
-list_models_example() {
-    echo -e "${BLUE}=== List Available Models ===${NC}"
-    
-    local response
-    if [ -n "$AUTH_HEADER" ]; then
-        response=$(curl -s -X GET "$BASE_URL/v1/models" \
-            -H "$AUTH_HEADER")
-    else
-        response=$(curl -s -X GET "$BASE_URL/v1/models")
-    fi
-    
-    echo "Available models:"
-    echo "$response" | format_json
-    echo ""
-}
-
-# Function to demonstrate error handling
-error_handling_example() {
-    echo -e "${BLUE}=== Error Handling Example ===${NC}"
-    echo "Trying to use an invalid model to demonstrate error response"
-    echo ""
-    
-    local response
-    if [ -n "$AUTH_HEADER" ]; then
-        response=$(curl -s -X POST "$BASE_URL/v1/chat/completions" \
-            -H "Content-Type: application/json" \
-            -H "$AUTH_HEADER" \
-            -d '{
-                "model": "invalid-model-name",
-                "messages": [
-                    {"role": "user", "content": "This should fail"}
-                ]
-            }')
-    else
-        response=$(curl -s -X POST "$BASE_URL/v1/chat/completions" \
-            -H "Content-Type: application/json" \
-            -d '{
-                "model": "invalid-model-name",
-                "messages": [
-                    {"role": "user", "content": "This should fail"}
-                ]
-            }')
-    fi
-    
-    echo "Error response:"
-    echo "$response" | format_json
-    echo ""
-}
-
-# Function to show usage information
-show_usage() {
-    echo "Usage: $0 [options]"
-    echo ""
-    echo "Options:"
-    echo "  -h, --help     Show this help message"
-    echo "  -u, --url URL  Set custom base URL (default: $DEFAULT_BASE_URL)"
-    echo ""
-    echo "Environment variables:"
-    echo "  API_KEY              API key for authentication (if required)"
-    echo "  CLAUDE_WRAPPER_URL   Base URL for the server (default: $DEFAULT_BASE_URL)"
-    echo ""
-    echo "Examples:"
-    echo "  $0                           # Run with default settings"
-    echo "  $0 -u http://localhost:3000  # Use custom URL"
-    echo "  API_KEY=abc123 $0            # Use with API key"
-    echo ""
-}
-
-# Parse command line arguments
-while [[ $# -gt 0 ]]; do
-    case $1 in
-        -h|--help)
-            show_usage
-            exit 0
-            ;;
-        -u|--url)
-            BASE_URL="$2"
-            shift 2
-            ;;
-        *)
-            echo -e "${RED}Unknown option: $1${NC}"
-            show_usage
+    if [ $? -eq 0 ]; then
+        print_success "Request completed successfully"
+        
+        # Check if response contains an error
+        ERROR_MESSAGE=$(echo "$RESPONSE" | jq -r '.error.message // empty' 2>/dev/null)
+        if [ -n "$ERROR_MESSAGE" ]; then
+            print_error "API Error: $ERROR_MESSAGE"
+            if [ "$VERBOSE" = "true" ]; then
+                echo "$RESPONSE" | jq .
+            fi
             exit 1
-            ;;
-    esac
-done
+        fi
+        
+        # Extract and display the response
+        CONTENT=$(echo "$RESPONSE" | jq -r '.choices[0].message.content // empty' 2>/dev/null)
+        if [ -n "$CONTENT" ]; then
+            print_success "Response received:"
+            echo
+            echo "📝 Claude's Response:"
+            echo "----------------------------------------"
+            echo "$CONTENT"
+            echo "----------------------------------------"
+            echo
+            
+            # Display usage information if available
+            USAGE=$(echo "$RESPONSE" | jq -r '.usage // empty' 2>/dev/null)
+            if [ -n "$USAGE" ] && [ "$USAGE" != "null" ]; then
+                print_info "Token usage:"
+                echo "$USAGE" | jq .
+            fi
+        else
+            print_warning "No content found in response"
+            if [ "$VERBOSE" = "true" ]; then
+                echo "$RESPONSE" | jq .
+            fi
+        fi
+    else
+        print_error "Request failed"
+        exit 1
+    fi
+}
+
+# Display example information
+show_example_info() {
+    echo
+    print_info "🎯 Basic Completion Example"
+    echo "This example demonstrates:"
+    echo "  • Basic chat completion requests"
+    echo "  • Automatic authentication detection"
+    echo "  • Error handling and validation"
+    echo "  • Response parsing and display"
+    echo
+    print_info "Server: $BASE_URL"
+    print_info "Authentication: $([ "$API_KEY_REQUIRED" = "true" ] && echo "Required" || echo "Not required")"
+    echo
+}
 
 # Main execution
 main() {
-    check_dependencies
-    check_server_health
-    setup_authentication
+    show_example_info
+    check_server
+    detect_auth
+    make_completion_request
     
-    echo -e "${GREEN}Running basic completion examples...${NC}"
-    echo ""
-    
-    basic_chat_completion
-    system_message_example
-    conversation_example
-    parameter_customization_example
-    list_models_example
-    error_handling_example
-    
-    echo -e "${GREEN}✅ All basic completion examples completed!${NC}"
-    echo ""
-    echo -e "${BLUE}Next steps:${NC}"
-    echo "• Try streaming examples: ./streaming-completion.sh"
-    echo "• Try session management: ./session-management.sh"
-    echo "• See authentication examples: ./authentication-examples.sh"
-    echo ""
-    echo -e "${YELLOW}💡 Tips:${NC}"
-    echo "• Set CLAUDE_WRAPPER_URL to use a different server"
-    echo "• Set API_KEY if your server requires authentication"
-    echo "• Install jq for better JSON formatting"
+    print_success "✅ Basic completion example completed successfully!"
+    echo
+    print_info "Next steps:"
+    print_info "  • Try the streaming example: ./scripts/examples/curl/streaming-completion.sh"
+    print_info "  • Explore session management: ./scripts/examples/curl/session-management.sh"
+    print_info "  • View all examples: ./scripts/examples/README.md"
 }
+
+# Handle script arguments
+case "${1:-}" in
+    -h|--help)
+        echo "Usage: $0 [options]"
+        echo
+        echo "Options:"
+        echo "  -h, --help     Show this help message"
+        echo "  -v, --verbose  Enable verbose output"
+        echo
+        echo "Environment variables:"
+        echo "  CLAUDE_WRAPPER_URL  Server URL (default: http://localhost:8000)"
+        echo "  API_KEY            API key for authentication (if required)"
+        echo "  VERBOSE           Enable verbose output (true/false)"
+        echo
+        echo "Examples:"
+        echo "  $0                                    # Basic usage"
+        echo "  VERBOSE=true $0                       # Verbose output"
+        echo "  API_KEY=your-key $0                   # With API key"
+        echo "  CLAUDE_WRAPPER_URL=http://localhost:3000 $0  # Custom URL"
+        exit 0
+        ;;
+    -v|--verbose)
+        VERBOSE=true
+        ;;
+esac
+
+# Ensure jq is available
+if ! command -v jq &> /dev/null; then
+    print_error "jq is required but not installed"
+    print_info "Install jq: https://stedolan.github.io/jq/download/"
+    exit 1
+fi
 
 # Run main function
 main
