@@ -180,9 +180,8 @@ describe('RegistryValidator', () => {
 
     it('should handle validation timeout scenarios', async () => {
       // Mock performance.now to simulate timeout
-      const originalNow = performance.now;
       let callCount = 0;
-      performance.now = jest.fn(() => {
+      const mockPerformanceNow = jest.spyOn(performance, 'now').mockImplementation(() => {
         callCount++;
         if (callCount === 1) return 0; // Start time
         return REGISTRY_LIMITS.REGISTRY_OPERATION_TIMEOUT_MS + 1; // End time exceeds limit
@@ -193,7 +192,7 @@ describe('RegistryValidator', () => {
         expect(result.valid).toBe(false);
         expect(result.errors).toContain(REGISTRY_MESSAGES.REGISTRY_OPERATION_TIMEOUT);
       } finally {
-        performance.now = originalNow;
+        mockPerformanceNow.mockRestore();
       }
     });
 
