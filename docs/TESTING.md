@@ -7,6 +7,7 @@ This document describes the comprehensive testing framework for the Claude Wrapp
 ## Key Features
 
 - **Custom Jest Reporter**: Generates formatted text summaries instead of JSON
+- **Automatic Log Cleanup**: Clears previous test results before each run for fresh, accurate status
 - **Organized Logging**: Automatic separation of passing and failing test results
 - **Clear Console Output**: Failures shown immediately, successes logged to files
 - **Rapid Development**: Quick test filtering and debugging capabilities
@@ -100,10 +101,10 @@ npm run test:watch
 ### Debugging Workflow
 
 1. **Run Tests**: Execute tests to see immediate failures in console
-2. **Check Logs**: Review detailed results in `tests/logs/fail/` for failing suites
-3. **Fix Issues**: Address failures one by one
-4. **Verify**: Re-run tests to see results move from `fail/` to `pass/` folders
-5. **Clean Logs**: Optionally clear logs folder before full test runs
+2. **Automatic Cleanup**: Custom reporter automatically clears previous logs before each run
+3. **Check Logs**: Review detailed results in `tests/logs/fail/` for failing suites (only current run results)
+4. **Fix Issues**: Address failures one by one
+5. **Verify**: Re-run tests to see results move from `fail/` to `pass/` folders with fresh, accurate status
 
 ### Build Integration
 
@@ -156,6 +157,7 @@ module.exports = {
 
 The custom reporter (`tests/scripts/custom-reporter.js`) provides:
 
+- **Automatic Log Cleanup**: Clears previous test results before each run
 - **Folder Organization**: Automatic pass/fail separation
 - **Formatted Output**: Human-readable text instead of JSON
 - **Console Integration**: Failures in console, successes in files
@@ -165,6 +167,25 @@ Key features:
 
 ```javascript
 class SuiteReporter {
+  onRunStart() {
+    // Clear logs directory before starting test run
+    this.clearDirectory(passDir);
+    this.clearDirectory(failDir);
+    console.log('🧹 Cleared previous test logs');
+  }
+  
+  clearDirectory(dir) {
+    // Safely remove only files, preserve directory structure
+    if (fs.existsSync(dir)) {
+      fs.readdirSync(dir).forEach(file => {
+        const filePath = path.join(dir, file);
+        if (fs.lstatSync(filePath).isFile()) {
+          fs.unlinkSync(filePath);
+        }
+      });
+    }
+  }
+
   onRunComplete(contexts, aggregatedResult) {
     // Create pass/fail directories
     // Generate formatted summaries
@@ -320,7 +341,8 @@ it("should complete operation within performance limits", () => {
 ### Quick Fixes
 
 ```bash
-# Clear logs for fresh start
+# No manual log clearing needed - reporter does this automatically
+# But if you need to clear manually for any reason:
 rm -rf tests/logs/*
 
 # Run with open handles detection

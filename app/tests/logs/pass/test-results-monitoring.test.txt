@@ -1,7 +1,0 @@
-
-📋 Test Results: tests/unit/production/monitoring.test.ts
-============================================================
-✅ Passing: 0
-❌ Failing: 0
-📊 Total: 34
-

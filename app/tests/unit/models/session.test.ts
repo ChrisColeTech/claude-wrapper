@@ -187,6 +187,7 @@ describe('Session Models', () => {
         const options: SessionCreateOptions = {
           session_id: "custom_id",
           expires_in_minutes: 60,
+          enable_tool_state_tracking: true,
           metadata: { test: "value" }
         };
         

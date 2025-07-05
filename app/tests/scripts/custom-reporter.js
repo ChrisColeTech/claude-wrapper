@@ -2,6 +2,30 @@ const fs = require("fs");
 const path = require("path");
 
 class SuiteReporter {
+  onRunStart() {
+    // Clear logs directory before starting test run
+    const logDir = path.resolve(__dirname, "../logs");
+    const passDir = path.join(logDir, "pass");
+    const failDir = path.join(logDir, "fail");
+    
+    // Clear existing logs
+    this.clearDirectory(passDir);
+    this.clearDirectory(failDir);
+    
+    console.log('🧹 Cleared previous test logs');
+  }
+  
+  clearDirectory(dir) {
+    if (fs.existsSync(dir)) {
+      fs.readdirSync(dir).forEach(file => {
+        const filePath = path.join(dir, file);
+        if (fs.lstatSync(filePath).isFile()) {
+          fs.unlinkSync(filePath);
+        }
+      });
+    }
+  }
+
   onRunComplete(contexts, aggregatedResult) {
     const logDir = path.resolve(__dirname, "../logs");
     const passDir = path.join(logDir, "pass");

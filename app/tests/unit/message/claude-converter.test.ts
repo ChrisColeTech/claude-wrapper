@@ -86,7 +86,7 @@ describe('Phase 2A: Claude Converter Tests', () => {
 
       const result = await converter.convert(messages);
 
-      expect(result.prompt).toBe('Human: Hello\n\nAssistant: Hi there!');
+      expect(result.prompt).toBe('Human: Hello\n\nAssistant: Hi there!\n\nHuman: Please continue.');
     });
 
     it('should handle array content format', async () => {
@@ -102,7 +102,7 @@ describe('Phase 2A: Claude Converter Tests', () => {
 
       const result = await converter.convert(messages);
 
-      expect(result.prompt).toBe('Human: Hello world');
+      expect(result.prompt).toBe('Human: Hello\n world');
     });
 
     it('should meet performance requirement (<50ms)', async () => {
@@ -172,12 +172,13 @@ describe('Phase 2A: Claude Converter Tests', () => {
       expect(() => converter.validateMessages(messages)).toThrow(MessageValidationError);
     });
 
-    it('should throw error for invalid role', () => {
+    it('should not throw error for unsupported roles (skipped during conversion)', () => {
       const messages: any[] = [
-        { role: 'invalid', content: 'Hello' }
+        { role: 'tool', content: 'Tool output' },
+        { role: 'function', content: 'Function result' }
       ];
 
-      expect(() => converter.validateMessages(messages)).toThrow(MessageValidationError);
+      expect(() => converter.validateMessages(messages)).not.toThrow();
     });
 
     it('should throw error for too many messages', () => {

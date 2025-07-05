@@ -120,7 +120,8 @@ export class DebugRouter implements IDebugRouter {
     this.router.get('/debug/request', this.handleDebugRequest.bind(this));
 
     logger.debug('Debug routes configured', {
-      routes: Object.keys(DEBUG_ENDPOINTS)
+      routes: Object.keys(DEBUG_ENDPOINTS),
+      totalRoutes: this.router.stack ? this.router.stack.length : 0
     });
   }
 
@@ -275,39 +276,71 @@ export class DebugRouter implements IDebugRouter {
    * Handle compatibility checking
    */
   async handleCompatibilityCheck(req: Request, res: Response): Promise<void> {
-    const startTime = Date.now();
-    
     try {
-      const { request, toolSpecification, endpoint } = req.body;
+      // Import CompatibilityReporter dynamically to handle mocking in tests
+      const { CompatibilityReporter } = await import('../validation/compatibility');
+      const { ChatCompletionRequestSchema } = await import('../models/chat');
 
-      let result;
+      // For the compatibility endpoint, expect the request body to be the OpenAI request
+      const requestBody = req.body;
       
-      if (toolSpecification) {
-        result = await compatibilityChecker.validateToolSpecification(toolSpecification);
-      } else if (endpoint) {
-        result = await compatibilityChecker.verifyEndpointCompliance(endpoint);
-      } else {
-        result = await compatibilityChecker.checkOpenAICompatibility(request);
+      if (!requestBody) {
+        res.status(400).json({
+          error: 'Bad Request',
+          message: 'Request body is required'
+        });
+        return;
+      }
+
+      // Validate the request using the schema first
+      let chatRequest;
+      try {
+        chatRequest = ChatCompletionRequestSchema.parse(requestBody);
+      } catch (validationError) {
+        // Handle validation errors
+        res.status(400).json({
+          error: 'Invalid Request',
+          message: 'Request validation failed',
+          details: String(validationError)
+        });
+        return;
       }
       
-      const responseTime = Date.now() - startTime;
-      this.checkPerformanceRequirement(responseTime);
+      // Generate compatibility report (this can throw internal errors)
+      const compatibilityReport = CompatibilityReporter.generateCompatibilityReport(chatRequest);
 
+      // Return response in expected format (matching Python main.py)
       res.json({
-        success: true,
-        data: result,
-        responseTimeMs: responseTime
-      });
-
-      logger.debug('Compatibility check completed', {
-        hasToolSpec: !!toolSpecification,
-        hasEndpoint: !!endpoint,
-        responseTime
+        compatibility_report: compatibilityReport,
+        claude_code_sdk_options: {
+          supported: [
+            "model", 
+            "system_prompt", 
+            "max_turns", 
+            "allowed_tools", 
+            "disallowed_tools", 
+            "permission_mode", 
+            "max_thinking_tokens",
+            "continue_conversation", 
+            "resume", 
+            "cwd"
+          ],
+          custom_headers: [
+            "X-Claude-Max-Turns", 
+            "X-Claude-Allowed-Tools", 
+            "X-Claude-Disallowed-Tools", 
+            "X-Claude-Permission-Mode",
+            "X-Claude-Max-Thinking-Tokens"
+          ]
+        }
       });
 
     } catch (error) {
-      const responseTime = Date.now() - startTime;
-      this.handleRouterError(res, error, 'compatibility check', responseTime);
+      logger.error('Compatibility check error:', error);
+      res.status(500).json({
+        error: 'Internal Server Error',
+        message: 'Failed to analyze request compatibility'
+      });
     }
   }
 
@@ -345,44 +378,6 @@ export class DebugRouter implements IDebugRouter {
   }
 
   /**
-   * Handle generic debug request (for test compatibility)
-   */
-  async handleDebugRequest(req: Request, res: Response): Promise<void> {
-    const startTime = Date.now();
-    
-    try {
-      // Generic debug endpoint that accepts various debug request formats
-      const requestData = req.body || {};
-      const queryData = req.query || {};
-      
-      // Simple mock response for test compatibility
-      const responseTime = Date.now() - startTime;
-      
-      res.json({
-        success: true,
-        message: 'Debug request processed successfully',
-        data: {
-          request: requestData,
-          query: queryData,
-          timestamp: new Date().toISOString(),
-          responseTimeMs: responseTime
-        }
-      });
-
-      logger.debug('Generic debug request processed', {
-        method: req.method,
-        hasBody: Object.keys(requestData).length > 0,
-        hasQuery: Object.keys(queryData).length > 0,
-        responseTime
-      });
-
-    } catch (error) {
-      const responseTime = Date.now() - startTime;
-      this.handleRouterError(res, error, 'debug request processing', responseTime);
-    }
-  }
-
-  /**
    * Handle tool call chain validation
    */
   async handleChainValidation(req: Request, res: Response): Promise<void> {
@@ -411,6 +406,80 @@ export class DebugRouter implements IDebugRouter {
     } catch (error) {
       const responseTime = Date.now() - startTime;
       this.handleRouterError(res, error, 'chain validation', responseTime);
+    }
+  }
+
+  /**
+   * Handle generic debug request (for test compatibility)
+   */
+  async handleDebugRequest(req: Request, res: Response): Promise<void> {
+    try {
+      // Get raw request body
+      const body = req.body || {};
+      const rawBody = JSON.stringify(body, null, 2);
+      
+      // Check debug mode from environment  
+      const debugModeEnabled = process.env.DEBUG_MODE === 'true' || process.env.VERBOSE === '1';
+      
+      // Try to validate the request if it looks like a chat completion request
+      let validationResult: any = { valid: false, errors: [] };
+      let jsonParseError = null;
+      
+      try {
+        if (Object.keys(body).length > 0) {
+          // Import schema dynamically to handle mocking in tests
+          const { ChatCompletionRequestSchema } = await import('../models/chat');
+          ChatCompletionRequestSchema.parse(body);
+          validationResult = {
+            valid: true,
+            errors: []
+          };
+        }
+      } catch (error) {
+        validationResult = {
+          valid: false,
+          errors: [String(error)]
+        };
+      }
+      
+      // Return debug info in expected format (matching Python main.py)
+      res.json({
+        debug_info: {
+          headers: req.headers,
+          method: req.method,
+          url: req.url,
+          raw_body: rawBody,
+          json_parse_error: jsonParseError,
+          parsed_body: body,
+          validation_result: validationResult,
+          debug_mode_enabled: debugModeEnabled,
+          example_valid_request: {
+            model: "claude-3-sonnet-20240229",
+            messages: [
+              { role: "user", content: "Hello, world!" }
+            ],
+            stream: false
+          }
+        }
+      });
+
+      logger.debug('Debug request processed', {
+        method: req.method,
+        url: req.url,
+        hasBody: Object.keys(body).length > 0,
+        debugMode: debugModeEnabled
+      });
+
+    } catch (error) {
+      logger.error('Debug request error:', error);
+      res.status(500).json({
+        debug_info: {
+          error: `Debug endpoint error: ${String(error)}`,
+          headers: req.headers,
+          method: req.method,
+          url: req.url
+        }
+      });
     }
   }
 

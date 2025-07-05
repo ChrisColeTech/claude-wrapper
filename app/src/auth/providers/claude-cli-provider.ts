@@ -22,19 +22,52 @@ export class ClaudeCliProvider implements IAutoDetectProvider {
    * Matches Python behavior - assumes CLI is valid by default
    */
   async validate(): Promise<AuthValidationResult> {
-    logger.debug('Claude CLI authentication: assuming valid (matches Python behavior)');
+    logger.debug('Claude CLI authentication: validating CLI installation and auth');
     
-    // Python approach: assume Claude CLI is functional
-    // Let the actual SDK handle authentication during usage
-    return {
-      valid: true,
-      errors: [],
-      config: {
-        method: 'Claude Code CLI authentication',
-        note: 'Using existing Claude Code CLI authentication'
-      },
-      method: AuthMethod.CLAUDE_CLI
-    };
+    try {
+      // Check if Claude CLI is installed
+      const isInstalled = await this.isClaudeCliInstalled();
+      if (!isInstalled) {
+        return {
+          valid: false,
+          errors: ['Claude CLI not found in system PATH'],
+          config: {},
+          method: AuthMethod.CLAUDE_CLI
+        };
+      }
+
+      // Check authentication status
+      const authCheck = await this.checkClaudeCliAuth();
+      if (!authCheck.authenticated) {
+        return {
+          valid: false,
+          errors: [authCheck.error || 'Claude CLI authentication failed'],
+          config: {},
+          method: AuthMethod.CLAUDE_CLI
+        };
+      }
+
+      // If we get here, validation passed
+      return {
+        valid: true,
+        errors: [],
+        config: {
+          method: 'Claude Code CLI authentication',
+          note: 'Using existing Claude Code CLI authentication',
+          userInfo: authCheck.userInfo
+        },
+        method: AuthMethod.CLAUDE_CLI
+      };
+
+    } catch (error) {
+      logger.error('Claude CLI validation error:', error);
+      return {
+        valid: false,
+        errors: [`Claude CLI validation failed: ${error}`],
+        config: {},
+        method: AuthMethod.CLAUDE_CLI
+      };
+    }
   }
 
   /**

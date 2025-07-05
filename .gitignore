@@ -112,3 +112,4 @@ temp/
 .Trashes
 ehthumbs.db
 Thumbs.db
+/app/tests/logs

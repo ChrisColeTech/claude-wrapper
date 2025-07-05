@@ -134,9 +134,9 @@ describe('Debug Endpoints Integration Tests', () => {
         .expect(400);
 
       expect(response.body).toEqual({
-        error: 'Bad Request',
-        message: 'Request body must be a valid ChatCompletionRequest format',
-        details: 'Model field is required'
+        error: 'Invalid Request',
+        message: 'Request validation failed',
+        details: 'Error: Model field is required'
       });
     });
 
@@ -152,8 +152,8 @@ describe('Debug Endpoints Integration Tests', () => {
         .expect(400);
 
       expect(response.body).toMatchObject({
-        error: 'Bad Request',
-        message: 'Request body must be a valid ChatCompletionRequest format'
+        error: 'Invalid Request',
+        message: 'Request validation failed'
       });
     });
 
@@ -293,7 +293,7 @@ describe('Debug Endpoints Integration Tests', () => {
           parsed_body: validRequest,
           validation_result: {
             valid: true,
-            validated_data: mockChatRequest
+            errors: []
           },
           debug_mode_enabled: false,
           example_valid_request: {
@@ -333,12 +333,7 @@ describe('Debug Endpoints Integration Tests', () => {
           parsed_body: invalidRequest,
           validation_result: {
             valid: false,
-            errors: [{
-              field: 'request',
-              message: 'Model cannot be empty and messages array cannot be empty',
-              type: 'validation_error',
-              input: invalidRequest
-            }]
+            errors: ['Model cannot be empty and messages array cannot be empty']
           },
           debug_mode_enabled: false
         }
@@ -458,12 +453,17 @@ describe('Debug Endpoints Integration Tests', () => {
     });
 
     it('should handle different HTTP methods correctly', async () => {
-      // Test GET request to debug endpoint (should work)
+      // Test GET request to debug endpoint (should work since both GET and POST are supported)
       const response = await request(app)
         .get('/v1/debug/request')
-        .expect(404); // Should be 404 since only POST is supported
+        .expect(200);
 
-      expect(response.status).toBe(404);
+      expect(response.body).toMatchObject({
+        debug_info: {
+          method: 'GET',
+          url: '/v1/debug/request'
+        }
+      });
     });
   });
 
@@ -626,7 +626,7 @@ describe('Debug Endpoints Integration Tests', () => {
           parsed_body: pythonDebugRequest,
           validation_result: {
             valid: true,
-            validated_data: mockChatRequest
+            errors: []
           },
           debug_mode_enabled: expect.any(Boolean),
           example_valid_request: {
@@ -657,12 +657,7 @@ describe('Debug Endpoints Integration Tests', () => {
       // Verify error structure matches Python validation error format
       expect(response.body.debug_info.validation_result).toMatchObject({
         valid: false,
-        errors: [{
-          field: 'request',
-          message: 'Model field is required',
-          type: 'validation_error',
-          input: invalidPythonRequest
-        }]
+        errors: ['Model field is required']
       });
     });
   });

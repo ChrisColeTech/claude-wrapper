@@ -40,16 +40,10 @@ jest.mock("../../../src/utils/logger", () => ({
 
 // Mock util.promisify to return our mock exec function
 jest.mock("util", () => ({
-  promisify: jest.fn(() => jest.fn()),
+  promisify: jest.fn(() => mockExecAsync),
 }));
 
 const mockExistsSync = existsSync as jest.MockedFunction<typeof existsSync>;
-
-// Get the mocked promisify function
-import { promisify } from "util";
-const mockPromisify = promisify as jest.MockedFunction<typeof promisify>;
-
-const mockExec = mockExecAsync;
 describe("AuthManager Integration Tests", () => {
   let authManager: AuthManager;
   let originalEnv: NodeJS.ProcessEnv;
@@ -134,15 +128,13 @@ describe("AuthManager Integration Tests", () => {
     });
 
     it("should handle Claude CLI authentication when CLI is available", async () => {
-      // Mock both CLI calls that the provider makes:
-      // 1. Version check: claude --version
-      // 2. Auth check: claude --print "test"
+      // Mock CLI installation check (first command succeeds)
       mockExecAsync
-        .mockResolvedValueOnce({ stdout: "claude 1.0.0", stderr: "" }) // Version check
+        .mockResolvedValueOnce({ stdout: "claude 1.0.0", stderr: "" }) // Version check: claude --version
         .mockResolvedValueOnce({
           stdout: "Hello! Here is the response.\n",
           stderr: "",
-        }); // Auth check with valid output
+        }); // Auth check: claude --print "test"
 
       const result = await authManager.detectAuthMethod();
 

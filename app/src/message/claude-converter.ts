@@ -102,16 +102,25 @@ export class ClaudeConverter implements IOpenAIToClaudeConverter {
     for (let i = 0; i < messages.length; i++) {
       const message = messages[i];
       
-      if (!message.role || !message.content) {
+      if (!message.role || (!message.content && message.content !== '')) {
         throw new MessageValidationError(
           `Message at index ${i} missing required fields: role or content`
         );
       }
 
-      if (!Object.values(MESSAGE_ROLES).includes(message.role as any)) {
+      // Check if role is a known OpenAI role (even if we don't support it in conversion)
+      const validOpenAIRoles = ['system', 'user', 'assistant', 'tool', 'function'];
+      if (!validOpenAIRoles.includes(message.role)) {
         throw new MessageValidationError(
           `Message at index ${i} has invalid role: ${message.role}`
         );
+      }
+
+      // For supported roles, validate content length
+      const isSupportedRole = Object.values(MESSAGE_ROLES).includes(message.role as any);
+      if (!isSupportedRole) {
+        // Skip content validation for unsupported roles - they'll be filtered during conversion
+        continue;
       }
 
       const content = MessageValidation.extractText(message);

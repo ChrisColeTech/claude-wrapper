@@ -94,7 +94,9 @@ describe('Sessions Router Unit Tests', () => {
         defaultTtlHours: 1,
         maxSessionsPerUser: 100,
         maxMessagesPerSession: 1000,
-        enableAutoCleanup: true
+        enableAutoCleanup: true,
+        enableToolStateTracking: true,
+        toolStateCleanupIntervalMinutes: 15
       };
 
       mockSessionService.getSessionStats.mockReturnValue(mockStats);
@@ -141,7 +143,9 @@ describe('Sessions Router Unit Tests', () => {
         defaultTtlHours: 1,
         maxSessionsPerUser: 100,
         maxMessagesPerSession: 1000,
-        enableAutoCleanup: true
+        enableAutoCleanup: true,
+        enableToolStateTracking: true,
+        toolStateCleanupIntervalMinutes: 15
       };
 
       mockSessionService.getSessionStats.mockReturnValue(mockEmptyStats);
@@ -519,7 +523,9 @@ describe('Sessions Router Unit Tests', () => {
         defaultTtlHours: 1,
         maxSessionsPerUser: 100,
         maxMessagesPerSession: 1000,
-        enableAutoCleanup: true
+        enableAutoCleanup: true,
+        enableToolStateTracking: true,
+        toolStateCleanupIntervalMinutes: 15
       });
 
       mockSessionService.listSessions.mockReturnValue({

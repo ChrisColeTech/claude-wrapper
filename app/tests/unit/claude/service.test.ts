@@ -244,7 +244,8 @@ describe('Phase 6A: Claude Service Tests', () => {
     });
 
     it('should handle SDK errors', async () => {
-      mockSDKClient.runCompletion.mockRejectedValue(new ClaudeClientError('SDK failed'));
+      const error = new ClaudeClientError('SDK failed');
+      (mockSDKClient.runCompletion as any).mockRejectedValue(error);
 
       await expect(service.createCompletion(testMessages)).rejects.toThrow(ClaudeClientError);
     });

@@ -111,7 +111,7 @@ export const ChoiceSchema = z.object({
     content: z.string().optional(),
     tool_calls: z.array(OpenAIToolCallSchema).optional()
   }).optional(),
-  finish_reason: z.enum(["stop", "length", "content_filter", "tool_calls"]).nullable()
+  finish_reason: z.enum(["stop", "length", "content_filter", "tool_calls"]).optional()
 });
 
 export type Choice = z.infer<typeof ChoiceSchema>;

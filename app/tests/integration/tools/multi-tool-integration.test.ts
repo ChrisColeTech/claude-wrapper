@@ -639,8 +639,8 @@ describe('Multi-Tool Integration', () => {
     it('should handle tool choice constraints properly', async () => {
       // Test that the system respects OpenAI tool choice patterns
       const constrainedRequest: MultiToolCallRequest = {
-        tools: sampleTools.slice(0, 2), // Limit available tools
-        toolCalls: sampleToolCalls.slice(0, 2),
+        tools: sampleTools.slice(0, 2), // Limit available tools: read_file, write_file
+        toolCalls: [sampleToolCalls[1], sampleToolCalls[3]], // Use matching tool calls: read_file, write_file
         sessionId: 'constrained-session-001'
       };
 

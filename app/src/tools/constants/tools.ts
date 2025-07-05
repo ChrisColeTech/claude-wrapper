@@ -146,7 +146,7 @@ export const CLAUDE_TOOL_CONFIG = {
     allowed_tools: [] as string[],
     disallowed_tools: CLAUDE_CODE_TOOLS.slice(),
     permission_mode: "default" as PermissionMode,
-    max_turns: 1,
+    max_turns: 10,
   },
   CATEGORIES: {
     SEARCH: ["Task", "Glob", "Grep", "WebSearch"],

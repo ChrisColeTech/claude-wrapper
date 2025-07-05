@@ -226,7 +226,7 @@ describe('Chat Completion Models', () => {
       
       const result = ChoiceSchema.parse(choice);
       expect(result.index).toBe(0);
-      expect(result.message.content).toBe("Hello there!");
+      expect(result.message?.content).toBe("Hello there!");
       expect(result.finish_reason).toBe("stop");
     });
 
@@ -405,7 +405,7 @@ describe('Chat Completion Models', () => {
         
         expect(response.model).toBe("claude-3-5-sonnet-20241022");
         expect(response.choices).toHaveLength(1);
-        expect(response.choices[0].message.content).toBe("Hello there!");
+        expect(response.choices[0]?.message?.content).toBe("Hello there!");
         expect(response.choices[0].finish_reason).toBe("stop");
         expect(response.object).toBe("chat.completion");
       });
@@ -525,7 +525,7 @@ describe('Chat Completion Models', () => {
       
       // Validate response
       const validatedResponse = ChatCompletionUtils.validateResponse(response);
-      expect(validatedResponse.choices[0].message.content).toBe("I'm doing well, thank you for asking!");
+      expect(validatedResponse.choices[0]?.message?.content).toBe("I'm doing well, thank you for asking!");
       expect(validatedResponse.usage!.total_tokens).toBe(60);
     });
   });
