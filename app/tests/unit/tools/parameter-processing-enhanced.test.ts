@@ -19,34 +19,44 @@ describe('Enhanced Parameter Processing - Phase 2B', () => {
   let toolExtractor: IToolExtractor;
   let toolChoiceValidator: IToolChoiceValidator;
   let processor: IToolProcessor;
-  let mockChoiceProcessor: any;
+  let mockChoiceProcessor: jest.Mocked<any>;
 
   beforeEach(() => {
     toolValidator = new ToolValidator();
     toolExtractor = new ToolParameterExtractor();
     toolChoiceValidator = new ToolChoiceValidator();
+    // Use the same pattern as processor.test.ts which works
     mockChoiceProcessor = {
-      processChoice: jest.fn().mockResolvedValue({ 
-        success: true, 
-        processedChoice: { 
-          type: 'auto', 
-          behavior: { 
-            allowsClaudeDecision: true, 
-            forcesTextOnly: false, 
-            forcesSpecificFunction: false, 
-            description: 'auto choice' 
-          }, 
-          originalChoice: 'auto' 
-        }, 
-        errors: [] 
-      }),
-      validateChoiceAgainstTools: jest.fn().mockReturnValue([]),
-      createChoiceContext: jest.fn().mockReturnValue({}),
-      processChoiceWithContext: jest.fn().mockResolvedValue({ 
-        success: true, 
-        errors: [] 
-      })
+      processChoice: jest.fn(),
+      validateAndProcess: jest.fn(), 
+      convertToClaudeFormat: jest.fn(),
+      createProcessingContext: jest.fn()
     };
+    
+    // Setup mock return values
+    mockChoiceProcessor.processChoice.mockResolvedValue({ 
+      success: true, 
+      processedChoice: { type: 'auto' },
+      claudeFormat: { mode: 'auto' },
+      errors: [] 
+    });
+    mockChoiceProcessor.validateAndProcess.mockResolvedValue({ 
+      success: true, 
+      errors: [] 
+    });
+    mockChoiceProcessor.convertToClaudeFormat.mockReturnValue({
+      mode: 'auto',
+      allowTools: true
+    });
+    mockChoiceProcessor.createProcessingContext.mockReturnValue({
+      hasChoice: true,
+      choiceType: 'auto',
+      allowsTools: true,
+      forcesTextOnly: false,
+      forcesSpecificFunction: false,
+      claudeFormat: { mode: 'auto', allowTools: true },
+      processingTimeMs: 0
+    });
     processor = new ToolParameterProcessor(toolValidator, toolExtractor, toolChoiceValidator, mockChoiceProcessor);
   });
 
