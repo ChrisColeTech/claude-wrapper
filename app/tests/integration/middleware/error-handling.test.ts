@@ -163,7 +163,7 @@ describe('Error Handling Integration', () => {
           req.requestId
         );
 
-        res.status(401).json(errorResponse);
+        return res.status(401).json(errorResponse);
       });
 
       const response = await request(app)
@@ -193,7 +193,7 @@ describe('Error Handling Integration', () => {
           req.requestId
         );
 
-        res.status(429).json(errorResponse);
+        return res.status(429).json(errorResponse);
       });
 
       const response = await request(app)
@@ -221,7 +221,7 @@ describe('Error Handling Integration', () => {
           req.requestId
         );
 
-        res.status(503).json(errorResponse);
+        return res.status(503).json(errorResponse);
       });
 
       const response = await request(app)
@@ -305,7 +305,7 @@ describe('Error Handling Integration', () => {
           req.requestId
         );
 
-        res.status(500).json(errorResponse);
+        return res.status(500).json(errorResponse);
       });
 
       const response = await request(app)
@@ -407,7 +407,7 @@ describe('Error Handling Integration', () => {
           req.requestId
         );
 
-        res.status(classification.httpStatusCode).json(errorResponse);
+        return res.status(classification.httpStatusCode).json(errorResponse);
       });
 
       // Generate different types of errors
@@ -545,7 +545,7 @@ describe('Error Handling Integration', () => {
           req.requestId
         );
 
-        res.status(400).json(errorResponse);
+        return res.status(400).json(errorResponse);
       });
 
       const sensitivePayload = {
@@ -592,7 +592,7 @@ describe('Error Handling Integration', () => {
           req.requestId
         );
 
-        res.status(500).json(errorResponse);
+        return res.status(500).json(errorResponse);
       });
 
       // Test debug mode
@@ -638,7 +638,7 @@ describe('Error Handling Integration', () => {
             req.requestId
           );
           
-          res.status(500).json(fallbackResponse);
+          return res.status(500).json(fallbackResponse);
         }
       });
 
@@ -671,7 +671,7 @@ describe('Error Handling Integration', () => {
             req.requestId
           );
 
-          res.status(400).json(errorResponse);
+          return res.status(400).json(errorResponse);
         }
       });
 
@@ -747,7 +747,7 @@ describe('Error Handling Integration', () => {
             total_time_ms: performance.now() - startTime
           };
 
-          res.status(500).json(response);
+          return res.status(500).json(response);
         }
       });
 
@@ -790,7 +790,7 @@ describe('Error Handling Integration', () => {
             req.requestId
           );
 
-          res.status(400).json(errorResponse);
+          return res.status(400).json(errorResponse);
         } catch (error) {
           const classification = errorClassifier.classifyError(
             error as Error,
@@ -803,7 +803,7 @@ describe('Error Handling Integration', () => {
             req.requestId
           );
 
-          res.status(500).json(response);
+          return res.status(500).json(response);
         }
       });
 
@@ -881,7 +881,7 @@ describe('Error Handling Integration', () => {
             classification,
             req.requestId
           );
-          res.status(500).json(response);
+          return res.status(500).json(response);
         }
       });
 
@@ -950,7 +950,7 @@ describe('Error Handling Integration', () => {
             return res.status(400).json(errorResponse);
           }
 
-          res.json({ success: true, requestId: req.requestId });
+          return res.json({ success: true, requestId: req.requestId });
         } catch (error) {
           const classification = errorClassifier.classifyError(error as Error);
           const response = ErrorResponseFactory.createFromClassification(
@@ -958,7 +958,7 @@ describe('Error Handling Integration', () => {
             classification,
             req.requestId
           );
-          res.status(500).json(response);
+          return res.status(500).json(response);
         }
       });
 
@@ -1022,10 +1022,10 @@ describe('Error Handling Integration', () => {
               classification,
               req.requestId
             );
-            res.status(500).json(response);
+            return res.status(500).json(response);
           } catch (fallbackError) {
             // Ultimate fallback
-            res.status(500).json({
+            return res.status(500).json({
               error: {
                 type: 'api_error',
                 message: 'Internal server error',
