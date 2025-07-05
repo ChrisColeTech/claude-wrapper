@@ -183,6 +183,10 @@ claude-wrapper
 claude-wrapper
 ```
 
+## 📚 Documentation
+
+📖 **[Full Documentation](docs/README.md)** - Comprehensive guide with detailed examples, production deployment, troubleshooting, and advanced configuration.
+
 ## 📄 License
 
 MIT License - see [LICENSE](LICENSE) file for details.
