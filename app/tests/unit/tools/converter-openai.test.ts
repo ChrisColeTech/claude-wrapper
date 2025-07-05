@@ -71,7 +71,7 @@ describe('OpenAIConverter', () => {
           }
         }
       ]);
-      expect(result.conversionDetails?.conversionTimeMs).toBeGreaterThan(0);
+      expect(result.conversionTimeMs).toBeGreaterThan(0);
     });
 
     it('should handle tools without parameters', () => {
@@ -388,10 +388,10 @@ describe('OpenAIConverter', () => {
       const result = openaiConverter.toClaudeFormat(tools);
       
       ConversionTestAssertions.expectSuccessfulConversion(result);
-      expect(result.conversionDetails?.conversionTimeMs).toBeGreaterThanOrEqual(0);
-      expect(result.conversionDetails?.sourceFormat).toBe('openai');
-      expect(result.conversionDetails?.targetFormat).toBe('claude');
-      expect(result.conversionDetails?.toolsConverted).toBe(1);
+      expect(result.conversionTimeMs).toBeGreaterThanOrEqual(0);
+      expect(result.sourceFormat).toBe('openai');
+      expect(result.targetFormat).toBe('claude');
+      expect(result.toolsConverted).toBe(1);
     });
 
     it('should handle mapper failures gracefully', () => {

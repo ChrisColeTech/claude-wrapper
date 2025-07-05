@@ -19,12 +19,19 @@ describe('Enhanced Parameter Processing - Phase 2B', () => {
   let toolExtractor: IToolExtractor;
   let toolChoiceValidator: IToolChoiceValidator;
   let processor: IToolProcessor;
+  let mockChoiceProcessor: any;
 
   beforeEach(() => {
     toolValidator = new ToolValidator();
     toolExtractor = new ToolParameterExtractor();
     toolChoiceValidator = new ToolChoiceValidator();
-    processor = new ToolParameterProcessor(toolValidator, toolExtractor, toolChoiceValidator);
+    mockChoiceProcessor = {
+      processChoice: jest.fn().mockResolvedValue({ valid: true, choice: 'auto' }),
+      validateChoiceAgainstTools: jest.fn().mockReturnValue([]),
+      createChoiceContext: jest.fn().mockReturnValue({}),
+      processChoiceWithContext: jest.fn().mockResolvedValue({ valid: true })
+    };
+    processor = new ToolParameterProcessor(toolValidator, toolExtractor, toolChoiceValidator, mockChoiceProcessor);
   });
 
   describe('Complete Parameter Processing Pipeline', () => {

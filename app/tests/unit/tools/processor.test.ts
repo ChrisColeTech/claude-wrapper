@@ -54,12 +54,27 @@ describe('ToolParameterProcessor', () => {
   let mockValidator: MockToolValidator;
   let mockExtractor: MockToolExtractor;
   let mockChoiceValidator: MockToolChoiceValidator;
+  let mockChoiceProcessor: any;
 
   beforeEach(() => {
     mockValidator = new MockToolValidator();
     mockExtractor = new MockToolExtractor();
     mockChoiceValidator = new MockToolChoiceValidator();
-    processor = new ToolParameterProcessor(mockValidator, mockExtractor, mockChoiceValidator);
+    mockChoiceProcessor = {
+      processChoice: jest.fn().mockResolvedValue({ 
+        success: true, 
+        processedChoice: { type: 'auto' },
+        claudeFormat: { mode: 'auto' },
+        errors: [] 
+      }),
+      validateChoiceAgainstTools: jest.fn().mockReturnValue([]),
+      createChoiceContext: jest.fn().mockReturnValue({}),
+      processChoiceWithContext: jest.fn().mockResolvedValue({ 
+        success: true, 
+        errors: [] 
+      })
+    };
+    processor = new ToolParameterProcessor(mockValidator, mockExtractor, mockChoiceValidator, mockChoiceProcessor);
   });
 
   describe('processRequest', () => {
@@ -580,7 +595,8 @@ describe('ToolParameterProcessor', () => {
       const createdProcessor = ToolProcessorFactory.create(
         mockValidator,
         mockExtractor,
-        mockChoiceValidator
+        mockChoiceValidator,
+        mockChoiceProcessor
       );
 
       expect(createdProcessor).toBeInstanceOf(ToolParameterProcessor);

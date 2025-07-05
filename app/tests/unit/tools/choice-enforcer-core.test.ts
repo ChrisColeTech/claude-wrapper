@@ -201,7 +201,7 @@ describe('ToolChoiceEnforcer Core Enforcement', () => {
 
         // Mock enforcement to be slow
         const slowEnforcer = new (class extends ToolChoiceEnforcer {
-          validateResponseAgainstChoice() {
+          validateResponseAgainstChoice(context: any, response: any) {
             // Simulate slow processing
             const start = Date.now();
             while (Date.now() - start < 10) {
@@ -241,7 +241,7 @@ describe('ToolChoiceEnforcer Core Enforcement', () => {
 
         // Create enforcer that throws error during validation
         const errorEnforcer = new (class extends ToolChoiceEnforcer {
-          validateResponseAgainstChoice() {
+          validateResponseAgainstChoice(context: any, response: any) {
             throw new Error('Validation error');
           }
         })();

@@ -36,10 +36,10 @@ const mockLogger = {
 
 const mockCreateToolRegistry = jest.fn();
 const mockToolRegistry = {
-  getAll: jest.fn(),
-  get: jest.fn(),
-  register: jest.fn(),
-  validateToolSpecification: jest.fn()
+  getAll: jest.fn() as jest.MockedFunction<any>,
+  get: jest.fn() as jest.MockedFunction<any>,
+  register: jest.fn() as jest.MockedFunction<any>,
+  validateToolSpecification: jest.fn() as jest.MockedFunction<any>
 };
 
 describe('CompatibilityChecker', () => {
