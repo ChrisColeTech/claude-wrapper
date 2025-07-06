@@ -286,4 +286,87 @@ export class ToolManager implements IToolManager {
       errors
     };
   }
+
+  // Phase 4: Enhanced execution methods
+  async executeToolCalls(request: ToolExecutionRequest): Promise<ToolExecutionCoordinationResult> {
+    const startTime = performance.now();
+    const executedTools: ToolExecutionResult[] = [];
+    const failedTools: ToolExecutionResult[] = [];
+    const errors: string[] = [];
+
+    try {
+      for (const toolCall of request.toolCalls) {
+        const result = await this.executor.execute(toolCall.function.name, toolCall.function.arguments);
+        
+        if (result.success) {
+          executedTools.push(result);
+          this.executionStats.successfulExecutions++;
+        } else {
+          failedTools.push(result);
+          this.executionStats.failedExecutions++;
+          if (result.error) errors.push(result.error);
+        }
+        
+        this.executionStats.totalExecuted++;
+        this.executionStats.totalExecutionTime += result.executionTimeMs;
+      }
+
+      return {
+        success: failedTools.length === 0,
+        executedTools,
+        failedTools,
+        totalExecutionTimeMs: performance.now() - startTime,
+        errors
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      errors.push(errorMessage);
+      
+      return {
+        success: false,
+        executedTools,
+        failedTools,
+        totalExecutionTimeMs: performance.now() - startTime,
+        errors
+      };
+    }
+  }
+
+  async registerCustomTool(toolFunction: ToolFunction): Promise<boolean> {
+    return this.executor.registerTool(toolFunction);
+  }
+
+  async unregisterCustomTool(name: string): Promise<boolean> {
+    return this.executor.unregisterTool(name);
+  }
+
+  async getAvailableTools(): Promise<string[]> {
+    return this.executor.getAvailableTools();
+  }
+
+  isToolExecutionEnabled(toolName: string): boolean {
+    // Check if tool is in enabled tools list
+    return CLAUDE_CODE_TOOLS.includes(toolName as ClaudeCodeTool);
+  }
+
+  async initializeToolRegistry(): Promise<void> {
+    // Initialize tool registry if needed
+    logger.debug('Tool registry initialized');
+  }
+
+  async shutdownToolRegistry(): Promise<void> {
+    // Cleanup tool registry if needed
+    logger.debug('Tool registry shutdown');
+  }
+
+  getToolExecutionStats() {
+    const { totalExecuted, successfulExecutions, failedExecutions, totalExecutionTime } = this.executionStats;
+    
+    return {
+      totalExecuted,
+      successfulExecutions,
+      failedExecutions,
+      averageExecutionTime: totalExecuted > 0 ? totalExecutionTime / totalExecuted : 0
+    };
+  }
 }

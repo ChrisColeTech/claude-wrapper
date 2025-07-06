@@ -121,8 +121,8 @@ export class ProductionMonitoring extends EventEmitter implements IMonitoring {
   private toolMetrics: ToolOperationMetric[];
   private performanceMetrics: PerformanceMetric[];
   private alerts: Map<string, AlertState>;
-  private healthCheckInterval: NodeJS.Timeout;
-  private cleanupInterval: NodeJS.Timeout;
+  private healthCheckInterval: NodeJS.Timeout | undefined;
+  private cleanupInterval: NodeJS.Timeout | undefined;
   private metricsRetentionMs: number;
 
   constructor(
