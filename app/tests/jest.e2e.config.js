@@ -1,4 +1,8 @@
-// E2E test configuration
+/**
+ * End-to-End Test Configuration
+ * Complete workflow testing with real system components
+ */
+
 module.exports = {
   displayName: "E2E Tests",
   preset: "ts-jest",
@@ -7,12 +11,7 @@ module.exports = {
   setupFilesAfterEnv: ["<rootDir>/setup.ts"],
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/../src/$1",
-    "^@models/(.*)$": "<rootDir>/../src/models/$1",
-    "^@auth/(.*)$": "<rootDir>/../src/auth/$1",
-    "^@message/(.*)$": "<rootDir>/../src/message/$1",
-    "^@session/(.*)$": "<rootDir>/../src/session/$1",
-    "^@claude/(.*)$": "<rootDir>/../src/claude/$1",
-    "^@tools/(.*)$": "<rootDir>/../src/tools/$1",
-    "^@utils/(.*)$": "<rootDir>/../src/utils/$1",
   },
+  // testTimeout: 60000, // Set in setup.ts
+  maxWorkers: 1,
 };

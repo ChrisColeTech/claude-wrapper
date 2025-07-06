@@ -1,45 +1,41 @@
-name: CI Summary
+name: CI
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
-  # Wait for all test workflows to complete
-  unit-core:
-    uses: ./.github/workflows/ci-unit-core.yml
-    
-  unit-claude:
-    uses: ./.github/workflows/ci-unit-claude.yml
-    
-  unit-tools:
-    uses: ./.github/workflows/ci-unit-tools.yml
-    
-  integration:
-    uses: ./.github/workflows/ci-integration.yml
-    
-  # Summary job that depends on all tests
-  build-success:
-    needs: [unit-core, unit-claude, unit-tools, integration]
+  test:
     runs-on: ubuntu-latest
-    if: success()
+    
+    strategy:
+      matrix:
+        node-version: [20.x]
     
     steps:
-    - name: All Tests Passed
-      run: |
-        echo "🎉 All CI checks passed!"
-        echo "✅ Core unit tests passed"
-        echo "✅ Claude service tests passed"
-        echo "✅ Tools tests passed"
-        echo "✅ Integration tests passed"
-        echo "✅ TypeScript compilation successful"
-        echo "✅ Linting passed with no errors"
-        echo "✅ Type checking passed"
-        echo "✅ CLI tool fully functional"
-        echo "✅ Server startup and health check passed"
-        echo "✅ Production readiness verified"
-        echo "✅ Security audit passed"
-        echo ""
-        echo "🚀 Application is PRODUCTION READY!"
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          
+      - name: Install dependencies
+        run: npm install
+        
+      - name: Run linting
+        run: npm run lint
+        
+      - name: Run type checking
+        run: npm run type-check
+        
+      - name: Build application
+        run: npm run build
+        
+      - name: Run tests
+        run: npm test
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"

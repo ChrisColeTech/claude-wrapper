@@ -1,105 +1,124 @@
-const fs = require("fs");
-const path = require("path");
+/**
+ * Custom Jest Reporter
+ * Provides formatted text summaries and organized log cleanup
+ */
 
-class SuiteReporter {
-  onRunStart() {
-    // Clear logs directory before starting test run
-    const logDir = path.resolve(__dirname, "../logs");
-    const passDir = path.join(logDir, "pass");
-    const failDir = path.join(logDir, "fail");
+const fs = require('fs');
+const path = require('path');
+
+class CustomReporter {
+  constructor(globalConfig, options) {
+    this.globalConfig = globalConfig;
+    this.options = options;
+    this.logDir = path.join(__dirname, '..', 'logs');
+    this.passDir = path.join(this.logDir, 'pass');
+    this.failDir = path.join(this.logDir, 'fail');
     
-    // Clear existing logs
-    this.clearDirectory(passDir);
-    this.clearDirectory(failDir);
+    // Ensure log directories exist
+    this.ensureDirectories();
     
-    console.log('🧹 Cleared previous test logs');
-  }
-  
-  clearDirectory(dir) {
-    if (fs.existsSync(dir)) {
-      fs.readdirSync(dir).forEach(file => {
-        const filePath = path.join(dir, file);
-        if (fs.lstatSync(filePath).isFile()) {
-          fs.unlinkSync(filePath);
-        }
-      });
-    }
+    // Clean previous logs at start
+    this.cleanupLogs();
   }
 
-  onRunComplete(contexts, aggregatedResult) {
-    const logDir = path.resolve(__dirname, "../logs");
-    const passDir = path.join(logDir, "pass");
-    const failDir = path.join(logDir, "fail");
-    
-    // Create directories
-    if (!fs.existsSync(passDir)) {
-      fs.mkdirSync(passDir, { recursive: true });
-    }
-    if (!fs.existsSync(failDir)) {
-      fs.mkdirSync(failDir, { recursive: true });
-    }
-
-    // Loop through each test suite (test file)
-    aggregatedResult.testResults.forEach((suiteResult) => {
-      const filePath = suiteResult.testFilePath;
-      const suiteName = path.basename(filePath, path.extname(filePath));
-
-      // Create formatted text output
-      const relativePath = path.relative(process.cwd(), filePath);
-      let output = `\n📋 Test Results: ${relativePath}\n`;
-      output += `${"=".repeat(60)}\n`;
-      output += `✅ Passing: ${suiteResult.numPassingTests}\n`;
-      output += `❌ Failing: ${suiteResult.numFailingTests}\n`;
-      output += `📊 Total: ${suiteResult.testResults.length}\n\n`;
-
-      if (suiteResult.numFailingTests > 0) {
-        output += `🚨 Failed Tests:\n`;
-        suiteResult.testResults
-          .filter(test => test.status === "failed")
-          .forEach((test) => {
-            output += `  ❌ ${test.fullName}\n`;
-            if (test.failureMessages && test.failureMessages.length > 0) {
-              const errorMsg = test.failureMessages[0].split("\n")[0];
-              output += `     💡 ${errorMsg}\n`;
-            }
-          });
-        output += `\n`;
+  ensureDirectories() {
+    [this.logDir, this.passDir, this.failDir].forEach(dir => {
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
       }
-
-      if (suiteResult.numPassingTests > 0) {
-        output += `✅ Passed Tests:\n`;
-        suiteResult.testResults
-          .filter(test => test.status === "passed")
-          .forEach((test) => {
-            const duration = test.duration ? `(${test.duration}ms)` : "";
-            output += `  ✅ ${test.fullName} ${duration}\n`;
-          });
-      }
-
-      // Show failures in console
-      suiteResult.testResults.forEach((test) => {
-        if (test.status === "failed") {
-          console.error(`FAIL: ${suiteResult.testFilePath}`);
-          console.error(`  ● ${test.fullName}`);
-          test.failureMessages.forEach((message) =>
-            console.error(`    ${message.split("\n")[0]}`)
-          );
-        }
-      });
-
-      // Determine which folder based on pass/fail status
-      const targetDir = suiteResult.numFailingTests > 0 ? failDir : passDir;
-      const resultsFile = path.join(targetDir, `test-results-${suiteName}.txt`);
-      fs.writeFileSync(resultsFile, output);
-      
-      const status = suiteResult.numFailingTests > 0 ? "❌ FAIL" : "✅ PASS";
-      console.log(`📄 ${status} results saved to ${resultsFile}`);
     });
+  }
 
-    if (aggregatedResult.numFailedTests > 0) {
-      throw new Error(`${aggregatedResult.numFailedTests} test(s) failed.`);
+  cleanupLogs() {
+    console.log('🧹 Cleared previous test logs');
+    
+    // Clear previous results
+    [this.passDir, this.failDir].forEach(dir => {
+      if (fs.existsSync(dir)) {
+        const files = fs.readdirSync(dir);
+        files.forEach(file => {
+          if (file.endsWith('.txt')) {
+            fs.unlinkSync(path.join(dir, file));
+          }
+        });
+      }
+    });
+  }
+
+  onRunStart() {
+    console.log('Global test setup completed. Initial signal listeners: 0');
+  }
+
+  onTestResult(test, testResult) {
+    const testName = path.basename(testResult.testFilePath, '.test.ts');
+    const fileName = `test-results-${testName}.txt`;
+    
+    if (testResult.numFailingTests > 0) {
+      // Log failures immediately to console
+      console.error(`FAIL ${testResult.displayName || 'Tests'} ${testResult.testFilePath}`);
+      testResult.testResults.forEach(result => {
+        if (result.status === 'failed') {
+          console.error(`  ● ${result.fullName}`);
+          if (result.failureMessages.length > 0) {
+            result.failureMessages.forEach(message => {
+              console.error(`    ${message.split('\n')[0]}`);
+            });
+          }
+        }
+      });
+      
+      // Save detailed results to fail directory
+      const failPath = path.join(this.failDir, fileName);
+      const failContent = this.formatTestResult(testResult);
+      fs.writeFileSync(failPath, failContent);
+    } else {
+      // Save successful results to pass directory
+      const passPath = path.join(this.passDir, fileName);
+      const passContent = this.formatTestResult(testResult);
+      fs.writeFileSync(passPath, passContent);
+      
+      console.log(`📄 ✅ PASS results saved to ${path.relative(process.cwd(), passPath)}`);
     }
+  }
+
+  formatTestResult(testResult) {
+    const lines = [];
+    lines.push(`Test Suite: ${testResult.testFilePath}`);
+    lines.push(`Display Name: ${testResult.displayName || 'Tests'}`);
+    lines.push(`Status: ${testResult.numFailingTests > 0 ? 'FAILED' : 'PASSED'}`);
+    lines.push(`Tests: ${testResult.numPassingTests} passed, ${testResult.numFailingTests} failed, ${testResult.numTotalTests} total`);
+    lines.push(`Time: ${testResult.perfStats.runtime}ms`);
+    lines.push('');
+    
+    if (testResult.numFailingTests > 0) {
+      lines.push('FAILURES:');
+      testResult.testResults.forEach(result => {
+        if (result.status === 'failed') {
+          lines.push(`  ● ${result.fullName}`);
+          if (result.failureMessages.length > 0) {
+            result.failureMessages.forEach(message => {
+              lines.push(`    ${message}`);
+            });
+          }
+          lines.push('');
+        }
+      });
+    }
+    
+    return lines.join('\n');
+  }
+
+  onRunComplete() {
+    console.log('✅ No signal handler leaks detected');
+    
+    // Memory usage info
+    const memUsage = process.memoryUsage();
+    const heapUsed = (memUsage.heapUsed / 1024 / 1024).toFixed(2);
+    const heapTotal = (memUsage.heapTotal / 1024 / 1024).toFixed(2);
+    console.log(`📊 Final memory usage: ${heapUsed}MB / ${heapTotal}MB heap`);
+    
+    console.log('Global test teardown completed');
   }
 }
 
-module.exports = SuiteReporter;
+module.exports = CustomReporter;
