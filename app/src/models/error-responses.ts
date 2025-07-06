@@ -129,7 +129,8 @@ export class ErrorResponseFactory {
   static createFromClassification(
     error: Error,
     classification: ErrorClassification,
-    requestId?: string
+    requestId?: string,
+    correlationId?: string
   ): EnhancedErrorResponse {
     const baseResponse: EnhancedErrorResponse = {
       error: {
@@ -147,7 +148,7 @@ export class ErrorResponseFactory {
           suggestions: classification.clientGuidance,
           documentation_url: this.getDocumentationUrl(classification.category),
           timestamp: new Date().toISOString(),
-          correlation_id: requestId || `corr-${Date.now()}` // Ensure correlation_id is always present
+          correlation_id: correlationId || requestId || `corr-${Date.now()}` // Use correlationId if provided, fallback to requestId
         }
       }
     };
