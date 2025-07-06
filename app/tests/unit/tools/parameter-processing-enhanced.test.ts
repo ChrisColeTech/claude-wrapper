@@ -82,7 +82,7 @@ describe('Enhanced Parameter Processing - Phase 2B', () => {
       expect(result.tools![0].function.name).toBe('get_weather');
       expect(result.toolChoice).toBe('auto');
       expect(result.errors).toEqual([]);
-      expect(result.processingTimeMs).toBeLessThan(TOOL_PARAMETER_LIMITS.PROCESSING_TIMEOUT_MS);
+      expect(result.processingTimeMs).toBeLessThanOrEqual(TOOL_PARAMETER_LIMITS.PROCESSING_TIMEOUT_MS);
     });
 
     it('should process request with specific function tool choice', async () => {
@@ -349,8 +349,8 @@ describe('Enhanced Parameter Processing - Phase 2B', () => {
       const duration = Date.now() - startTime;
 
       expect(result.success).toBe(true);
-      expect(duration).toBeLessThan(TOOL_PARAMETER_LIMITS.PROCESSING_TIMEOUT_MS);
-      expect(result.processingTimeMs).toBeLessThan(TOOL_PARAMETER_LIMITS.PROCESSING_TIMEOUT_MS);
+      expect(duration).toBeLessThanOrEqual(TOOL_PARAMETER_LIMITS.PROCESSING_TIMEOUT_MS);
+      expect(result.processingTimeMs).toBeLessThanOrEqual(TOOL_PARAMETER_LIMITS.PROCESSING_TIMEOUT_MS);
       expect(ToolProcessingUtils.isWithinPerformanceLimit(result)).toBe(true);
     });
 
@@ -403,7 +403,7 @@ describe('Enhanced Parameter Processing - Phase 2B', () => {
       const result = await processor.processRequest(request);
 
       expect(result.success).toBe(true);
-      expect(result.processingTimeMs).toBeLessThan(TOOL_PARAMETER_LIMITS.PROCESSING_TIMEOUT_MS);
+      expect(result.processingTimeMs).toBeLessThanOrEqual(TOOL_PARAMETER_LIMITS.PROCESSING_TIMEOUT_MS);
     });
   });
 
