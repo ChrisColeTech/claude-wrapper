@@ -25,26 +25,16 @@ jobs:
         node-version: ${{ matrix.node-version }}
         
     - name: Install dependencies
-      run: |
-        cd app
-        npm install
+      run: npm install
         
     - name: Run linting
-      run: |
-        cd app
-        npm run lint
+      run: npm run lint
         
     - name: Run type checking
-      run: |
-        cd app
-        npm run type-check
+      run: npm run type-check
         
     - name: Build application
-      run: |
-        cd app
-        npm run build
+      run: npm run build
         
     - name: Run core unit tests
-      run: |
-        cd app
-        NODE_OPTIONS="--max-old-space-size=4096" npx jest --config tests/jest.core.config.js
+      run: NODE_OPTIONS="--max-old-space-size=4096" npx jest --config app/tests/jest.core.config.js

@@ -25,32 +25,25 @@ jobs:
         node-version: ${{ matrix.node-version }}
         
     - name: Install dependencies
-      run: |
-        cd app
-        npm install
+      run: npm install
         
     - name: Run integration tests
-      run: |
-        cd app
-        NODE_OPTIONS="--max-old-space-size=4096" npx jest --config tests/jest.integration.config.js --runInBand --forceExit
+      run: NODE_OPTIONS="--max-old-space-size=4096" npx jest --config app/tests/jest.integration.config.js --runInBand --forceExit
         
     - name: Test CLI functionality
       run: |
-        cd app
-        node dist/cli.js --help
-        node dist/cli.js --version
-        timeout 3s node dist/cli.js --port 8001 || echo "CLI started successfully"
+        node app/dist/src/cli.js --help
+        node app/dist/src/cli.js --version
+        timeout 3s node app/dist/src/cli.js --port 8001 || echo "CLI started successfully"
         
     - name: Production readiness check
       run: |
-        cd app
         echo "🔍 Running production readiness checks..."
         
         # Check if all required files exist
         echo "📁 Checking essential files..."
-        test -f dist/cli.js || { echo "❌ CLI entry point missing"; exit 1; }
-        test -f dist/index.js || { echo "❌ Server entry point missing"; exit 1; }
-        test -f dist/server.js || { echo "❌ Server module missing"; exit 1; }
+        test -f app/dist/src/cli.js || { echo "❌ CLI entry point missing"; exit 1; }
+        test -f app/dist/src/index.js || { echo "❌ Server entry point missing"; exit 1; }
         test -f package.json || { echo "❌ package.json missing"; exit 1; }
         
         # Check package.json has required fields
@@ -64,12 +57,12 @@ jobs:
         
         # Test CLI can be executed
         echo "🖥️ Testing CLI execution..."
-        node dist/cli.js --help > /dev/null || { echo "❌ CLI help failed"; exit 1; }
+        node app/dist/src/cli.js --help > /dev/null || { echo "❌ CLI help failed"; exit 1; }
         
         # Test server starts and responds
         echo "🌐 Testing server startup..."
         timeout 10s bash -c '
-        node dist/cli.js --port 8002 &
+        node app/dist/src/cli.js --port 8002 &
         SERVER_PID=$!
         sleep 3
         curl -f http://localhost:8002/health || { echo "❌ Health check failed"; kill $SERVER_PID 2>/dev/null; exit 1; }
