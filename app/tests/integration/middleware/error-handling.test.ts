@@ -75,7 +75,7 @@ describe('Error Handling Integration', () => {
       // Setup endpoint with validation
       app.post('/api/chat/completions', async (req, res) => {
         try {
-          const validationReport = await validationHandler.validateRequest(
+          const validationReport = await getValidationHandler().validateRequest(
             req.body,
             'chat_completion',
             {
@@ -147,7 +147,7 @@ describe('Error Handling Integration', () => {
     it('should handle authentication errors with proper classification', async () => {
       app.post('/api/protected', (req, res) => {
         const authError = new Error('Invalid authentication token');
-        const classification = errorClassifier.classifyError(authError, {
+        const classification = getErrorClassifier().classifyError(authError, {
           endpoint: req.path,
           requestId: req.requestId
         });
@@ -176,7 +176,7 @@ describe('Error Handling Integration', () => {
     it('should handle rate limit errors with retry information', async () => {
       app.post('/api/rate-limited', (req, res) => {
         const rateLimitError = new Error('Rate limit exceeded');
-        const classification = errorClassifier.classifyError(rateLimitError, {
+        const classification = getErrorClassifier().classifyError(rateLimitError, {
           endpoint: req.path,
           requestId: req.requestId,
           retryCount: 2
@@ -206,7 +206,7 @@ describe('Error Handling Integration', () => {
     it('should handle server errors with operational details', async () => {
       app.post('/api/server-error', (req, res) => {
         const serverError = new Error('Internal server error ENOENT');
-        const classification = errorClassifier.classifyError(serverError, {
+        const classification = getErrorClassifier().classifyError(serverError, {
           endpoint: req.path,
           requestId: req.requestId
         });
@@ -243,7 +243,7 @@ describe('Error Handling Integration', () => {
         const error = new Error('Test error for tracking');
         requestIdManager.markRequestError(req.requestId!, error);
 
-        const classification = errorClassifier.classifyError(error, {
+        const classification = getErrorClassifier().classifyError(error, {
           requestId: req.requestId,
           endpoint: req.path
         });
@@ -290,7 +290,7 @@ describe('Error Handling Integration', () => {
 
       app.post('/api/correlated', (req, res) => {
         const error = new Error('Correlated error');
-        const classification = errorClassifier.classifyError(error, {
+        const classification = getErrorClassifier().classifyError(error, {
           requestId: req.requestId,
           correlationId: req.get('X-Correlation-ID')
         });
@@ -317,7 +317,7 @@ describe('Error Handling Integration', () => {
   describe('Performance and Load Integration', () => {
     it('should maintain performance under concurrent error processing', async () => {
       app.post('/api/concurrent-errors', async (req, res) => {
-        const validationReport = await validationHandler.validateRequest(
+        const validationReport = await getValidationHandler().validateRequest(
           req.body,
           'chat_completion',
           {
@@ -392,7 +392,7 @@ describe('Error Handling Integration', () => {
             error = new Error('Unknown error');
         }
 
-        const classification = errorClassifier.classifyError(error, {
+        const classification = getErrorClassifier().classifyError(error, {
           requestId: req.requestId,
           endpoint: req.path
         });
@@ -412,7 +412,7 @@ describe('Error Handling Integration', () => {
       await request(app).post('/api/stats-test').send({ errorType: 'auth' });
       await request(app).post('/api/stats-test').send({ errorType: 'rate_limit' });
 
-      const stats = errorClassifier.getStatistics();
+      const stats = getErrorClassifier().getStatistics();
       
       expect(stats.totalErrors).toBe(4);
       expect(stats.errorsByCategory['validation_error']).toBe(2);
@@ -426,7 +426,7 @@ describe('Error Handling Integration', () => {
   describe('Error Response Standardization', () => {
     it('should maintain OpenAI-compatible response format', async () => {
       app.post('/api/openai-compat', async (req, res) => {
-        const validationReport = await validationHandler.validateRequest(
+        const validationReport = await getValidationHandler().validateRequest(
           req.body,
           'chat_completion',
           {
@@ -526,7 +526,7 @@ describe('Error Handling Integration', () => {
   describe('Sensitive Data Handling', () => {
     it('should sanitize sensitive information in error responses', async () => {
       app.post('/api/sensitive', async (req, res) => {
-        const validationReport = await validationHandler.validateRequest(
+        const validationReport = await getValidationHandler().validateRequest(
           req.body,
           'chat_completion',
           {
@@ -577,7 +577,7 @@ describe('Error Handling Integration', () => {
 
       app.post('/api/debug-test', (req, res) => {
         const error = new Error('Test error with sensitive info');
-        const classification = errorClassifier.classifyError(error, {
+        const classification = getErrorClassifier().classifyError(error, {
           requestId: req.requestId,
           sensitiveData: 'should_not_appear_in_prod'
         });
@@ -593,7 +593,7 @@ describe('Error Handling Integration', () => {
 
       // Test debug mode
       mockConfig.config.DEBUG_MODE = true;
-      const debugHandler = new ErrorClassifier();
+      const debugHandler = getErrorClassifier();
       
       const debugResponse = await request(app)
         .post('/api/debug-test')
@@ -603,7 +603,7 @@ describe('Error Handling Integration', () => {
 
       // Test production mode
       mockConfig.config.DEBUG_MODE = false;
-      const prodHandler = new ErrorClassifier();
+      const prodHandler = getErrorClassifier();
       
       const prodResponse = await request(app)
         .post('/api/debug-test')
@@ -657,7 +657,7 @@ describe('Error Handling Integration', () => {
           JSON.stringify(req.body);
           return res.json({ success: true });
         } catch (error) {
-          const classification = errorClassifier.classifyError(error as Error, {
+          const classification = getErrorClassifier().classifyError(error as Error, {
             requestId: req.requestId
           });
 
@@ -695,7 +695,7 @@ describe('Error Handling Integration', () => {
         
         try {
           // Simulate validation
-          const validationReport = await validationHandler.validateRequest(
+          const validationReport = await getValidationHandler().validateRequest(
             req.body,
             'chat_completion',
             { requestId: req.requestId }
@@ -705,7 +705,7 @@ describe('Error Handling Integration', () => {
           
           if (!validationReport.isValid) {
             const errorStartTime = performance.now();
-            const classification = errorClassifier.classifyError(
+            const classification = getErrorClassifier().classifyError(
               new Error('Validation failed'),
               { requestId: req.requestId }
             );
@@ -729,7 +729,7 @@ describe('Error Handling Integration', () => {
           return res.json({ success: true });
         } catch (error) {
           const errorProcessingStart = performance.now();
-          const classification = errorClassifier.classifyError(error as Error);
+          const classification = getErrorClassifier().classifyError(error as Error);
           const errorProcessingTime = performance.now() - errorProcessingStart;
 
           const response = ErrorResponseFactory.createFromClassification(
@@ -766,7 +766,7 @@ describe('Error Handling Integration', () => {
       app.post('/api/correlation-test', async (req, res) => {
         try {
           // Force a validation error
-          const validationReport = await validationHandler.validateRequest(
+          const validationReport = await getValidationHandler().validateRequest(
             { invalid: 'data' },
             'chat_completion',
             {
@@ -776,7 +776,7 @@ describe('Error Handling Integration', () => {
             }
           );
 
-          const classification = errorClassifier.classifyError(
+          const classification = getErrorClassifier().classifyError(
             new Error('Test correlation error'),
             { requestId: req.requestId }
           );
@@ -788,7 +788,7 @@ describe('Error Handling Integration', () => {
 
           return res.status(400).json(errorResponse);
         } catch (error) {
-          const classification = errorClassifier.classifyError(
+          const classification = getErrorClassifier().classifyError(
             error as Error,
             { requestId: req.requestId }
           );
@@ -824,7 +824,7 @@ describe('Error Handling Integration', () => {
           
           switch (errorType) {
             case 'validation':
-              const validationReport = await validationHandler.validateRequest(
+              const validationReport = await getValidationHandler().validateRequest(
                 { invalid: 'request' },
                 'chat_completion',
                 { requestId: req.requestId }
@@ -871,7 +871,7 @@ describe('Error Handling Integration', () => {
               });
           }
         } catch (error) {
-          const classification = errorClassifier.classifyError(error as Error);
+          const classification = getErrorClassifier().classifyError(error as Error);
           const response = ErrorResponseFactory.createFromClassification(
             error as Error,
             classification,
@@ -928,7 +928,7 @@ describe('Error Handling Integration', () => {
           // Simulate processing delay
           await new Promise(resolve => setTimeout(resolve, Math.random() * 10));
           
-          const validationReport = await validationHandler.validateRequest(
+          const validationReport = await getValidationHandler().validateRequest(
             req.body,
             'chat_completion',
             {
@@ -948,7 +948,7 @@ describe('Error Handling Integration', () => {
 
           return res.json({ success: true, requestId: req.requestId });
         } catch (error) {
-          const classification = errorClassifier.classifyError(error as Error);
+          const classification = getErrorClassifier().classifyError(error as Error);
           const response = ErrorResponseFactory.createFromClassification(
             error as Error,
             classification,
@@ -994,7 +994,7 @@ describe('Error Handling Integration', () => {
             throw new Error('Error handler failure simulation');
           }
 
-          const validationReport = await validationHandler.validateRequest(
+          const validationReport = await getValidationHandler().validateRequest(
             req.body,
             'chat_completion',
             { requestId: req.requestId }
@@ -1012,7 +1012,7 @@ describe('Error Handling Integration', () => {
         } catch (error) {
           // Fallback error handling
           try {
-            const classification = errorClassifier.classifyError(error as Error);
+            const classification = getErrorClassifier().classifyError(error as Error);
             const response = ErrorResponseFactory.createFromClassification(
               error as Error,
               classification,
