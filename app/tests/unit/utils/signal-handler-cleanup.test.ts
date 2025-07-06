@@ -407,7 +407,8 @@ describe('Signal Handler Cleanup Validation', () => {
         const result = CleanupUtils.performComprehensiveCleanup({
           signals: true
         }, {
-          logActivity: false
+          logActivity: false,
+          testEnvironmentSkip: false // Force cleanup even in Jest environment
         });
 
         expect(result.success).toBe(true);
@@ -438,7 +439,8 @@ describe('Signal Handler Cleanup Validation', () => {
           eventEmitters: [emitter],
           garbageCollection: true
         }, {
-          logActivity: false
+          logActivity: false,
+          testEnvironmentSkip: false // Force cleanup even in Jest environment
         });
 
         expect(result.success).toBe(true);
@@ -465,7 +467,8 @@ describe('Signal Handler Cleanup Validation', () => {
           signals: true,
           garbageCollection: true
         }, {
-          logActivity: false
+          logActivity: false,
+          testEnvironmentSkip: false // Force cleanup even in Jest environment
         });
       }
 
