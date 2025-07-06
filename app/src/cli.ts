@@ -470,10 +470,12 @@ export class CliRunner {
       }
     };
 
-    // These production handlers are already wrapped in test environment check above
-    process.on('SIGTERM', () => shutdown('SIGTERM'));
-    process.on('SIGINT', () => shutdown('SIGINT'));
-    process.on('SIGUSR2', () => shutdown('SIGUSR2'));
+    // Skip signal handlers in test environment to prevent memory leaks
+    if (process.env.NODE_ENV !== 'test' && !process.env.JEST_WORKER_ID) {
+      process.on('SIGTERM', () => shutdown('SIGTERM'));
+      process.on('SIGINT', () => shutdown('SIGINT'));
+      process.on('SIGUSR2', () => shutdown('SIGUSR2'));
+    }
   }
 
   /**
