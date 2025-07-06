@@ -36,7 +36,7 @@ afterAll(async () => {
 });
 
 // Helper function to register cleanup
-global.registerCleanup = (fn: () => void | Promise<void>) => {
+(global as any).registerCleanup = (fn: () => void | Promise<void>) => {
   cleanupFunctions.push(fn);
 };
 

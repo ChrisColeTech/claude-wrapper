@@ -12,6 +12,9 @@ module.exports = {
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/../src/$1",
   },
+  transformIgnorePatterns: [
+    "node_modules/(?!(@anthropic-ai/claude-code)/)"
+  ],
   coverageDirectory: "<rootDir>/logs/coverage/unit",
   collectCoverageFrom: [
     "../src/**/*.ts",

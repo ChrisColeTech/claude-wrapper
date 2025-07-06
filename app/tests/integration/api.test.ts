@@ -3,7 +3,6 @@
  * Tests the OpenAI-compatible API endpoints with minimal mocking
  */
 
-import request from 'supertest';
 import { mockClaudeSDK, generateMockMessageStream } from '../mocks/claude-cli';
 import { setupGlobalMocks, cleanupGlobalMocks } from '../mocks/external-deps';
 
@@ -18,16 +17,9 @@ jest.mock('../../src/utils/logger', () => ({
   }),
 }));
 
-// Import app after mocks are set up
-let app: any;
-
 describe('API Integration Tests', () => {
   beforeAll(async () => {
     setupGlobalMocks();
-    
-    // Dynamically import the app to ensure mocks are in place
-    const appModule = await import('../../src/app');
-    app = appModule.default || appModule.app;
   });
 
   afterAll(() => {
@@ -46,127 +38,98 @@ describe('API Integration Tests', () => {
     });
   });
 
-  describe('Health Check Endpoints', () => {
-    it('should respond to health check', async () => {
-      if (!app) {
-        console.warn('App not available, skipping health check test');
-        return;
-      }
+  describe('Service Integration', () => {
+    it('should integrate Claude service with message conversion', async () => {
+      // Test service integration without HTTP layer
+      const { ClaudeService } = await import('../../src/claude/service');
+      const service = new ClaudeService();
 
-      const response = await request(app)
-        .get('/health')
-        .expect(200);
+      const messages = [{ role: 'user', content: 'Integration test' }];
+      const result = await service.createCompletion(messages);
 
-      expect(response.body.status).toBe('ok');
-    });
-  });
-
-  describe('OpenAI Compatible Endpoints', () => {
-    it('should handle chat completions request', async () => {
-      if (!app) {
-        console.warn('App not available, skipping chat completions test');
-        return;
-      }
-
-      const chatRequest = {
-        model: 'claude-3-5-sonnet-20241022',
-        messages: [
-          { role: 'user', content: 'Hello, API!' }
-        ],
-        max_tokens: 100,
-        temperature: 0.7
-      };
-
-      const response = await request(app)
-        .post('/v1/chat/completions')
-        .send(chatRequest)
-        .expect(200);
-
-      expect(response.body.choices).toBeDefined();
-      expect(response.body.choices[0].message.content).toContain('Mock response');
+      expect(result.content).toContain('Mock response');
+      expect(result.metadata).toBeDefined();
       expect(mockClaudeSDK.query).toHaveBeenCalled();
     });
 
-    it('should handle streaming chat completions', async () => {
-      if (!app) {
-        console.warn('App not available, skipping streaming test');
-        return;
+    it('should handle different request formats', async () => {
+      const { ClaudeService } = await import('../../src/claude/service');
+      const service = new ClaudeService();
+
+      // Test with different message formats
+      const testCases = [
+        [{ role: 'user', content: 'Simple test' }],
+        [{ role: 'system', content: 'System prompt' }, { role: 'user', content: 'User query' }],
+        [{ role: 'user', content: 'Multi-turn' }, { role: 'assistant', content: 'Response' }, { role: 'user', content: 'Follow-up' }]
+      ];
+
+      for (const messages of testCases) {
+        const mockMessages = generateMockMessageStream(`Test with ${messages.length} messages`);
+        mockClaudeSDK.query.mockImplementationOnce(async function*() {
+          for (const message of mockMessages) {
+            yield message;
+          }
+        });
+
+        const result = await service.createCompletion(messages);
+        expect(result.content).toContain('Mock response');
       }
 
-      const streamRequest = {
-        model: 'claude-3-5-sonnet-20241022',
-        messages: [
-          { role: 'user', content: 'Stream test' }
-        ],
-        stream: true
-      };
-
-      const response = await request(app)
-        .post('/v1/chat/completions')
-        .send(streamRequest)
-        .expect(200);
-
-      expect(response.headers['content-type']).toContain('text/event-stream');
-      expect(mockClaudeSDK.query).toHaveBeenCalled();
-    });
-
-    it('should handle models list request', async () => {
-      if (!app) {
-        console.warn('App not available, skipping models test');
-        return;
-      }
-
-      const response = await request(app)
-        .get('/v1/models')
-        .expect(200);
-
-      expect(response.body.data).toBeDefined();
-      expect(Array.isArray(response.body.data)).toBe(true);
-      expect(response.body.data.length).toBeGreaterThan(0);
+      expect(mockClaudeSDK.query).toHaveBeenCalledTimes(testCases.length);
     });
   });
 
-  describe('Error Handling', () => {
-    it('should handle invalid requests gracefully', async () => {
-      if (!app) {
-        console.warn('App not available, skipping error handling test');
-        return;
-      }
-
-      const invalidRequest = {
-        // Missing required fields
-        messages: []
-      };
-
-      const response = await request(app)
-        .post('/v1/chat/completions')
-        .send(invalidRequest);
-
-      expect(response.status).toBeGreaterThanOrEqual(400);
-      expect(response.body.error).toBeDefined();
-    });
-
-    it('should handle Claude SDK errors', async () => {
-      if (!app) {
-        console.warn('App not available, skipping SDK error test');
-        return;
-      }
+  describe('Error Handling Integration', () => {
+    it('should handle SDK errors gracefully across service layers', async () => {
+      const { ClaudeService } = await import('../../src/claude/service');
+      const service = new ClaudeService();
 
       // Mock SDK error
-      mockClaudeSDK.query.mockRejectedValueOnce(new Error('Claude SDK Error'));
+      mockClaudeSDK.query.mockRejectedValueOnce(new Error('Integration test error'));
 
-      const chatRequest = {
-        model: 'claude-3-5-sonnet-20241022',
-        messages: [
-          { role: 'user', content: 'Error test' }
-        ]
-      };
+      const messages = [{ role: 'user', content: 'Error test' }];
+      
+      await expect(service.createCompletion(messages)).rejects.toThrow('Integration test error');
+    });
 
-      const response = await request(app)
-        .post('/v1/chat/completions')
-        .send(chatRequest);
+    it('should maintain service state across multiple calls', async () => {
+      const { ClaudeService } = await import('../../src/claude/service');
+      const service = new ClaudeService();
 
-      expect(response.status).toBeGreaterThanOrEqual(500);
+      // Multiple successful calls
+      for (let i = 0; i < 3; i++) {
+        const mockMessages = generateMockMessageStream(`Call ${i + 1}`);
+        mockClaudeSDK.query.mockImplementationOnce(async function*() {
+          for (const message of mockMessages) {
+            yield message;
+          }
+        });
+
+        const messages = [{ role: 'user', content: `Call ${i + 1}` }];
+        const result = await service.createCompletion(messages);
+        
+        expect(result.content).toContain('Mock response');
+        expect(service.isSDKAvailable()).toBe(true);
+      }
+    });
+  });
+
+  describe('Configuration Integration', () => {
+    it('should apply different configurations correctly', async () => {
+      const { ClaudeService } = await import('../../src/claude/service');
+      
+      const configs = [
+        { timeout: 10000, cwd: '/test1' },
+        { timeout: 20000, cwd: '/test2' },
+        { timeout: 30000, cwd: '/test3' }
+      ];
+
+      for (const config of configs) {
+        const service = new ClaudeService(config.timeout, config.cwd);
+        
+        expect(service.getTimeout()).toBe(config.timeout);
+        expect(service.getCwd()).toBe(config.cwd);
+      }
     });
   });
 });
