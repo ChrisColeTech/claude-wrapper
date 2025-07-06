@@ -144,12 +144,12 @@ describe('ToolParameterProcessor', () => {
 
       const options: ToolProcessingOptions = {
         enforceTimeout: true,
-        timeoutMs: 1 // Very low timeout
+        timeoutMs: 10 // Low timeout for reliable test
       };
 
-      // Add a small delay to exceed timeout
+      // Add a delay to exceed timeout deterministically
       jest.spyOn(processor, 'processToolParameters').mockImplementation(async () => {
-        await new Promise(resolve => setTimeout(resolve, 2));
+        await new Promise(resolve => setTimeout(resolve, 50));
         return { success: true, errors: [] };
       });
 
