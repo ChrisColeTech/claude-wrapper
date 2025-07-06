@@ -390,10 +390,11 @@ export class CleanupUtils {
     options: {
       logActivity?: boolean;
       memoryThresholdMB?: number;
+      testEnvironmentSkip?: boolean;
     } = {}
   ): CleanupResult {
     const startTime = performance.now();
-    const { logActivity = false, memoryThresholdMB = 512 } = options;
+    const { logActivity = false, memoryThresholdMB = 512, testEnvironmentSkip = true } = options;
     
     const errors: string[] = [];
     let totalCleanedCount = 0;
@@ -429,7 +430,8 @@ export class CleanupUtils {
     // Clean up process signals
     if (targets.signals) {
       const signalResult = CleanupUtils.cleanupProcessSignals({
-        logActivity
+        logActivity,
+        testEnvironmentSkip
       });
       totalCleanedCount += signalResult.cleanedCount;
       errors.push(...signalResult.errors);
