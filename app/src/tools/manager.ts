@@ -46,11 +46,6 @@ export interface ToolExecutionRequest {
  * Enhanced tool manager interface
  */
 export interface IToolManager {
-  // Legacy configuration methods
-  configureTools(config: ToolConfiguration): ToolResponse;
-  parseToolHeaders(headers: Record<string, string>): ToolConfiguration;
-  validateToolConfig(config: ToolConfiguration): { valid: boolean; errors: string[] };
-  
   // Phase 4: Execution coordination methods
   executeToolCalls(request: ToolExecutionRequest): Promise<ToolExecutionCoordinationResult>;
   registerCustomTool(toolFunction: ToolFunction): Promise<boolean>;

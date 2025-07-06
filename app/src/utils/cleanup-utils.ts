@@ -471,10 +471,12 @@ export class GlobalCleanupRegistry {
   private static instance: GlobalCleanupRegistry;
   private eventEmitters: EventEmitter[] = [];
   private timers: (NodeJS.Timeout | NodeJS.Timer)[] = [];
-  private signalHandlers: Map<NodeJS.Signals, Function[]> = new Map();
+  private signalHandlers: Map<NodeJS.Signals, (() => void)[]> = new Map();
   private cleanupCallbacks: (() => void)[] = [];
 
-  private constructor() {}
+  private constructor() {
+    // Private constructor for singleton pattern
+  }
 
   static getInstance(): GlobalCleanupRegistry {
     if (!GlobalCleanupRegistry.instance) {
@@ -500,7 +502,7 @@ export class GlobalCleanupRegistry {
   /**
    * Register a signal handler for cleanup
    */
-  registerSignalHandler(signal: NodeJS.Signals, handler: Function): void {
+  registerSignalHandler(signal: NodeJS.Signals, handler: () => void): void {
     if (!this.signalHandlers.has(signal)) {
       this.signalHandlers.set(signal, []);
     }
@@ -520,7 +522,7 @@ export class GlobalCleanupRegistry {
   cleanup(): CleanupResult {
     const startTime = performance.now();
     const errors: string[] = [];
-    let totalCleanedCount = 0;
+    const totalCleanedCount = 0;
 
     // Run custom cleanup callbacks
     for (const callback of this.cleanupCallbacks) {
