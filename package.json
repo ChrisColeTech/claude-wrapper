@@ -11,7 +11,7 @@
     "build:log": "cd app && tsc > build.log 2>&1",
     "start": "node app/dist/src/cli.js",
     "dev": "cd app && tsx watch src/index.ts",
-    "test": "cd app && jest --config tests/jest.minimal.config.js --passWithNoTests",
+    "test": "cd app && jest --config tests/jest.config.js --passWithNoTests",
     "test:watch": "cd app && jest --config tests/jest.config.js --watch",
     "test:coverage": "cd app && jest --config tests/jest.unit.config.js --coverage",
     "test:performance": "cd app && node performance-test.js",
