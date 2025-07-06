@@ -30,10 +30,10 @@ jest.mock("../../../src/utils/logger", () => ({
 // Mock global fetch for API validation tests
 global.fetch = jest.fn();
 global.AbortController = class {
-  signal = {};
+  signal = {} as AbortSignal;
   abort = jest.fn();
-};
-global.setTimeout = jest.fn().mockImplementation((fn, delay) => {
+} as any;
+(global.setTimeout as any) = jest.fn().mockImplementation((fn, delay) => {
   if (typeof fn === 'function') {
     fn();
   }
@@ -433,7 +433,7 @@ describe("Credential Validators - Comprehensive Test Suite", () => {
 
         expect(result.isValid).toBe(false);
         expect(result.errorMessage).toBe("Unable to validate credential with API");
-        expect(result.details.error).toBe("Network error");
+        expect(result.details?.error).toBe("Network error");
       });
     });
   });
@@ -591,7 +591,7 @@ describe("Credential Validators - Comprehensive Test Suite", () => {
 
         expect(result.isValid).toBe(true);
         expect(result.details.note).toContain("Network error during validation, credentials assumed valid");
-        expect(result.details.error).toBe("Network error");
+        expect(result.details?.error).toBe("Network error");
       });
     });
 
@@ -777,7 +777,7 @@ describe("Credential Validators - Comprehensive Test Suite", () => {
 
         expect(result.isValid).toBe(true);
         expect(result.details.note).toContain("Error during validation, credentials assumed valid");
-        expect(result.details.error).toBe("Network error");
+        expect(result.details?.error).toBe("Network error");
       });
     });
 
