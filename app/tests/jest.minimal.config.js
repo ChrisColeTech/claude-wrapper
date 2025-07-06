@@ -7,7 +7,7 @@ module.exports = {
   displayName: "Minimal Tests",
   preset: "ts-jest",
   testEnvironment: "node",
-  testMatch: ["<rootDir>/unit/simple.test.ts"],
+  testMatch: ["<rootDir>/unit/*.test.ts"],
   setupFilesAfterEnv: ["<rootDir>/setup.minimal.ts"],
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/../src/$1",
