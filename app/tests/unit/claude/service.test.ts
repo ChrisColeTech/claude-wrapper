@@ -458,14 +458,18 @@ describe('Phase 6A: Claude Service Tests', () => {
     it('should skip empty deltas', async () => {
       const duplicateMessages: ClaudeCodeMessage[] = [
         {
+          role: 'assistant',
           type: 'assistant',
           content: 'Hello'
         },
         {
+          role: 'assistant',
           type: 'assistant',
           content: 'Hello' // Same content, should not produce delta
         },
         {
+          role: 'system',
+          content: '',
           type: 'result',
           subtype: 'success'
         }
@@ -504,10 +508,13 @@ describe('Phase 6A: Claude Service Tests', () => {
 
       mockSDKClient.runCompletion.mockImplementation(async function* () {
         yield {
+          role: 'assistant',
           type: 'assistant',
           content: 'Chat response'
         };
         yield {
+          role: 'system',
+          content: '',
           type: 'result',
           subtype: 'success'
         };
@@ -552,10 +559,13 @@ describe('Phase 6A: Claude Service Tests', () => {
 
       mockSDKClient.runCompletion.mockImplementation(async function* () {
         yield {
+          role: 'assistant',
           type: 'assistant',
           content: 'Streaming response'
         };
         yield {
+          role: 'system',
+          content: '',
           type: 'result',
           subtype: 'success'
         };
@@ -576,6 +586,7 @@ describe('Phase 6A: Claude Service Tests', () => {
     it('should parse Claude messages', () => {
       const messages: ClaudeCodeMessage[] = [
         {
+          role: 'assistant',
           type: 'assistant',
           content: 'Test message'
         }
@@ -589,6 +600,8 @@ describe('Phase 6A: Claude Service Tests', () => {
 
       const messages: ClaudeCodeMessage[] = [
         {
+          role: 'system',
+          content: '',
           type: 'result',
           subtype: 'success',
           total_cost_usd: 0.05

@@ -175,15 +175,19 @@ describe('Claude Service Unit Tests - Phase 2 Real SDK Integration', () => {
       mockParser.isCompleteResponse.mockReturnValue(true);
       mockParser.parseToOpenAIResponse.mockReturnValue({
         content: 'Test response',
+        role: 'assistant',
         session_id: 'test_session',
         stop_reason: 'stop'
       });
 
       mockMetadataExtractor.extractMetadata.mockReturnValue({
+        model: 'claude-3-5-sonnet-20241022',
+        total_cost_usd: 0.001,
+        duration_ms: 1000,
+        num_turns: 1,
         prompt_tokens: 10,
         completion_tokens: 20,
-        total_tokens: 30,
-        cost: 0.001
+        total_tokens: 30
       });
     });
 
@@ -358,6 +362,11 @@ describe('Claude Service Unit Tests - Phase 2 Real SDK Integration', () => {
         messages: [
           { role: 'user' as const, content: 'Hello' }
         ],
+        temperature: 1.0,
+        top_p: 1.0,
+        n: 1,
+        presence_penalty: 0,
+        frequency_penalty: 0,
         enable_tools: false,
         stream: false
       };
@@ -375,7 +384,13 @@ describe('Claude Service Unit Tests - Phase 2 Real SDK Integration', () => {
         messages: [
           { role: 'user' as const, content: 'Hello' }
         ],
-        stream: true
+        temperature: 1.0,
+        top_p: 1.0,
+        n: 1,
+        presence_penalty: 0,
+        frequency_penalty: 0,
+        stream: true,
+        enable_tools: false
       };
 
       await expect(service.createChatCompletion(request))
@@ -388,6 +403,11 @@ describe('Claude Service Unit Tests - Phase 2 Real SDK Integration', () => {
         messages: [
           { role: 'user' as const, content: 'Tell me a joke' }
         ],
+        temperature: 1.0,
+        top_p: 1.0,
+        n: 1,
+        presence_penalty: 0,
+        frequency_penalty: 0,
         enable_tools: true,
         stream: true
       };
@@ -492,10 +512,13 @@ describe('Claude Service Unit Tests - Phase 2 Real SDK Integration', () => {
       ];
 
       const expectedMetadata = {
+        model: 'claude-3-5-sonnet-20241022',
+        total_cost_usd: 0.001,
+        duration_ms: 500,
+        num_turns: 1,
         prompt_tokens: 10,
         completion_tokens: 20,
-        total_tokens: 30,
-        cost: 0.001
+        total_tokens: 30
       };
 
       mockMetadataExtractor.extractMetadata.mockReturnValue(expectedMetadata);
