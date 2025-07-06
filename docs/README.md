@@ -28,6 +28,68 @@ Claude Wrapper embraces the **OpenAI Tools API specification** with full user-de
 
 This approach gives you **maximum flexibility** while maintaining **security** - Claude gets the power of tools without server-side execution risks.
 
+---
+
+## 📚 Documentation Structure
+
+This documentation is organized into logical categories for easy navigation:
+
+### 🚀 **Quick Start**
+- **[Getting Started](../README.md)** - Main project README with setup instructions
+- **[Operations Guide](guides/OPERATIONS_GUIDE.md)** - Day-to-day usage and operations
+
+### 📖 **Core Documentation**
+
+#### 🔌 **API Documentation** (`api/`)
+- **[API Reference](api/API_REFERENCE.md)** - Complete API endpoint documentation
+- **[OpenAI Tools API Plan](api/OPENAI_TOOLS_API_PLAN.md)** - Tools integration strategy
+- **[Debug Endpoints](api/DEBUG_ENDPOINTS.md)** - Development and debugging APIs
+
+#### 🏗️ **Architecture** (`architecture/`)
+- **[System Architecture](architecture/ARCHITECTURE.md)** - High-level system design
+- **[Project Structure](architecture/PROJECT_STRUCTURE.md)** - Codebase organization
+- **[Security](architecture/SECURITY.md)** - Security considerations and best practices
+
+#### 💻 **Development** (`development/`)
+- **[Implementation Rules](development/IMPLEMENTATION_RULES.md)** - Coding standards and guidelines
+- **[Code Examples](development/CODE_EXAMPLES.md)** - Code samples and patterns
+- **[Usage Examples](development/USAGE_EXAMPLES.md)** - Practical usage scenarios
+- **[Requirements](development/REQUIREMENTS.md)** - System and functional requirements
+- **[Claude SDK Reference](development/CLAUDE_SDK_REFERENCE.md)** - SDK usage reference
+
+#### 📋 **User Guides** (`guides/`)
+- **[Operations Guide](guides/OPERATIONS_GUIDE.md)** - Production operations
+- **[Mini README Guide](guides/MINI_README_GUIDE.md)** - Quick reference guide
+- **[README Writing Guide](guides/README_WRITING_GUIDE.md)** - Documentation standards
+
+### 📋 **Planning & Strategy** (`planning/`)
+- **[Master Implementation Plan](planning/IMPLEMENTATION_PLAN.md)** - Overall project roadmap
+- **[Claude SDK Integration Plan](planning/CLAUDE_SDK_INTEGRATION_PLAN.md)** - SDK integration strategy
+- **[Critical Gaps Implementation Plan](planning/CRITICAL_GAPS_IMPLEMENTATION_PLAN.md)** - Gap remediation strategy
+- **[OpenAI Tools API Plan](planning/OPENAI_TOOLS_API_PLAN.md)** - Tools integration plan
+- **[Enhanced Integration Test Recovery Plan](planning/ENHANCED_INTEGRATION_TEST_RECOVERY_PLAN.md)** - Test debugging methodology
+- **[Critical Gaps Analysis](planning/CRITICAL_GAPS_ANALYSIS.md)** - Gap analysis and remediation
+- **[Enhanced Phase Breakdown](planning/ENHANCED_PHASE_BREAKDOWN.md)** - Development phases overview
+
+### 🔄 **Implementation Phases** (`phases/`)
+- **[Claude SDK Phases](phases/claude-sdk-phases/)** - SDK integration phases (8 phases)
+- **[Critical Gaps Phases](phases/critical-gaps-phases/)** - Critical feature implementation (7 phases)
+- **[OpenAI Tools Phases](phases/openai-tools-phases/)** - Tools API implementation (22 phases)
+
+### 🧪 **Testing & Quality** (`testing/`)
+- **[Testing Framework](testing/TESTING.md)** - Comprehensive testing documentation
+- **[Systematic Diagnostic Methodology](testing/SYSTEMATIC_DIAGNOSTIC_METHODOLOGY.md)** - Quality assurance framework
+
+### 🚀 **Deployment** (`deployment/`)
+- **[Production Deployment](deployment/production-deployment.md)** - Production deployment guide
+
+### 💡 **Examples** (`examples/`)
+- **[Performance Benchmarks](examples/PERFORMANCE_BENCHMARKS.md)** - Performance testing results
+- **[Setup Guide](examples/SETUP_GUIDE.md)** - Step-by-step setup examples
+- **[Troubleshooting](examples/TROUBLESHOOTING.md)** - Common issues and solutions
+
+---
+
 ## 🚀 Key Features
 
 - **🔌 OpenAI Compatible**: Drop-in replacement for OpenAI Chat Completions API

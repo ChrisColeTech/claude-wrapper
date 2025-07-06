@@ -25,35 +25,35 @@ The Claude SDK integration follows a systematic 8-phase approach, with each phas
 
 ### Phase 1: Claude Service Foundation
 **Goal:** Create the core Claude service interface and basic SDK integration  
-**📋 Task Files:** [Phase 1A Implementation](./claude-sdk-phases/PHASE_01_CLAUDE_SERVICE_FOUNDATION.md) | [Phase 1B Review](./claude-sdk-phases/PHASE_01_CLAUDE_SERVICE_FOUNDATION.md#phase-01b-claude-service-foundation---comprehensive-review)
+**📋 Task Files:** [Phase 1A Implementation](../phases/claude-sdk-phases/PHASE_01_CLAUDE_SERVICE_FOUNDATION.md) | [Phase 1B Review](../phases/claude-sdk-phases/PHASE_01_CLAUDE_SERVICE_FOUNDATION.md#phase-01b-claude-service-foundation---comprehensive-review)
 
 ### Phase 2: Message Format Conversion  
 **Goal:** Implement proper OpenAI ↔ Claude message format conversion  
-**📋 Task Files:** [Phase 2A Implementation](./claude-sdk-phases/PHASE_02_MESSAGE_FORMAT_CONVERSION.md) | [Phase 2B Review](./claude-sdk-phases/PHASE_02_MESSAGE_FORMAT_CONVERSION.md#phase-02b-message-format-conversion---comprehensive-review)
+**📋 Task Files:** [Phase 2A Implementation](../phases/claude-sdk-phases/PHASE_02_MESSAGE_FORMAT_CONVERSION.md) | [Phase 2B Review](../phases/claude-sdk-phases/PHASE_02_MESSAGE_FORMAT_CONVERSION.md#phase-02b-message-format-conversion---comprehensive-review)
 
 ### Phase 3: Model Selection and Validation
 **Goal:** Implement proper model selection and validation with Claude SDK  
-**📋 Task Files:** [Phase 3A Implementation](./claude-sdk-phases/PHASE_03_MODEL_SELECTION_AND_VALIDATION.md) | [Phase 3B Review](./claude-sdk-phases/PHASE_03_MODEL_SELECTION_AND_VALIDATION.md#phase-03b-model-selection-and-validation---comprehensive-review)
+**📋 Task Files:** [Phase 3A Implementation](../phases/claude-sdk-phases/PHASE_03_MODEL_SELECTION_AND_VALIDATION.md) | [Phase 3B Review](../phases/claude-sdk-phases/PHASE_03_MODEL_SELECTION_AND_VALIDATION.md#phase-03b-model-selection-and-validation---comprehensive-review)
 
 ### Phase 4: Non-Streaming Completions
 **Goal:** Complete non-streaming chat completions with full SDK integration  
-**📋 Task Files:** [Phase 4A Implementation](./claude-sdk-phases/PHASE_04_NONSTREAMING_COMPLETIONS.md) | [Phase 4B Review](./claude-sdk-phases/PHASE_04_NONSTREAMING_COMPLETIONS.md#phase-04b-non-streaming-completions---comprehensive-review)
+**📋 Task Files:** [Phase 4A Implementation](../phases/claude-sdk-phases/PHASE_04_NONSTREAMING_COMPLETIONS.md) | [Phase 4B Review](../phases/claude-sdk-phases/PHASE_04_NONSTREAMING_COMPLETIONS.md#phase-04b-non-streaming-completions---comprehensive-review)
 
 ### Phase 5: Streaming Completions
 **Goal:** Implement real-time streaming responses  
-**📋 Task Files:** [Phase 5A Implementation](./claude-sdk-phases/PHASE_05_STREAMING_COMPLETIONS.md) | [Phase 5B Review](./claude-sdk-phases/PHASE_05_STREAMING_COMPLETIONS.md#phase-05b-streaming-completions---comprehensive-review)
+**📋 Task Files:** [Phase 5A Implementation](../phases/claude-sdk-phases/PHASE_05_STREAMING_COMPLETIONS.md) | [Phase 5B Review](../phases/claude-sdk-phases/PHASE_05_STREAMING_COMPLETIONS.md#phase-05b-streaming-completions---comprehensive-review)
 
 ### Phase 6: Tools Integration (Optional - Disabled by Default)
 **Goal:** Support Claude Code tools when explicitly enabled  
-**📋 Task Files:** [Phase 6A Implementation](./claude-sdk-phases/PHASE_06_TOOLS_INTEGRATION_OPTIONAL__DISABLED_BY_DEFAULT.md) | [Phase 6B Review](./claude-sdk-phases/PHASE_06_TOOLS_INTEGRATION_OPTIONAL__DISABLED_BY_DEFAULT.md#phase-06b-tools-integration-optional---disabled-by-default---comprehensive-review)
+**📋 Task Files:** [Phase 6A Implementation](../phases/claude-sdk-phases/PHASE_06_TOOLS_INTEGRATION_OPTIONAL__DISABLED_BY_DEFAULT.md) | [Phase 6B Review](../phases/claude-sdk-phases/PHASE_06_TOOLS_INTEGRATION_OPTIONAL__DISABLED_BY_DEFAULT.md#phase-06b-tools-integration-optional---disabled-by-default---comprehensive-review)
 
 ### Phase 7: Advanced Features Integration
 **Goal:** Implement advanced Claude SDK features (system prompts, advanced options)  
-**📋 Task Files:** [Phase 7A Implementation](./claude-sdk-phases/PHASE_07_ADVANCED_FEATURES_INTEGRATION.md) | [Phase 7B Review](./claude-sdk-phases/PHASE_07_ADVANCED_FEATURES_INTEGRATION.md#phase-07b-advanced-features-integration---comprehensive-review)
+**📋 Task Files:** [Phase 7A Implementation](../phases/claude-sdk-phases/PHASE_07_ADVANCED_FEATURES_INTEGRATION.md) | [Phase 7B Review](../phases/claude-sdk-phases/PHASE_07_ADVANCED_FEATURES_INTEGRATION.md#phase-07b-advanced-features-integration---comprehensive-review)
 
 ### Phase 8: Production Hardening
 **Goal:** Production-ready error handling, monitoring, and performance  
-**📋 Task Files:** [Phase 8A Implementation](./claude-sdk-phases/PHASE_08_PRODUCTION_HARDENING.md) | [Phase 8B Review](./claude-sdk-phases/PHASE_08_PRODUCTION_HARDENING.md#phase-08b-production-hardening---comprehensive-review)
+**📋 Task Files:** [Phase 8A Implementation](../phases/claude-sdk-phases/PHASE_08_PRODUCTION_HARDENING.md) | [Phase 8B Review](../phases/claude-sdk-phases/PHASE_08_PRODUCTION_HARDENING.md#phase-08b-production-hardening---comprehensive-review)
 
 ## Dependencies and Prerequisites
 
@@ -119,9 +119,9 @@ Each phase must be **100% complete with passing tests** before proceeding to the
 
 ## References
 
-- [CLAUDE_SDK_REFERENCE.md](./CLAUDE_SDK_REFERENCE.md) - Complete SDK integration patterns
-- [ARCHITECTURE.md](./ARCHITECTURE.md) - Project architecture guidelines
-- [TESTING.md](./TESTING.md) - Testing standards and practices
+- [CLAUDE_SDK_REFERENCE.md](../development/CLAUDE_SDK_REFERENCE.md) - Complete SDK integration patterns
+- [ARCHITECTURE.md](../architecture/ARCHITECTURE.md) - Project architecture guidelines
+- [TESTING.md](../testing/TESTING.md) - Testing standards and practices
 - Python implementation in `claude-code-openai-wrapper` project - behavior reference
 
 ---
@@ -213,14 +213,14 @@ Each phase must meet these criteria before proceeding:
 
 ### Phase Documentation Links
 
-- [Phase 01: Claude Service Foundation](./claude-sdk-phases/PHASE_01_CLAUDE_SERVICE_FOUNDATION.md)
-- [Phase 02: Message Format Conversion](./claude-sdk-phases/PHASE_02_MESSAGE_FORMAT_CONVERSION.md)
-- [Phase 03: Model Selection and Validation](./claude-sdk-phases/PHASE_03_MODEL_SELECTION_AND_VALIDATION.md)
-- [Phase 04: Non-Streaming Completions](./claude-sdk-phases/PHASE_04_NONSTREAMING_COMPLETIONS.md)
-- [Phase 05: Streaming Completions](./claude-sdk-phases/PHASE_05_STREAMING_COMPLETIONS.md)
-- [Phase 06: Tools Integration](./claude-sdk-phases/PHASE_06_TOOLS_INTEGRATION_OPTIONAL__DISABLED_BY_DEFAULT.md)
-- [Phase 07: Advanced Features Integration](./claude-sdk-phases/PHASE_07_ADVANCED_FEATURES_INTEGRATION.md)
-- [Phase 08: Production Hardening](./claude-sdk-phases/PHASE_08_PRODUCTION_HARDENING.md)
+- [Phase 01: Claude Service Foundation](../phases/claude-sdk-phases/PHASE_01_CLAUDE_SERVICE_FOUNDATION.md)
+- [Phase 02: Message Format Conversion](../phases/claude-sdk-phases/PHASE_02_MESSAGE_FORMAT_CONVERSION.md)
+- [Phase 03: Model Selection and Validation](../phases/claude-sdk-phases/PHASE_03_MODEL_SELECTION_AND_VALIDATION.md)
+- [Phase 04: Non-Streaming Completions](../phases/claude-sdk-phases/PHASE_04_NONSTREAMING_COMPLETIONS.md)
+- [Phase 05: Streaming Completions](../phases/claude-sdk-phases/PHASE_05_STREAMING_COMPLETIONS.md)
+- [Phase 06: Tools Integration](../phases/claude-sdk-phases/PHASE_06_TOOLS_INTEGRATION_OPTIONAL__DISABLED_BY_DEFAULT.md)
+- [Phase 07: Advanced Features Integration](../phases/claude-sdk-phases/PHASE_07_ADVANCED_FEATURES_INTEGRATION.md)
+- [Phase 08: Production Hardening](../phases/claude-sdk-phases/PHASE_08_PRODUCTION_HARDENING.md)
 
 ---
 
