@@ -6,7 +6,7 @@
  * Tool choice processing constants
  */
 export const TOOL_CHOICE_PROCESSING_LIMITS = {
-  CHOICE_PROCESSING_TIMEOUT_MS: 50,
+  CHOICE_PROCESSING_TIMEOUT_MS: 150, // Increased for Node.js 18.x compatibility
   MAX_CONCURRENT_CHOICE_PROCESSING: 15,
 } as const;
 
@@ -46,7 +46,7 @@ export const TOOL_CHOICE_ERRORS = {
  * Tool parameter processing constants
  */
 export const TOOL_PARAMETER_LIMITS = {
-  PROCESSING_TIMEOUT_MS: 5,
+  PROCESSING_TIMEOUT_MS: 50, // Increased for Node.js 18.x compatibility
   MAX_CONCURRENT_PROCESSING: 10,
 } as const;
 
@@ -71,7 +71,7 @@ export const TOOL_PARAMETER_ERRORS = {
  * DRY compliance: No magic format strings
  */
 export const TOOL_CONVERSION_LIMITS = {
-  CONVERSION_TIMEOUT_MS: 15,
+  CONVERSION_TIMEOUT_MS: 100, // Increased for Node.js 18.x compatibility
   MAX_CONVERSION_DEPTH: 10,
   MAX_CONCURRENT_CONVERSIONS: 20,
 } as const;
@@ -123,7 +123,7 @@ export const TOOL_CONVERSION_ERRORS = {
  * DRY compliance: No magic response formats
  */
 export const RESPONSE_FORMAT_LIMITS = {
-  FORMATTING_TIMEOUT_MS: 10,
+  FORMATTING_TIMEOUT_MS: 100, // Increased for Node.js 18.x compatibility
   MAX_TOOL_CALLS_PER_RESPONSE: 50,
   MAX_CONCURRENT_FORMATTING: 25,
 } as const;
