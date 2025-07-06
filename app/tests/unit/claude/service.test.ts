@@ -93,7 +93,7 @@ describe('Phase 6A: Claude Service Tests', () => {
       version: 'claude-code-sdk'
     });
     
-    mockAdapter.convertToClaudePrompt.mockReturnValue('Converted prompt');
+    // MessageAdapter has static methods in Phase 16A, no instance methods to mock
     
     // Mock parser and metadata modules
     (ClaudeResponseParser.isCompleteResponse as jest.Mock).mockImplementation((messages: any[]) => {
@@ -254,15 +254,20 @@ describe('Phase 6A: Claude Service Tests', () => {
 
     const mockClaudeMessages: ClaudeCodeMessage[] = [
       {
+        role: 'system',
+        content: '',
         type: 'system',
         subtype: 'init',
         data: { session_id: 'test-session', model: 'claude-3-5-sonnet-20241022' }
       },
       {
-        type: 'assistant',
-        content: 'Hello! How can I help you today?'
+        role: 'assistant',
+        content: 'Hello! How can I help you today?',
+        type: 'assistant'
       },
       {
+        role: 'assistant',
+        content: '',
         type: 'result',
         subtype: 'success',
         total_cost_usd: 0.01,
@@ -294,7 +299,7 @@ describe('Phase 6A: Claude Service Tests', () => {
       expect(result.metadata.total_cost_usd).toBe(0.01);
       expect(result.metadata.model).toBe('claude-3-5-sonnet-20241022');
 
-      expect(mockAdapter.convertToClaudePrompt).toHaveBeenCalledWith(testMessages);
+      // MessageAdapter uses static methods in Phase 16A
       expect(mockSDKClient.runCompletion).toHaveBeenCalledWith('Converted prompt', {
         cwd: '/test/cwd',
         model: 'claude-3-5-sonnet-20241022',
@@ -346,6 +351,8 @@ describe('Phase 6A: Claude Service Tests', () => {
       // Mock empty response
       mockSDKClient.runCompletion.mockImplementation(async function* () {
         yield {
+          role: 'system',
+          content: '',
           type: 'system',
           subtype: 'init'
         };
@@ -371,11 +378,15 @@ describe('Phase 6A: Claude Service Tests', () => {
 
     const mockStreamMessages: ClaudeCodeMessage[] = [
       {
+        role: 'system',
+        content: '',
         type: 'system',
         subtype: 'init',
         data: { session_id: 'stream-session' }
       },
       {
+        role: 'assistant',
+        content: '',
         type: 'result',
         subtype: 'success',
         total_cost_usd: 0.02,
@@ -388,15 +399,20 @@ describe('Phase 6A: Claude Service Tests', () => {
       // Create a more realistic streaming sequence
       const streamingMessages: ClaudeCodeMessage[] = [
         {
+          role: 'system',
+          content: '',
           type: 'system',
           subtype: 'init',
           data: { session_id: 'stream-session' }
         },
         {
-          type: 'assistant',
-          content: 'Once upon'
+          role: 'assistant',
+          content: 'Once upon',
+          type: 'assistant'
         },
         {
+          role: 'assistant',
+          content: '',
           type: 'result',
           subtype: 'success',
           total_cost_usd: 0.02,
