@@ -474,7 +474,8 @@ claude-wrapper --no-interactive
 
 - **[Architecture Guide](ARCHITECTURE.md)** - System architecture including security component integration  
 - **[Implementation Rules](IMPLEMENTATION_RULES.md)** - Coding standards and best practices
-- **[Testing Guide](TESTING.md)** - Testing strategies and procedures
+- **[Testing Guide](TESTING.md)** - Testing strategies and systematic diagnostic methodology
+- **[Systematic Diagnostic Methodology](SYSTEMATIC_DIAGNOSTIC_METHODOLOGY.md)** - 🔬 **NEW**: Revolutionary approach to integration test recovery
 - **[Project Structure](PROJECT_STRUCTURE.md)** - Codebase organization and file mapping
 
 ### Development Documentation

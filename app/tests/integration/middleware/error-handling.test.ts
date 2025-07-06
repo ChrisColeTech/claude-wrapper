@@ -7,13 +7,13 @@
 import request from 'supertest';
 import express from 'express';
 import {
-  ErrorClassifier,
+  getErrorClassifier,
   ErrorCategory,
   ErrorSeverity,
   RetryStrategy
 } from '../../../src/middleware/error-classifier';
 import {
-  ValidationHandler,
+  getValidationHandler,
   ValidationErrorReport
 } from '../../../src/middleware/validation-handler';
 import {
@@ -52,16 +52,12 @@ jest.mock('../../../src/utils/env', () => ({
 
 describe('Error Handling Integration', () => {
   let app: express.Application;
-  let errorClassifier: ErrorClassifier;
-  let validationHandler: ValidationHandler;
   let requestIdManager: RequestIdManager;
 
   beforeEach(() => {
     app = express();
     app.use(express.json());
 
-    errorClassifier = new ErrorClassifier();
-    validationHandler = new ValidationHandler();
     requestIdManager = new RequestIdManager();
 
     // Setup middleware in correct order
@@ -100,7 +96,7 @@ describe('Error Handling Integration', () => {
 
           return res.json({ success: true });
         } catch (error) {
-          const classification = errorClassifier.classifyError(error as Error, {
+          const classification = getErrorClassifier().classifyError(error as Error, {
             endpoint: req.path,
             requestId: req.requestId
           });

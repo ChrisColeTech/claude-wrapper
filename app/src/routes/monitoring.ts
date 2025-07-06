@@ -8,8 +8,8 @@
 import { Router, Request, Response } from 'express';
 import { getLogger } from '../utils/logger';
 import { performanceMonitor, PerformanceStats } from '../monitoring/performance-monitor';
-// import { CleanupUtils } from '../services/cleanup-service';
-// import { TimingUtils } from '../middleware/timing';
+import { CleanupUtils } from '../services/cleanup-service';
+// import { TimingUtils } from '../middleware/timing'; // Not currently used
 import { PRODUCTION_MONITORING, PRODUCTION_LIMITS } from '../tools/constants/production';
 
 const logger = getLogger('MonitoringRoutes');
@@ -124,9 +124,9 @@ export const MonitoringUtils = {
     }
 
     // Check cleanup stats if provided
-    // if (cleanupStats && !CleanupUtils.isStatsHealthy(cleanupStats)) {
-    //   return 'warning';
-    // }
+    if (cleanupStats && !CleanupUtils.isStatsHealthy(cleanupStats)) {
+      return 'warning';
+    }
 
     return 'healthy';
   },
@@ -373,6 +373,10 @@ export class MonitoringRoutes {
     try {
       const memoryMetrics = MonitoringUtils.getMemoryMetrics();
       const performanceStats = performanceMonitor.getAllStats();
+      
+      // Debug logging
+      logger.debug('Dashboard request - memory metrics:', memoryMetrics);
+      logger.debug('Dashboard request - performance stats size:', performanceStats.size);
       
       const response = {
         status: MonitoringUtils.calculateHealthStatus(performanceStats, memoryMetrics),

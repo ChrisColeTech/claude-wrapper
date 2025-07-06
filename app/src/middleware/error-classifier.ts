@@ -272,7 +272,11 @@ export class ErrorClassifier {
   private registerDefaultPatterns(): void {
     // Validation errors
     this.registerPattern({
-      matcher: (error) => error.name === 'ValidationError' || error.message.includes('validation'),
+      matcher: (error) => 
+        error.name === 'ValidationError' || 
+        error.message.includes('validation') ||
+        error.message.includes('Validation failed') ||
+        error.message.includes('field errors'),
       classification: {
         category: ErrorCategory.VALIDATION_ERROR,
         severity: ErrorSeverity.LOW,

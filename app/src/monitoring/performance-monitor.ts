@@ -183,13 +183,16 @@ export class PerformanceMonitor implements IPerformanceMonitor {
     const durations = operationMetrics.map(m => m.duration).sort((a, b) => a - b);
     const successCount = operationMetrics.filter(m => m.success).length;
     
+    const successRate = successCount / operationMetrics.length;
+    const errorRate = (operationMetrics.length - successCount) / operationMetrics.length;
+    
     return {
       count: operationMetrics.length,
       avgDuration: durations.reduce((sum, d) => sum + d, 0) / durations.length,
       minDuration: durations[0],
       maxDuration: durations[durations.length - 1],
-      successRate: successCount / operationMetrics.length,
-      errorRate: 1 - (successCount / operationMetrics.length),
+      successRate: Math.round(successRate * 10000) / 10000, // Round to 4 decimal places
+      errorRate: Math.round(errorRate * 10000) / 10000, // Round to 4 decimal places
       p95Duration: this.getPercentile(durations, 0.95),
       p99Duration: this.getPercentile(durations, 0.99)
     };
@@ -210,6 +213,13 @@ export class PerformanceMonitor implements IPerformanceMonitor {
     this.cleanupInterval = setInterval(() => {
       this.cleanupOldMetrics();
     }, 60000); // Clean every minute
+  }
+
+  /**
+   * Manually trigger cleanup (for testing)
+   */
+  triggerCleanup(): void {
+    this.cleanupOldMetrics();
   }
 
   /**

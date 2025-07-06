@@ -134,9 +134,9 @@ export class ErrorResponseFactory {
     const baseResponse: EnhancedErrorResponse = {
       error: {
         type: this.mapCategoryToType(classification.category),
-        message: error.message,
-        code: classification.errorCode,
-        request_id: requestId,
+        message: this.sanitizeMessage(error.message),
+        code: classification.errorCode || 'UNKNOWN_ERROR', // Ensure code is never empty
+        request_id: requestId || `req-${Date.now()}`, // Generate fallback request_id
         details: {
           classification: {
             category: classification.category,
@@ -146,7 +146,8 @@ export class ErrorResponseFactory {
           },
           suggestions: classification.clientGuidance,
           documentation_url: this.getDocumentationUrl(classification.category),
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          correlation_id: requestId || `corr-${Date.now()}` // Ensure correlation_id is always present
         }
       }
     };
@@ -185,7 +186,7 @@ export class ErrorResponseFactory {
           invalid_fields: report.errors.map(error => ({
             field: error.field,
             path: error.path,
-            message: error.message,
+            message: this.sanitizeMessage(error.message),
             code: error.code,
             value: this.sanitizeValue(error.value),
             suggestion: error.suggestion,
@@ -227,7 +228,7 @@ export class ErrorResponseFactory {
     return {
       error: {
         type: 'authentication_error',
-        message,
+        message: this.sanitizeMessage(message),
         code: 'AUTHENTICATION_FAILED',
         request_id: requestId,
         details: {
@@ -259,7 +260,7 @@ export class ErrorResponseFactory {
     return {
       error: {
         type: 'rate_limit_error',
-        message,
+        message: this.sanitizeMessage(message),
         code: 'RATE_LIMIT_EXCEEDED',
         request_id: requestId,
         details: {
@@ -295,7 +296,7 @@ export class ErrorResponseFactory {
     return {
       error: {
         type: 'server_error',
-        message,
+        message: this.sanitizeMessage(message),
         code: 'INTERNAL_SERVER_ERROR',
         request_id: requestId,
         details: {
@@ -325,10 +326,10 @@ export class ErrorResponseFactory {
   ): BaseErrorResponse {
     return {
       error: {
-        type,
-        message,
-        code,
-        request_id: requestId
+        type: this.validateErrorType(type), // Ensure type is valid
+        message: this.sanitizeMessage(message),
+        code: code || 'UNKNOWN_ERROR', // Ensure code is never empty  
+        request_id: requestId || `req-${Date.now()}` // Generate fallback request_id
       }
     };
   }
@@ -365,21 +366,29 @@ export class ErrorResponseFactory {
   }
 
   /**
-   * Map error category to OpenAI-compatible error type
+   * Validate that error type is schema-compliant
+   */
+  private static validateErrorType(type: string): string {
+    const validTypes = ['validation_error', 'server_error', 'authentication_error', 'invalid_request_error'];
+    return validTypes.includes(type) ? type : 'server_error';
+  }
+
+  /**
+   * Map error category to schema-compliant error type
    */
   private static mapCategoryToType(category: string): string {
     const mapping: Record<string, string> = {
       'client_error': 'invalid_request_error',
-      'server_error': 'api_error',
-      'validation_error': 'invalid_request_error',
+      'server_error': 'server_error', // Fixed: align with schema
+      'validation_error': 'validation_error', // Fixed: align with schema
       'authentication_error': 'authentication_error',
-      'authorization_error': 'permission_error',
-      'rate_limit_error': 'rate_limit_error',
-      'network_error': 'api_connection_error',
-      'system_error': 'api_error'
+      'authorization_error': 'invalid_request_error', // Map to valid enum value
+      'rate_limit_error': 'server_error', // Map to valid enum value
+      'network_error': 'server_error', // Map to valid enum value  
+      'system_error': 'server_error' // Map to valid enum value
     };
 
-    return mapping[category] || 'api_error';
+    return mapping[category] || 'server_error'; // Default to valid enum value
   }
 
   /**
@@ -459,6 +468,34 @@ export class ErrorResponseFactory {
       default:
         return 'Service experiencing issues';
     }
+  }
+
+  /**
+   * Sanitize error messages by removing sensitive data patterns
+   */
+  private static sanitizeMessage(message: string): string {
+    if (!message || typeof message !== 'string') {
+      return message;
+    }
+
+    let sanitized = message;
+    
+    // Apply content-based sanitization patterns
+    const sanitizationRules = [
+      { pattern: /sk-[a-zA-Z0-9]{48}/g, replacement: '[REDACTED_API_KEY]' },
+      { pattern: /Bearer [a-zA-Z0-9_.-]+/g, replacement: 'Bearer [REDACTED_TOKEN]' },
+      { pattern: /password['"]?\s*[:=]\s*['"]?[^,\s}]+['"]?/gi, replacement: 'password: "[REDACTED]"' },
+      { pattern: /\b(?:\d{4}[- ]?){3}\d{4}\b/g, replacement: '[REDACTED_CARD]' },
+      { pattern: /\b\d{3}-\d{2}-\d{4}\b/g, replacement: '[REDACTED_SSN]' },
+      { pattern: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, replacement: '[REDACTED_EMAIL]' },
+      { pattern: /\b\d{3}-\d{3}-\d{4}\b/g, replacement: '[REDACTED_PHONE]' }
+    ];
+    
+    for (const rule of sanitizationRules) {
+      sanitized = sanitized.replace(rule.pattern, rule.replacement);
+    }
+    
+    return sanitized;
   }
 
   /**

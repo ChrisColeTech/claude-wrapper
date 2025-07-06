@@ -194,8 +194,8 @@ describe('Enhanced Parameter Processing - Phase 2B', () => {
 
       expect(result.success).toBe(true);
       expect(result.tools).toHaveLength(2);
-      expect(result.tools![0].function.name).toBe('database_query');
-      expect(result.tools![1].function.name).toBe('file_operations');
+      expect(result.tools![0].function.name).toEqual('database_query');
+      expect(result.tools![1].function.name).toEqual('file_operations');
       expect(ToolProcessingUtils.hasValidTools(result)).toBe(true);
     });
 

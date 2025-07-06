@@ -254,8 +254,8 @@ describe('PerformanceMonitor', () => {
         success: true
       });
       
-      // Wait for cleanup
-      await new Promise(resolve => setTimeout(resolve, 150));
+      // Manually trigger cleanup
+      (shortRetentionMonitor as any).triggerCleanup();
       
       // Should be cleaned up
       const stats = shortRetentionMonitor.getStats('test-op');
