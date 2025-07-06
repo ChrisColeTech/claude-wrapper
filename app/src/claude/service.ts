@@ -62,7 +62,7 @@ export class ClaudeService {
   private messageAdapter: MessageAdapter;
 
   constructor(timeout: number = 600000, cwd?: string) {
-    this.client = new ClaudeClient(timeout, cwd);
+    this.client = new ClaudeClient({ timeout, cwd });
     this.sdkClient = new ClaudeSDKClient({ timeout, cwd });
     this.messageAdapter = new MessageAdapter();
   }
@@ -113,7 +113,7 @@ export class ClaudeService {
         if (Array.isArray(request)) {
           // Legacy format: array of messages
           messages = request;
-          prompt = this.messageAdapter.convertToClaudePrompt(messages);
+          prompt = MessageAdapter.convertToClaudePrompt(messages);
           sessionId = undefined;
         } else {
           // New format: structured request
@@ -213,7 +213,7 @@ export class ClaudeService {
       }
 
       // Convert messages to prompt format
-      const prompt = this.messageAdapter.convertToClaudePrompt(messages);
+      const prompt = MessageAdapter.convertToClaudePrompt(messages);
       
       // Prepare Claude Code SDK options
       const claudeOptions = this.prepareClaudeOptions(options);

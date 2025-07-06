@@ -6,12 +6,22 @@
 import { ChatCompletionRequest } from '../models/chat';
 import { Message, MessageValidation } from '../models/message';
 import { getLogger } from '../utils/logger';
-import { toolValidator } from '../tools';
-import { 
-  MESSAGE_ROLES, 
-  MESSAGE_PROCESSING_MESSAGES,
-  TOOL_MESSAGE_VALIDATION 
-} from '../tools/constants';
+// Tool validation constants for Phase 16A protocol compatibility
+const MESSAGE_ROLES = {
+  USER: 'user',
+  ASSISTANT: 'assistant', 
+  SYSTEM: 'system',
+  TOOL: 'tool'
+} as const;
+
+const MESSAGE_PROCESSING_MESSAGES = {
+  TOOL_CALL_ID_INVALID: 'Tool call ID format is invalid'
+} as const;
+
+const TOOL_MESSAGE_VALIDATION = {
+  TOOL_CALL_ID_PATTERN: /^call_[a-zA-Z0-9_-]+$/,
+  MAX_CONTENT_LENGTH: 10000
+} as const;
 import { ModelValidationHelper } from './model-validation-helper';
 import { 
   getValidationHandler, 
@@ -69,11 +79,9 @@ export class ParameterValidator {
     errors.push(...messagesResult.errors);
     warnings.push(...messagesResult.warnings);
 
-    // Validate OpenAI tools if provided
+    // Phase 16A: Reject tool requests with helpful error message
     if (request.tools || request.tool_choice) {
-      const toolsResult = this.validateOpenAITools(request.tools, request.tool_choice);
-      errors.push(...toolsResult.errors);
-      warnings.push(...toolsResult.warnings);
+      errors.push('Tool execution is not supported. This API provides OpenAI-compatible chat completions only. Tools should be executed client-side and results included in message content.');
     }
 
     // Validate n parameter (Claude Code only supports single response)
@@ -444,31 +452,14 @@ export class ParameterValidator {
     }
 
   /**
-   * Validate OpenAI tools array and tool choice
-   * Based on Phase 1A OpenAI tools validation requirements
+   * Phase 16A: Tool validation - reject with helpful message
    */
   static validateOpenAITools(tools?: any[], toolChoice?: any): ValidationResult {
     const errors: string[] = [];
     const warnings: string[] = [];
 
-    try {
-      if (tools) {
-        const toolsResult = toolValidator.validateToolArray(tools);
-        if (!toolsResult.valid) {
-          errors.push(...toolsResult.errors);
-        }
-        
-        if (toolChoice) {
-          const choiceResult = toolValidator.validateToolChoice(toolChoice, toolsResult.validTools);
-          if (!choiceResult.valid) {
-            errors.push(...choiceResult.errors);
-          }
-        }
-      } else if (toolChoice) {
-        errors.push('tool_choice parameter provided without tools array');
-      }
-    } catch (error) {
-      errors.push(`Tools validation error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    if (tools || toolChoice) {
+      errors.push('Tool execution is not supported. This API provides OpenAI-compatible chat completions only. Tools should be executed client-side and results included in message content.');
     }
 
     return {

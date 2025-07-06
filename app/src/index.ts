@@ -144,12 +144,26 @@ export { config } from './utils/env';
 export { createLogger } from './utils/logger';
 export { PortUtils } from './utils/port';
 
-// Direct execution (for npm run dev)
+// Direct execution (for npm run dev or daemon mode)
 if (require.main === module) {
   const app = new Application();
   
-  app.start().then((result) => {
-    console.log(`🚀 Server ready at ${result.server.url}`);
+  // Check if running in daemon mode
+  const isDaemon = process.env.CLAUDE_WRAPPER_DAEMON === 'true';
+  
+  const startupOptions: ApplicationOptions = {
+    port: process.env.PORT ? parseInt(process.env.PORT, 10) : undefined,
+    verbose: process.env.VERBOSE === 'true',
+    debug: process.env.DEBUG_MODE === 'true'
+  };
+  
+  app.start(startupOptions).then((result) => {
+    if (isDaemon) {
+      console.log(`🚀 Daemon server ready at ${result.server.url}`);
+      console.log(`📝 Update your client base_url to: ${result.server.url}/v1`);
+    } else {
+      console.log(`🚀 Server ready at ${result.server.url}`);
+    }
     
     // Setup graceful shutdown for direct execution (skip in test environment)
     if (!isTestEnvironment()) {

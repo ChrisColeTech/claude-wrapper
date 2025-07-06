@@ -142,9 +142,9 @@ export class ClaudeMetadataExtractor {
       return message.content;
     }
     
-    // Handle message with nested content
-    if (message.message && typeof message.message === 'object') {
-      return this.extractTextContent({ ...message, content: message.message.content });
+    // Handle message with nested content (message is string type, not object)
+    if (message.message && typeof message.message === 'string') {
+      return message.message;
     }
     
     return '';

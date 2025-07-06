@@ -11,11 +11,11 @@ import { Config } from './utils/env';
 import { createLogger } from './utils/logger';
 import { authMiddleware, authStatusMiddleware } from './auth/middleware';
 import { createCorsMiddleware } from './middleware/cors';
-import { createTimingMiddleware } from './middleware/timing';
+import { timingMiddleware } from './middleware/timing';
 import { initializeAuthentication } from './server/auth-initializer';
 import { ServerManager, ServerStartResult } from './server/server-manager';
 import { ModelsRouter, HealthRouter, ChatRouter, AuthRouter, SessionsRouter, DebugRouter } from './routes';
-import { monitoringRoutes } from './routes/monitoring';
+import monitoringRoutes from './routes/monitoring';
 
 // Re-export ServerManager and ServerStartResult for external use
 export { ServerManager, ServerStartResult };
@@ -79,11 +79,7 @@ export class ExpressAppFactory {
     app.use(createCorsMiddleware(config.corsOrigins));
 
     // Performance monitoring middleware (before request logging)
-    app.use(createTimingMiddleware({
-      logRequests: false, // Disable to avoid duplicate logging
-      logSlowRequests: true,
-      excludePaths: ['/health', '/monitoring/health', '/monitoring/metrics']
-    }));
+    app.use(timingMiddleware);
 
     // Request logging middleware
     app.use((req, _res, next) => {
@@ -117,12 +113,13 @@ export class ExpressAppFactory {
     HealthRouter.setStartTime(this.startTime);
 
     // Mount route handlers
-    app.use(ModelsRouter.createRouter());
-    app.use(HealthRouter.createRouter());
-    app.use(AuthRouter.createRouter());
-    app.use(SessionsRouter.createRouter());
-    app.use(DebugRouter.createRouter());
-    app.use(ChatRouter.createRouter());
+    // Mount routes
+    app.use('/v1/models', ModelsRouter);
+    app.use('/health', HealthRouter.createRouter());
+    app.use('/v1/auth', AuthRouter);
+    app.use('/v1/sessions', SessionsRouter);
+    app.use('/debug', DebugRouter);
+    app.use('/v1/chat', ChatRouter);
     
     // Mount monitoring routes
     app.use('/monitoring', monitoringRoutes);

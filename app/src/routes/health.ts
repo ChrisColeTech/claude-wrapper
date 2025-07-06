@@ -98,17 +98,17 @@ export class HealthRouter {
   static createRouter(): Router {
     const router = Router();
 
-    // GET /health - Basic health check
-    router.get('/health', this.basicHealthCheck.bind(this));
+    // GET / - Basic health check (mounted at /health)
+    router.get('/', this.basicHealthCheck.bind(this));
     
-    // GET /health/detailed - Detailed health check
-    router.get('/health/detailed', this.detailedHealthCheck.bind(this));
+    // GET /detailed - Detailed health check
+    router.get('/detailed', this.detailedHealthCheck.bind(this));
 
-    // GET /health/production - Production-grade comprehensive health check
-    router.get('/health/production', HealthRouter.productionHealthCheck.bind(HealthRouter));
+    // GET /production - Production-grade comprehensive health check
+    router.get('/production', HealthRouter.productionHealthCheck.bind(HealthRouter));
 
-    // GET /health/monitoring - Real-time monitoring data
-    router.get('/health/monitoring', HealthRouter.monitoringHealthCheck.bind(HealthRouter));
+    // GET /monitoring - Real-time monitoring data
+    router.get('/monitoring', HealthRouter.monitoringHealthCheck.bind(HealthRouter));
 
     return router;
   }
@@ -157,7 +157,7 @@ export class HealthRouter {
       
       // Get performance monitoring data
       const performanceStats = performanceMonitor.getAllStats();
-      const performanceData = this.calculatePerformanceMetrics(performanceStats);
+      const performanceData = this.calculatePerformanceMetrics(new Map(Object.entries(performanceStats)));
 
       const response: DetailedHealthResponse = {
         status: 'healthy',
@@ -241,7 +241,7 @@ export class HealthRouter {
       
       // Get enhanced performance monitoring data
       const performanceStats = performanceMonitor.getAllStats();
-      const performanceData = this.calculatePerformanceMetrics(performanceStats);
+      const performanceData = this.calculatePerformanceMetrics(new Map(Object.entries(performanceStats)));
 
       // Calculate memory trend
       const memoryPercentage = (memoryUsage.heapUsed / memoryUsage.heapTotal) * 100;
@@ -310,7 +310,7 @@ export class HealthRouter {
           },
           resource_usage: {
             memory_trend: memoryTrend,
-            port_conflicts_resolved: Object.values(monitoringStats.failureRates).reduce((a, b) => a + b, 0)
+            port_conflicts_resolved: Object.values(monitoringStats.failureRates).reduce((a: number, b: unknown) => a + (Number(b) || 0), 0)
           },
           health_history: {
             consecutive_healthy_checks: latestHealthReport?.summary.healthy || 0,

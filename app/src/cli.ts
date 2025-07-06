@@ -46,7 +46,6 @@ export interface CliOptions {
   apiKey?: string;
   help?: boolean;
   version?: boolean;
-  start?: boolean;
   stop?: boolean;
   status?: boolean;
   production?: boolean;
@@ -80,7 +79,6 @@ export class CliParser {
       .option('--no-interactive', 'disable interactive API key setup')
       .option('--production', 'enable production server management with enhanced features')
       .option('--health-monitoring', 'enable health monitoring system')
-      .option('--start', 'start server in background (daemon mode)')
       .option('--stop', 'stop background server')
       .option('--status', 'check background server status')
       .helpOption('-h, --help', 'display help for command')
@@ -222,173 +220,10 @@ export class CliRunner {
         return;
       }
 
-      if (options.start) {
-        await this.startDaemon(options);
-        safeExit(0);
-        return;
-      }
-
-      // Override environment variables with CLI options
-      if (options.port) {
-        process.env.PORT = options.port;
-      }
-      if (options.verbose) {
-        process.env.VERBOSE = 'true';
-      }
-      if (options.debug) {
-        process.env.DEBUG_MODE = 'true';
-      }
-      if (options.production) {
-        process.env.NODE_ENV = 'production';
-      }
-
-      // Reload config after setting environment variables
-      const { loadEnvironmentConfig } = await import('./utils/env');
-      const updatedConfig = loadEnvironmentConfig();
-
-      // Create logger with updated config
-      const logger = createLogger(updatedConfig);
-      
-      // Show startup banner
-      console.log('\n🚀 Claude Code OpenAI Wrapper v1.0.0');
-      console.log('==================================================');
-      console.log(`Starting server... ${options.production ? '(Production Mode)' : '(Development Mode)'}`);
-      console.log(`Port: ${updatedConfig.PORT}`);
-      console.log(`Debug: ${updatedConfig.DEBUG_MODE ? 'enabled' : 'disabled'}`);
-      console.log(`Verbose: ${updatedConfig.VERBOSE ? 'enabled' : 'disabled'}`);
-      console.log(`Production Features: ${options.production ? 'enabled' : 'disabled'}`);
-      console.log(`Health Monitoring: ${options.healthMonitoring ? 'enabled' : 'disabled'}`);
-      console.log('==================================================\n');
-      
-      logger.info('Starting Claude Code OpenAI Wrapper', {
-        version: '1.0.0',
-        options: {
-          port: updatedConfig.PORT,
-          verbose: updatedConfig.VERBOSE,
-          debug: updatedConfig.DEBUG_MODE,
-          interactive: options.interactive !== false,
-          production: options.production || false,
-          healthMonitoring: options.healthMonitoring || false
-        }
-      });
-
-      // Initialize security configuration manager
-      const securityConfig = createSecurityConfigManager(authManager);
-
-      // Handle CLI API key flag
-      if (options.apiKey) {
-        logger.debug('Setting API key from CLI flag...');
-        const setResult = securityConfig.setApiKey(options.apiKey, 'runtime');
-        if (setResult.success) {
-          logger.info('API key configured from CLI flag');
-        } else {
-          throw new Error(`Invalid API key: ${setResult.message}`);
-        }
-      }
-
-      // Interactive API key setup (matches Python main.py lines 859-861)
-      // This MUST run BEFORE server start (skip if CLI key provided)
-      if (options.interactive !== false && !options.apiKey) {
-        logger.debug('Running interactive API key setup...');
-        const runtimeApiKey = await promptForApiProtection();
-        if (runtimeApiKey) {
-          const setResult = securityConfig.setApiKey(runtimeApiKey, 'runtime');
-          if (setResult.success) {
-            logger.info('Runtime API key configured for server protection');
-          } else {
-            logger.warn(`Interactive API key setup failed: ${setResult.message}`);
-          }
-        }
-      }
-
-      // Start health monitoring if enabled
-      if (options.healthMonitoring) {
-        console.log('🔍 Starting health monitoring system...');
-        startHealthMonitoring();
-        logger.info('Health monitoring system started');
-      }
-
-      let result: any;
-
-      if (options.production) {
-        // Use production server management
-        console.log('🔧 Initializing production server management...');
-        this.productionServerManager = new ProductionServerManager({
-          port: updatedConfig.PORT,
-          gracefulShutdownTimeout: 10000,
-          maxStartupAttempts: 3,
-          healthCheckEnabled: options.healthMonitoring || false,
-          preflightChecks: true
-        });
-
-        console.log('🔧 Creating application instance...');
-        const app = createApp(updatedConfig);
-        
-        console.log('🚀 Starting production server...');
-        const startupResult = await this.productionServerManager.startServer(app, updatedConfig.PORT);
-        
-        if (!startupResult.success) {
-          throw new Error(`Production server startup failed: ${startupResult.errors?.join(', ')}`);
-        }
-
-        result = {
-          server: startupResult.server,
-          port: startupResult.port,
-          url: startupResult.url
-        };
-
-        logger.info('Production server started successfully', {
-          port: startupResult.port,
-          url: startupResult.url,
-          startupTime: startupResult.startupTime,
-          healthCheckUrl: startupResult.healthCheckUrl
-        });
-
-      } else {
-        // Use standard server startup
-        console.log('🔧 Initializing authentication providers...');
-        result = await createAndStartServer(updatedConfig);
-      }
-      
-      console.log('\n🎉 Server is ready and running!');
-      console.log('==================================================');
-      console.log(`🌐 Server URL: ${result.url}`);
-      console.log(`📡 Port: ${result.port}`);
-      if (options.production) {
-        console.log(`🏭 Mode: Production (Enhanced features enabled)`);
-      }
-      if (options.healthMonitoring) {
-        console.log(`💚 Health Monitoring: Active`);
-        console.log(`   Health URL:      ${result.url}/health`);
-      }
-      console.log('\n📋 Available endpoints:');
-      console.log(`   Health:          ${result.url}/health`);
-      console.log(`   Chat:            ${result.url}/v1/chat/completions`);
-      console.log(`   Models:          ${result.url}/v1/models`);
-      console.log(`   Sessions:        ${result.url}/v1/sessions`);
-      console.log(`   Auth Status:     ${result.url}/v1/auth/status`);
-      console.log('\n💡 Test with:');
-      console.log(`   curl ${result.url}/health`);
-      console.log('==================================================\n');
-      
-      logger.info('🚀 Server is ready!', {
-        url: result.url,
-        port: result.port,
-        productionMode: options.production || false,
-        healthMonitoring: options.healthMonitoring || false,
-        endpoints: [
-          `${result.url}/health`,
-          `${result.url}/v1/chat/completions`,
-          `${result.url}/v1/models`
-        ]
-      });
-
-      // Setup graceful shutdown
-      if (options.production && this.productionServerManager) {
-        this.setupProductionGracefulShutdown(logger);
-      } else {
-        this.setupGracefulShutdown(result.server, logger);
-      }
+      // Default behavior: start daemon
+      await this.startDaemon(options);
+      safeExit(0);
+      return;
 
     } catch (error) {
       this.handleError(error as Error);
@@ -544,40 +379,40 @@ export class CliRunner {
     console.log('🚀 Starting claude-wrapper in background...');
     
     const port = options.port || '8000';
-    const args = [port, '--no-interactive'];
-    if (options.verbose) args.push('--verbose');
-    if (options.debug) args.push('--debug');
-    if (options.production) args.push('--production');
-    if (options.healthMonitoring) args.push('--health-monitoring');
 
-    // Spawn detached process using node directly to avoid recursion
-    const { spawn } = require('child_process');
-    const nodePath = process.execPath;
-    const scriptPath = path.join(__dirname, 'index.js'); // Use absolute path to index.js
+    // Use nohup approach that we know works
+    const { exec } = require('child_process');
     
-    const child = spawn(nodePath, [scriptPath], {
-      detached: true,
-      stdio: ['ignore', 'pipe', 'pipe'],
-      env: {
-        ...process.env,
-        PORT: port,
-        VERBOSE: options.verbose ? 'true' : undefined,
-        DEBUG_MODE: options.debug ? 'true' : undefined
-      }
+    const envVars = [
+      `PORT=${port}`,
+      ...(options.verbose ? ['VERBOSE=true'] : []),
+      ...(options.debug ? ['DEBUG_MODE=true'] : []),
+      ...(options.production ? ['NODE_ENV=production'] : []),
+      'CLAUDE_WRAPPER_DAEMON=true'
+    ].join(' ');
+    
+    const serverScript = path.join(__dirname, 'index.js');
+    const command = `${envVars} nohup node ${serverScript} > ${logFile} 2>&1 & echo $!`;
+    
+    const childPid = await new Promise<string>((resolve, reject) => {
+      exec(command, (error: any, stdout: any, stderr: any) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+        const pid = stdout.trim();
+        resolve(pid);
+      });
     });
 
     // Write PID file
-    fs.writeFileSync(pidFile, child.pid.toString());
+    fs.writeFileSync(pidFile, childPid);
 
-    // Setup logging
-    const logStream = fs.createWriteStream(logFile, { flags: 'a' });
-    child.stdout.pipe(logStream);
-    child.stderr.pipe(logStream);
-
-    child.unref(); // Allow parent to exit
+    // Give the process a moment to start
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
     console.log(`✅ Server started in background`);
-    console.log(`   PID: ${child.pid}`);
+    console.log(`   PID: ${childPid}`);
     console.log(`   Port: ${port}`);
     console.log(`   Logs: ${logFile}`);
     console.log(`   Stop: claude-wrapper --stop`);
@@ -626,14 +461,17 @@ export class CliRunner {
       console.log(`   PID: ${pid}`);
       console.log(`   Logs: ${logFile}`);
       
-      // Try to get port from curl
-      try {
-        const { stdout } = await execAsync('curl -s http://localhost:8000/health');
-        if (stdout.includes('healthy')) {
-          console.log('   Health: ✅ OK (port 8000)');
+      // Try to detect port and test health
+      for (const port of [8000, 8001, 8002, 8003, 8004, 8005, 8006, 8007, 8008]) {
+        try {
+          const { stdout } = await execAsync(`curl -s --connect-timeout 1 http://localhost:${port}/health`);
+          if (stdout.includes('healthy')) {
+            console.log(`   Health: ✅ OK (port ${port})`);
+            break;
+          }
+        } catch {
+          // Continue checking other ports
         }
-      } catch {
-        console.log('   Health: ❓ Could not connect to port 8000');
       }
       
     } catch {

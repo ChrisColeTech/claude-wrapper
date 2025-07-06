@@ -8,7 +8,13 @@
 import { Message } from '../models/message';
 import { getLogger } from '../utils/logger';
 import { performanceMonitor, PerformanceUtils } from '../monitoring/performance-monitor';
-import { ICleanupService } from '../services/cleanup-service';
+import { CleanupService } from '../services/cleanup-service';
+
+interface ICleanupService {
+  start(): void;
+  stop(): void;
+  isRunning(): boolean;
+}
 
 const logger = getLogger('SessionManager');
 
@@ -200,7 +206,7 @@ export class SessionManager {
     if (this.performanceTracking) {
       return PerformanceUtils.monitorSync('session-get-or-create', () => {
         return this._get_or_create_session_internal(session_id);
-      }, { sessionId: session_id });
+      });
     } else {
       return this._get_or_create_session_internal(session_id);
     }
@@ -241,10 +247,6 @@ export class SessionManager {
     if (this.performanceTracking) {
       return PerformanceUtils.monitorSync('session-process-messages', () => {
         return this._process_messages_internal(messages, session_id);
-      }, { 
-        sessionId: session_id,
-        messageCount: messages.length,
-        isStateless: session_id === null || session_id === undefined
       });
     } else {
       return this._process_messages_internal(messages, session_id);

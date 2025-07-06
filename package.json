@@ -2,13 +2,14 @@
   "name": "claude-wrapper",
   "version": "1.0.0",
   "description": "OpenAI-compatible API wrapper for Claude Code CLI",
-  "main": "app/dist/index.js",
+  "main": "app/dist/src/index.js",
   "bin": {
-    "claude-wrapper": "app/dist/cli.js"
+    "claude-wrapper": "app/dist/src/cli.js"
   },
   "scripts": {
-    "build": "cd app && tsc",
-    "start": "node app/dist/cli.js",
+    "build": "cd app && tsc > build.log 2>&1",
+    "build:log": "cd app && tsc > build.log 2>&1",
+    "start": "node app/dist/src/cli.js",
     "dev": "cd app && tsx watch src/index.ts",
     "test": "cd app && jest --passWithNoTests",
     "test:watch": "cd app && jest --watch",

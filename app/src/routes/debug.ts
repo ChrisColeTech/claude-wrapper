@@ -7,7 +7,7 @@
  */
 
 import { Router } from 'express';
-import { debugRouter } from '../debug/debug-router';
+import debugRouter from '../debug/debug-router';
 import { CompatibilityReporter } from '../validation/compatibility';
 import { ChatCompletionRequestSchema } from '../models/chat';
 import { getLogger } from '../utils/logger';
@@ -71,7 +71,7 @@ export class DebugRouter {
    * Uses the new Phase 14A debug-router implementation
    */
   static createRouter(): Router {
-    const router = debugRouter.getRouter();
+    const router = debugRouter;
     logger.info('DebugRouter configured with Phase 14A debug services');
     return router;
   }

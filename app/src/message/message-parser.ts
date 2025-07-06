@@ -139,9 +139,9 @@ export class MessageParser implements IMessageParser {
       return this.parseContentValue(message.content);
     }
 
-    // Check message object
-    if (message.message?.content) {
-      return this.parseContentValue(message.message.content);
+    // Check message object (message is string type, not object)
+    if (message.message && typeof message.message === 'string') {
+      return message.message;
     }
 
     // Check data object
@@ -334,7 +334,7 @@ export class ContentFilter implements IContentFilter {
    * Extract attempt completion content
    */
   extractAttemptCompletion(content: string): string | null {
-    const matches = [...content.matchAll(CONTENT_FILTER_PATTERNS.ATTEMPT_COMPLETION)];
+    const matches = Array.from(content.matchAll(CONTENT_FILTER_PATTERNS.ATTEMPT_COMPLETION));
     
     if (matches.length === 0) {
       return null;
@@ -343,7 +343,7 @@ export class ContentFilter implements IContentFilter {
     let extractedContent = matches[0][1].trim();
 
     // Check for nested result blocks
-    const resultMatches = [...extractedContent.matchAll(CONTENT_FILTER_PATTERNS.RESULT_BLOCKS)];
+    const resultMatches = Array.from(extractedContent.matchAll(CONTENT_FILTER_PATTERNS.RESULT_BLOCKS));
     if (resultMatches.length > 0) {
       extractedContent = resultMatches[0][1].trim();
     }

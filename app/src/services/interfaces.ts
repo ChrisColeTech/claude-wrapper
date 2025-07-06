@@ -7,7 +7,7 @@
  */
 
 import { SessionInfo, SessionListResponse } from '../models/session';
-import { SessionServiceConfig } from './session-service';
+import { SessionService } from './session-service';
 
 /**
  * Session Service Interface
@@ -78,7 +78,7 @@ export interface ISessionService {
    * Get service configuration
    * Returns current service settings
    */
-  getConfig(): SessionServiceConfig;
+  getConfig(): any;
 
   /**
    * Get session statistics

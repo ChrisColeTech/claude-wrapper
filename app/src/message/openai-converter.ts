@@ -90,10 +90,8 @@ export class OpenAIConverter implements IClaudeToOpenAIConverter {
         return message.data.session_id;
       }
       
-      // Check in message object
-      if (message.message?.session_id) {
-        return message.message.session_id;
-      }
+      // Check in message object (message is string type, not object)
+      // message property is string, not object with session_id
     }
     
     return undefined;
@@ -173,10 +171,10 @@ export class OpenAIConverter implements IClaudeToOpenAIConverter {
       }
     }
 
-    // Strategy 4: Look in message objects
+    // Strategy 4: Look in message objects (message is string type, not object)
     for (const message of claudeMessages) {
-      if (message.message?.content) {
-        return this.parseClaudeContent(message.message.content);
+      if (message.message && typeof message.message === 'string') {
+        return message.message;
       }
     }
 
@@ -270,9 +268,8 @@ export class OpenAIConverter implements IClaudeToOpenAIConverter {
       if (message.stop_reason) {
         return message.stop_reason;
       }
-      if (message.message?.stop_reason) {
-        return message.message.stop_reason;
-      }
+      // message property is string, not object with stop_reason
+      // Skip checking message.message.stop_reason as message is string type
     }
 
     return OPENAI_FORMAT_CONSTANTS.DEFAULT_FINISH_REASON;
