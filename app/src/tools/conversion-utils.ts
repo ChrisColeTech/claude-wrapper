@@ -50,7 +50,8 @@ export class ConversionUtils {
       
       try {
         // Execute function in next tick to allow timeout to be processed
-        setImmediate(async () => {
+        // Use process.nextTick for more consistent behavior across Node.js versions
+        process.nextTick(async () => {
           try {
             const result = await conversionFn();
             if (!hasResolved) {
