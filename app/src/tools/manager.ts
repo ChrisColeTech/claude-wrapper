@@ -114,7 +114,7 @@ export class ToolManager implements IToolManager {
    * Configure tools based on request parameters
    * CHANGE: Tools enabled by default (opposite of Python)
    */
-  configureTools(config: ToolConfiguration): ToolResponse {
+  static configureTools(config: ToolConfiguration): ToolResponse {
     logger.debug('Configuring tools', { config });
     
     // If tools are explicitly disabled, return minimal configuration
@@ -164,7 +164,7 @@ export class ToolManager implements IToolManager {
    * Parse tool configuration from HTTP headers
    * Based on Python parameter_validator.py:96-137 header parsing
    */
-  parseToolHeaders(headers: Record<string, string>): ToolConfiguration {
+  static parseToolHeaders(headers: Record<string, string>): ToolConfiguration {
     const config: ToolConfiguration = {};
     
     // Parse tools enabled/disabled
@@ -228,7 +228,7 @@ export class ToolManager implements IToolManager {
   /**
    * Get tool statistics for debugging
    */
-  getToolStats(config: ToolResponse): {
+  static getToolStats(config: ToolResponse): {
     total_tools: number;
     enabled_tools: number;
     disabled_tools: number;
@@ -258,7 +258,7 @@ export class ToolManager implements IToolManager {
   /**
    * Validate tool configuration
    */
-  validateToolConfig(config: ToolConfiguration): { valid: boolean; errors: string[] } {
+  static validateToolConfig(config: ToolConfiguration): { valid: boolean; errors: string[] } {
     const errors: string[] = [];
     
     if (config.allowed_tools) {
