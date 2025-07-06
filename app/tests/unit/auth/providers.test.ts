@@ -56,56 +56,28 @@ jest.mock("../../../src/auth/utils/credential-validator", () => {
       let errors: string[] = [];
       let config: Record<string, any> = {};
       
-      return {
+      const mockInstance: any = {
         addError: jest.fn().mockImplementation((error: string) => {
           errors.push(error);
-          return {
-            addError: jest.fn().mockReturnThis(),
-            addConfig: jest.fn().mockReturnThis(),
-            setConfig: jest.fn().mockReturnThis(),
-            build: jest.fn().mockReturnValue({
-              valid: errors.length === 0,
-              errors,
-              config,
-              method,
-            }),
-          };
+          return mockInstance;
         }),
         addConfig: jest.fn().mockImplementation((key: string, value: any) => {
           config[key] = value;
-          return {
-            addError: jest.fn().mockReturnThis(),
-            addConfig: jest.fn().mockReturnThis(),
-            setConfig: jest.fn().mockReturnThis(),
-            build: jest.fn().mockReturnValue({
-              valid: errors.length === 0,
-              errors,
-              config,
-              method,
-            }),
-          };
+          return mockInstance;
         }),
         setConfig: jest.fn().mockImplementation((newConfig: Record<string, any>) => {
           config = { ...config, ...newConfig };
-          return {
-            addError: jest.fn().mockReturnThis(),
-            addConfig: jest.fn().mockReturnThis(),
-            setConfig: jest.fn().mockReturnThis(),
-            build: jest.fn().mockReturnValue({
-              valid: errors.length === 0,
-              errors,
-              config,
-              method,
-            }),
-          };
+          return mockInstance;
         }),
-        build: jest.fn().mockReturnValue({
+        build: jest.fn().mockImplementation(() => ({
           valid: errors.length === 0,
           errors,
           config,
           method,
-        }),
+        })),
       };
+      
+      return mockInstance;
     }),
     ValidationUtils: {
       hasEnvVar: jest.fn(),

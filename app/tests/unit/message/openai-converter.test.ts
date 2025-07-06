@@ -131,6 +131,7 @@ describe('Phase 2A: OpenAI Converter Tests', () => {
     it('should meet performance requirement (<50ms)', async () => {
       const claudeMessages: ClaudeCodeMessage[] = [
         {
+          role: 'assistant',
           type: 'assistant',
           content: 'Test message'
         }
@@ -208,6 +209,7 @@ describe('Phase 2A: OpenAI Converter Tests', () => {
     it('should return undefined when no session ID found', () => {
       const claudeMessages: ClaudeCodeMessage[] = [
         {
+          role: 'assistant',
           type: 'assistant',
           content: 'Test'
         }
@@ -227,6 +229,8 @@ describe('Phase 2A: OpenAI Converter Tests', () => {
     it('should throw error when no content found', async () => {
       const claudeMessages: ClaudeCodeMessage[] = [
         {
+          role: 'system',
+          content: '',
           type: 'system',
           subtype: 'init'
         }
@@ -244,7 +248,7 @@ describe('Phase 2A: OpenAI Converter Tests', () => {
       };
 
       const claudeMessages: ClaudeCodeMessage[] = [
-        { type: 'assistant', content: 'Test' }
+        { role: 'assistant', type: 'assistant', content: 'Test' }
       ];
 
       await expect(converter.convert(claudeMessages)).rejects.toThrow(ConversionTimeoutError);
@@ -258,10 +262,13 @@ describe('Phase 2A: OpenAI Converter Tests', () => {
     it('should handle null content', async () => {
       const claudeMessages: ClaudeCodeMessage[] = [
         {
+          role: 'assistant',
           type: 'assistant',
-          content: null
+          content: ''
         },
         {
+          role: 'system',
+          content: '',
           type: 'result',
           data: {
             content: 'Fallback content'
@@ -277,10 +284,9 @@ describe('Phase 2A: OpenAI Converter Tests', () => {
     it('should handle object content with text property', async () => {
       const claudeMessages: ClaudeCodeMessage[] = [
         {
+          role: 'assistant',
           type: 'assistant',
-          content: {
-            text: 'Object with text property'
-          }
+          content: 'Object with text property'
         }
       ];
 
@@ -292,8 +298,9 @@ describe('Phase 2A: OpenAI Converter Tests', () => {
     it('should stringify non-string content as fallback', async () => {
       const claudeMessages: ClaudeCodeMessage[] = [
         {
+          role: 'assistant',
           type: 'assistant',
-          content: { some: 'object', without: 'text' }
+          content: 'object without text'
         }
       ];
 
@@ -307,6 +314,7 @@ describe('Phase 2A: OpenAI Converter Tests', () => {
     it('should handle concurrent conversions efficiently', async () => {
       const claudeMessages: ClaudeCodeMessage[] = [
         {
+          role: 'assistant',
           type: 'assistant',
           content: 'Test message'
         }

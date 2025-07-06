@@ -17,7 +17,13 @@ import { ClaudeMetadataExtractor } from '../../../src/claude/metadata';
 // Mock dependencies
 jest.mock('../../../src/claude/client');
 jest.mock('../../../src/claude/sdk-client');
-jest.mock('../../../src/message/adapter');
+jest.mock('../../../src/message/adapter', () => ({
+  MessageAdapter: {
+    convertToClaudePrompt: jest.fn().mockReturnValue('Converted prompt'),
+    convertToClaudeFormat: jest.fn(),
+    convertToOpenAIFormat: jest.fn()
+  }
+}));
 jest.mock('../../../src/claude/parser', () => ({
   ClaudeResponseParser: {
     isCompleteResponse: jest.fn(),
@@ -40,7 +46,6 @@ describe('Phase 6A: Claude Service Tests', () => {
   let service: ClaudeService;
   let mockClient: jest.Mocked<ClaudeClient>;
   let mockSDKClient: jest.Mocked<ClaudeSDKClient>;
-  let mockAdapter: jest.Mocked<MessageAdapter>;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -48,7 +53,6 @@ describe('Phase 6A: Claude Service Tests', () => {
     // Create mocked instances
     mockClient = new ClaudeClient() as jest.Mocked<ClaudeClient>;
     mockSDKClient = new ClaudeSDKClient({}) as jest.Mocked<ClaudeSDKClient>;
-    mockAdapter = new MessageAdapter() as jest.Mocked<MessageAdapter>;
     
     // Mock StreamResponseParser - each instance has its own messages array
     (StreamResponseParser as jest.MockedClass<typeof StreamResponseParser>).mockImplementation(() => {
@@ -80,7 +84,6 @@ describe('Phase 6A: Claude Service Tests', () => {
     // Mock constructors to return our mocks
     (ClaudeClient as jest.MockedClass<typeof ClaudeClient>).mockImplementation(() => mockClient);
     (ClaudeSDKClient as jest.MockedClass<typeof ClaudeSDKClient>).mockImplementation(() => mockSDKClient);
-    (MessageAdapter as jest.MockedClass<typeof MessageAdapter>).mockImplementation(() => mockAdapter);
     
     // Setup default mocks
     mockClient.getTimeout.mockReturnValue(300000);
@@ -93,7 +96,7 @@ describe('Phase 6A: Claude Service Tests', () => {
       version: 'claude-code-sdk'
     });
     
-    // MessageAdapter has static methods in Phase 16A, no instance methods to mock
+    // MessageAdapter is mocked at module level with static methods
     
     // Mock parser and metadata modules
     (ClaudeResponseParser.isCompleteResponse as jest.Mock).mockImplementation((messages: any[]) => {
@@ -199,13 +202,12 @@ describe('Phase 6A: Claude Service Tests', () => {
 
   describe('ClaudeService.constructor', () => {
     it('should initialize with custom timeout and cwd', () => {
-      expect(ClaudeClient).toHaveBeenCalledWith(300000, '/test/cwd');
-      expect(MessageAdapter).toHaveBeenCalled();
+      expect(ClaudeClient).toHaveBeenCalledWith({ timeout: 300000, cwd: '/test/cwd' });
     });
 
     it('should initialize with default values', () => {
       new ClaudeService();
-      expect(ClaudeClient).toHaveBeenCalledWith(600000, undefined);
+      expect(ClaudeClient).toHaveBeenCalledWith({ timeout: 600000, cwd: undefined });
     });
   });
 
