@@ -5,12 +5,8 @@
 
 import { MockClaudeClient } from "./mocks/MockClaudeClient";
 import { MockSessionStore } from "./mocks/MockSessionStore";
-import { setupCustomMatchers } from "./helpers/openai-tools/assertion-helpers";
 import { jest, afterEach, beforeEach, afterAll } from "@jest/globals";
 import { globalCleanupRegistry, CleanupUtils } from "../src/utils/cleanup-utils";
-import { cleanupSystemMonitor } from "../src/monitoring/system-monitor";
-import { cleanupPerformanceMonitor } from "../src/monitoring/performance-monitor";
-import { cleanupHealthMonitor } from "../src/monitoring/health-monitor";
 
 // Configure test environment
 process.env.NODE_ENV = "test";
@@ -46,8 +42,7 @@ let initialMemoryUsage: NodeJS.MemoryUsage;
 // Jest configuration
 jest.setTimeout(30000);
 
-// Setup custom matchers for OpenAI tools testing
-setupCustomMatchers();
+// Phase 16A: OpenAI tools custom matchers removed
 
 // Set up global memory monitoring and cleanup
 beforeEach(() => {
@@ -65,10 +60,7 @@ afterEach(() => {
   // Clean up all global resources
   globalCleanupRegistry.cleanup();
   
-  // Clean up monitoring resources
-  cleanupSystemMonitor();
-  cleanupPerformanceMonitor();
-  cleanupHealthMonitor();
+  // Phase 16A: Monitoring cleanup functions removed
   
   // Clean up process signals (safe in test environment)
   CleanupUtils.cleanupProcessSignals({
@@ -89,9 +81,6 @@ afterEach(() => {
 afterAll(() => {
   // Comprehensive cleanup
   globalCleanupRegistry.cleanup();
-  cleanupSystemMonitor();
-  cleanupPerformanceMonitor();
-  cleanupHealthMonitor();
   
   // Clean up any remaining signal handlers
   CleanupUtils.cleanupProcessSignals({
