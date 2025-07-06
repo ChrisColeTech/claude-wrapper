@@ -66,7 +66,14 @@ describe('ToolChoiceEnforcerFactory', () => {
 
     expect(result1.success).toBe(true);
     expect(result2.success).toBe(true);
-    expect(result1).toEqual(result2);
+    
+    // Compare all properties except timing-related ones
+    expect(result1.success).toEqual(result2.success);
+    expect(result1.enforcementAction).toEqual(result2.enforcementAction);
+    expect(result1.modifiedResponse).toEqual(result2.modifiedResponse);
+    expect(result1.violations).toEqual(result2.violations);
+    expect(result1.errors).toEqual(result2.errors);
+    // Don't compare enforcementTimeMs as it will differ between calls
   });
 
   it('should maintain factory pattern consistency', () => {
