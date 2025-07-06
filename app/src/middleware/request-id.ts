@@ -441,6 +441,11 @@ export class RequestIdManager {
    * Start cleanup scheduler for old completed requests
    */
   private startCleanupScheduler(): void {
+    // Skip interval creation in test environment to prevent memory leaks
+    if (process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID) {
+      return;
+    }
+
     setInterval(() => {
       this.cleanupStaleRequests();
     }, 300000); // Every 5 minutes

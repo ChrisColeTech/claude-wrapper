@@ -272,6 +272,11 @@ export class PortManager {
    * Start cleanup scheduler for expired reservations
    */
   private startCleanupScheduler(): void {
+    // Skip interval creation in test environment to prevent memory leaks
+    if (process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID) {
+      return;
+    }
+
     this.cleanupInterval = setInterval(() => {
       this.cleanupExpiredReservations();
     }, 60000); // Run every minute
@@ -281,10 +286,12 @@ export class PortManager {
       process.setMaxListeners(20);
     }
 
-    // Cleanup on process exit
-    process.on('exit', () => this.shutdown());
-    process.on('SIGINT', () => this.shutdown());
-    process.on('SIGTERM', () => this.shutdown());
+    // Cleanup on process exit - skip in test environment to prevent memory leaks
+    if (process.env.NODE_ENV !== 'test' && !process.env.JEST_WORKER_ID) {
+      process.on('exit', () => this.shutdown());
+      process.on('SIGINT', () => this.shutdown());
+      process.on('SIGTERM', () => this.shutdown());
+    }
   }
 
   /**

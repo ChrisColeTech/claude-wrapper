@@ -100,24 +100,42 @@ export class ClaudeService {
    * Phase 5A: Enhanced with model validation before SDK calls
    */
   async createCompletion(
-    messages: Message[],
+    request: { prompt: string; options: Record<string, any>; sessionId?: string } | Message[],
     options: ClaudeCompletionOptions = {}
   ): Promise<ClaudeCompletionResponse> {
     return handleClaudeSDKCall(async () => {
       try {
+        // Handle both request formats
+        let prompt: string;
+        let messages: Message[];
+        let sessionId: string | undefined;
+
+        if (Array.isArray(request)) {
+          // Legacy format: array of messages
+          messages = request;
+          prompt = this.messageAdapter.convertToClaudePrompt(messages);
+          sessionId = undefined;
+        } else {
+          // New format: structured request
+          prompt = request.prompt;
+          sessionId = request.sessionId;
+          // Merge options from request
+          options = { ...options, ...request.options };
+          messages = []; // Empty array for logging
+        }
+
         logger.info('Creating Claude completion', { 
           messageCount: messages.length,
+          hasPrompt: !!prompt,
           model: options.model,
-          maxTurns: options.max_turns 
+          maxTurns: options.max_turns,
+          sessionId
         });
 
         // Phase 5A: Validate model before proceeding
         if (options.model) {
           this.validateModelForCompletion(options.model, ['streaming']);
         }
-
-        // Convert messages to prompt format
-        const prompt = this.messageAdapter.convertToClaudePrompt(messages);
         
         // Prepare Claude Code SDK options
         const claudeOptions = this.prepareClaudeOptions(options);

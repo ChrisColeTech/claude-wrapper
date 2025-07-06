@@ -15,6 +15,18 @@ import { createAndStartServer, ServerStartResult } from './server';
 dotenv.config();
 
 /**
+ * Check if running in test environment
+ */
+function isTestEnvironment(): boolean {
+  return (
+    process.env.NODE_ENV === 'test' ||
+    process.env.JEST_WORKER_ID !== undefined ||
+    typeof global.describe === 'function' ||
+    typeof (global as any).it === 'function'
+  );
+}
+
+/**
  * Application startup options
  */
 export interface ApplicationOptions {
@@ -139,15 +151,17 @@ if (require.main === module) {
   app.start().then((result) => {
     console.log(`🚀 Server ready at ${result.server.url}`);
     
-    // Setup graceful shutdown for direct execution
-    const gracefulShutdown = async (signal: string) => {
-      console.log(`\nReceived ${signal}, shutting down gracefully...`);
-      await result.shutdown();
-      process.exit(0);
-    };
+    // Setup graceful shutdown for direct execution (skip in test environment)
+    if (!isTestEnvironment()) {
+      const gracefulShutdown = async (signal: string) => {
+        console.log(`\nReceived ${signal}, shutting down gracefully...`);
+        await result.shutdown();
+        process.exit(0);
+      };
 
-    process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-    process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+      process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+      process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+    }
     
   }).catch((error) => {
     console.error('Failed to start application:', error);

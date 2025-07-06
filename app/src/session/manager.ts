@@ -148,6 +148,12 @@ export class SessionManager {
 
     const intervalMs = this.cleanup_interval_minutes * 60 * 1000;
     
+    // Skip interval creation in test environment to prevent memory leaks
+    if (process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID) {
+      logger.info('Skipping cleanup task interval creation in test environment');
+      return;
+    }
+    
     this.cleanup_task = setInterval(() => {
       try {
         if (this.performanceTracking) {

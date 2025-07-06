@@ -6,6 +6,8 @@
 
 import { EventEmitter } from 'events';
 import { getLogger } from '../utils/logger';
+import { ResourceManager } from '../utils/resource-manager';
+import { CleanupUtils } from '../utils/cleanup-utils';
 
 const logger = getLogger('SystemMonitor');
 
@@ -108,10 +110,15 @@ export class SystemMonitor extends EventEmitter {
   private errorCount: number = 0;
   private responseTimes: number[] = [];
   private isMonitoring: boolean = false;
+  private resourceManager: ResourceManager;
 
   constructor(alertConfig?: Partial<AlertConfig>) {
     super();
     this.startTime = Date.now();
+    this.resourceManager = new ResourceManager('SystemMonitor');
+    
+    // Increase max listeners to prevent warnings in tests
+    this.setMaxListeners(50);
     
     this.alertConfig = {
       enabled: true,
@@ -128,6 +135,9 @@ export class SystemMonitor extends EventEmitter {
       },
       ...alertConfig
     };
+
+    // Track this EventEmitter for cleanup
+    this.resourceManager.trackEmitter(this, 'SystemMonitor EventEmitter');
 
     this.initializeMetrics();
     this.initializeHealth();
@@ -217,12 +227,12 @@ export class SystemMonitor extends EventEmitter {
     // Initial health check
     this.performHealthCheck();
 
-    // Set up periodic monitoring
-    this.monitoringInterval = setInterval(() => {
+    // Set up periodic monitoring with resource tracking
+    this.monitoringInterval = this.resourceManager.trackInterval(() => {
       this.performHealthCheck();
       this.updateMetrics();
       this.checkAlerts();
-    }, intervalMs);
+    }, intervalMs, 'Health check interval');
 
     this.emit('monitoring:started');
   }
@@ -244,6 +254,33 @@ export class SystemMonitor extends EventEmitter {
 
     logger.info('System monitoring stopped');
     this.emit('monitoring:stopped');
+  }
+
+  /**
+   * Cleanup all resources and stop monitoring
+   * Prevents memory leaks by properly cleaning up EventEmitter and intervals
+   */
+  cleanup(): void {
+    logger.info('Cleaning up SystemMonitor resources');
+    
+    // Stop monitoring first
+    this.stop();
+    
+    // Cleanup all tracked resources
+    this.resourceManager.cleanup();
+    
+    // Additional EventEmitter cleanup
+    this.removeAllListeners();
+    
+    logger.info('SystemMonitor cleanup completed');
+  }
+
+  /**
+   * Destroy the monitor instance completely
+   */
+  destroy(): void {
+    this.cleanup();
+    this.resourceManager.destroy();
   }
 
   /**
@@ -638,4 +675,8 @@ export const getSystemMetrics = (): SystemMetrics => {
 
 export const recordRequest = (responseTime: number, success: boolean): void => {
   systemMonitor.recordRequest(responseTime, success);
+};
+
+export const cleanupSystemMonitor = (): void => {
+  systemMonitor.cleanup();
 };

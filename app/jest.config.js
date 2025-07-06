@@ -12,4 +12,13 @@ module.exports = {
     "!src/index.ts",
   ],
   coverageDirectory: "tests/logs/coverage",
+  
+  // Memory management configuration
+  setupFilesAfterEnv: ["<rootDir>/tests/jest-memory-setup.js"],
+  maxWorkers: "50%", // Reduce workers to save memory
+  workerIdleMemoryLimit: "512MB",
+  
+  // Global test configuration for memory leak prevention
+  globalSetup: "<rootDir>/tests/global-setup.js",
+  globalTeardown: "<rootDir>/tests/global-teardown.js"
 };

@@ -34,11 +34,12 @@ export class NonStreamingHandler {
       // Build Claude options with tool choice
       const claudeOptions = this.buildClaudeOptions(request, claudeHeaders, choiceContext);
       
-      // Mock Claude response (Claude service integration pending)
-      const claudeResponse = {
-        content: 'I understand your request and will help you with that.',
-        stop_reason: 'end_turn'
-      };
+      // Get real Claude response
+      const claudeResponse = await claudeService.createCompletion({
+        prompt,
+        options: claudeOptions,
+        sessionId
+      });
       
       // Parse tool calls from response if present
       const { toolCalls, assistantContent } = await this.parseToolCallsFromResponse(

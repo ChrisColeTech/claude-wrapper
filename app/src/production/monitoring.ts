@@ -140,14 +140,17 @@ export class ProductionMonitoring extends EventEmitter implements IMonitoring {
     this.alerts = new Map();
     this.metricsRetentionMs = config.metricsRetentionMs || 24 * 60 * 60 * 1000; // 24 hours
 
-    // Start health check monitoring
-    this.healthCheckInterval = setInterval(
-      () => this.performHealthCheck(),
-      config.healthCheckIntervalMs || 30000 // 30 seconds
-    );
+    // Skip interval creation in test environment to prevent memory leaks
+    if (process.env.NODE_ENV !== 'test' && !process.env.JEST_WORKER_ID) {
+      // Start health check monitoring
+      this.healthCheckInterval = setInterval(
+        () => this.performHealthCheck(),
+        config.healthCheckIntervalMs || 30000 // 30 seconds
+      );
 
-    // Cleanup old metrics every hour
-    this.cleanupInterval = setInterval(() => this.cleanupOldMetrics(), 60 * 60 * 1000);
+      // Cleanup old metrics every hour
+      this.cleanupInterval = setInterval(() => this.cleanupOldMetrics(), 60 * 60 * 1000);
+    }
   }
 
   recordToolOperation(

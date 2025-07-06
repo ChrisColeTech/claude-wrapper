@@ -51,32 +51,25 @@ export class ClaudeSDKClient implements IClaudeSDKClient, ISDKVerifier {
       ...config
     };
 
-    // Initialize SDK in non-test environments
-    if (process.env.NODE_ENV !== 'test') {
-      this.initializeSDK().catch(error => {
-        logger.debug(`SDK initialization deferred: ${error.message}`);
-      });
-    } else {
-      // Use fallback SDK for tests
-      this.sdk = this.createFallbackSDK();
-    }
+    // Initialize SDK immediately
+    this.initializeSDK().catch(error => {
+      logger.warn(`SDK initialization failed: ${error.message}`);
+    });
   }
 
   /**
    * Initialize Claude Code SDK
-   * Based on CLAUDE_SDK_REFERENCE.md SDK initialization patterns
+   * Imports and configures the real Claude Code SDK
    */
   private async initializeSDK(): Promise<void> {
     return handleClaudeSDKCall(async () => {
-      try {
-        // Try to import the official Claude Code SDK
-        const claudeModule = await import('@anthropic-ai/claude-code');
-        this.sdk = claudeModule;
-        logger.info('✅ Claude Code SDK initialized successfully');
-      } catch (error) {
-        logger.warn('⚠️ Claude Code SDK not available, using fallback implementation');
-        this.sdk = this.createFallbackSDK();
-      }
+      // Import the official Claude Code SDK
+      const claudeModule = await import('@anthropic-ai/claude-code');
+      
+      // Store the SDK module which contains the query function
+      this.sdk = claudeModule;
+      
+      logger.info('✅ Claude Code SDK initialized successfully');
     });
   }
 
@@ -190,12 +183,15 @@ export class ClaudeSDKClient implements IClaudeSDKClient, ISDKVerifier {
         max_turns: options.max_turns || this.config.max_turns
       };
 
-      if (this.sdk.query) {
-        // Use real Claude SDK
-        yield* this.sdk.query(prompt, claudeOptions);
+      if (this.sdk?.query) {
+        // Use real Claude SDK with correct API
+        const sdkOptions = this.convertToSDKOptions(claudeOptions);
+        yield* this.sdk.query({
+          prompt,
+          options: sdkOptions
+        });
       } else {
-        // Use fallback implementation
-        yield* this.fallbackQuery(prompt, claudeOptions);
+        throw new ClaudeSDKError('Claude SDK not properly initialized');
       }
     } catch (error) {
       throw new ClaudeSDKError(`SDK completion failed: ${error}`);
@@ -223,6 +219,21 @@ export class ClaudeSDKClient implements IClaudeSDKClient, ISDKVerifier {
    */
   getCwd(): string {
     return this.config.cwd;
+  }
+
+  /**
+   * Convert our options to Claude SDK options format
+   */
+  private convertToSDKOptions(options: ClaudeCodeOptions): any {
+    return {
+      model: options.model,
+      maxTurns: options.max_turns,
+      allowedTools: options.allowed_tools,
+      disallowedTools: options.disallowed_tools,
+      permissionMode: options.permission_mode || 'default',
+      maxThinkingTokens: options.max_thinking_tokens,
+      cwd: options.cwd || this.config.cwd
+    };
   }
 
   /**
@@ -268,56 +279,7 @@ export class ClaudeSDKClient implements IClaudeSDKClient, ISDKVerifier {
     this.originalEnvVars = {};
   }
 
-  /**
-   * Create fallback SDK implementation
-   * Used when official SDK is not available
-   */
-  private createFallbackSDK(): any {
-    return {
-      query: this.fallbackQuery.bind(this),
-      version: 'fallback-1.0.0'
-    };
-  }
 
-  /**
-   * Fallback query implementation
-   * Simulates Claude SDK behavior for development/testing
-   */
-  private async *fallbackQuery(
-    prompt: string,
-    options: ClaudeCodeOptions
-  ): AsyncGenerator<ClaudeCodeMessage, void, unknown> {
-    const sessionId = `fallback_${Date.now()}`;
-    
-    // System init message
-    yield {
-      type: 'system',
-      subtype: 'init',
-      data: {
-        session_id: sessionId,
-        model: options.model || this.config.model
-      }
-    };
-
-    // Assistant response
-    yield {
-      type: 'assistant',
-      content: `This is a fallback response to: ${prompt}`,
-      message: {
-        content: `This is a fallback response to: ${prompt}`
-      }
-    };
-
-    // Result message
-    yield {
-      type: 'result',
-      subtype: 'success',
-      total_cost_usd: 0.001,
-      duration_ms: 100,
-      num_turns: 1,
-      session_id: sessionId
-    };
-  }
 }
 
 /**

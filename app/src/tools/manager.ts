@@ -1,7 +1,9 @@
 /**
- * Tool Management System
+ * Tool Management System (Phase 4 Enhanced)
+ * Single Responsibility: Tool registry, execution coordination, and lifecycle management
+ * 
+ * Enhanced for Phase 4 with real tool execution capabilities
  * Based on Python tool control logic from models.py:53 and parameter_validator.py
- * Phase 7A Implementation: Complete tools management with header parsing
  */
 
 import { 
@@ -11,9 +13,61 @@ import {
   CLAUDE_TOOL_CONFIG,
   TOOL_HEADERS 
 } from './constants';
+import { OpenAITool, OpenAIToolCall, ToolCallProcessingResult } from './types';
+import { toolExecutor, IToolExecutor, ToolExecutionResult, ToolFunction } from './tool-executor';
+import { toolRegistry } from './registry';
 import { getLogger } from '../utils/logger';
 
 const logger = getLogger('ToolManager');
+
+/**
+ * Tool execution coordination result
+ */
+export interface ToolExecutionCoordinationResult {
+  success: boolean;
+  executedTools: ToolExecutionResult[];
+  failedTools: ToolExecutionResult[];
+  totalExecutionTimeMs: number;
+  errors: string[];
+}
+
+/**
+ * Tool execution request
+ */
+export interface ToolExecutionRequest {
+  toolCalls: OpenAIToolCall[];
+  sessionId?: string;
+  requestId?: string;
+  workingDirectory?: string;
+  allowParallel?: boolean;
+}
+
+/**
+ * Enhanced tool manager interface
+ */
+export interface IToolManager {
+  // Legacy configuration methods
+  configureTools(config: ToolConfiguration): ToolResponse;
+  parseToolHeaders(headers: Record<string, string>): ToolConfiguration;
+  validateToolConfig(config: ToolConfiguration): { valid: boolean; errors: string[] };
+  
+  // Phase 4: Execution coordination methods
+  executeToolCalls(request: ToolExecutionRequest): Promise<ToolExecutionCoordinationResult>;
+  registerCustomTool(toolFunction: ToolFunction): Promise<boolean>;
+  unregisterCustomTool(name: string): Promise<boolean>;
+  getAvailableTools(): Promise<string[]>;
+  isToolExecutionEnabled(toolName: string): boolean;
+  
+  // Tool lifecycle management
+  initializeToolRegistry(): Promise<void>;
+  shutdownToolRegistry(): Promise<void>;
+  getToolExecutionStats(): {
+    totalExecuted: number;
+    successfulExecutions: number;
+    failedExecutions: number;
+    averageExecutionTime: number;
+  };
+}
 
 export interface ToolConfiguration {
   disable_tools?: boolean; // Changed: tools enabled by default
@@ -40,15 +94,27 @@ export interface ToolResponse {
 }
 
 /**
- * Tool Manager - Complete implementation for Phase 7A
- * Based on Python models.py:53 enable_tools logic
+ * Enhanced Tool Manager - Phase 4 implementation
+ * Single Responsibility: Tool coordination, execution, and lifecycle management
+ * Based on Python models.py:53 enable_tools logic with real execution capabilities
  */
-export class ToolManager {
+export class ToolManager implements IToolManager {
+  private executor: IToolExecutor;
+  private executionStats = {
+    totalExecuted: 0,
+    successfulExecutions: 0,
+    failedExecutions: 0,
+    totalExecutionTime: 0
+  };
+
+  constructor(executor: IToolExecutor = toolExecutor) {
+    this.executor = executor;
+  }
   /**
    * Configure tools based on request parameters
    * CHANGE: Tools enabled by default (opposite of Python)
    */
-  static configureTools(config: ToolConfiguration): ToolResponse {
+  configureTools(config: ToolConfiguration): ToolResponse {
     logger.debug('Configuring tools', { config });
     
     // If tools are explicitly disabled, return minimal configuration
@@ -98,7 +164,7 @@ export class ToolManager {
    * Parse tool configuration from HTTP headers
    * Based on Python parameter_validator.py:96-137 header parsing
    */
-  static parseToolHeaders(headers: Record<string, string>): ToolConfiguration {
+  parseToolHeaders(headers: Record<string, string>): ToolConfiguration {
     const config: ToolConfiguration = {};
     
     // Parse tools enabled/disabled
@@ -162,7 +228,7 @@ export class ToolManager {
   /**
    * Get tool statistics for debugging
    */
-  static getToolStats(config: ToolResponse): {
+  getToolStats(config: ToolResponse): {
     total_tools: number;
     enabled_tools: number;
     disabled_tools: number;
@@ -192,7 +258,7 @@ export class ToolManager {
   /**
    * Validate tool configuration
    */
-  static validateToolConfig(config: ToolConfiguration): { valid: boolean; errors: string[] } {
+  validateToolConfig(config: ToolConfiguration): { valid: boolean; errors: string[] } {
     const errors: string[] = [];
     
     if (config.allowed_tools) {

@@ -7,46 +7,79 @@
 
 import { IAutoDetectProvider, AuthMethod, AuthValidationResult } from '../interfaces';
 import { getLogger } from '../../utils/logger';
+import { 
+  AnthropicCredentialValidator, 
+  ValidationResultBuilder, 
+  ValidationUtils 
+} from '../utils/credential-validator';
 
 const logger = getLogger('AnthropicProvider');
 
 /**
- * Anthropic authentication provider
+ * Anthropic authentication provider with real API validation
  */
 export class AnthropicProvider implements IAutoDetectProvider {
+  private validator: AnthropicCredentialValidator;
+
+  constructor() {
+    this.validator = new AnthropicCredentialValidator();
+  }
+
   /**
-   * Validate Anthropic authentication configuration
+   * Validate Anthropic authentication configuration with real API validation
    */
   async validate(): Promise<AuthValidationResult> {
-    const errors: string[] = [];
-    const config: Record<string, any> = {};
+    const resultBuilder = new ValidationResultBuilder(AuthMethod.ANTHROPIC);
 
     // Check for ANTHROPIC_API_KEY
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) {
-      errors.push('ANTHROPIC_API_KEY environment variable not set');
-    } else if (!this.isValidApiKeyFormat(apiKey)) {
-      errors.push('ANTHROPIC_API_KEY format is invalid');
-    } else {
-      config.api_key_present = true;
-      config.api_key_length = apiKey.length;
-      logger.debug(`Anthropic API key found (length: ${apiKey.length})`);
+    if (!ValidationUtils.hasEnvVar('ANTHROPIC_API_KEY')) {
+      resultBuilder.addError('ANTHROPIC_API_KEY environment variable not set');
+      return resultBuilder.build();
     }
 
-    const isValid = errors.length === 0;
+    const apiKey = ValidationUtils.getRequiredEnvVar('ANTHROPIC_API_KEY');
     
-    if (isValid) {
-      logger.info('Anthropic authentication validated successfully');
-    } else {
-      logger.debug(`Anthropic validation failed: ${errors.join(', ')}`);
+    // Add basic config info
+    resultBuilder.addConfig('api_key_present', true);
+    resultBuilder.addConfig('api_key_length', apiKey.length);
+    
+    logger.debug(`Anthropic API key found (length: ${apiKey.length})`);
+
+    try {
+      // Validate with real API
+      const validationResult = await this.validator.validate(apiKey);
+      
+      if (!validationResult.isValid) {
+        resultBuilder.addError(validationResult.errorMessage || 'API key validation failed');
+        if (validationResult.details) {
+          resultBuilder.setConfig(validationResult.details);
+        }
+      } else {
+        resultBuilder.addConfig('api_validated', true);
+        if (validationResult.details) {
+          resultBuilder.setConfig(validationResult.details);
+        }
+      }
+    } catch (error) {
+      // If API validation fails due to network issues, still allow format validation
+      const formatResult = await this.validator['validateFormat'](apiKey);
+      if (!formatResult.isValid) {
+        resultBuilder.addError(formatResult.errorMessage || 'API key format is invalid');
+      } else {
+        resultBuilder.addConfig('api_format_valid', true);
+        resultBuilder.addConfig('api_validation_skipped', true);
+        resultBuilder.addConfig('api_validation_error', error instanceof Error ? error.message : String(error));
+        logger.warn(`API validation failed but format is valid: ${error}`);
+      }
     }
 
-    return {
-      valid: isValid,
-      errors,
-      config,
-      method: AuthMethod.ANTHROPIC
-    };
+    const result = resultBuilder.build();
+    ValidationUtils.logValidationResult(logger, 'Anthropic', { 
+      isValid: result.valid, 
+      errorMessage: result.errors.join(', ') 
+    });
+
+    return result;
   }
 
   /**
@@ -67,7 +100,7 @@ export class AnthropicProvider implements IAutoDetectProvider {
    * Check if this provider is configured
    */
   isConfigured(): boolean {
-    return !!process.env.ANTHROPIC_API_KEY;
+    return ValidationUtils.hasEnvVar('ANTHROPIC_API_KEY');
   }
 
   /**
@@ -75,34 +108,5 @@ export class AnthropicProvider implements IAutoDetectProvider {
    */
   canDetect(): boolean {
     return this.isConfigured();
-  }
-
-  /**
-   * Validate Anthropic API key format
-   * Based on known Anthropic API key patterns
-   */
-  private isValidApiKeyFormat(apiKey: string): boolean {
-    if (!apiKey || typeof apiKey !== 'string') {
-      return false;
-    }
-
-    // Anthropic API keys typically start with 'sk-ant-' and are base64-like
-    if (!apiKey.startsWith('sk-ant-')) {
-      return false;
-    }
-
-    // Check reasonable length (Anthropic keys are typically 100+ chars)
-    if (apiKey.length < 50) {
-      return false;
-    }
-
-    // Check that it contains only valid base64-like characters after prefix
-    const keyPart = apiKey.substring(7); // Remove 'sk-ant-' prefix
-    const validChars = /^[A-Za-z0-9+/=_-]+$/;
-    if (!validChars.test(keyPart)) {
-      return false;
-    }
-
-    return true;
   }
 }

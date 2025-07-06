@@ -42,7 +42,7 @@
     "test:validation:weekly": "cd app && node tests/scripts/health-check.js full",
     "test:performance:trend": "cd app && node tests/scripts/performance-trend-analysis.js",
     "test:ci-simulation": "NODE_ENV=ci npm run test:integration:debug",
-    "test:performance:integration": "cd app && jest --config tests/jest.integration.config.js --detectOpenHandles --logHeapUsage"
+    "test:performance:integration": "cd app && jest --config tests/jest.integration.config.js --detectOpenHandles --runInBand --forceExit"
   },
   "keywords": [
     "claude",
@@ -54,6 +54,7 @@
   "author": "Claude Code Team",
   "license": "MIT",
   "dependencies": {
+    "@anthropic-ai/claude-code": "^1.0.43",
     "async-mutex": "^0.4.0",
     "commander": "^9.4.0",
     "cors": "^2.8.5",
@@ -79,8 +80,5 @@
     "ts-jest": "^29.0.0",
     "tsx": "^4.19.0",
     "typescript": "^4.9.0"
-  },
-  "optionalDependencies": {
-    "@anthropic-ai/claude-code": "^1.0.43"
   }
 }

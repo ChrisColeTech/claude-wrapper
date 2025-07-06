@@ -73,8 +73,11 @@ export class SecurityHardening implements ISecurityHardening {
     this.rateLimitConfig = rateLimitConfig;
     this.rateLimitStore = new Map();
     
-    // Cleanup expired entries every 5 minutes
-    setInterval(() => this.cleanupExpiredEntries(), 5 * 60 * 1000);
+    // Skip interval creation in test environment to prevent memory leaks
+    if (process.env.NODE_ENV !== 'test' && !process.env.JEST_WORKER_ID) {
+      // Cleanup expired entries every 5 minutes
+      setInterval(() => this.cleanupExpiredEntries(), 5 * 60 * 1000);
+    }
   }
 
   async checkRateLimit(req: Request): Promise<SecurityCheckResult> {

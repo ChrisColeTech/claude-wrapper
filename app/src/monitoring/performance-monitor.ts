@@ -7,6 +7,7 @@
 
 import { getLogger } from '../utils/logger';
 import { PRODUCTION_MONITORING, PRODUCTION_RELIABILITY } from '../tools/constants/production';
+import { ResourceManager } from '../utils/resource-manager';
 
 const logger = getLogger('PerformanceMonitor');
 
@@ -105,9 +106,11 @@ export class PerformanceMonitor implements IPerformanceMonitor {
   private metrics: Map<string, PerformanceMetric[]> = new Map();
   private readonly retentionMs: number;
   private cleanupInterval: NodeJS.Timeout | null = null;
+  private resourceManager: ResourceManager;
 
   constructor(retentionMs: number = PRODUCTION_MONITORING.MEMORY_LIMIT_MB * 1000 * 60) {
     this.retentionMs = retentionMs;
+    this.resourceManager = new ResourceManager('PerformanceMonitor');
     this.startCleanupTask();
   }
 
@@ -210,9 +213,14 @@ export class PerformanceMonitor implements IPerformanceMonitor {
    * Start cleanup task to remove old metrics
    */
   private startCleanupTask(): void {
-    this.cleanupInterval = setInterval(() => {
+    // Skip interval creation in test environment to prevent memory leaks
+    if (process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID) {
+      return;
+    }
+
+    this.cleanupInterval = this.resourceManager.trackInterval(() => {
       this.cleanupOldMetrics();
-    }, 60000); // Clean every minute
+    }, 60000, 'Metrics cleanup interval'); // Clean every minute
   }
 
   /**
@@ -252,6 +260,33 @@ export class PerformanceMonitor implements IPerformanceMonitor {
       clearInterval(this.cleanupInterval);
       this.cleanupInterval = null;
     }
+  }
+
+  /**
+   * Cleanup all resources
+   * Prevents memory leaks by properly cleaning up intervals and metrics
+   */
+  cleanup(): void {
+    logger.info('Cleaning up PerformanceMonitor resources');
+    
+    // Shutdown first
+    this.shutdown();
+    
+    // Clear all metrics data
+    this.metrics.clear();
+    
+    // Cleanup all tracked resources
+    this.resourceManager.cleanup();
+    
+    logger.info('PerformanceMonitor cleanup completed');
+  }
+
+  /**
+   * Destroy the monitor instance completely
+   */
+  destroy(): void {
+    this.cleanup();
+    this.resourceManager.destroy();
   }
 }
 
@@ -311,4 +346,11 @@ export const PerformanceUtils = {
     return stats.p95Duration < PRODUCTION_MONITORING.RESPONSE_TIME_THRESHOLD_MS &&
            stats.errorRate < PRODUCTION_MONITORING.ERROR_RATE_THRESHOLD;
   }
+};
+
+/**
+ * Cleanup the global performance monitor
+ */
+export const cleanupPerformanceMonitor = (): void => {
+  performanceMonitor.cleanup();
 };

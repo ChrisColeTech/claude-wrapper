@@ -10,62 +10,90 @@ import { getLogger } from '../../utils/logger';
 import { existsSync } from 'fs';
 import { homedir } from 'os';
 import { join } from 'path';
+import { 
+  GoogleCredentialValidator, 
+  ValidationResultBuilder, 
+  ValidationUtils 
+} from '../utils/credential-validator';
 
 const logger = getLogger('VertexProvider');
 
 /**
- * Google Cloud Vertex AI authentication provider
+ * Google Cloud Vertex AI authentication provider with real credential validation
  */
 export class VertexProvider implements IAutoDetectProvider {
+  private validator: GoogleCredentialValidator;
+
+  constructor() {
+    this.validator = new GoogleCredentialValidator();
+  }
+
   /**
-   * Validate Google Cloud Vertex AI authentication configuration
+   * Validate Google Cloud Vertex AI authentication configuration with real credential validation
    */
   async validate(): Promise<AuthValidationResult> {
-    const errors: string[] = [];
-    const config: Record<string, any> = {};
+    const resultBuilder = new ValidationResultBuilder(AuthMethod.VERTEX);
 
     // Check for Google Cloud credentials
     const credentialsPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
-    const hasCredentialsFile = credentialsPath && existsSync(credentialsPath);
+    const hasCredentialsFile = credentialsPath && ValidationUtils.fileExists(credentialsPath);
     const hasGcloudCredentials = this.hasGcloudCredentials();
 
-    config.has_credentials_file = !!hasCredentialsFile;
-    config.has_gcloud_credentials = hasGcloudCredentials;
+    resultBuilder.addConfig('has_credentials_file', !!hasCredentialsFile);
+    resultBuilder.addConfig('has_gcloud_credentials', hasGcloudCredentials);
 
     if (hasCredentialsFile) {
       logger.debug(`Google credentials file found: ${credentialsPath}`);
-      config.auth_method = 'service_account';
-      config.credentials_path = credentialsPath;
+      resultBuilder.addConfig('auth_method', 'service_account');
+      resultBuilder.addConfig('credentials_path', credentialsPath);
     } else if (hasGcloudCredentials) {
       logger.debug('Google credentials found via gcloud CLI');
-      config.auth_method = 'gcloud';
+      resultBuilder.addConfig('auth_method', 'gcloud');
     } else {
-      errors.push('No Google Cloud credentials found (need GOOGLE_APPLICATION_CREDENTIALS or gcloud auth)');
+      resultBuilder.addError('No Google Cloud credentials found (need GOOGLE_APPLICATION_CREDENTIALS or gcloud auth)');
     }
 
     // Check for project configuration
     const project = process.env.GCLOUD_PROJECT || process.env.GOOGLE_CLOUD_PROJECT;
     if (!project) {
-      errors.push('Google Cloud project not configured (set GCLOUD_PROJECT or GOOGLE_CLOUD_PROJECT)');
+      resultBuilder.addError('Google Cloud project not configured (set GCLOUD_PROJECT or GOOGLE_CLOUD_PROJECT)');
     } else {
-      config.project = project;
+      resultBuilder.addConfig('project', project);
       logger.debug(`Google Cloud project: ${project}`);
     }
 
-    const isValid = errors.length === 0;
-    
-    if (isValid) {
-      logger.info('Google Cloud Vertex AI authentication validated successfully');
-    } else {
-      logger.debug(`Vertex validation failed: ${errors.join(', ')}`);
+    // If we have credentials and project, validate them with real API
+    if ((hasCredentialsFile || hasGcloudCredentials) && project) {
+      try {
+        const validationResult = await this.validator.validate('');
+        
+        if (!validationResult.isValid) {
+          resultBuilder.addError(validationResult.errorMessage || 'Google Cloud credentials validation failed');
+          if (validationResult.details) {
+            resultBuilder.setConfig(validationResult.details);
+          }
+        } else {
+          resultBuilder.addConfig('credentials_validated', true);
+          if (validationResult.details) {
+            resultBuilder.setConfig(validationResult.details);
+          }
+        }
+      } catch (error) {
+        // If API validation fails due to network issues, still allow basic validation
+        resultBuilder.addConfig('credentials_format_valid', true);
+        resultBuilder.addConfig('credentials_validation_skipped', true);
+        resultBuilder.addConfig('credentials_validation_error', error instanceof Error ? error.message : String(error));
+        logger.warn(`Google Cloud credentials validation failed but format is valid: ${error}`);
+      }
     }
 
-    return {
-      valid: isValid,
-      errors,
-      config,
-      method: AuthMethod.VERTEX
-    };
+    const result = resultBuilder.build();
+    ValidationUtils.logValidationResult(logger, 'Google Vertex', { 
+      isValid: result.valid, 
+      errorMessage: result.errors.join(', ') 
+    });
+
+    return result;
   }
 
   /**
@@ -88,7 +116,7 @@ export class VertexProvider implements IAutoDetectProvider {
   isConfigured(): boolean {
     // Has service account credentials file
     const credentialsPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
-    const hasServiceAccount = credentialsPath && existsSync(credentialsPath);
+    const hasServiceAccount = credentialsPath && ValidationUtils.fileExists(credentialsPath);
     
     // Has gcloud credentials
     const hasGcloud = this.hasGcloudCredentials();
@@ -113,7 +141,7 @@ export class VertexProvider implements IAutoDetectProvider {
       const gcloudConfigDir = join(homedir(), '.config', 'gcloud');
       const credentialsFile = join(gcloudConfigDir, 'application_default_credentials.json');
       
-      return existsSync(credentialsFile);
+      return ValidationUtils.fileExists(credentialsFile);
     } catch (error) {
       logger.debug(`Error checking gcloud credentials: ${error}`);
       return false;

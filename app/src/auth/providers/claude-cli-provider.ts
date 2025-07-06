@@ -14,9 +14,75 @@ const execAsync = promisify(exec);
 const logger = getLogger('ClaudeCliProvider');
 
 /**
+ * Execute a command through shell with proper environment handling
+ */
+interface ShellExecOptions {
+  timeout?: number;
+  env?: NodeJS.ProcessEnv;
+}
+
+/**
+ * Command execution result
+ */
+interface CommandResult {
+  stdout: string;
+  stderr: string;
+  success: boolean;
+  error?: Error;
+}
+
+/**
  * Claude CLI authentication provider
  */
 export class ClaudeCliProvider implements IAutoDetectProvider {
+  /**
+   * Execute a command through shell with proper alias resolution
+   * Uses bash shell to ensure aliases and shell functions work
+   */
+  private async executeShellCommand(command: string, options: ShellExecOptions = {}): Promise<CommandResult> {
+    const defaultOptions = {
+      timeout: 10000,
+      env: { ...process.env, CLAUDE_CLI_NO_INTERACTION: '1' },
+      ...options
+    };
+
+    try {
+      // Use bash shell with proper sourcing of profile files to resolve aliases
+      const shellCommand = `bash -c 'source ~/.bashrc 2>/dev/null; source ~/.bash_profile 2>/dev/null; ${command}'`;
+      
+      const { stdout, stderr } = await execAsync(shellCommand, {
+        timeout: defaultOptions.timeout,
+        env: defaultOptions.env
+      });
+
+      return {
+        stdout: stdout || '',
+        stderr: stderr || '',
+        success: true
+      };
+    } catch (error) {
+      return {
+        stdout: '',
+        stderr: error instanceof Error ? error.message : String(error),
+        success: false,
+        error: error instanceof Error ? error : new Error(String(error))
+      };
+    }
+  }
+
+  /**
+   * Get candidate commands for Claude CLI
+   * Prioritizes shell alias, then common installation paths
+   */
+  private getClaudeCommands(): string[] {
+    return [
+      'claude',  // Shell alias - try first
+      '/home/risky/.claude/local/claude',
+      '~/.claude/local/claude',
+      'npx @anthropic-ai/claude-code'
+    ];
+  }
+
   /**
    * Validate Claude CLI authentication configuration
    * Matches Python behavior - assumes CLI is valid by default
@@ -107,21 +173,22 @@ export class ClaudeCliProvider implements IAutoDetectProvider {
    * Check if Claude CLI is installed
    */
   private async isClaudeCliInstalled(): Promise<boolean> {
-    // Try multiple common paths for Claude CLI
-    const cliCommands = [
-      'claude --version',
-      '/home/risky/.claude/local/claude --version',
-      '~/.claude/local/claude --version',
-      'npx @anthropic-ai/claude-code --version'
-    ];
+    const commands = this.getClaudeCommands();
 
-    for (const cmd of cliCommands) {
+    for (const baseCommand of commands) {
+      const versionCommand = `${baseCommand} --version`;
+      
       try {
-        await execAsync(cmd, { timeout: 5000 });
-        logger.debug(`Claude CLI installation verified with: ${cmd}`);
-        return true;
+        const result = await this.executeShellCommand(versionCommand, { timeout: 5000 });
+        
+        if (result.success) {
+          logger.debug(`Claude CLI installation verified with: ${baseCommand}`);
+          return true;
+        }
+        
+        logger.debug(`Claude CLI not found with ${baseCommand}: ${result.stderr}`);
       } catch (error) {
-        logger.debug(`Claude CLI not found with ${cmd}: ${error}`);
+        logger.debug(`Claude CLI check failed for ${baseCommand}: ${error}`);
       }
     }
     
@@ -131,57 +198,40 @@ export class ClaudeCliProvider implements IAutoDetectProvider {
   /**
    * Check Claude CLI authentication status
    */
-   private async checkClaudeCliAuth(): Promise<{
+  private async checkClaudeCliAuth(): Promise<{
     authenticated: boolean;
     error?: string;
     userInfo?: any;
   }> {
-    // Try multiple command variations for Claude CLI
-    const testCommands = [
-      'claude --print "test"',
-      '/home/risky/.claude/local/claude --print "test"',
-      '~/.claude/local/claude --print "test"',
-      'npx @anthropic-ai/claude-code --print "test"'
-    ];
+    const commands = this.getClaudeCommands();
 
-    for (const cmd of testCommands) {
+    for (const baseCommand of commands) {
+      const testCommand = `${baseCommand} --print "test"`;
+      
       try {
-        // Try a simple Claude CLI command to test authentication
-        const { stdout, stderr } = await execAsync(cmd, { 
-          timeout: 10000,
-          env: { ...process.env, CLAUDE_CLI_NO_INTERACTION: '1' }
-        });
-
-        if (stderr && stderr.includes('not authenticated')) {
+        const result = await this.executeShellCommand(testCommand, { timeout: 10000 });
+        
+        // Check for authentication errors in stderr
+        if (this.isAuthenticationError(result.stderr)) {
+          logger.debug(`Authentication error with ${baseCommand}: ${result.stderr}`);
           continue; // Try next command
         }
 
-        if (stderr && stderr.includes('API key')) {
-          continue; // Try next command
-        }
-
-        // If we get output without errors, assume authenticated
-        if (stdout || (!stderr.includes('error') && !stderr.includes('Error'))) {
-          logger.debug(`Claude CLI authentication test passed with: ${cmd}`);
+        // Check for successful authentication
+        if (result.success || this.isValidResponse(result)) {
+          logger.debug(`Claude CLI authentication test passed with: ${baseCommand}`);
           return {
             authenticated: true,
-            userInfo: { test_response: stdout.trim().substring(0, 50), command: cmd }
+            userInfo: { 
+              test_response: result.stdout.trim().substring(0, 50), 
+              command: baseCommand 
+            }
           };
         }
 
+        logger.debug(`Claude CLI auth check failed for ${baseCommand}: ${result.stderr}`);
       } catch (error) {
-        const errorStr = String(error);
-        
-        // Handle common authentication errors
-        if (errorStr.includes('not authenticated') || errorStr.includes('API key')) {
-          continue; // Try next command
-        }
-
-        if (errorStr.includes('timeout')) {
-          continue; // Try next command
-        }
-
-        logger.debug(`Claude CLI auth check error with ${cmd}: ${error}`);
+        logger.debug(`Claude CLI auth check error with ${baseCommand}: ${error}`);
         continue; // Try next command
       }
     }
@@ -191,5 +241,36 @@ export class ClaudeCliProvider implements IAutoDetectProvider {
       authenticated: false,
       error: 'Claude CLI authentication test failed with all command variations'
     };
+  }
+
+  /**
+   * Check if response indicates authentication error
+   */
+  private isAuthenticationError(stderr: string): boolean {
+    const authErrors = [
+      'not authenticated',
+      'API key',
+      'authentication failed',
+      'login required',
+      'unauthorized'
+    ];
+    
+    const lowerStderr = stderr.toLowerCase();
+    return authErrors.some(error => lowerStderr.includes(error));
+  }
+
+  /**
+   * Check if response indicates valid Claude CLI execution
+   */
+  private isValidResponse(result: CommandResult): boolean {
+    // Consider response valid if:
+    // 1. Command succeeded, OR
+    // 2. Got stdout output without critical errors, OR
+    // 3. No authentication-related errors in stderr
+    return result.success || 
+           (result.stdout && result.stdout.trim().length > 0) ||
+           (!this.isAuthenticationError(result.stderr) && 
+            !result.stderr.toLowerCase().includes('error') && 
+            !result.stderr.toLowerCase().includes('timeout'));
   }
 }

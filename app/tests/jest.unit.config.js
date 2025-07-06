@@ -35,13 +35,17 @@ module.exports = {
   maxWorkers: 1,
   workerIdleMemoryLimit: "256MB",
   detectOpenHandles: true,
+  detectLeaks: true,
   
   // Aggressive memory cleanup
   clearMocks: true,
   restoreMocks: true,
   resetMocks: true,
   
-  // Run tests serially to minimize memory usage
+  // Note: runInBand and forceExit should be passed as CLI arguments, not config options
+  
+  // Additional memory monitoring setup
+  setupFilesAfterEnv: ["<rootDir>/setup.ts", "<rootDir>/jest-memory-setup.js"],
   
   // Skip problematic tests in CI
   testPathIgnorePatterns: [

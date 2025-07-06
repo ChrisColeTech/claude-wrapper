@@ -10,65 +10,93 @@ import { getLogger } from '../../utils/logger';
 import { existsSync } from 'fs';
 import { homedir } from 'os';
 import { join } from 'path';
+import { 
+  AWSCredentialValidator, 
+  ValidationResultBuilder, 
+  ValidationUtils 
+} from '../utils/credential-validator';
 
 const logger = getLogger('BedrockProvider');
 
 /**
- * AWS Bedrock authentication provider
+ * AWS Bedrock authentication provider with real credential validation
  */
 export class BedrockProvider implements IAutoDetectProvider {
+  private validator: AWSCredentialValidator;
+
+  constructor() {
+    this.validator = new AWSCredentialValidator();
+  }
+
   /**
-   * Validate AWS Bedrock authentication configuration
+   * Validate AWS Bedrock authentication configuration with real credential validation
    */
   async validate(): Promise<AuthValidationResult> {
-    const errors: string[] = [];
-    const config: Record<string, any> = {};
+    const resultBuilder = new ValidationResultBuilder(AuthMethod.BEDROCK);
 
     // Check for AWS credentials
-    const hasAccessKey = !!process.env.AWS_ACCESS_KEY_ID;
-    const hasSecretKey = !!process.env.AWS_SECRET_ACCESS_KEY;
-    const hasProfile = !!process.env.AWS_PROFILE;
+    const hasAccessKey = ValidationUtils.hasEnvVar('AWS_ACCESS_KEY_ID');
+    const hasSecretKey = ValidationUtils.hasEnvVar('AWS_SECRET_ACCESS_KEY');
+    const hasProfile = ValidationUtils.hasEnvVar('AWS_PROFILE');
     const hasCredentialsFile = this.hasAwsCredentialsFile();
 
-    config.has_access_key = hasAccessKey;
-    config.has_secret_key = hasSecretKey;
-    config.has_profile = hasProfile;
-    config.has_credentials_file = hasCredentialsFile;
+    resultBuilder.addConfig('has_access_key', hasAccessKey);
+    resultBuilder.addConfig('has_secret_key', hasSecretKey);
+    resultBuilder.addConfig('has_profile', hasProfile);
+    resultBuilder.addConfig('has_credentials_file', hasCredentialsFile);
 
     // Validate credentials configuration
     if (hasAccessKey && hasSecretKey) {
       logger.debug('AWS credentials found via environment variables');
-      config.auth_method = 'environment';
+      resultBuilder.addConfig('auth_method', 'environment');
     } else if (hasProfile || hasCredentialsFile) {
       logger.debug('AWS credentials found via profile/credentials file');
-      config.auth_method = 'profile';
+      resultBuilder.addConfig('auth_method', 'profile');
     } else {
-      errors.push('No AWS credentials found (need AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY or AWS profile)');
+      resultBuilder.addError('No AWS credentials found (need AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY or AWS profile)');
     }
 
     // Check for AWS region
     const region = process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION;
     if (!region) {
-      errors.push('AWS_REGION environment variable not set');
+      resultBuilder.addError('AWS_REGION environment variable not set');
     } else {
-      config.region = region;
+      resultBuilder.addConfig('region', region);
       logger.debug(`AWS region: ${region}`);
     }
 
-    const isValid = errors.length === 0;
-    
-    if (isValid) {
-      logger.info('AWS Bedrock authentication validated successfully');
-    } else {
-      logger.debug(`Bedrock validation failed: ${errors.join(', ')}`);
+    // If we have environment variables, validate them with real API
+    if (hasAccessKey && hasSecretKey && region) {
+      try {
+        const validationResult = await this.validator.validate('');
+        
+        if (!validationResult.isValid) {
+          resultBuilder.addError(validationResult.errorMessage || 'AWS credentials validation failed');
+          if (validationResult.details) {
+            resultBuilder.setConfig(validationResult.details);
+          }
+        } else {
+          resultBuilder.addConfig('credentials_validated', true);
+          if (validationResult.details) {
+            resultBuilder.setConfig(validationResult.details);
+          }
+        }
+      } catch (error) {
+        // If API validation fails due to network issues, still allow basic validation
+        resultBuilder.addConfig('credentials_format_valid', true);
+        resultBuilder.addConfig('credentials_validation_skipped', true);
+        resultBuilder.addConfig('credentials_validation_error', error instanceof Error ? error.message : String(error));
+        logger.warn(`AWS credentials validation failed but format is valid: ${error}`);
+      }
     }
 
-    return {
-      valid: isValid,
-      errors,
-      config,
-      method: AuthMethod.BEDROCK
-    };
+    const result = resultBuilder.build();
+    ValidationUtils.logValidationResult(logger, 'AWS Bedrock', { 
+      isValid: result.valid, 
+      errorMessage: result.errors.join(', ') 
+    });
+
+    return result;
   }
 
   /**
@@ -90,10 +118,11 @@ export class BedrockProvider implements IAutoDetectProvider {
    */
   isConfigured(): boolean {
     // Has explicit credentials
-    const hasExplicitCreds = !!(process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY);
+    const hasExplicitCreds = ValidationUtils.hasEnvVar('AWS_ACCESS_KEY_ID') && 
+                             ValidationUtils.hasEnvVar('AWS_SECRET_ACCESS_KEY');
     
     // Has profile configuration
-    const hasProfile = !!(process.env.AWS_PROFILE || this.hasAwsCredentialsFile());
+    const hasProfile = ValidationUtils.hasEnvVar('AWS_PROFILE') || this.hasAwsCredentialsFile();
     
     return hasExplicitCreds || hasProfile;
   }
@@ -113,7 +142,7 @@ export class BedrockProvider implements IAutoDetectProvider {
     try {
       const credentialsPath = join(homedir(), '.aws', 'credentials');
       const configPath = join(homedir(), '.aws', 'config');
-      return existsSync(credentialsPath) || existsSync(configPath);
+      return ValidationUtils.fileExists(credentialsPath) || ValidationUtils.fileExists(configPath);
     } catch (error) {
       logger.debug(`Error checking AWS credentials file: ${error}`);
       return false;

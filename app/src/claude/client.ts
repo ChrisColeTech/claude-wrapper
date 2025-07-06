@@ -113,43 +113,29 @@ export class ClaudeClient {
     // Phase 5A: Initialize tool choice enforcer
     this.choiceEnforcer = ToolChoiceEnforcerFactory.create();
     
-    // Initialize SDK immediately, unless in test mode
-    if (process.env.NODE_ENV !== 'test') {
-      this.initializeSDK().catch(() => {
-        // Silent failure is expected in development
-      });
-    } else {
-      // Use stub implementation for tests
-      this.claudeCodeSDK = this.createStubSDK();
-    }
+    // Initialize SDK immediately
+    this.initializeSDK().catch(() => {
+      // Silent failure will be handled in SDK operations
+      logger.warn('Failed to initialize Claude SDK during construction - will retry during operations');
+    });
   }
 
   /**
    * Initialize Claude Code SDK
-   * Attempts to dynamically import the SDK based on what's available
+   * Imports and configures the real Claude Code SDK
    */
   private async initializeSDK(): Promise<void> {
     try {
-      // Try to import the official Claude Code SDK
+      // Import the official Claude Code SDK
       const claudeModule = await import('@anthropic-ai/claude-code');
+      
+      // Store the SDK module which contains the query function
       this.claudeCodeSDK = claudeModule;
-      logger.info('Claude Code SDK loaded successfully');
+      
+      logger.info('Claude Code SDK initialized successfully');
     } catch (error) {
-      try {
-        // Fallback: try to use claude CLI directly via child_process
-        const { exec } = await import('child_process');
-        const { promisify } = await import('util');
-        const execAsync = promisify(exec);
-        
-        // Test if claude CLI is available
-        await execAsync('claude --version', { timeout: 5000 });
-        this.claudeCodeSDK = this.createCLIWrapper();
-        logger.info('Claude CLI wrapper loaded successfully');
-      } catch (cliError) {
-        logger.warn('Neither Claude Code SDK nor CLI available - using stub implementation');
-        // Use a stub implementation for development/testing
-        this.claudeCodeSDK = this.createStubSDK();
-      }
+      logger.error(`Failed to initialize Claude Code SDK: ${error}`);
+      throw new ClaudeClientError(`Claude Code SDK initialization failed: ${error}`);
     }
   }
 
@@ -417,11 +403,15 @@ export class ClaudeClient {
 
     try {
       // Use the Claude Code SDK query function
-      if (this.claudeCodeSDK.query) {
-        yield* this.claudeCodeSDK.query(prompt, options);
+      if (this.claudeCodeSDK?.query) {
+        // Convert our options to SDK format
+        const sdkOptions = this.convertToSDKOptions(options);
+        yield* this.claudeCodeSDK.query({
+          prompt,
+          options: sdkOptions
+        });
       } else {
-        // Fallback for stub implementation
-        yield* this.stubQuery(prompt, options);
+        throw new ClaudeClientError('Claude Code SDK not properly initialized');
       }
     } catch (error) {
       throw new ClaudeClientError(`Claude Code SDK query failed: ${error}`);
@@ -511,15 +501,6 @@ export class ClaudeClient {
     };
   }
 
-  /**
-   * Create stub SDK for development/testing
-   * Simulates Claude Code SDK behavior
-   */
-  private createStubSDK(): any {
-    return {
-      query: this.stubQuery.bind(this)
-    };
-  }
 
   /**
    * CLI query implementation using claude command
@@ -607,40 +588,20 @@ export class ClaudeClient {
     }
   }
 
+
   /**
-   * Stub query implementation for development/testing
+   * Convert our options to Claude SDK options format
    */
-  private async *stubQuery(
-    prompt: string,
-    options: ClaudeCodeOptions
-  ): AsyncGenerator<ClaudeCodeMessage, void, unknown> {
-    // Simulate system init message
-    yield {
-      type: 'system',
-      subtype: 'init',
-      data: {
-        session_id: `session_${Date.now()}`,
-        model: options.model || 'claude-3-5-sonnet-20241022'
-      }
-    };
-
-    // Simulate assistant response
-    yield {
-      type: 'assistant',
-      content: `I'm a stub response to: ${prompt}`,
-      message: {
-        content: `I'm a stub response to: ${prompt}`
-      }
-    };
-
-    // Simulate result message with metadata
-    yield {
-      type: 'result',
-      subtype: 'success',
-      total_cost_usd: 0.01,
-      duration_ms: 1000,
-      num_turns: 1,
-      session_id: `session_${Date.now()}`
+  private convertToSDKOptions(options: ClaudeCodeOptions): any {
+    return {
+      model: options.model,
+      maxTurns: options.max_turns,
+      allowedTools: options.allowed_tools,
+      disallowedTools: options.disallowed_tools,
+      permissionMode: options.permission_mode || 'default',
+      maxThinkingTokens: options.max_thinking_tokens,
+      cwd: options.cwd || this.cwd,
+      continue: !!options.continue_conversation
     };
   }
 

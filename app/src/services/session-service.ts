@@ -615,6 +615,12 @@ export class SessionService implements ISessionService {
    * Start periodic tool state cleanup
    */
   private startToolStateCleanup(): void {
+    // Skip interval creation in test environment to prevent memory leaks
+    if (process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID) {
+      logger.info('Skipping tool state cleanup interval creation in test environment');
+      return;
+    }
+
     const intervalMs = this.config.toolStateCleanupIntervalMinutes * 60 * 1000;
     
     this.toolStateCleanupInterval = setInterval(async () => {

@@ -10,6 +10,7 @@ import { createLogger } from '../utils/logger';
 import { config } from '../utils/env';
 import { productionConfig } from '../../config/production.config';
 import { PortUtils } from '../utils/port';
+import { ResourceManager } from '../utils/resource-manager';
 import winston from 'winston';
 
 /**
@@ -85,9 +86,11 @@ export class HealthMonitor {
   private failureCount: Map<string, number> = new Map();
   private responseTimeHistory: number[] = [];
   private activeServerPort: number | null = null;
+  private resourceManager: ResourceManager;
 
   constructor(healthConfig?: Partial<HealthMonitorConfig>) {
     this.logger = createLogger(config);
+    this.resourceManager = new ResourceManager('HealthMonitor');
 
     this.config = {
       checkInterval: productionConfig.getMonitoringConfig().healthCheckInterval,
@@ -117,13 +120,13 @@ export class HealthMonitor {
 
     this.logger.info(`Starting health monitoring (interval: ${this.config.checkInterval}ms)`);
     
-    this.monitoringInterval = setInterval(async () => {
+    this.monitoringInterval = this.resourceManager.trackInterval(async () => {
       try {
         await this.runHealthChecks();
       } catch (error) {
         this.logger.error(`Health monitoring error: ${error}`);
       }
-    }, this.config.checkInterval);
+    }, this.config.checkInterval, 'Health monitoring interval');
 
     // Initial health check
     this.runHealthChecks().catch(error => {
@@ -550,6 +553,30 @@ export class HealthMonitor {
     this.activeServerPort = null;
     this.logger.debug('HealthMonitor shutdown complete');
   }
+
+  /**
+   * Cleanup all resources and stop monitoring
+   * Prevents memory leaks by properly cleaning up intervals and timers
+   */
+  cleanup(): void {
+    this.logger.info('Cleaning up HealthMonitor resources');
+    
+    // Stop monitoring first
+    this.shutdown();
+    
+    // Cleanup all tracked resources
+    this.resourceManager.cleanup();
+    
+    this.logger.info('HealthMonitor cleanup completed');
+  }
+
+  /**
+   * Destroy the monitor instance completely
+   */
+  destroy(): void {
+    this.cleanup();
+    this.resourceManager.destroy();
+  }
 }
 
 // Production-ready singleton instance
@@ -559,3 +586,4 @@ export const healthMonitor = new HealthMonitor();
 export const startHealthMonitoring = () => healthMonitor.startMonitoring();
 export const getHealthReport = () => healthMonitor.runHealthChecks();
 export const getLatestHealthReport = () => healthMonitor.getLatestReport();
+export const cleanupHealthMonitor = () => healthMonitor.cleanup();
