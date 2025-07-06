@@ -809,6 +809,294 @@ class ProjectDiagnosticTool {
 
 This systematic diagnostic methodology transforms integration test management from reactive debugging into proactive quality assurance, providing a sustainable approach to maintaining test reliability and developer productivity.
 
+## CI Build Issue Resolution Workflow
+
+### Overview
+
+This section documents the systematic methodology for resolving CI build failures when tests pass locally but fail in the continuous integration environment. This workflow has been battle-tested on the Claude Wrapper project and provides a step-by-step approach to quickly identify and fix CI-specific issues.
+
+### Common CI Failure Patterns
+
+#### 1. TypeScript Compilation Errors
+**Symptoms**: Tests fail with `Cannot find name 'variableName'` or similar TypeScript errors
+**Root Cause**: Code changes updated singleton patterns but test files still use old direct instantiation patterns
+
+**Resolution Steps**:
+```bash
+# 1. Identify the specific error from CI logs
+gh run view --log-failed
+
+# 2. Look for pattern like: "Cannot find name 'validationHandler'"
+# 3. Find the file with compilation errors
+# 4. Update to use singleton factory functions
+```
+
+**Example Fix**:
+```typescript
+// ❌ Old pattern (causes CI failures after singleton refactor)
+const validationReport = await validationHandler.validateRequest(...)
+const classification = errorClassifier.classifyError(...)
+
+// ✅ New pattern (use singleton factory functions)
+const validationReport = await getValidationHandler().validateRequest(...)  
+const classification = getErrorClassifier().classifyError(...)
+```
+
+#### 2. Global State Pollution Between Tests
+**Symptoms**: Tests pass individually but fail when run together, statistics don't match expected values
+**Root Cause**: Singleton instances retain state between tests causing interference
+
+**Resolution Steps**:
+```bash
+# 1. Run problematic test in isolation
+npm test -- --testPathPattern="error-handling.test.ts" --testNamePattern="should track error statistics"
+
+# 2. If it passes individually, it's global state pollution
+# 3. Add proper cleanup to beforeEach/afterEach
+```
+
+**Example Fix**:
+```typescript
+beforeEach(async () => {
+  // Clear global state between tests
+  getErrorClassifier().resetStatistics();
+  getValidationHandler().clearCache();
+  
+  // Add timing delay for async cleanup
+  await new Promise(resolve => setTimeout(resolve, 10));
+});
+```
+
+#### 3. Environment Differences (Local vs CI)
+**Symptoms**: Tests pass on local machine but fail in CI with different behavior
+**Root Cause**: Different Node.js versions, timezone differences, or missing environment variables
+
+**Resolution Steps**:
+```bash
+# 1. Check Node.js version differences
+node --version  # Local
+# Compare with CI workflow Node.js version
+
+# 2. Run tests with CI-like conditions locally
+NODE_ENV=test npm test -- --runInBand --forceExit
+
+# 3. Check for timing-sensitive tests
+npm test -- --detectOpenHandles
+```
+
+#### 4. Race Conditions and Timing Issues
+**Symptoms**: Intermittent failures, timeouts, tests expecting specific counts getting different values
+**Root Cause**: Async operations not completing before assertions run
+
+**Resolution Steps**:
+```bash
+# 1. Add strategic delays before assertions
+await new Promise(resolve => setTimeout(resolve, 50));
+
+# 2. Use more robust async patterns
+await waitFor(() => expect(condition).toBe(expected));
+
+# 3. Ensure proper cleanup of timers/intervals
+clearInterval(intervalId);
+clearTimeout(timeoutId);
+```
+
+### Step-by-Step CI Debugging Workflow
+
+#### Step 1: Gather CI Failure Information
+```bash
+# View latest failed run
+gh run list --limit 5
+
+# Get detailed failure logs
+gh run view [RUN_ID] --log-failed
+
+# Focus on specific job if multiple failed
+gh run view [RUN_ID] --job [JOB_ID] --log-failed
+```
+
+#### Step 2: Reproduce Locally
+```bash
+# Try to reproduce with CI-like conditions
+NODE_ENV=test npm test -- --runInBand --forceExit --detectOpenHandles
+
+# Run specific failing test
+npm test -- --testPathPattern="[failing-file].test.ts"
+
+# Run with verbose output
+npm test -- --verbose --testNamePattern="[failing-test-name]"
+```
+
+#### Step 3: Analyze Failure Pattern
+Common patterns and their indicators:
+
+**TypeScript Compilation**:
+- Error: `Cannot find name 'X'` or `Property 'X' does not exist`
+- Fix: Update imports and variable references
+
+**Global State Issues**:
+- Error: `Expected: 4, Received: 30` (accumulating values)
+- Fix: Add proper cleanup between tests
+
+**Timing Issues**: 
+- Error: `Timeout` or inconsistent counts
+- Fix: Add delays and better async handling
+
+**Environment Issues**:
+- Error: Different behavior than local
+- Fix: Check Node.js version, environment variables
+
+#### Step 4: Apply Targeted Fixes
+```bash
+# For TypeScript errors
+# 1. Identify the specific pattern in error logs
+# 2. Update to use singleton factory functions
+# 3. Test compilation: npm run build
+
+# For global state issues  
+# 1. Add cleanup in beforeEach/afterEach
+# 2. Reset singletons: getErrorClassifier().resetStatistics()
+# 3. Add timing delays: await new Promise(resolve => setTimeout(resolve, 10))
+
+# For timing issues
+# 1. Increase test timeouts
+# 2. Add strategic delays before assertions
+# 3. Ensure proper async cleanup
+```
+
+#### Step 5: Validate Fix
+```bash
+# Commit and push changes
+git add .
+git commit -m "fix: resolve CI test failures - [specific issue]"
+git push
+
+# Watch CI run
+gh run list --limit 1
+gh run watch [RUN_ID] --exit-status
+```
+
+### Proven CI Fix Patterns
+
+#### Pattern 1: Singleton Factory Function Updates
+**When to use**: After refactoring to singleton patterns
+```typescript
+// Find and replace all instances:
+validationHandler.method() → getValidationHandler().method()
+errorClassifier.method() → getErrorClassifier().method()
+new ErrorClassifier() → getErrorClassifier()
+```
+
+#### Pattern 2: Test Isolation Cleanup
+**When to use**: Global state pollution between tests
+```typescript
+beforeEach(async () => {
+  // Clear metrics and statistics
+  getErrorClassifier().resetStatistics();
+  getValidationHandler().clearCache();
+  performanceMonitor.clearMetrics();
+  
+  // Add timing buffer for cleanup
+  await new Promise(resolve => setTimeout(resolve, 10));
+});
+
+afterEach(async () => {
+  // Cleanup resources
+  if (cleanupService.isRunning()) {
+    cleanupService.stop();
+  }
+  
+  // Wait for cleanup to complete
+  await new Promise(resolve => setTimeout(resolve, 50));
+});
+```
+
+#### Pattern 3: Async Operation Handling
+**When to use**: Race conditions and timing issues
+```typescript
+it('should handle async operations correctly', async () => {
+  // Trigger operation
+  await request(app).post('/endpoint').send(data);
+  
+  // Wait for async processing to complete
+  await new Promise(resolve => setTimeout(resolve, 50));
+  
+  // Then assert
+  const response = await request(app).get('/metrics');
+  expect(response.body.count).toBe(expectedValue);
+});
+```
+
+#### Pattern 4: URL Encoding for Special Characters
+**When to use**: API endpoints with special characters fail with 404
+```typescript
+// ❌ Wrong - fails with colons and slashes
+.get('/monitoring/metrics/get:/test/endpoint')
+
+// ✅ Correct - URL encode special characters
+const operationName = encodeURIComponent('get:/test/endpoint');
+.get(`/monitoring/metrics/${operationName}`)
+```
+
+### CI Monitoring and Prevention
+
+#### Continuous Monitoring
+```bash
+# Set up daily CI health checks
+# Add to package.json scripts:
+"ci:health": "npm test && npm run lint && npm run type-check"
+"ci:simulate": "NODE_ENV=test npm test -- --runInBand --forceExit"
+```
+
+#### Preventive Measures
+1. **Pre-commit Hooks**: Run type checking and linting
+2. **Local CI Simulation**: Regular testing with CI-like conditions
+3. **Dependency Updates**: Keep Node.js versions in sync
+4. **Test Isolation**: Always include proper cleanup patterns
+
+#### Quick Reference Commands
+```bash
+# Debug CI failures
+gh run list --limit 10                    # Show recent runs
+gh run view [ID] --log-failed             # Get failure details  
+gh run watch [ID] --exit-status           # Watch live run
+
+# Local debugging
+npm test -- --runInBand --forceExit       # Simulate CI conditions
+npm test -- --detectOpenHandles           # Find resource leaks
+npm test -- --testPathPattern="file.test.ts"  # Run specific file
+
+# Validation
+npm run build                             # Check TypeScript compilation
+npm run lint                              # Check code style
+npm run type-check                        # Verify types
+```
+
+### Success Metrics
+
+**Resolution Time**: Target <30 minutes from failure to fix
+**Fix Success Rate**: >95% first-attempt fixes using this methodology  
+**Prevention Rate**: <5% recurrence of same issue type
+
+### Case Study: Error Handling Test Failures
+
+**Initial State**: 7 failing tests in `error-handling.test.ts`
+**Root Causes Identified**:
+1. TypeScript compilation errors (singleton patterns)
+2. Global state pollution (statistics accumulating)
+3. Timing issues (async operations)
+4. URL encoding problems (special characters)
+
+**Resolution Applied**:
+1. Updated all `validationHandler` → `getValidationHandler()`
+2. Added `resetStatistics()` calls in `beforeEach`
+3. Added 50ms delays before assertions
+4. URL encoded operation names with `encodeURIComponent()`
+
+**Result**: 7 failures → 0 failures in <2 hours using systematic approach
+
+This CI debugging workflow provides a repeatable methodology for quickly resolving build failures and maintaining high CI reliability.
+
 ## Future Enhancements
 
 Potential improvements to consider:
@@ -820,10 +1108,11 @@ Potential improvements to consider:
 - **Interactive Debugging**: Enhanced debugging tools integration
 - **AI-Powered Diagnostics**: Machine learning to identify new failure patterns
 - **Cross-Project Pattern Recognition**: Share diagnostic insights across projects
+- **Automated CI Fix Suggestions**: AI-powered analysis of CI failure patterns with fix recommendations
 
 ---
 
-This testing framework provides a solid foundation for rapid development with clear feedback loops and organized result management. The systematic diagnostic methodology ensures that integration test issues can be resolved quickly and prevented from recurring.
+This testing framework provides a solid foundation for rapid development with clear feedback loops and organized result management. The systematic diagnostic methodology and CI debugging workflow ensure that both integration test issues and CI build failures can be resolved quickly and prevented from recurring.
 
 🎭 Mocks vs Stubs vs Shims
 
