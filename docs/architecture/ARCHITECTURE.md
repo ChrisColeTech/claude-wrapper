@@ -1,823 +1,437 @@
-# Architecture Guide - Claude Code OpenAI Wrapper Node.js Port
+# Claude Wrapper Architecture Guide
 
-This document provides comprehensive architectural guidelines, SOLID principles implementation, DRY principle enforcement, and anti-pattern prevention directives for the Node.js/TypeScript port.
+## 🎯 Overview
 
-## 🎯 Architectural Philosophy
+This document provides architectural guidelines and best practices for the claude-wrapper project. All development must follow these principles to ensure maintainable, scalable, and reliable code.
 
-The Node.js port must maintain clean, maintainable, and scalable architecture while preserving 100% feature parity with the Python implementation. Every architectural decision prioritizes code quality, maintainability, and adherence to established software engineering principles.
+**Reference**: See [PROJECT_STRUCTURE.md](./PROJECT_STRUCTURE.md) for the complete project organization.
 
-## 🏗️ SOLID Principles Implementation
+## 🏗️ Architectural Principles
 
-### **S - Single Responsibility Principle**
+### **SOLID Principles (Mandatory)**
 
-**Rule**: Each class/module must have exactly one reason to change.
+#### **S - Single Responsibility Principle**
+- **Rule**: Each class has ONE reason to change
+- **Implementation**: 
+  - Classes <200 lines of code
+  - Functions <50 lines of code
+  - Maximum 5 parameters per function
+- **Example**: `AuthManager` orchestrates auth, `AnthropicProvider` handles only Anthropic authentication
 
-#### **✅ Correct Implementation Examples**
+#### **O - Open/Closed Principle**
+- **Rule**: Open for extension, closed for modification
+- **Implementation**: Use strategy patterns and interfaces
+- **Example**: New authentication providers implement `IAuthProvider` interface
 
-```typescript
-// ✅ GOOD: AuthManager only handles authentication logic
-class AuthManager {
-  detectAuthMethod(): AuthMethod { /* ... */ }
-  validateCredentials(method: AuthMethod): boolean { /* ... */ }
-}
+#### **L - Liskov Substitution Principle**
+- **Rule**: Derived classes must be substitutable for base classes
+- **Implementation**: Consistent interfaces and behavior contracts
+- **Example**: All storage implementations (`MemoryStorage`, `RedisStorage`) work identically
 
-// ✅ GOOD: MessageAdapter only handles message conversion
-class MessageAdapter {
-  convertToClaudeFormat(messages: Message[]): string { /* ... */ }
-  extractSystemPrompt(messages: Message[]): string | null { /* ... */ }
-}
+#### **I - Interface Segregation Principle**
+- **Rule**: Clients shouldn't depend on interfaces they don't use
+- **Implementation**: 
+  - Interfaces <5 methods each
+  - Single-purpose interfaces
+- **Example**: `ISessionReader` vs `ISessionWriter` vs `ISessionManager`
 
-// ✅ GOOD: SessionStorage only handles session persistence
-class SessionStorage {
-  store(session: Session): void { /* ... */ }
-  retrieve(sessionId: string): Session | null { /* ... */ }
-  delete(sessionId: string): boolean { /* ... */ }
-}
-```
+#### **D - Dependency Inversion Principle**
+- **Rule**: Depend on abstractions, not concretions
+- **Implementation**: Inject all dependencies via constructor
+- **Example**: `ClaudeService` receives `IClaudeClient` interface, not concrete implementation
 
-#### **❌ Anti-Pattern Examples**
+### **DRY Principle (Don't Repeat Yourself)**
 
-```typescript
-// ❌ BAD: God class violating SRP
-class ServerManager {
-  // Authentication logic (should be separate)
-  validateApiKey(key: string): boolean { /* ... */ }
+#### **Code Duplication Rules**
+- **Maximum**: 3 lines of duplicate code before extraction
+- **Extraction Targets**: Utilities, constants, shared functions
+- **Implementation**: Extract to dedicated utility files with named exports
+
+#### **Configuration Management**
+- **Rule**: No magic numbers or strings in code
+- **Implementation**: All constants in `constants.ts` files
+- **Example**: 
+  ```typescript
+  // ❌ Bad
+  if (sessions.size > 10000) { /* ... */ }
   
-  // Message processing (should be separate)
-  convertMessages(messages: Message[]): string { /* ... */ }
-  
-  // Session management (should be separate)
-  createSession(id: string): Session { /* ... */ }
-  
-  // Server logic (only this should be here)
-  startServer(port: number): void { /* ... */ }
-}
-```
-
-#### **Enforcement Rules**
-- **Maximum class size**: 200 lines
-- **Maximum function size**: 50 lines
-- **Maximum function parameters**: 5 parameters
-- **Single export per module**: Each module exports one primary class/function
-
----
-
-### **O - Open/Closed Principle**
-
-**Rule**: Software entities should be open for extension, closed for modification.
-
-#### **✅ Correct Implementation Examples**
-
-```typescript
-// ✅ GOOD: Abstract base class for authentication providers
-abstract class AuthProvider {
-  abstract validate(): Promise<AuthResult>;
-  abstract getEnvVars(): Record<string, string>;
-  
-  // Common functionality available to all providers
-  protected logAuthAttempt(method: string): void { /* ... */ }
-}
-
-// ✅ GOOD: Concrete implementations extend without modifying base
-class AnthropicAuthProvider extends AuthProvider {
-  async validate(): Promise<AuthResult> {
-    // Anthropic-specific validation
-    return { valid: true, method: 'anthropic' };
-  }
-  
-  getEnvVars(): Record<string, string> {
-    return { ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY || '' };
-  }
-}
-
-class BedrockAuthProvider extends AuthProvider {
-  async validate(): Promise<AuthResult> {
-    // Bedrock-specific validation
-    return { valid: true, method: 'bedrock' };
-  }
-  
-  getEnvVars(): Record<string, string> {
-    return {
-      AWS_ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID || '',
-      AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY || ''
-    };
-  }
-}
-```
-
-#### **❌ Anti-Pattern Examples**
-
-```typescript
-// ❌ BAD: Adding new auth methods requires modifying existing code
-class AuthManager {
-  validate(method: string): boolean {
-    if (method === 'anthropic') {
-      // Anthropic validation
-    } else if (method === 'bedrock') {
-      // Bedrock validation
-    } else if (method === 'vertex') {
-      // Adding this requires modifying the class
-    }
-    // Every new method requires modification here
-  }
-}
-```
-
-#### **Enforcement Rules**
-- **Use interfaces/abstract classes** for extensible components
-- **Strategy pattern** for authentication providers
-- **Factory pattern** for creating auth providers
-- **No switch/if-else chains** for type-based logic
-
----
-
-### **L - Liskov Substitution Principle**
-
-**Rule**: Objects of a superclass should be replaceable with objects of subclasses without breaking functionality.
-
-#### **✅ Correct Implementation Examples**
-
-```typescript
-// ✅ GOOD: All auth providers can be used interchangeably
-interface IAuthProvider {
-  validate(): Promise<AuthResult>;
-  getRequiredEnvVars(): string[];
-}
-
-class AuthService {
-  constructor(private provider: IAuthProvider) {}
-  
-  async authenticate(): Promise<boolean> {
-    const result = await this.provider.validate();
-    return result.valid;
-  }
-}
-
-// All these can substitute for IAuthProvider
-const anthropicAuth = new AnthropicAuthProvider();
-const bedrockAuth = new BedrockAuthProvider();
-const vertexAuth = new VertexAuthProvider();
-
-// Works with any provider implementation
-const authService1 = new AuthService(anthropicAuth);
-const authService2 = new AuthService(bedrockAuth);
-```
-
-#### **❌ Anti-Pattern Examples**
-
-```typescript
-// ❌ BAD: Subclass changes expected behavior
-class BaseValidator {
-  validate(input: string): boolean {
-    return input.length > 0;
-  }
-}
-
-class StrictValidator extends BaseValidator {
-  validate(input: string): boolean {
-    // BAD: Throws exception instead of returning boolean
-    if (input.length === 0) {
-      throw new Error('Input cannot be empty');
-    }
-    return true;
-  }
-}
-```
-
-#### **Enforcement Rules**
-- **Consistent return types** across implementations
-- **No exception changes** in subclasses
-- **Preserve behavioral contracts** from base classes
-- **Interface segregation** to avoid forcing unnecessary implementations
-
----
-
-### **I - Interface Segregation Principle**
-
-**Rule**: Classes should not be forced to depend on interfaces they do not use.
-
-#### **✅ Correct Implementation Examples**
-
-```typescript
-// ✅ GOOD: Specific, focused interfaces
-interface IMessageConverter {
-  convertToClaudeFormat(messages: Message[]): string;
-}
-
-interface IContentFilter {
-  filterContent(content: string): string;
-}
-
-interface ITokenEstimator {
-  estimateTokens(text: string): number;
-}
-
-// Classes implement only what they need
-class MessageAdapter implements IMessageConverter, IContentFilter {
-  convertToClaudeFormat(messages: Message[]): string { /* ... */ }
-  filterContent(content: string): string { /* ... */ }
-}
-
-class TokenService implements ITokenEstimator {
-  estimateTokens(text: string): number { /* ... */ }
-}
-```
-
-#### **❌ Anti-Pattern Examples**
-
-```typescript
-// ❌ BAD: Fat interface forcing unnecessary implementations
-interface IMessageProcessor {
-  convertToClaudeFormat(messages: Message[]): string;
-  filterContent(content: string): string;
-  estimateTokens(text: string): number;
-  validateMessage(message: Message): boolean;
-  encryptMessage(message: Message): string;  // Not needed by all
-  compressMessage(message: Message): Buffer; // Not needed by all
-}
-
-// Forces unnecessary implementations
-class SimpleConverter implements IMessageProcessor {
-  convertToClaudeFormat(messages: Message[]): string { /* ... */ }
-  filterContent(content: string): string { /* ... */ }
-  
-  // Forced to implement these even though not needed
-  estimateTokens(text: string): number { throw new Error('Not implemented'); }
-  validateMessage(message: Message): boolean { throw new Error('Not implemented'); }
-  encryptMessage(message: Message): string { throw new Error('Not implemented'); }
-  compressMessage(message: Message): Buffer { throw new Error('Not implemented'); }
-}
-```
-
-#### **Enforcement Rules**
-- **Maximum 5 methods** per interface
-- **Single-purpose interfaces** for specific capabilities
-- **Composition over inheritance** for complex behaviors
-- **No unused method implementations**
-
----
-
-### **D - Dependency Inversion Principle**
-
-**Rule**: High-level modules should not depend on low-level modules. Both should depend on abstractions.
-
-#### **✅ Correct Implementation Examples**
-
-```typescript
-// ✅ GOOD: High-level module depends on abstraction
-interface IClaudeClient {
-  query(prompt: string, options: ClaudeOptions): Promise<ClaudeResponse>;
-}
-
-interface ISessionStorage {
-  store(session: Session): Promise<void>;
-  retrieve(sessionId: string): Promise<Session | null>;
-}
-
-interface IAuthService {
-  authenticate(request: AuthRequest): Promise<AuthResult>;
-  validateApiKey(key: string): boolean;
-}
-
-// High-level service depends on abstractions
-class ChatService {
-  constructor(
-    private claudeClient: IClaudeClient,
-    private sessionStorage: ISessionStorage,
-    private authService: IAuthService
-  ) {}
-  
-  async processChat(request: ChatRequest): Promise<ChatResponse> {
-    // Authentication check
-    const authResult = await this.authService.authenticate(request);
-    if (!authResult.success) {
-      throw new UnauthorizedError('Authentication failed');
-    }
-    
-    const session = await this.sessionStorage.retrieve(request.sessionId);
-    const response = await this.claudeClient.query(request.prompt, {});
-    return this.formatResponse(response);
-  }
-}
-
-// Dependency injection with concrete implementations
-const claudeClient = new ClaudeCodeClient();
-const sessionStorage = new InMemorySessionStorage();
-const authService = new AuthService();
-const chatService = new ChatService(claudeClient, sessionStorage, authService);
-```
-
-#### **❌ Anti-Pattern Examples**
-
-```typescript
-// ❌ BAD: High-level module depends on concrete implementations
-class ChatService {
-  private claudeClient = new ClaudeCodeClient(); // Direct dependency
-  private sessionStorage = new InMemorySessionStorage(); // Direct dependency
-  
-  async processChat(request: ChatRequest): Promise<ChatResponse> {
-    // Tightly coupled to specific implementations
-    const session = await this.sessionStorage.retrieve(request.sessionId);
-    const response = await this.claudeClient.query(request.prompt, {});
-    return response;
-  }
-}
-```
-
-#### **Enforcement Rules**
-- **Constructor injection** for all dependencies
-- **Interface abstractions** for external services
-- **Dependency injection container** for complex scenarios
-- **No direct instantiation** of dependencies within classes
-
----
-
-## 🔄 DRY Principle (Don't Repeat Yourself)
-
-### **Code Duplication Prevention**
-
-#### **✅ Correct Implementation Examples**
-
-```typescript
-// ✅ GOOD: Shared utility functions
-class ValidationUtils {
-  static validateApiKey(key: string): ValidationResult {
-    if (!key || key.length < 10) {
-      return { valid: false, error: 'API key too short' };
-    }
-    return { valid: true };
-  }
-  
-  static validateEnvironmentVar(name: string, value?: string): ValidationResult {
-    if (!value) {
-      return { valid: false, error: `${name} environment variable not set` };
-    }
-    return { valid: true };
-  }
-}
-
-// ✅ GOOD: Base class for common authentication logic
-abstract class BaseAuthProvider {
-  protected validateRequired(envVars: string[]): ValidationResult {
-    for (const varName of envVars) {
-      const result = ValidationUtils.validateEnvironmentVar(varName, process.env[varName]);
-      if (!result.valid) return result;
-    }
-    return { valid: true };
-  }
-  
-  abstract getRequiredEnvVars(): string[];
-}
-```
-
-#### **❌ Anti-Pattern Examples**
-
-```typescript
-// ❌ BAD: Duplicated validation logic
-class AnthropicAuthProvider {
-  validate(): boolean {
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey || apiKey.length < 10) {
-      return false; // Duplicated validation logic
-    }
-    return true;
-  }
-}
-
-class BedrockAuthProvider {
-  validate(): boolean {
-    const accessKey = process.env.AWS_ACCESS_KEY_ID;
-    if (!accessKey || accessKey.length < 10) {
-      return false; // Same validation logic duplicated
-    }
-    return true;
-  }
-}
-```
-
-#### **DRY Enforcement Rules**
-- **Extract common logic** into utility functions
-- **Maximum 3 lines** of similar code before extraction
-- **Shared constants** in dedicated modules
-- **Common patterns** in base classes or mixins
-
----
+  // ✅ Good
+  if (sessions.size > SESSION_LIMITS.MAX_SESSIONS) { /* ... */ }
+  ```
 
 ## 🚫 Anti-Pattern Prevention
 
-### **1. Spaghetti Code Prevention**
+### **Forbidden Patterns**
 
-#### **Directives**
-- **Maximum cyclomatic complexity**: 10 per function
-- **Maximum nesting depth**: 4 levels
-- **Clear control flow**: No complex nested conditions
-- **Early returns**: Use guard clauses instead of deep nesting
+#### **No God Classes**
+- **Rule**: Classes focused on single responsibility
+- **Limit**: <200 lines per class
+- **Solution**: Break large classes into focused components
 
-#### **✅ Good Examples**
-
-```typescript
-// ✅ GOOD: Clear, linear flow with early returns
-async function processAuthRequest(request: AuthRequest): Promise<AuthResult> {
-  if (!request.credentials) {
-    return { success: false, error: 'Missing credentials' };
-  }
-  
-  if (!request.method) {
-    return { success: false, error: 'Missing auth method' };
-  }
-  
-  const provider = this.getAuthProvider(request.method);
-  if (!provider) {
-    return { success: false, error: 'Unsupported auth method' };
-  }
-  
-  return await provider.authenticate(request.credentials);
-}
-```
-
-#### **❌ Bad Examples**
-
-```typescript
-// ❌ BAD: Deeply nested spaghetti code
-async function processAuthRequest(request: AuthRequest): Promise<AuthResult> {
-  if (request.credentials) {
-    if (request.method) {
-      if (request.method === 'anthropic') {
-        if (request.credentials.apiKey) {
-          if (request.credentials.apiKey.length > 10) {
-            // Deep nesting makes code hard to follow
-            return await this.authenticateAnthropic(request.credentials.apiKey);
-          } else {
-            return { success: false, error: 'API key too short' };
-          }
-        } else {
-          return { success: false, error: 'Missing API key' };
-        }
-      } else if (request.method === 'bedrock') {
-        // More nested conditions...
+#### **No Deep Nesting**
+- **Rule**: Maximum 3 levels of nesting
+- **Solution**: Use early returns and guard clauses
+- **Example**:
+  ```typescript
+  // ❌ Bad - Deep nesting
+  if (user) {
+    if (user.isAuthenticated) {
+      if (user.hasPermission) {
+        // ... logic
       }
-    } else {
-      return { success: false, error: 'Missing method' };
     }
-  } else {
-    return { success: false, error: 'Missing credentials' };
   }
-}
+  
+  // ✅ Good - Early returns
+  if (!user) return;
+  if (!user.isAuthenticated) return;
+  if (!user.hasPermission) return;
+  // ... logic
+  ```
+
+#### **No Inline Complex Logic**
+- **Rule**: Extract complex logic to named, testable methods
+- **Implementation**: Private methods with descriptive names
+- **Testing**: Each extracted method gets unit tests
+
+#### **No Hardcoded Values**
+- **Rule**: All configuration via environment variables or constants
+- **Implementation**: Configuration files and environment validation
+
+#### **No Direct Dependencies**
+- **Rule**: Use dependency injection for all external dependencies
+- **Implementation**: Constructor injection with interfaces
+
+## 📁 File Organization Patterns
+
+### **Directory Structure Rules**
+
+#### **Feature-Based Organization**
+- **Rule**: Group by feature/domain, not by type
+- **Structure**: `/auth/`, `/claude/`, `/sessions/`, `/tools/`
+- **Within Features**: `interfaces/`, `services/`, `utils/`, `types/`
+
+#### **File Naming Conventions**
+- **Services**: `*.service.ts` (e.g., `claude.service.ts`)
+- **Interfaces**: `*.ts` (e.g., `auth-provider.ts`)
+- **Utilities**: `*.utils.ts` (e.g., `validation.utils.ts`)
+- **Types**: `*.types.ts` (e.g., `session.types.ts`)
+- **Constants**: `*.constants.ts` (e.g., `auth.constants.ts`)
+
+#### **Import Organization**
+```typescript
+// 1. Node.js built-ins
+import { EventEmitter } from 'events';
+
+// 2. External libraries
+import express from 'express';
+import { z } from 'zod';
+
+// 3. Internal modules (absolute paths)
+import { IAuthProvider } from '@/auth/interfaces/auth-provider';
+import { SESSION_CONSTANTS } from '@/utils/constants';
+
+// 4. Relative imports (same feature only)
+import { validateCredentials } from './auth-utils';
 ```
 
-### **2. Monster Class Prevention**
+## 🔧 Code Quality Standards
 
-#### **Directives**
-- **Maximum class size**: 200 lines
-- **Maximum methods per class**: 10 methods
-- **Single responsibility**: Each class has one clear purpose
-- **Extract services**: Break large classes into smaller, focused services
+### **TypeScript Requirements**
 
-#### **✅ Good Examples**
+#### **Strict Mode (Mandatory)**
+- **Configuration**: `"strict": true` in `tsconfig.json`
+- **Rules**: All code must pass `tsc --strict --noEmit`
+- **No**: `any` types, implicit returns, unused variables
 
+#### **Type Safety**
+- **Interfaces**: Define contracts for all data structures
+- **Generics**: Use for reusable components
+- **Union Types**: For controlled value sets
+- **Example**:
+  ```typescript
+  interface AuthResult<T = unknown> {
+    success: boolean;
+    data?: T;
+    error?: AuthError;
+  }
+  ```
+
+### **Error Handling Standards**
+
+#### **Custom Error Classes**
+- **Rule**: Specific error types for different scenarios
+- **Implementation**: Extend base `Error` class
+- **Properties**: Include contextual information
+- **Example**:
+  ```typescript
+  export class AuthenticationError extends Error {
+    constructor(
+      message: string,
+      public readonly provider: string,
+      public readonly code: string
+    ) {
+      super(message);
+      this.name = 'AuthenticationError';
+    }
+  }
+  ```
+
+#### **Error Handling Patterns**
+- **Async Functions**: Always use try/catch
+- **Result Pattern**: Return results with error information
+- **Logging**: Log errors with context
+- **User Errors**: Sanitize sensitive information
+
+### **Testing Requirements**
+
+#### **Coverage Standards**
+- **Unit Tests**: 100% coverage for business logic
+- **Integration Tests**: All component interactions
+- **E2E Tests**: Critical user workflows
+- **Performance Tests**: Response time validation
+
+#### **Test Structure**
+- **Naming**: `describe('Component', () => { test('should do X when Y') })`
+- **Arrange-Act-Assert**: Clear test structure
+- **Mocking**: Mock external dependencies, test business logic
+- **Data**: Use fixtures for test data
+
+## 🔄 Component Interaction Patterns
+
+### **Dependency Injection**
+
+#### **Constructor Injection (Primary)**
 ```typescript
-// ✅ GOOD: Focused, small classes
-class MessageConverter {
-  convertToClaudeFormat(messages: Message[]): string { /* 15 lines */ }
-  extractSystemPrompt(messages: Message[]): string | null { /* 10 lines */ }
-}
-
-class ContentFilter {
-  filterThinkingBlocks(content: string): string { /* 20 lines */ }
-  filterToolUsage(content: string): string { /* 15 lines */ }
-  filterImageReferences(content: string): string { /* 10 lines */ }
-}
-
-class TokenEstimator {
-  estimateTokens(text: string): number { /* 5 lines */ }
-  calculateUsage(prompt: string, completion: string): Usage { /* 10 lines */ }
-}
-```
-
-#### **❌ Bad Examples**
-
-```typescript
-// ❌ BAD: Monster class doing everything
-class MessageProcessor {
-  // 50+ methods handling everything
-  convertToClaudeFormat(messages: Message[]): string { /* ... */ }
-  convertFromClaudeFormat(response: string): Message { /* ... */ }
-  filterThinkingBlocks(content: string): string { /* ... */ }
-  filterToolUsage(content: string): string { /* ... */ }
-  filterImageReferences(content: string): string { /* ... */ }
-  validateMessage(message: Message): boolean { /* ... */ }
-  sanitizeMessage(message: Message): Message { /* ... */ }
-  encryptMessage(message: Message): string { /* ... */ }
-  compressMessage(message: Message): Buffer { /* ... */ }
-  estimateTokens(text: string): number { /* ... */ }
-  calculateCosts(tokens: number): number { /* ... */ }
-  logMessageProcessing(message: Message): void { /* ... */ }
-  cacheMessage(message: Message): void { /* ... */ }
-  // ... 40+ more methods
-}
-```
-
-### **3. Tight Coupling Prevention**
-
-#### **Directives**
-- **Dependency injection**: Use constructor injection for all dependencies
-- **Interface abstractions**: Depend on interfaces, not concrete classes
-- **Event-driven communication**: Use events for loose coupling between modules
-- **Configuration externalization**: All configuration via environment variables or config files
-
-#### **✅ Good Examples**
-
-```typescript
-// ✅ GOOD: Loose coupling with dependency injection
-class ChatController {
+export class ClaudeService {
   constructor(
-    private authService: IAuthService,
-    private messageService: IMessageService,
-    private claudeService: IClaudeService,
-    private sessionService: ISessionService
+    private readonly client: IClaudeClient,
+    private readonly sessionManager: ISessionManager,
+    private readonly logger: ILogger
   ) {}
-  
-  async handleChatRequest(req: Request, res: Response): Promise<void> {
-    const authResult = await this.authService.authenticate(req);
-    const messages = await this.messageService.processMessages(req.body.messages);
-    const response = await this.claudeService.query(messages);
-    await this.sessionService.updateSession(req.body.sessionId, response);
-    res.json(response);
+}
+```
+
+#### **Factory Pattern (Secondary)**
+```typescript
+export class AuthProviderFactory {
+  createProvider(type: AuthProviderType): IAuthProvider {
+    switch (type) {
+      case 'anthropic': return new AnthropicProvider();
+      case 'bedrock': return new BedrockProvider();
+      default: throw new Error(`Unknown provider: ${type}`);
+    }
   }
 }
 ```
 
-### **4. Magic Numbers/Strings Prevention**
+### **Event-Driven Architecture**
 
-#### **Directives**
-- **Named constants**: All magic numbers/strings in dedicated constants files
-- **Configuration-driven**: Use environment variables for configurable values
-- **Type-safe constants**: Use TypeScript enums for string literals
+#### **EventEmitter Usage**
+- **Rule**: Extend EventEmitter for pub/sub patterns
+- **Cleanup**: Always implement `removeAllListeners()` in cleanup methods
+- **Types**: Define event interfaces for type safety
 
-#### **✅ Good Examples**
-
+#### **Example Implementation**
 ```typescript
-// ✅ GOOD: Named constants
-export const CONFIG = {
-  MAX_TIMEOUT: 600000,
-  DEFAULT_PORT: 8000,
-  SESSION_TTL_HOURS: 1,
-  CLEANUP_INTERVAL_MINUTES: 5,
-  MAX_MESSAGE_LENGTH: 100000,
-  TOKEN_ESTIMATION_RATIO: 4
-} as const;
-
-export enum AuthMethod {
-  ANTHROPIC = 'anthropic',
-  BEDROCK = 'bedrock',
-  VERTEX = 'vertex',
-  CLI = 'claude_cli'
+interface MonitorEvents {
+  'health-check': (status: HealthStatus) => void;
+  'performance-metric': (metric: PerformanceMetric) => void;
 }
 
-export enum HttpStatusCode {
-  OK = 200,
-  BAD_REQUEST = 400,
-  UNAUTHORIZED = 401,
-  NOT_FOUND = 404,
-  INTERNAL_SERVER_ERROR = 500
-}
-```
-
-## 📏 Code Quality Metrics
-
-### **Automated Enforcement**
-
-```json
-// ESLint configuration for architectural rules
-{
-  "rules": {
-    "max-lines": ["error", 200],
-    "max-lines-per-function": ["error", 50],
-    "max-params": ["error", 5],
-    "complexity": ["error", 10],
-    "max-depth": ["error", 4],
-    "max-nested-callbacks": ["error", 3],
-    "no-magic-numbers": ["error", { "ignore": [0, 1, -1] }]
+export class SystemMonitor extends EventEmitter {
+  constructor() {
+    super();
+    this.setMaxListeners(50); // Prevent memory leaks
+  }
+  
+  destroy(): void {
+    this.removeAllListeners();
   }
 }
 ```
 
-### **Architecture Review Checklist**
+## 📊 Performance Guidelines
 
-Before merging any code, verify:
+### **Memory Management**
 
-- [ ] **Single Responsibility**: Each class/function has one clear purpose
-- [ ] **Dependency Injection**: No direct instantiation of dependencies
-- [ ] **Interface Usage**: External dependencies accessed via interfaces
-- [ ] **DRY Compliance**: No duplicated logic (max 3 similar lines)
-- [ ] **Size Limits**: Classes < 200 lines, functions < 50 lines
-- [ ] **Complexity Limits**: Cyclomatic complexity < 10
-- [ ] **No Magic Values**: All constants properly named and extracted
-- [ ] **Early Returns**: Guard clauses used instead of deep nesting
-- [ ] **Type Safety**: Full TypeScript typing with no `any` types
-- [ ] **Error Handling**: Proper error handling with specific error types
-
-## 🔐 Security Architecture
-
-### Security Component Integration
-
-The security system follows the same SOLID principles as the rest of the architecture:
-
-#### **Security Component Diagram**
-
-```
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   CLI Layer     │    │  Auth Middleware │    │ Security Config │
-│                 │    │                  │    │    Manager      │
-│ • Interactive   │────│ • Bearer Token   │────│ • Key Generation│
-│   Setup         │    │   Validation     │    │ • Policy Mgmt   │
-│ • CLI Flags     │    │ • Request Auth   │    │ • Event Logging │
-│ • Env Variables │    │ • Error Handling │    │ • Storage Info  │
-└─────────────────┘    └──────────────────┘    └─────────────────┘
-         │                        │                        │
-         └────────────────────────┼────────────────────────┘
-                                  │
-                    ┌─────────────────────────┐
-                    │   Auth Manager (Core)   │
-                    │                         │
-                    │ • Provider Management   │
-                    │ • Credential Storage    │
-                    │ • Multi-Auth Support    │
-                    │ • Session Integration   │
-                    └─────────────────────────┘
-```
-
-#### **Security Service Architecture**
-
-```typescript
-// ✅ GOOD: Security follows same SOLID principles
-interface ISecurityConfigManager {
-  generateApiKey(length?: number): Promise<SecurityResult>;
-  setApiKey(key: string, source: KeySource): SecurityResult;
-  validateApiKey(key: string): ValidationResult;
-  getSecurityPolicy(): SecurityPolicy;
-}
-
-interface IInteractiveSetup {
-  promptForApiProtection(options?: SetupOptions): Promise<string | null>;
-  displaySecurityStatus(config: SecurityConfig): void;
-}
-
-interface ICryptoService {
-  generateSecureToken(length: number): string;
-  validateTokenFormat(token: string): boolean;
-  createSafeHash(input: string): string;
-}
-
-// Security components use dependency injection
-class SecurityConfigManager implements ISecurityConfigManager {
-  constructor(
-    private authManager: IAuthManager,
-    private cryptoService: ICryptoService,
-    private logger: ILogger
-  ) {}
-  
-  async generateApiKey(length = 32): Promise<SecurityResult> {
-    // Secure key generation with validation
-    const token = this.cryptoService.generateSecureToken(length);
-    const validation = this.validateApiKey(token);
+#### **Resource Lifecycle**
+- **Creation**: Track all created resources (timers, connections, listeners)
+- **Cleanup**: Implement cleanup methods for all classes
+- **Monitoring**: Add memory usage tracking
+- **Example**:
+  ```typescript
+  export class ResourceManager {
+    private timers = new Set<NodeJS.Timeout>();
+    private intervals = new Set<NodeJS.Timeout>();
     
-    if (!validation.valid) {
-      throw new SecurityError('Generated key failed validation');
+    createTimer(callback: () => void, delay: number): NodeJS.Timeout {
+      const timer = setTimeout(callback, delay);
+      this.timers.add(timer);
+      return timer;
     }
     
-    this.authManager.setApiKey(token);
-    this.logger.info('API key generated', { length, hash: this.createHash(token) });
+    cleanup(): void {
+      this.timers.forEach(timer => clearTimeout(timer));
+      this.intervals.forEach(interval => clearInterval(interval));
+      this.timers.clear();
+      this.intervals.clear();
+    }
+  }
+  ```
+
+#### **Bounded Collections**
+- **Rule**: All collections must have maximum size limits
+- **Implementation**: Use Map with size checking, implement LRU eviction
+- **Monitoring**: Track collection sizes
+
+### **Async Operations**
+
+#### **Promise Handling**
+- **Rule**: Always handle rejections
+- **Timeouts**: Add timeouts for external calls
+- **Concurrency**: Use `Promise.allSettled()` for parallel operations
+- **Example**:
+  ```typescript
+  async executeWithTimeout<T>(
+    operation: () => Promise<T>,
+    timeoutMs: number
+  ): Promise<T> {
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('Operation timeout')), timeoutMs);
+    });
     
-    return { success: true, apiKey: token };
+    return Promise.race([operation(), timeoutPromise]);
   }
-}
-```
+  ```
 
-### Security Integration Points
+## 🔒 Security Guidelines
 
-#### **1. CLI Integration**
-- **Interactive Setup**: `InteractiveApiKeySetup` class handles user prompts
-- **CLI Flags**: Direct integration with `CliParser` for `--api-key` and `--no-interactive`
-- **Environment Detection**: Automatic detection of `API_KEY` environment variable
+### **Input Validation**
 
-#### **2. Middleware Integration**
-- **Auth Middleware**: `authMiddleware` validates Bearer tokens on protected routes
-- **Error Handling**: Consistent error responses for authentication failures
-- **Request Logging**: Security events logged for audit purposes
+#### **Validation Strategy**
+- **Rule**: Validate all inputs at boundaries
+- **Tools**: Use Zod for schema validation
+- **Sanitization**: Sanitize user inputs
+- **Example**:
+  ```typescript
+  const ChatCompletionSchema = z.object({
+    messages: z.array(MessageSchema).min(1).max(100),
+    model: z.string().refine(isValidModel),
+    stream: z.boolean().optional()
+  });
+  ```
 
-#### **3. Server Integration**
-- **Startup Configuration**: Security setup during server initialization
-- **Runtime Management**: Dynamic security policy updates
-- **Graceful Degradation**: Server operates with or without API key protection
+### **Authentication & Authorization**
 
-### Security Architecture Compliance
+#### **Credential Handling**
+- **Rule**: Never log credentials or API keys
+- **Storage**: Use environment variables or secure vaults
+- **Transmission**: Always use HTTPS for credential transmission
+- **Validation**: Validate credential formats
 
-#### **Single Responsibility Principle**
-- `SecurityConfigManager`: API key policy and configuration management
-- `InteractiveApiKeySetup`: User interaction and setup prompts
-- `CryptoUtils`: Cryptographic operations and key generation
-- `AuthMiddleware`: Request authentication and validation
+#### **API Security**
+- **Rate Limiting**: Implement per-endpoint rate limits
+- **CORS**: Configure CORS properly for production
+- **Headers**: Add security headers (HSTS, CSP, etc.)
 
-#### **Open/Closed Principle**
+## 📝 Documentation Standards
+
+### **Code Documentation**
+
+#### **JSDoc Comments**
+- **Public APIs**: Document all public methods and classes
+- **Complex Logic**: Explain non-obvious implementations
+- **Examples**: Provide usage examples for public APIs
+- **Format**:
+  ```typescript
+  /**
+   * Authenticates a user using the specified provider.
+   * 
+   * @param provider - The authentication provider to use
+   * @param credentials - User credentials for authentication
+   * @returns Promise resolving to authentication result
+   * @throws {AuthenticationError} When authentication fails
+   * @example
+   * ```typescript
+   * const result = await authService.authenticate('anthropic', { apiKey: 'sk-...' });
+   * ```
+   */
+  ```
+
+### **README Files**
+- **Feature Modules**: Each major feature gets a README
+- **Setup Instructions**: Clear setup and usage instructions
+- **Examples**: Working code examples
+- **Troubleshooting**: Common issues and solutions
+
+## 🧪 Testing Architecture
+
+### **Test Categories**
+
+#### **Unit Tests**
+- **Scope**: Individual classes and functions
+- **Isolation**: Mock all external dependencies
+- **Coverage**: 100% line and branch coverage
+- **Speed**: <1ms per test
+
+#### **Integration Tests**
+- **Scope**: Component interactions
+- **Real Dependencies**: Use real implementations where possible
+- **Scenarios**: Test error conditions and edge cases
+- **Speed**: <100ms per test
+
+#### **E2E Tests**
+- **Scope**: Complete user workflows
+- **Environment**: Test environment with real dependencies
+- **Scenarios**: Critical business flows
+- **Speed**: <5s per test
+
+### **Test Organization**
 ```typescript
-// ✅ Extensible security providers
-abstract class SecurityProvider {
-  abstract validateCredentials(request: AuthRequest): Promise<AuthResult>;
-  abstract getRequiredConfiguration(): SecurityConfig;
-}
-
-class ApiKeySecurityProvider extends SecurityProvider {
-  async validateCredentials(request: AuthRequest): Promise<AuthResult> {
-    // API key validation logic
-  }
-}
-
-class JwtSecurityProvider extends SecurityProvider {
-  async validateCredentials(request: AuthRequest): Promise<AuthResult> {
-    // JWT validation logic (future extension)
-  }
-}
-```
-
-#### **Dependency Inversion**
-```typescript
-// ✅ High-level security depends on abstractions
-class SecureEndpointHandler {
-  constructor(
-    private securityManager: ISecurityConfigManager,
-    private authValidator: IAuthValidator,
-    private auditLogger: IAuditLogger
-  ) {}
+// tests/unit/auth/anthropic-provider.test.ts
+describe('AnthropicProvider', () => {
+  let provider: AnthropicProvider;
   
-  async handleRequest(request: SecureRequest): Promise<Response> {
-    const authResult = await this.authValidator.validate(request.headers);
-    if (!authResult.success) {
-      this.auditLogger.logAuthFailure(request);
-      throw new UnauthorizedError();
-    }
-    
-    // Process authenticated request
-    return this.processSecureRequest(request);
-  }
-}
-```
-
-### Security Event Flow
-
-```mermaid
-sequenceDiagram
-    participant C as Client
-    participant M as Auth Middleware
-    participant S as Security Manager
-    participant A as Auth Manager
-    participant L as Logger
-
-    C->>M: Request with Bearer Token
-    M->>S: Validate API Key
-    S->>A: Check Stored Key
-    A->>S: Key Validation Result
-    S->>L: Log Security Event
-    S->>M: Validation Result
-    alt Valid Key
-        M->>C: Allow Request
-    else Invalid Key
-        M->>L: Log Auth Failure
-        M->>C: 401 Unauthorized
-    end
-```
-
-### Performance Considerations
-
-#### **Security Operation Performance**
-- **Key Generation**: <100ms for 32-character keys
-- **Validation**: <50ms per request
-- **Interactive Prompts**: <500ms response time
-- **Memory Usage**: Minimal overhead for security events (max 100 events stored)
-
-#### **Security Caching**
-```typescript
-// ✅ Efficient key validation with caching
-class CachedAuthValidator implements IAuthValidator {
-  private validationCache = new Map<string, boolean>();
-  private cacheExpiry = 5 * 60 * 1000; // 5 minutes
+  beforeEach(() => {
+    provider = new AnthropicProvider();
+  });
   
-  async validate(headers: Headers): Promise<AuthResult> {
-    const token = this.extractBearerToken(headers);
-    const cacheKey = this.createCacheKey(token);
-    
-    if (this.validationCache.has(cacheKey)) {
-      return { success: true, cached: true };
-    }
-    
-    const result = await this.performValidation(token);
-    if (result.success) {
-      this.cacheValidation(cacheKey);
-    }
-    
-    return result;
-  }
-}
+  describe('authenticate', () => {
+    test('should authenticate with valid API key', async () => {
+      // Arrange
+      const credentials = { apiKey: 'sk-valid-key' };
+      
+      // Act
+      const result = await provider.authenticate(credentials);
+      
+      // Assert
+      expect(result.success).toBe(true);
+    });
+  });
+});
 ```
 
-This architecture guide ensures clean, maintainable, and scalable code that follows industry best practices while preventing common anti-patterns that lead to technical debt. The security components are fully integrated while maintaining separation of concerns and following the same architectural principles as the rest of the system.
+## 🚀 Deployment Considerations
+
+### **Environment Configuration**
+- **Rule**: All environment-specific configuration via env vars
+- **Validation**: Validate required env vars on startup
+- **Defaults**: Provide sensible defaults for development
+- **Documentation**: Document all required environment variables
+
+### **Health Checks**
+- **Implementation**: Comprehensive health check endpoints
+- **Dependencies**: Check all external dependencies
+- **Graceful Degradation**: Continue operating when possible
+- **Monitoring**: Integrate with monitoring systems
+
+### **Graceful Shutdown**
+- **Signal Handling**: Handle SIGTERM and SIGINT
+- **Resource Cleanup**: Clean up all resources
+- **Request Draining**: Allow in-flight requests to complete
+- **Timeout**: Maximum shutdown time limit
+
+---
+
+**Remember**: These guidelines ensure code quality, maintainability, and reliability. All code must follow these patterns, and code reviews should enforce compliance with these standards.
