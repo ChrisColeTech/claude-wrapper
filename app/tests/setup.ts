@@ -40,13 +40,7 @@ afterAll(async () => {
   cleanupFunctions.push(fn);
 };
 
-// Mock process.exit to prevent actual exit during tests
+// Store original process.exit but don't mock it (causes CI issues)
 const originalExit = process.exit;
-process.exit = jest.fn() as any;
-
-// Restore process.exit after all tests
-afterAll(() => {
-  process.exit = originalExit;
-});
 
 export {};
