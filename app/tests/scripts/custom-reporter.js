@@ -50,44 +50,64 @@ class CustomReporter {
   }
 
   onTestResult(test, testResult) {
-    const testName = path.basename(testResult.testFilePath, '.test.ts');
-    const fileName = `test-results-${testName}.txt`;
-    
-    if (testResult.numFailingTests > 0) {
-      // Log failures immediately to console
-      console.error(`FAIL ${testResult.displayName || 'Tests'} ${testResult.testFilePath}`);
-      testResult.testResults.forEach(result => {
-        if (result.status === 'failed') {
-          console.error(`  ● ${result.fullName}`);
-          if (result.failureMessages.length > 0) {
-            result.failureMessages.forEach(message => {
-              console.error(`    ${message.split('\n')[0]}`);
-            });
+    try {
+      const testName = path.basename(testResult.testFilePath, '.test.ts');
+      const fileName = `test-results-${testName}.txt`;
+      
+      // Handle displayName safely
+      const displayName = typeof testResult.displayName === 'string' 
+        ? testResult.displayName 
+        : testResult.displayName?.name || 'Tests';
+      
+      if (testResult.numFailingTests > 0) {
+        // Log failures immediately to console
+        console.error(`FAIL ${displayName} ${testResult.testFilePath}`);
+        testResult.testResults.forEach(result => {
+          if (result.status === 'failed') {
+            console.error(`  ● ${result.fullName}`);
+            if (result.failureMessages && result.failureMessages.length > 0) {
+              result.failureMessages.forEach(message => {
+                console.error(`    ${message.split('\n')[0]}`);
+              });
+            }
           }
-        }
-      });
-      
-      // Save detailed results to fail directory
-      const failPath = path.join(this.failDir, fileName);
-      const failContent = this.formatTestResult(testResult);
-      fs.writeFileSync(failPath, failContent);
-    } else {
-      // Save successful results to pass directory
-      const passPath = path.join(this.passDir, fileName);
-      const passContent = this.formatTestResult(testResult);
-      fs.writeFileSync(passPath, passContent);
-      
-      console.log(`📄 ✅ PASS results saved to ${path.relative(process.cwd(), passPath)}`);
+        });
+        
+        // Save detailed results to fail directory
+        const failPath = path.join(this.failDir, fileName);
+        const failContent = this.formatTestResult(testResult);
+        fs.writeFileSync(failPath, failContent);
+      } else {
+        // Save successful results to pass directory
+        const passPath = path.join(this.passDir, fileName);
+        const passContent = this.formatTestResult(testResult);
+        fs.writeFileSync(passPath, passContent);
+        
+        console.log(`📄 ✅ PASS results saved to ${path.relative(process.cwd(), passPath)}`);
+      }
+    } catch (error) {
+      // Don't let reporter errors crash Jest
+      console.warn('Custom reporter error:', error.message);
     }
   }
 
   formatTestResult(testResult) {
     const lines = [];
     lines.push(`Test Suite: ${testResult.testFilePath}`);
-    lines.push(`Display Name: ${testResult.displayName || 'Tests'}`);
+    
+    // Handle displayName safely (might be object or string)
+    const displayName = typeof testResult.displayName === 'string' 
+      ? testResult.displayName 
+      : testResult.displayName?.name || 'Tests';
+    lines.push(`Display Name: ${displayName}`);
+    
     lines.push(`Status: ${testResult.numFailingTests > 0 ? 'FAILED' : 'PASSED'}`);
-    lines.push(`Tests: ${testResult.numPassingTests} passed, ${testResult.numFailingTests} failed, ${testResult.numTotalTests} total`);
-    lines.push(`Time: ${testResult.perfStats.runtime}ms`);
+    const totalTests = testResult.numTotalTests || (testResult.numPassingTests + testResult.numFailingTests + (testResult.numPendingTests || 0));
+    lines.push(`Tests: ${testResult.numPassingTests} passed, ${testResult.numFailingTests} failed, ${totalTests} total`);
+    
+    // Handle runtime safely
+    const runtime = testResult.perfStats?.runtime || testResult.runtime || 0;
+    lines.push(`Time: ${runtime}ms`);
     lines.push('');
     
     if (testResult.numFailingTests > 0) {
