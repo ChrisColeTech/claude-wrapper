@@ -22,7 +22,7 @@ export function createMockRequest(overrides: any = {}) {
   };
 }
 
-export function createMockResponse() {
+export function createMockExpressResponse() {
   const res = {
     status: jest.fn().mockReturnThis(),
     json: jest.fn().mockReturnThis(),
