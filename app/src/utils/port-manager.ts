@@ -9,6 +9,7 @@
 import { PortUtils } from './port';
 import { createLogger } from './logger';
 import { config } from './env';
+import { isTestEnvironment } from '../../tests/utils/test-environment';
 import winston from 'winston';
 
 /**
@@ -273,7 +274,7 @@ export class PortManager {
    */
   private startCleanupScheduler(): void {
     // Skip interval creation in test environment to prevent memory leaks
-    if (process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID) {
+    if (isTestEnvironment()) {
       return;
     }
 
@@ -286,12 +287,23 @@ export class PortManager {
       process.setMaxListeners(20);
     }
 
-    // Cleanup on process exit - skip in test environment to prevent memory leaks
-    if (process.env.NODE_ENV !== 'test' && !process.env.JEST_WORKER_ID) {
-      process.on('exit', () => this.shutdown());
-      process.on('SIGINT', () => this.shutdown());
-      process.on('SIGTERM', () => this.shutdown());
+    // Setup signal handlers for cleanup on process exit
+    this.setupSignalHandlers();
+  }
+
+  /**
+   * Setup signal handlers for graceful shutdown
+   * Protected from test environment to prevent memory leaks
+   */
+  private setupSignalHandlers(): void {
+    // Skip signal handler setup in test environment to prevent memory leaks
+    if (isTestEnvironment()) {
+      return;
     }
+
+    process.on('exit', () => this.shutdown());
+    process.on('SIGINT', () => this.shutdown());
+    process.on('SIGTERM', () => this.shutdown());
   }
 
   /**

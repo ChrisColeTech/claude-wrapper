@@ -15,6 +15,7 @@ import { createLogger } from '../utils/logger';
 import { config } from '../utils/env';
 import { productionConfig } from '../../config/production.config';
 import { healthMonitor } from '../monitoring/health-monitor';
+import { isTestEnvironment } from '../../tests/utils/test-environment';
 
 /**
  * Production server configuration interface
@@ -335,6 +336,11 @@ export class ProductionServerManager {
    * Remove signal handlers to prevent memory leaks
    */
   private removeSignalHandlers(): void {
+    // Skip signal handler cleanup in test environment as they were never set up
+    if (isTestEnvironment()) {
+      return;
+    }
+
     Object.entries(this.signalHandlers).forEach(([signal, handler]) => {
       process.removeListener(signal, handler);
     });
@@ -403,6 +409,11 @@ export class ProductionServerManager {
    * Setup signal handlers for graceful shutdown
    */
   private setupSignalHandlers(): void {
+    // Skip signal handlers in test environment to prevent memory leaks
+    if (isTestEnvironment()) {
+      return;
+    }
+
     const signals = ['SIGTERM', 'SIGINT', 'SIGUSR2'];
     
     signals.forEach(signal => {

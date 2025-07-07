@@ -10,21 +10,11 @@ import dotenv from 'dotenv';
 import { config } from './utils/env';
 import { createLogger } from './utils/logger';
 import { createAndStartServer, ServerStartResult } from './server';
+import { isTestEnvironment } from '../tests/utils/test-environment';
 
 // Load environment variables
 dotenv.config();
 
-/**
- * Check if running in test environment
- */
-function isTestEnvironment(): boolean {
-  return (
-    process.env.NODE_ENV === 'test' ||
-    process.env.JEST_WORKER_ID !== undefined ||
-    typeof global.describe === 'function' ||
-    typeof (global as any).it === 'function'
-  );
-}
 
 /**
  * Application startup options

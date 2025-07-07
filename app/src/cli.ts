@@ -22,6 +22,7 @@ import { promisify } from 'util';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import { isTestEnvironment } from '../tests/utils/test-environment';
 
 const execAsync = promisify(exec);
 
@@ -29,7 +30,7 @@ const execAsync = promisify(exec);
  * Test-safe process exit
  */
 function safeExit(code: number): void {
-  if (process.env.NODE_ENV !== 'test' && !process.env.JEST_WORKER_ID) {
+  if (!isTestEnvironment()) {
     process.exit(code);
   }
   // In test mode, don't exit - let the test continue
@@ -85,7 +86,7 @@ export class CliParser {
       .argument('[port]', 'port to run server on (default: 8000) - alternative to --port option');
 
     // Only use exitOverride in test environment to prevent process.exit
-    if (process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID) {
+    if (isTestEnvironment()) {
       this.program.exitOverride();
     }
   }
@@ -237,7 +238,7 @@ export class CliRunner {
    */
   private setupGracefulShutdown(server: any, logger: any): void {
     // Skip signal handlers in test environment to prevent memory leaks
-    if (process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID) {
+    if (isTestEnvironment()) {
       return;
     }
 
@@ -256,11 +257,9 @@ export class CliRunner {
       }, 10000);
     };
 
-    // Skip signal handlers in test environment to prevent memory leaks
-    if (process.env.NODE_ENV !== 'test' && !process.env.JEST_WORKER_ID) {
-      process.on('SIGTERM', () => shutdown('SIGTERM'));
-      process.on('SIGINT', () => shutdown('SIGINT'));
-    }
+    // Setup signal handlers for graceful shutdown
+    process.on('SIGTERM', () => shutdown('SIGTERM'));
+    process.on('SIGINT', () => shutdown('SIGINT'));
   }
 
   /**
@@ -269,7 +268,7 @@ export class CliRunner {
    */
   private setupProductionGracefulShutdown(logger: any): void {
     // Skip signal handlers in test environment to prevent memory leaks
-    if (process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID) {
+    if (isTestEnvironment()) {
       return;
     }
 
@@ -305,12 +304,10 @@ export class CliRunner {
       }
     };
 
-    // Skip signal handlers in test environment to prevent memory leaks
-    if (process.env.NODE_ENV !== 'test' && !process.env.JEST_WORKER_ID) {
-      process.on('SIGTERM', () => shutdown('SIGTERM'));
-      process.on('SIGINT', () => shutdown('SIGINT'));
-      process.on('SIGUSR2', () => shutdown('SIGUSR2'));
-    }
+    // Setup signal handlers for production graceful shutdown
+    process.on('SIGTERM', () => shutdown('SIGTERM'));
+    process.on('SIGINT', () => shutdown('SIGINT'));
+    process.on('SIGUSR2', () => shutdown('SIGUSR2'));
   }
 
   /**

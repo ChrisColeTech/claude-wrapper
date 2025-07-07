@@ -13,6 +13,31 @@
 
 Transform your Claude Code CLI into a powerful HTTP API server with full OpenAI Chat Completions compatibility. Perfect for developers who want to integrate Claude's capabilities into OpenAI-based applications while maintaining security and control.
 
+## 🔍 What is Claude Code CLI?
+
+**Claude Code CLI** is Anthropic's official command-line AI coding assistant that:
+
+- **Lives in your terminal** - Direct integration with your development environment
+- **Understands your codebase** - Has full context of your project structure and code
+- **Executes tasks** - Can edit files, run commands, handle git workflows, and more
+- **Uses natural language** - Interact with Claude through conversational commands
+
+Install it with: `npm install -g @anthropic-ai/claude-code`
+
+## 🔗 What does Claude-Wrapper do?
+
+**Claude-wrapper** transforms the Claude Code CLI into an HTTP API server:
+
+```
+Your App (OpenAI format) → Claude-Wrapper → Claude Code CLI → Your Project
+```
+
+This lets you:
+- **Use OpenAI API format** - Drop-in replacement for OpenAI Chat Completions API
+- **Keep Claude's power** - Maintain all of Claude Code's codebase understanding and execution capabilities  
+- **Add HTTP access** - Access Claude Code programmatically via REST API
+- **Enable integrations** - Connect Claude Code to web applications, IDEs, and other tools
+
 ## 🛠️ Tools-First Philosophy
 
 Claude Wrapper embraces the **OpenAI Tools API specification** with full user-defined function support:
