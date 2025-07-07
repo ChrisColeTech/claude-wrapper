@@ -29,7 +29,6 @@ import {
   FieldValidationError,
   ValidationContext 
 } from '../middleware/validation-handler';
-import { validateTools, validateToolChoice } from './tool-validator';
 
 const logger = getLogger('ParameterValidator');
 
@@ -80,17 +79,8 @@ export class ParameterValidator {
     errors.push(...messagesResult.errors);
     warnings.push(...messagesResult.warnings);
 
-    // Phase 4: Validate tool definitions if present
-    if (request.tools) {
-      const toolErrors = validateTools(request.tools);
-      errors.push(...toolErrors);
-    }
-
-    // Validate tool_choice if present
-    if (request.tool_choice && request.tools) {
-      const toolChoiceErrors = validateToolChoice(request.tool_choice, request.tools);
-      errors.push(...toolChoiceErrors);
-    } else if (request.tool_choice && !request.tools) {
+    // Tools will be passed through to Claude Code CLI for client-side execution
+    if (request.tool_choice && !request.tools) {
       errors.push('tool_choice can only be specified when tools are provided');
     }
 

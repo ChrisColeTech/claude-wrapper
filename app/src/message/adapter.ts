@@ -1,6 +1,6 @@
 /**
- * Phase 16A: Minimal message format adapter
- * Server-side tool processing removed - protocol conversion only
+ * Message format adapter for OpenAI <-> Claude conversion
+ * Handles client-side tool execution protocol
  */
 
 import { getLogger } from '../utils/logger';
@@ -85,6 +85,7 @@ export class MessageAdapter {
       }
     };
   }
+
 
   /**
    * Convert Claude streaming response to OpenAI format
