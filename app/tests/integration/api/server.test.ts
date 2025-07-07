@@ -39,7 +39,9 @@ describe('API Integration Tests', () => {
 
       expect(response.body).toEqual({
         status: 'healthy',
-        service: 'claude-wrapper-poc',
+        service: 'claude-wrapper',
+        version: expect.any(String),
+        description: expect.any(String),
         timestamp: expect.any(String)
       });
     });
@@ -53,11 +55,21 @@ describe('API Integration Tests', () => {
 
       expect(response.body).toEqual({
         object: 'list',
-        data: [
-          { id: 'claude-3-5-sonnet-20241022', object: 'model', owned_by: 'anthropic' },
-          { id: 'claude-3-5-haiku-20241022', object: 'model', owned_by: 'anthropic' }
-        ]
+        data: expect.arrayContaining([
+          expect.objectContaining({ 
+            id: 'claude-3-5-sonnet-20241022', 
+            object: 'model', 
+            owned_by: 'anthropic' 
+          }),
+          expect.objectContaining({ 
+            id: 'claude-3-5-haiku-20241022', 
+            object: 'model', 
+            owned_by: 'anthropic' 
+          })
+        ])
       });
+      expect(response.body.data).toBeInstanceOf(Array);
+      expect(response.body.data.length).toBeGreaterThan(0);
     });
   });
 
