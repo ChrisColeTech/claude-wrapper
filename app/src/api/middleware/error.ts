@@ -6,8 +6,10 @@ export function errorHandler(
   error: Error, 
   req: Request, 
   res: Response, 
-  _next: NextFunction
+  next: NextFunction
 ): void {
+  // Use next parameter to satisfy ESLint
+  void next;
   logger.error('Request error occurred', error, {
     url: req.url,
     method: req.method,
