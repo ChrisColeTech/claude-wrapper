@@ -14,6 +14,7 @@ import * as path from 'path';
 import * as os from 'os';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import * as packageJson from '../package.json';
 
 const execAsync = promisify(exec);
 
@@ -48,9 +49,9 @@ class CliParser {
    */
   private setupProgram(): void {
     this.program
-      .name('claude-wrapper')
-      .description('OpenAI-compatible API wrapper for Claude Code CLI')
-      .version('1.0.0')
+      .name(packageJson.name)
+      .description(packageJson.description)
+      .version(packageJson.version)
       .option('-p, --port <port>', 'port to run server on (default: 8000)')
       .option('-v, --verbose', 'enable verbose logging')
       .option('-d, --debug', 'enable debug mode')
