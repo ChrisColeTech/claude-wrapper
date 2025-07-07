@@ -1,31 +1,24 @@
 /**
- * Phase 16A: Minimal state types for compatibility
- * Note: No actual tool state management - tools are client-side only
+ * Tool State Types
+ * Minimal state interfaces for session compatibility
+ * No actual tool execution state - tools are client-side only
  */
 
-export interface ToolState {
-  // Empty interface for compatibility
-}
-
-export interface SessionState {
-  id: string;
-  created: Date;
-  // Minimal session state without tool execution
-}
-
+/**
+ * Tool call state snapshot for session compatibility
+ */
 export interface ToolCallStateSnapshot {
-  // Phase 16A: Empty interface for compatibility - no tool execution state
   sessionId?: string;
   timestamp?: Date;
+  // Minimal interface - no server-side tool execution state needed
 }
 
-// Phase 16A: Placeholder exports for compatibility
-export const createSessionState = (id: string): SessionState => ({
-  id,
-  created: new Date()
-});
-
-export const getSessionState = (id: string): SessionState | null => {
-  // Minimal implementation
-  return null;
-};
+/**
+ * Create empty tool call state snapshot
+ */
+export function createEmptySnapshot(sessionId?: string): ToolCallStateSnapshot {
+  return {
+    sessionId,
+    timestamp: new Date()
+  };
+}

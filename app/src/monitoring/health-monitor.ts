@@ -53,6 +53,11 @@ export class HealthMonitor {
     console.log('Active server port cleared');
   }
 
+  stopMonitoring(): void {
+    // Stop health monitoring
+    console.log('Health monitoring stopped');
+  }
+
   getStatistics(): any {
     return {
       uptime: process.uptime(),

@@ -1,20 +1,34 @@
 /**
- * Phase 16A: Minimal tools exports for protocol compatibility
- * Note: Server-side tool execution has been removed
+ * Tools Module Exports
+ * Clean, minimal tool protocol interfaces and schemas
  */
 
-// Export constants only - no tool execution functionality
-export * from './constants';
+// Core types
+export type {
+  OpenAIToolCall,
+  OpenAIFunction,
+  OpenAITool,
+  OpenAIToolChoice,
+  ClaudeToolUse,
+  ToolMessage,
+  ToolConversionResult
+} from './types';
 
-// Phase 16A: Tool validation placeholder (rejects tools with helpful message)
-export const toolValidator = {
-  validateToolArray: () => ({
-    valid: false,
-    errors: ['Tool execution is not supported. This API provides OpenAI-compatible chat completions only.'],
-    validTools: []
-  }),
-  validateToolChoice: () => ({
-    valid: false,
-    errors: ['Tool execution is not supported. This API provides OpenAI-compatible chat completions only.']
-  })
-};
+// Validation schemas
+export {
+  OpenAIFunctionSchema,
+  OpenAIToolSchema,
+  OpenAIToolChoiceSchema,
+  ToolsArraySchema,
+  OpenAIToolCallSchema,
+  ToolMessageSchema
+} from './schemas';
+
+// State types
+export type {
+  ToolCallStateSnapshot
+} from './state';
+
+export {
+  createEmptySnapshot
+} from './state';

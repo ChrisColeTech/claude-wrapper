@@ -7,7 +7,7 @@
  */
 
 import { Server } from 'http';
-import { Express } from 'express';
+import { Application } from 'express';
 import { testEnvironmentManager } from '../../utils/test-environment';
 import { createApp, createAndStartServer } from '../../../src/server';
 import { config } from '../../../src/utils/env';
@@ -17,7 +17,7 @@ import { healthMonitor } from '../../../src/monitoring/health-monitor';
 
 describe('Server Startup-Shutdown Integration', () => {
   let testServers: Server[] = [];
-  let testApps: Express[] = [];
+  let testApps: Application[] = [];
   
   beforeAll(() => {
     // Setup test environment with memory monitoring
@@ -251,7 +251,7 @@ describe('Server Startup-Shutdown Integration', () => {
       const response = await fetch(`http://localhost:${testPort}/health`);
       expect(response.ok).toBe(true);
       
-      const healthData = await response.json();
+      const healthData = await response.json() as { status: string; service: string };
       expect(healthData.status).toBe('healthy');
       expect(healthData.service).toBe('claude-code-openai-wrapper');
     }, 15000);

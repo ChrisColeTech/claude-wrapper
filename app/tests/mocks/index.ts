@@ -7,6 +7,12 @@ import { mockLoggerImpl, resetLoggerMocks } from './logger';
 import { mockFsImpl, resetFsMocks } from './fs';
 import { mockFetchImpl, setupFetchMocks, resetFetchMocks } from './fetch';
 import { mockProcessImpl, resetProcessMocks, clearEnvironment } from './process';
+import { mockCryptoImpl, resetCryptoMocks } from './crypto';
+import { mockClaudeSDK, mockClaudeClient, resetClaudeSDKMocks } from './claude-sdk';
+import { resetExpressMocks } from './express';
+import { resetSessionMocks } from './session';
+import { resetAuthMocks } from './auth';
+import { resetMonitoringMocks } from './monitoring';
 
 // =============================================================================
 // MOCK IMPLEMENTATIONS
@@ -17,6 +23,9 @@ export const mocks = {
   fs: mockFsImpl,
   fetch: mockFetchImpl,
   process: mockProcessImpl,
+  crypto: mockCryptoImpl,
+  claudeSDK: mockClaudeSDK,
+  claudeClient: mockClaudeClient,
 };
 
 // =============================================================================
@@ -127,6 +136,12 @@ function resetAllMocks() {
   resetFsMocks();
   resetFetchMocks();
   resetProcessMocks();
+  resetCryptoMocks();
+  resetClaudeSDKMocks();
+  resetExpressMocks();
+  resetSessionMocks();
+  resetAuthMocks();
+  resetMonitoringMocks();
 }
 
 // =============================================================================
@@ -137,3 +152,9 @@ export * from './logger';
 export * from './fs';
 export * from './fetch';
 export * from './process';
+export * from './crypto';
+export * from './claude-sdk';
+export * from './express';
+export * from './session';
+export * from './auth';
+export * from './monitoring';
