@@ -26,7 +26,6 @@
     "type-check": "cd app && npm run type-check",
     "prepack": "npm run build",
     "prepublishOnly": "npm run test:all && npm run build",
-    "postinstall": "npm run setup",
     "clean": "rm -rf app/dist app/node_modules node_modules",
     "reset": "npm run clean && npm install"
   },
