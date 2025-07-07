@@ -42,23 +42,24 @@ export class StreamingHandler {
       // Build Claude options
       const claudeOptions = this.buildClaudeOptions(request, claudeHeaders);
       
-      // Stream mock response (Claude service integration pending)
-      const mockContent = 'I understand your request and will help you with that.';
+      // Stream real Claude SDK response
+      const streamGenerator = claudeService.createStreamingCompletion(request.messages, claudeOptions);
       
-      // Send chunks
-      for (let i = 0; i < mockContent.length; i += 5) {
-        const chunk = mockContent.slice(i, i + 5);
-        this.sendStreamChunk(res, {
-          id: responseId,
-          created,
-          model: request.model,
-          content: chunk,
-          isComplete: false,
-          sessionId
-        });
+      for await (const chunk of streamGenerator) {
+        if (chunk.delta) {
+          this.sendStreamChunk(res, {
+            id: responseId,
+            created,
+            model: request.model,
+            content: chunk.delta,
+            isComplete: false,
+            sessionId
+          });
+        }
         
-        // Small delay to simulate streaming
-        await new Promise(resolve => setTimeout(resolve, 10));
+        if (chunk.finished) {
+          break;
+        }
       }
       
       // Send final chunk
@@ -76,7 +77,7 @@ export class StreamingHandler {
 
     } catch (error) {
       logger.error('Streaming error:', error);
-      this.sendStreamError(res, error instanceof Error ? error.message : 'Unknown error');
+      this.sendStreamError(res, error instanceof Error ? error.message : String(error));
     }
   }
 

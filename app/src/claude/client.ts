@@ -81,23 +81,33 @@ export class ClaudeClient {
     options: any = {}
   ): Promise<ClaudeResponse> {
     try {
-      // Phase 16A: Direct Claude Code CLI integration without tool execution
-      logger.info('Sending message to Claude Code CLI');
+      // Use real Claude service for completions
+      logger.info('Sending message to Claude Code SDK');
       
-      // This would integrate with Claude Code CLI for text-only completions
-      // Implementation details depend on how Claude Code CLI is invoked
+      const { claudeService } = await import('./service');
+      const { MessageSchema } = await import('../models/message');
       
+      // Convert and validate messages to proper Message type
+      const typedMessages = messages.map(msg => MessageSchema.parse({
+        role: msg.role,
+        content: msg.content
+      }));
+
+      const response = await claudeService.createCompletion(typedMessages, {
+        model: options.model || this.config.model
+      });
+
       return {
-        content: 'Claude Code CLI integration pending - Phase 16A protocol compatibility',
-        model: options.model || this.config.model || 'claude-3-5-sonnet-20241022',
+        content: response.content,
+        model: response.metadata.model || 'claude-3-5-sonnet-20241022',
         usage: {
-          input_tokens: 0,
-          output_tokens: 0
+          input_tokens: response.metadata.prompt_tokens || 0,
+          output_tokens: response.metadata.completion_tokens || 0
         }
       };
     } catch (error) {
       logger.error('Claude client error:', error);
-      throw new Error(`Claude client error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(`Claude client error: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
@@ -106,17 +116,34 @@ export class ClaudeClient {
     options: any = {}
   ): AsyncGenerator<ClaudeResponse, void, unknown> {
     try {
-      // Phase 16A: Streaming without tool execution
-      logger.info('Starting streaming message to Claude Code CLI');
+      // Use real Claude service for streaming
+      logger.info('Starting streaming message to Claude Code SDK');
       
-      // Placeholder for streaming implementation
-      yield {
-        content: 'Streaming Claude Code CLI integration pending - Phase 16A protocol compatibility',
-        model: options.model || this.config.model || 'claude-3-5-sonnet-20241022'
-      };
+      const { claudeService } = await import('./service');
+      const { MessageSchema } = await import('../models/message');
+      
+      // Convert and validate messages to proper Message type
+      const typedMessages = messages.map(msg => MessageSchema.parse({
+        role: msg.role,
+        content: msg.content
+      }));
+
+      const streamGenerator = claudeService.createStreamingCompletion(typedMessages, {
+        model: options.model || this.config.model,
+        stream: true
+      });
+
+      for await (const chunk of streamGenerator) {
+        if (chunk && chunk.delta) {
+          yield {
+            content: chunk.delta,
+            model: options.model || this.config.model || 'claude-3-5-sonnet-20241022'
+          };
+        }
+      }
     } catch (error) {
       logger.error('Claude streaming error:', error);
-      throw new Error(`Claude streaming error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(`Claude streaming error: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
