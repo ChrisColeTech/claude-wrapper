@@ -1,8 +1,3 @@
-/**
- * Custom Jest Reporter
- * Provides formatted text summaries and organized log cleanup
- */
-
 const fs = require('fs');
 const path = require('path');
 
@@ -10,159 +5,155 @@ class CustomReporter {
   constructor(globalConfig, options) {
     this.globalConfig = globalConfig;
     this.options = options;
-    this.logDir = path.join(__dirname, '..', 'logs');
-    this.passDir = path.join(this.logDir, 'pass');
-    this.failDir = path.join(this.logDir, 'fail');
+    this.logsDir = path.join(__dirname, '..', 'logs');
+    this.passDir = path.join(this.logsDir, 'pass');
+    this.failDir = path.join(this.logsDir, 'fail');
     
-    // Ensure log directories exist
-    this.ensureDirectories();
-    
-    // Clean previous logs at start
+    // Clean up previous test results before each run
     this.cleanupLogs();
   }
 
-  ensureDirectories() {
-    [this.logDir, this.passDir, this.failDir].forEach(dir => {
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-      }
-    });
-  }
-
   cleanupLogs() {
-    console.log('🧹 Cleared previous test logs');
-    
-    // Clear previous results
-    [this.passDir, this.failDir].forEach(dir => {
-      if (fs.existsSync(dir)) {
-        const files = fs.readdirSync(dir);
-        files.forEach(file => {
-          if (file.endsWith('.txt')) {
-            fs.unlinkSync(path.join(dir, file));
-          }
-        });
+    try {
+      // Create logs directory structure if it doesn't exist
+      if (!fs.existsSync(this.logsDir)) {
+        fs.mkdirSync(this.logsDir, { recursive: true });
       }
-    });
+      if (!fs.existsSync(this.passDir)) {
+        fs.mkdirSync(this.passDir, { recursive: true });
+      }
+      if (!fs.existsSync(this.failDir)) {
+        fs.mkdirSync(this.failDir, { recursive: true });
+      }
+
+      // Clean previous results
+      const cleanDir = (dir) => {
+        if (fs.existsSync(dir)) {
+          const files = fs.readdirSync(dir);
+          for (const file of files) {
+            const filePath = path.join(dir, file);
+            if (fs.statSync(filePath).isFile()) {
+              fs.unlinkSync(filePath);
+            }
+          }
+        }
+      };
+
+      cleanDir(this.passDir);
+      cleanDir(this.failDir);
+    } catch (error) {
+      console.error('Failed to cleanup logs:', error.message);
+    }
   }
 
   onRunStart() {
-    console.log('Global test setup completed. Initial signal listeners: 0');
+    // Called before test run starts
   }
 
   onTestResult(test, testResult) {
-    try {
-      const testName = path.basename(testResult.testFilePath, '.test.ts');
-      const fileName = `test-results-${testName}.txt`;
-      
-      // Handle displayName safely
-      const displayName = typeof testResult.displayName === 'string' 
-        ? testResult.displayName 
-        : testResult.displayName?.name || 'Tests';
-      
-      // Check for compilation errors or test execution errors
-      const hasCompilationError = testResult.testExecError;
-      const hasFailingTests = testResult.numFailingTests > 0;
-      const hasNoTests = testResult.numTotalTests === 0;
-      
-      if (hasCompilationError || hasFailingTests) {
-        // Log failures immediately to console
-        console.error(`FAIL ${displayName} ${testResult.testFilePath}`);
-        
-        // Handle compilation errors
-        if (hasCompilationError) {
-          console.error(`  ● Test suite failed to run`);
-          console.error(`    ${testResult.testExecError.message}`);
-        }
-        
-        // Handle test failures
-        testResult.testResults.forEach(result => {
-          if (result.status === 'failed') {
-            console.error(`  ● ${result.fullName}`);
-            if (result.failureMessages && result.failureMessages.length > 0) {
-              result.failureMessages.forEach(message => {
-                console.error(`    ${message.split('\n')[0]}`);
-              });
-            }
-          }
-        });
-        
-        // Save detailed results to fail directory
-        const failPath = path.join(this.failDir, fileName);
-        const failContent = this.formatTestResult(testResult);
-        fs.writeFileSync(failPath, failContent);
-      } else {
-        // Save successful results to pass directory
-        const passPath = path.join(this.passDir, fileName);
-        const passContent = this.formatTestResult(testResult);
-        fs.writeFileSync(passPath, passContent);
-        
-        console.log(`📄 ✅ PASS results saved to ${path.relative(process.cwd(), passPath)}`);
-      }
-    } catch (error) {
-      // Don't let reporter errors crash Jest
-      console.warn('Custom reporter error:', error.message);
+    const { testFilePath, testResults } = testResult;
+    const relativePath = path.relative(process.cwd(), testFilePath);
+    const filename = path.basename(testFilePath, '.ts') + '.txt';
+    
+    const passingTests = testResults.filter(t => t.status === 'passed');
+    const failingTests = testResults.filter(t => t.status === 'failed');
+    const skippedTests = testResults.filter(t => t.status === 'skipped');
+    
+    const hasFailing = failingTests.length > 0;
+    const targetDir = hasFailing ? this.failDir : this.passDir;
+    const statusIcon = hasFailing ? '❌' : '✅';
+    
+    // Generate formatted output
+    let output = '';
+    output += `📋 Test Results: ${relativePath}\n`;
+    output += '============================================================\n';
+    output += `✅ Passing: ${passingTests.length}\n`;
+    output += `❌ Failing: ${failingTests.length}\n`;
+    if (skippedTests.length > 0) {
+      output += `⏭️  Skipped: ${skippedTests.length}\n`;
     }
-  }
-
-  formatTestResult(testResult) {
-    const lines = [];
-    lines.push(`Test Suite: ${testResult.testFilePath}`);
+    output += `📊 Total: ${testResults.length}\n\n`;
     
-    // Handle displayName safely (might be object or string)
-    const displayName = typeof testResult.displayName === 'string' 
-      ? testResult.displayName 
-      : testResult.displayName?.name || 'Tests';
-    lines.push(`Display Name: ${displayName}`);
+    if (passingTests.length > 0) {
+      output += '✅ Passed Tests:\n';
+      passingTests.forEach(test => {
+        const duration = test.duration !== undefined ? `(${test.duration}ms)` : '';
+        output += `  ✅ ${test.fullName} ${duration}\n`;
+      });
+      output += '\n';
+    }
     
-    const hasCompilationError = testResult.testExecError;
-    const hasFailures = testResult.numFailingTests > 0;
-    
-    lines.push(`Status: ${hasCompilationError || hasFailures ? 'FAILED' : 'PASSED'}`);
-    const totalTests = testResult.numTotalTests || (testResult.numPassingTests + testResult.numFailingTests + (testResult.numPendingTests || 0));
-    lines.push(`Tests: ${testResult.numPassingTests} passed, ${testResult.numFailingTests} failed, ${totalTests} total`);
-    
-    // Handle runtime safely
-    const runtime = testResult.perfStats?.runtime || testResult.runtime || 0;
-    lines.push(`Time: ${runtime}ms`);
-    lines.push('');
-    
-    if (hasCompilationError || hasFailures) {
-      lines.push('FAILURES:');
-      
-      // Handle compilation errors
-      if (hasCompilationError) {
-        lines.push(`  ● Test suite failed to run`);
-        lines.push(`    ${testResult.testExecError.message}`);
-        lines.push('');
-      }
-      
-      // Handle test failures
-      testResult.testResults.forEach(result => {
-        if (result.status === 'failed') {
-          lines.push(`  ● ${result.fullName}`);
-          if (result.failureMessages.length > 0) {
-            result.failureMessages.forEach(message => {
-              lines.push(`    ${message}`);
-            });
-          }
-          lines.push('');
+    if (failingTests.length > 0) {
+      output += '🚨 Failed Tests:\n';
+      failingTests.forEach(test => {
+        output += `  ❌ ${test.fullName}\n`;
+        if (test.failureMessages && test.failureMessages.length > 0) {
+          test.failureMessages.forEach(message => {
+            // Clean up Jest error message formatting
+            const cleanMessage = message
+              .replace(/\u001b\[[0-9;]*m/g, '') // Remove ANSI colors
+              .split('\n')
+              .slice(0, 5) // Take first 5 lines for brevity
+              .join('\n');
+            output += `     💡 Error: ${cleanMessage}\n`;
+          });
         }
+        output += '\n';
       });
     }
     
-    return lines.join('\n');
+    if (skippedTests.length > 0) {
+      output += '⏭️  Skipped Tests:\n';
+      skippedTests.forEach(test => {
+        output += `  ⏭️  ${test.fullName}\n`;
+      });
+      output += '\n';
+    }
+    
+    // Write to appropriate directory
+    const filePath = path.join(targetDir, filename);
+    try {
+      fs.writeFileSync(filePath, output, 'utf8');
+      
+      // Console output
+      if (hasFailing) {
+        console.log(`\n${statusIcon} FAIL ${relativePath}`);
+        failingTests.forEach(test => {
+          console.log(`  ❌ ${test.title}`);
+          if (test.failureMessages && test.failureMessages.length > 0) {
+            const shortMessage = test.failureMessages[0]
+              .replace(/\u001b\[[0-9;]*m/g, '')
+              .split('\n')[0];
+            console.log(`     ${shortMessage}`);
+          }
+        });
+      } else {
+        console.log(`${statusIcon} PASS ${relativePath} (${passingTests.length} tests)`);
+      }
+    } catch (error) {
+      console.error(`Failed to write test results to ${filePath}:`, error.message);
+    }
   }
 
-  onRunComplete() {
-    console.log('✅ No signal handler leaks detected');
+  onRunComplete(contexts, results) {
+    const { numFailedTests, numPassedTests, numTotalTests, startTime } = results;
+    const duration = Date.now() - startTime;
     
-    // Memory usage info
-    const memUsage = process.memoryUsage();
-    const heapUsed = (memUsage.heapUsed / 1024 / 1024).toFixed(2);
-    const heapTotal = (memUsage.heapTotal / 1024 / 1024).toFixed(2);
-    console.log(`📊 Final memory usage: ${heapUsed}MB / ${heapTotal}MB heap`);
+    console.log('\n============================================================');
+    console.log(`📊 Test Run Complete (${duration}ms)`);
+    console.log(`✅ Passed: ${numPassedTests}`);
+    console.log(`❌ Failed: ${numFailedTests}`);
+    console.log(`📊 Total: ${numTotalTests}`);
     
-    console.log('Global test teardown completed');
+    if (numFailedTests > 0) {
+      console.log(`\n🔍 Failed test details saved to: ${this.failDir}`);
+    }
+    
+    if (numPassedTests > 0) {
+      console.log(`📁 Passed test details saved to: ${this.passDir}`);
+    }
+    
+    console.log('============================================================\n');
   }
 }
 

@@ -1,17 +1,11 @@
 /**
  * Cryptographic utilities for secure token generation
- * Based on Python main.py token generation
- * 
+ * Based on original claude-wrapper crypto utils
  * Single Responsibility: Secure random token generation
  */
 
 import { randomBytes, createHash } from 'crypto';
-
-/**
- * Constants for token generation
- */
-const DEFAULT_TOKEN_LENGTH = 32;
-const TOKEN_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+import { API_KEY_SECURITY } from '../config/security-constants';
 
 /**
  * Error thrown when token generation fails
@@ -25,18 +19,18 @@ export class TokenGenerationError extends Error {
 
 /**
  * Generate a secure random token for API authentication
- * Based on Python generate_secure_token() function
+ * Based on original generateSecureToken() function
  * 
  * @param length Token length (default: 32)
  * @returns Secure random token
  */
-export function generateSecureToken(length: number = DEFAULT_TOKEN_LENGTH): string {
-  if (length < 8) {
-    throw new TokenGenerationError('Token length must be at least 8 characters');
+export function generateSecureToken(length: number = API_KEY_SECURITY.DEFAULT_LENGTH): string {
+  if (length < API_KEY_SECURITY.MIN_LENGTH) {
+    throw new TokenGenerationError(`Token length must be at least ${API_KEY_SECURITY.MIN_LENGTH} characters`);
   }
 
-  if (length > 256) {
-    throw new TokenGenerationError('Token length must be at most 256 characters');
+  if (length > API_KEY_SECURITY.MAX_LENGTH) {
+    throw new TokenGenerationError(`Token length must be at most ${API_KEY_SECURITY.MAX_LENGTH} characters`);
   }
 
   try {
@@ -46,8 +40,8 @@ export function generateSecureToken(length: number = DEFAULT_TOKEN_LENGTH): stri
     // Convert to secure token using alphabet
     let token = '';
     for (let i = 0; i < length; i++) {
-      const randomIndex = randomBuffer[i] % TOKEN_ALPHABET.length;
-      token += TOKEN_ALPHABET[randomIndex];
+      const randomIndex = randomBuffer[i]! % API_KEY_SECURITY.VALID_CHARACTERS.length;
+      token += API_KEY_SECURITY.VALID_CHARACTERS[randomIndex];
     }
 
     return token;
@@ -68,17 +62,17 @@ export function validateTokenFormat(token: string): boolean {
   }
 
   // Check minimum length
-  if (token.length < 8) {
+  if (token.length < API_KEY_SECURITY.MIN_LENGTH) {
     return false;
   }
 
   // Check maximum length
-  if (token.length > 256) {
+  if (token.length > API_KEY_SECURITY.MAX_LENGTH) {
     return false;
   }
 
   // Check that token only contains valid characters
-  const validChars = new Set(TOKEN_ALPHABET);
+  const validChars = new Set(API_KEY_SECURITY.VALID_CHARACTERS);
   for (const char of token) {
     if (!validChars.has(char)) {
       return false;
@@ -100,68 +94,5 @@ export function createSafeHash(data: string): string {
   }
 
   const hash = createHash('sha256').update(data).digest('hex');
-  return hash.substring(0, 8); // First 8 characters for identification
-}
-
-/**
- * Secure comparison of two strings to prevent timing attacks
- * 
- * @param a First string
- * @param b Second string  
- * @returns True if strings are equal
- */
-export function secureCompare(a: string, b: string): boolean {
-  if (!a || !b) {
-    return false;
-  }
-
-  if (a.length !== b.length) {
-    return false;
-  }
-
-  let result = 0;
-  for (let i = 0; i < a.length; i++) {
-    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  }
-
-  return result === 0;
-}
-
-/**
- * Token utility class for organized token operations
- */
-export class TokenUtils {
-  /**
-   * Generate API key with specified length
-   */
-  static generateApiKey(length: number = DEFAULT_TOKEN_LENGTH): string {
-    return generateSecureToken(length);
-  }
-
-  /**
-   * Validate API key format
-   */
-  static isValidApiKey(apiKey: string): boolean {
-    return validateTokenFormat(apiKey);
-  }
-
-  /**
-   * Create safe representation of API key for logging
-   */
-  static maskApiKey(apiKey: string): string {
-    if (!apiKey || apiKey.length < 8) {
-      return '***';
-    }
-
-    const hash = createSafeHash(apiKey);
-    const prefix = apiKey.substring(0, 3);
-    return `${prefix}***${hash}`;
-  }
-
-  /**
-   * Securely compare API keys
-   */
-  static compareApiKeys(provided: string, expected: string): boolean {
-    return secureCompare(provided, expected);
-  }
+  return hash.substring(0, API_KEY_SECURITY.HASH_DISPLAY_LENGTH);
 }

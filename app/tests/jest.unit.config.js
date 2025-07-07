@@ -1,32 +1,38 @@
-/**
- * Unit Test Configuration
- * Fast, isolated component testing with heavy mocking
- */
-
 module.exports = {
   displayName: "Unit Tests",
   preset: "ts-jest",
   testEnvironment: "node",
-  transform: {
-    '^.+\\.ts$': ['ts-jest', {
-      tsconfig: '<rootDir>/tsconfig.json'
-    }]
-  },
-  testMatch: ["<rootDir>/unit/**/*.test.ts"],
-  setupFilesAfterEnv: ["<rootDir>/setup.ts"],
+  rootDir: "../",
+  testMatch: ["<rootDir>/tests/unit/**/*.test.ts"],
+  setupFilesAfterEnv: ["<rootDir>/tests/setup.ts"],
   moduleNameMapper: {
-    "^@/(.*)$": "<rootDir>/../src/$1",
+    "^@/(.*)$": "<rootDir>/src/$1",
+    "^@core/(.*)$": "<rootDir>/src/core/$1",
+    "^@api/(.*)$": "<rootDir>/src/api/$1",
+    "^@auth/(.*)$": "<rootDir>/src/auth/$1",
+    "^@session/(.*)$": "<rootDir>/src/session/$1",
+    "^@streaming/(.*)$": "<rootDir>/src/streaming/$1",
+    "^@utils/(.*)$": "<rootDir>/src/utils/$1",
+    "^@types/(.*)$": "<rootDir>/src/types/$1"
   },
-  transformIgnorePatterns: [
-    "node_modules/(?!(@anthropic-ai/claude-code)/)"
-  ],
-  coverageDirectory: "<rootDir>/logs/coverage/unit",
   collectCoverageFrom: [
-    "../src/**/*.ts",
-    "!../src/**/*.d.ts",
-    "!../src/index.ts",
-    "!../src/cli.ts"
+    "src/**/*.ts",
+    "!src/**/*.d.ts",
+    "!src/**/*.test.ts",
+    "!src/**/*.spec.ts"
   ],
-  // coverageReporters: ["text", "lcov", "html"], // Moved to CLI args
-  maxWorkers: "50%",
+  coverageDirectory: "<rootDir>/tests/logs/coverage/unit",
+  // Use default coverage reporters
+  coverageThreshold: {
+    global: {
+      branches: 80,
+      functions: 80,
+      lines: 80,
+      statements: 80
+    }
+  },
+  // Use timeout in setup.ts instead
+  clearMocks: true,
+  resetMocks: true,
+  restoreMocks: true
 };

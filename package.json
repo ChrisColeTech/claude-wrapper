@@ -1,78 +1,55 @@
 {
   "name": "claude-wrapper",
   "version": "1.0.0",
-  "description": "OpenAI-compatible API wrapper for Claude Code CLI",
-  "main": "app/dist/src/index.js",
+  "description": "Production-ready OpenAI-compatible API wrapper for Claude Code CLI with streaming, sessions, and authentication",
+  "main": "app/dist/cli.js",
   "bin": {
-    "claude-wrapper": "app/dist/src/cli.js"
+    "claude-wrapper": "app/dist/cli.js"
   },
   "scripts": {
-    "setup": "npm run install:app",
-    "install:app": "cd app && npm install",
-    "build": "cd app && npm run build",
-    "build:clean": "cd app && npm run build:clean",
-    "start": "node app/dist/src/cli.js",
-    "start:app": "cd app && npm start",
+    "install": "cd app && npm install",
+    "build": "cd app && npm run build > build.log 2>&1",
+    "start": "cd app && npm start",
     "dev": "cd app && npm run dev",
-    "dev:cli": "cd app && npm run dev:cli",
     "test": "cd app && npm test",
     "test:unit": "cd app && npm run test:unit",
     "test:integration": "cd app && npm run test:integration",
     "test:coverage": "cd app && npm run test:coverage",
-    "test:performance": "cd app && npm run test:performance",
-    "test:all": "npm run test:unit && npm run test:integration && npm run test:performance",
     "lint": "cd app && npm run lint",
-    "lint:fix": "cd app && npm run lint:fix",
-    "type-check": "cd app && npm run type-check",
-    "prepack": "npm run build",
-    "prepublishOnly": "npm run test:all && npm run build",
-    "clean": "rm -rf app/dist app/node_modules node_modules",
-    "reset": "npm run clean && npm install"
+    "typecheck": "cd app && npm run typecheck",
+    "clean": "cd app && npm run clean",
+    "prepublishOnly": "npm run build"
   },
-  "files": [
-    "app/dist/**/*",
-    "app/package.json",
-    "app/tsconfig.json",
-    "docs/**/*",
-    "README.md",
-    "LICENSE"
-  ],
   "keywords": [
     "claude",
+    "ai",
     "openai",
     "api",
     "wrapper",
-    "typescript",
-    "cli",
+    "streaming",
+    "chat",
+    "completions",
     "anthropic",
-    "ai"
+    "tools",
+    "function-calling"
   ],
-  "author": "Claude Code Team",
+  "author": "Claude Wrapper Team",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ChrisColeTech/claude-wrapper.git"
+    "url": "https://github.com/claude-wrapper/claude-wrapper.git"
   },
   "bugs": {
-    "url": "https://github.com/ChrisColeTech/claude-wrapper/issues"
+    "url": "https://github.com/claude-wrapper/claude-wrapper/issues"
   },
-  "homepage": "https://github.com/ChrisColeTech/claude-wrapper#readme",
+  "homepage": "https://github.com/claude-wrapper/claude-wrapper#readme",
   "engines": {
-    "node": ">=18.0.0",
-    "npm": ">=8.0.0"
+    "node": ">=18.0.0"
   },
-  "peerDependencies": {
-    "@anthropic-ai/claude-code": "^1.0.43"
-  },
-  "workspaces": [
-    "app"
+  "files": [
+    "app/dist/",
+    "app/package.json",
+    "README.md"
   ],
-  "devDependencies": {
-    "commander": "^9.4.0",
-    "readline-sync": "^1.4.10",
-    "@types/readline-sync": "^1.4.0"
-  },
-  "optionalDependencies": {
-    "@anthropic-ai/claude-code": "^1.0.43"
-  }
+  "preferGlobal": true
 }

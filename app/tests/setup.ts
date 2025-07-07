@@ -1,114 +1,75 @@
-/**
- * Test Setup File
- * Configures the test environment before each test file runs
- */
+import 'jest';
 
-import { setupTestEnvironment, teardownTestEnvironment } from './mocks';
-
-// =============================================================================
-// GLOBAL CONFIGURATION
-// =============================================================================
-
+// Global test configuration
+// Increase timeout for integration and E2E tests
 jest.setTimeout(30000);
 
-// =============================================================================
-// TEST ENVIRONMENT SETUP
-// =============================================================================
-
-beforeEach(() => {
-  setupTestEnvironment();
-});
-
-afterEach(() => {
-  teardownTestEnvironment();
-});
-
-// Track cleanup functions
-const cleanupFunctions: (() => void | Promise<void>)[] = [];
-
-// Global setup
-beforeAll(() => {
+// Global test setup
+beforeAll(async () => {
   // Set test environment
-  process.env.NODE_ENV = 'test';
+  process.env['NODE_ENV'] = 'test';
   
-  // Disable console.log in tests unless DEBUG is set
-  if (!process.env.DEBUG) {
+  // Suppress console logs during tests unless DEBUG is set
+  if (!process.env['DEBUG']) {
     console.log = jest.fn();
     console.info = jest.fn();
     console.warn = jest.fn();
+    // Keep console.error for debugging failures
   }
 });
 
-// Global cleanup
 afterAll(async () => {
-  // Run all cleanup functions
-  await Promise.all(cleanupFunctions.map(fn => fn()));
-  
-  // Final cleanup
-  if (global.gc) {
-    global.gc();
-  }
+  // Cleanup after all tests
+  // Give time for async operations to complete
+  await new Promise(resolve => setTimeout(resolve, 100));
 });
 
-// Helper function to register cleanup
-(global as any).registerCleanup = (fn: () => void | Promise<void>) => {
-  cleanupFunctions.push(fn);
-};
+beforeEach(() => {
+  // Clear all mocks before each test to prevent contamination
+  jest.clearAllMocks();
+  
+  // Reset any environment variables that might affect tests
+  delete process.env['TEST_OVERRIDE'];
+});
 
-// =============================================================================
-// GLOBAL MOCKS
-// =============================================================================
+afterEach(async () => {
+  // Cleanup after each test
+  // Clear any intervals or timeouts that might be hanging
+  jest.clearAllTimers();
+  
+  // Give time for async cleanup
+  await new Promise(resolve => setTimeout(resolve, 10));
+});
 
-// Mock Claude Code SDK
-jest.mock('@anthropic-ai/claude-code', () => ({
-  ClaudeCode: jest.fn().mockImplementation(() => ({
-    sendMessage: jest.fn(),
-    verifyConnection: jest.fn(),
-    getConfig: jest.fn(),
-    isConnected: jest.fn().mockReturnValue(true),
-    connect: jest.fn().mockResolvedValue(undefined),
-    disconnect: jest.fn().mockResolvedValue(undefined),
-  })),
-}));
+// Global error handling for unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  // Don't exit the process in tests, just log the error
+});
 
-// Mock Winston logger
-jest.mock('winston', () => ({
-  createLogger: jest.fn(() => require('./mocks').mockLoggerImpl),
-  format: {
-    combine: jest.fn(),
-    timestamp: jest.fn(),
-    printf: jest.fn(),
-    colorize: jest.fn(),
-    simple: jest.fn(),
-    json: jest.fn(),
-    errors: jest.fn(),
-  },
-  transports: {
-    Console: jest.fn(),
-    File: jest.fn(),
-  },
-}));
-
-// =============================================================================
-// CUSTOM MATCHERS
-// =============================================================================
-
+// Configure test environment
 declare global {
   namespace jest {
     interface Matchers<R> {
-      toEndWith(expected: string): R;
+      toBeWithinRange(floor: number, ceiling: number): R;
     }
   }
 }
 
+// Custom Jest matchers
 expect.extend({
-  toEndWith(received: string, expected: string) {
-    const pass = received.endsWith(expected);
-    return {
-      message: () => `expected ${received} ${pass ? 'not ' : ''}to end with ${expected}`,
-      pass,
-    };
+  toBeWithinRange(received: number, floor: number, ceiling: number) {
+    const pass = received >= floor && received <= ceiling;
+    if (pass) {
+      return {
+        message: () => `expected ${received} not to be within range ${floor} - ${ceiling}`,
+        pass: true,
+      };
+    } else {
+      return {
+        message: () => `expected ${received} to be within range ${floor} - ${ceiling}`,
+        pass: false,
+      };
+    }
   },
 });
-
-export {};

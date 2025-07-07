@@ -1,0 +1,58 @@
+{
+  "model": "claude-sonnet-4-20250514",
+  "messages": [
+    {
+      "role": "system",
+      "content": "You have access to these MCP tools: read_file, write_file, list_directory, get_weather, search_web. When you need tools, use tool_calls in OpenAI format."
+    },
+    {
+      "role": "user",
+      "content": "List the files in the current directory, then read the README.md file"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "read_file",
+        "description": "Read content from a file",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "path": {"type": "string", "description": "File path to read"}
+          },
+          "required": ["path"]
+        }
+      }
+    },
+    {
+      "type": "function", 
+      "function": {
+        "name": "list_directory",
+        "description": "List files in a directory",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "path": {"type": "string", "description": "Directory path to list"}
+          },
+          "required": ["path"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "write_file",
+        "description": "Write content to a file", 
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "path": {"type": "string", "description": "File path to write"},
+            "content": {"type": "string", "description": "Content to write"}
+          },
+          "required": ["path", "content"]
+        }
+      }
+    }
+  ]
+}

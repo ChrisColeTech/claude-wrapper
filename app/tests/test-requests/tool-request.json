@@ -1,0 +1,49 @@
+{
+  "model": "claude-sonnet-4-20250514",
+  "messages": [
+    {
+      "role": "system", 
+      "content": "You have access to these MCP tools: read_file (reads content from a file), list_directory (lists files in a directory), write_file (writes content to a file). When you need to use a tool, respond with tool_calls in proper OpenAI format."
+    },
+    {
+      "role": "user", 
+      "content": "Please read the package.json file to find the project name"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "read_file",
+        "description": "Read content from a file",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string", 
+              "description": "File path to read"
+            }
+          },
+          "required": ["path"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "list_directory", 
+        "description": "List files in a directory",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "Directory path to list"
+            }
+          },
+          "required": ["path"]
+        }
+      }
+    }
+  ]
+}

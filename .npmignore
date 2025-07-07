@@ -1,0 +1,87 @@
+# Source files (only include built app)
+src/
+app/src/
+app/tests/
+tsconfig.json
+app/tsconfig.json
+
+# Development files
+docs/
+scripts/
+test-requests/
+mini-test.js
+test-init.js
+test.js
+run-test.sh
+test.sh
+server.log
+
+# Configuration files for development
+.eslintrc.*
+jest.config.js
+app/jest.config.js
+app/tests/jest.*.config.js
+
+# Testing
+app/tests/
+coverage/
+.nyc_output/
+*.test.ts
+*.spec.ts
+
+# Build artifacts we don't want to publish
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE and OS files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Environment and runtime
+.env*
+pids/
+*.pid
+*.seed
+*.pid.lock
+logs/
+*.log
+
+# Temporary files
+tmp/
+temp/
+.cache/
+
+# Development artifacts
+.eslintcache
+.npm
+.node_repl_history
+*.tgz
+.yarn-integrity
+package-lock.json
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Documentation that's not needed in package
+HANDOFF.md
+REQUIREMENTS.md
+
+# Only include what's needed for the published package:
+# - README.md (marketing)
+# - package.json (marketing)  
+# - app/dist/ (built application)
+# - app/package.json (application dependencies)
