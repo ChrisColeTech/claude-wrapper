@@ -30,7 +30,7 @@ jobs:
       run: npm ci
     
     - name: Install app dependencies
-      run: cd app && npm ci
+      run: cd app && npm ci --include=dev
     
     - name: Run type checking
       run: cd app && npm run typecheck
