@@ -1,631 +1,689 @@
-# Claude Wrapper
+# Claude Wrapper Rewrite Documentation
 
-[![npm version](https://badge.fury.io/js/claude-wrapper.svg)](https://badge.fury.io/js/claude-wrapper)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Node.js Version](https://img.shields.io/node/v/claude-wrapper.svg)](https://nodejs.org/en/download/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-4.9+-blue.svg)](https://www.typescriptlang.org/)
+## 🎯 Project Objective
 
-**OpenAI-compatible API wrapper for Claude Code CLI**
+Create a production-ready rewrite of the claude-wrapper project by building upon the POC foundation and selectively integrating essential features from the original claude-wrapper reference implementation. This is **NOT a greenfield project** - it's a systematic enhancement that maintains the POC's simplicity while adding enterprise-grade functionality.
 
-Transform your Claude Code CLI into a powerful HTTP API server with full OpenAI Chat Completions compatibility. Perfect for developers who want to integrate Claude's capabilities into OpenAI-based applications while maintaining security and control.
+## 🔍 Complete Codebase Analysis
 
-## 🛠️ Tools-First Philosophy
+This document provides a comprehensive analysis of **three distinct Claude wrapper implementations** to inform the rewrite strategy:
 
-Claude Wrapper embraces the **OpenAI Tools API specification** with full user-defined function support:
+1. **claude-wrapper-poc** (TypeScript POC) - Simple proof-of-concept
+2. **claude-wrapper** (TypeScript Original) - Complex production implementation  
+3. **claude-code-openai-wrapper** (Python Legacy) - Mature FastAPI implementation
 
-### What This Means
-- **User-Defined Functions**: You define tools that Claude can call
-- **Client-Side Execution**: Tools execute in YOUR environment, not on the server
-- **Security First**: No server-side file access or command execution
-- **OpenAI Standard**: Uses standard `tools` array format from OpenAI specification
-- **MCP Compatible**: Works with your local MCP tool installations
+## 📊 Three-Way Codebase Comparison
 
-### How It Works
-1. **Define Tools**: Create function definitions with JSON schemas
-2. **Claude Calls**: Claude decides when and how to call your tools
-3. **You Execute**: Your client receives tool calls and executes them locally
-4. **Return Results**: Send results back to Claude for continued conversation
+### **1. Claude Wrapper POC (TypeScript - Simple)**
+**Location**: `/mnt/c/Projects/claude-wrapper-poc/`
+**Purpose**: Proof-of-concept validating key technical innovations
 
-This approach gives you **maximum flexibility** while maintaining **security** - Claude gets the power of tools without server-side execution risks.
+#### **Architecture & Implementation**
+- **Framework**: Express.js with minimal middleware
+- **Code Size**: ~200 lines of core logic
+- **Dependencies**: Minimal (express, cors, child_process)
+- **Approach**: Direct CLI subprocess execution via stdin
+- **Philosophy**: Template-based format control with zero conversion
+
+#### **Key Innovations Proven**
+- ✅ **Template-Based Format Control** - 100% success rate with concrete JSON templates
+- ✅ **Self-Correction Mechanism** - Automatic retry for malformed responses
+- ✅ **Zero-Conversion Architecture** - Direct JSON passthrough, no parsing overhead
+- ✅ **Stdin Approach** - Handles unlimited prompt lengths vs command line limits
+- ✅ **Cross-Platform Detection** - Robust Claude CLI discovery across installations
+- ✅ **Client-Side Tool Execution** - Security-first MCP-compatible approach
+
+#### **Core Components**
+```typescript
+src/
+├── wrapper.ts           # Main orchestration logic (26 lines core)
+├── claude-client.ts     # CLI subprocess execution (41 lines)
+├── claude-resolver.ts   # Cross-platform Claude detection (92 lines)
+├── validator.ts         # Response validation & self-correction (58 lines)
+├── server.ts           # HTTP API endpoints (73 lines)
+└── types.ts            # TypeScript definitions
+```
+
+#### **What POC Validates**
+- Template-based format control achieves 100% OpenAI compatibility
+- Claude Sonnet 4 naturally generates perfect `tool_calls` format
+- Direct CLI execution is more reliable than SDK abstractions
+- Minimal codebase can deliver enterprise-grade functionality
+- Self-correction via re-prompting eliminates parsing errors
+
+#### **What POC Lacks**
+- ❌ Session management (stateless only)
+- ❌ Streaming support (complete responses only)
+- ❌ Authentication system
+- ❌ CLI interface (manual npm start)
+- ❌ Process management
+- ❌ Production error handling
 
 ---
 
-## 📚 Documentation Structure
+### **2. Claude Wrapper Original (TypeScript - Complex)**
+**Location**: `/mnt/c/Projects/claude-wrapper/`
+**Purpose**: Full production-ready implementation with comprehensive features
 
-This documentation is organized into logical categories for easy navigation:
+#### **Architecture & Implementation**
+- **Framework**: Express.js with extensive middleware stack
+- **Code Size**: ~8000+ lines across 50+ files
+- **Dependencies**: 50+ npm packages
+- **Approach**: Claude Code SDK integration with complex abstractions
+- **Philosophy**: Enterprise-grade with extensive separation of concerns
 
-### 🚀 **Quick Start**
-- **[Getting Started](../README.md)** - Main project README with setup instructions
-- **[Operations Guide](guides/OPERATIONS_GUIDE.md)** - Day-to-day usage and operations
+#### **Production Features**
+- ✅ **Full CLI Interface** - Commander.js with `claude-wrapper` global command
+- ✅ **Session Management** - Conversation continuity with TTL cleanup
+- ✅ **Streaming Support** - Server-Sent Events with real-time responses
+- ✅ **Multi-Provider Authentication** - Anthropic, AWS Bedrock, Google Vertex AI, CLI
+- ✅ **API Protection** - Optional bearer token security
+- ✅ **Daemon Mode** - Background process management with PID files
+- ✅ **Production Infrastructure** - Health monitoring, metrics, logging
+- ✅ **Process Management** - Graceful shutdown, signal handling
+- ✅ **Comprehensive Testing** - Unit, integration, performance tests
 
-### 📖 **Core Documentation**
+#### **Complex Architecture**
+```typescript
+app/src/
+├── auth/              # Multi-provider authentication (4 files)
+├── claude/            # Claude SDK integration (8 files)
+├── session/           # Session management (3 files)
+├── message/           # Message processing (9 files)
+├── middleware/        # Express middleware (12 files)
+├── routes/            # API endpoints (8 files)
+├── services/          # Business logic (4 files)
+├── models/            # Data models (8 files)
+├── validation/        # Request validation (7 files)
+├── utils/             # Utility functions (8 files)
+├── monitoring/        # Health & performance monitoring (2 files)
+├── server/            # Server management (3 files)
+└── types/             # Type definitions (1 file)
+```
 
-#### 🔌 **API Documentation** (`api/`)
-- **[API Reference](api/API_REFERENCE.md)** - Complete API endpoint documentation
-- **[OpenAI Tools API Plan](api/OPENAI_TOOLS_API_PLAN.md)** - Tools integration strategy
-- **[Debug Endpoints](api/DEBUG_ENDPOINTS.md)** - Development and debugging APIs
+#### **Over-Engineering Patterns**
+- ❌ **18+ Interface Files** - Excessive abstraction layers
+- ❌ **Factory Pattern Overuse** - Complex instantiation patterns
+- ❌ **Multiple Middleware Layers** - Redundant validation chains
+- ❌ **Complex Error Hierarchies** - Over-engineered error classes
+- ❌ **Event-Driven Architecture** - Unnecessary complexity for linear flows
+- ❌ **Resource Lifecycle Management** - Over-abstracted cleanup patterns
 
-#### 🏗️ **Architecture** (`architecture/`)
-- **[System Architecture](architecture/ARCHITECTURE.md)** - High-level system design
-- **[Project Structure](architecture/PROJECT_STRUCTURE.md)** - Codebase organization
-- **[Security](architecture/SECURITY.md)** - Security considerations and best practices
-
-#### 💻 **Development** (`development/`)
-- **[Implementation Rules](development/IMPLEMENTATION_RULES.md)** - Coding standards and guidelines
-- **[Code Examples](development/CODE_EXAMPLES.md)** - Code samples and patterns
-- **[Usage Examples](development/USAGE_EXAMPLES.md)** - Practical usage scenarios
-- **[Requirements](development/REQUIREMENTS.md)** - System and functional requirements
-- **[Claude SDK Reference](development/CLAUDE_SDK_REFERENCE.md)** - SDK usage reference
-
-#### 📋 **User Guides** (`guides/`)
-- **[Operations Guide](guides/OPERATIONS_GUIDE.md)** - Production operations
-- **[Mini README Guide](guides/MINI_README_GUIDE.md)** - Quick reference guide
-- **[README Writing Guide](guides/README_WRITING_GUIDE.md)** - Documentation standards
-
-### 📋 **Planning & Strategy** (`planning/`)
-- **[Master Implementation Plan](planning/IMPLEMENTATION_PLAN.md)** - Overall project roadmap
-- **[Claude SDK Integration Plan](planning/CLAUDE_SDK_INTEGRATION_PLAN.md)** - SDK integration strategy
-- **[Critical Gaps Implementation Plan](planning/CRITICAL_GAPS_IMPLEMENTATION_PLAN.md)** - Gap remediation strategy
-- **[OpenAI Tools API Plan](planning/OPENAI_TOOLS_API_PLAN.md)** - Tools integration plan
-- **[Enhanced Integration Test Recovery Plan](planning/ENHANCED_INTEGRATION_TEST_RECOVERY_PLAN.md)** - Test debugging methodology
-- **[Critical Gaps Analysis](planning/CRITICAL_GAPS_ANALYSIS.md)** - Gap analysis and remediation
-- **[Enhanced Phase Breakdown](planning/ENHANCED_PHASE_BREAKDOWN.md)** - Development phases overview
-
-### 🔄 **Implementation Phases** (`phases/`)
-- **[Claude SDK Phases](phases/claude-sdk-phases/)** - SDK integration phases (8 phases)
-- **[Critical Gaps Phases](phases/critical-gaps-phases/)** - Critical feature implementation (7 phases)
-- **[OpenAI Tools Phases](phases/openai-tools-phases/)** - Tools API implementation (22 phases)
-
-### 🧪 **Testing & Quality** (`testing/`)
-- **[Testing Framework](testing/TESTING.md)** - Comprehensive testing documentation
-- **[Systematic Diagnostic Methodology](testing/SYSTEMATIC_DIAGNOSTIC_METHODOLOGY.md)** - Quality assurance framework
-
-### 🚀 **Deployment** (`deployment/`)
-- **[Production Deployment](deployment/production-deployment.md)** - Production deployment guide
-
-### 💡 **Examples** (`examples/`)
-- **[Performance Benchmarks](examples/PERFORMANCE_BENCHMARKS.md)** - Performance testing results
-- **[Setup Guide](examples/SETUP_GUIDE.md)** - Step-by-step setup examples
-- **[Troubleshooting](examples/TROUBLESHOOTING.md)** - Common issues and solutions
+#### **Valuable Production Features**
+- ✅ **Interactive CLI Setup** - User-friendly configuration prompts
+- ✅ **Session API Endpoints** - `/v1/sessions/*` for session management
+- ✅ **Authentication Status** - `/v1/auth/status` endpoint
+- ✅ **Health Monitoring** - Comprehensive `/health` endpoint
+- ✅ **Tool Configuration** - Request-level tool control
+- ✅ **OpenAI Parameter Mapping** - Complete parameter compatibility
 
 ---
 
-## 🚀 Key Features
+### **3. Claude Code OpenAI Wrapper (Python - Mature)**
+**Location**: `/mnt/c/Projects/claude-code-openai-wrapper/`
+**Purpose**: Mature FastAPI implementation with official SDK integration
 
-- **🔌 OpenAI Compatible**: Drop-in replacement for OpenAI Chat Completions API
-- **🛠️ Tools-First Architecture**: Full OpenAI Tools API support with client-side execution
-- **🔐 Security Focused**: Optional API protection with user-controlled authentication
-- **📡 Real-time Streaming**: Server-Sent Events support for real-time responses
-- **🔄 Session Management**: Conversation continuity with session tracking
-- **⚡ Production Ready**: Daemon mode, health checks, and monitoring
-- **🎯 Multiple Auth Methods**: Anthropic, AWS Bedrock, Google Vertex AI, and CLI support
+#### **Architecture & Implementation**
+- **Framework**: FastAPI with uvicorn ASGI server
+- **Code Size**: ~2000 lines with official SDK integration
+- **Dependencies**: Poetry-managed with official claude-code-sdk
+- **Approach**: Official Claude Code Python SDK integration
+- **Philosophy**: Production-ready with comprehensive OpenAI compatibility
 
-## 📦 Installation
+#### **Key Strengths**
+- ✅ **Official SDK Integration** - Uses `claude-code-sdk` Python package
+- ✅ **Comprehensive Session Management** - TTL-based with automatic cleanup
+- ✅ **Full Streaming Support** - Real-time SSE with chunked responses
+- ✅ **Multi-Provider Authentication** - CLI, API key, Bedrock, Vertex AI
+- ✅ **Advanced Message Processing** - Content filtering, multimodal support
+- ✅ **OpenAI Parameter Mapping** - Complete parameter validation and warnings
+- ✅ **Production Infrastructure** - CORS, logging, health checks, metrics
+- ✅ **Tool Management** - Configurable tool enabling/disabling
 
-```bash
-# Install globally from npm
-npm install -g claude-wrapper
+#### **Production Implementation Examples**
+
+**Session Management**:
+```python
+class SessionManager:
+    def __init__(self, ttl_seconds: int = 3600):
+        self.sessions: Dict[str, SessionData] = {}
+        self.ttl_seconds = ttl_seconds
+        
+    async def cleanup_expired_sessions(self):
+        # Automatic TTL-based cleanup
 ```
 
-## 🚀 Quick Start
-
-### 1. Start the Server
-
-```bash
-claude-wrapper
+**Streaming Implementation**:
+```python
+async def generate_streaming_response(request, request_id, claude_headers):
+    async for chunk in claude_cli.run_completion(...):
+        # Process chunks, filter content, handle tool usage
+        yield f"data: {stream_chunk.model_dump_json()}\n\n"
 ```
 
-You'll see this prompt:
-
-```
-🔐 API Key Protection Setup
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-You can optionally protect your API endpoints with a bearer token.
-This adds an extra layer of security for remote access.
-
-If enabled, clients must include: Authorization: Bearer <token>
-
-Would you like to enable API key protection? (y/N):
+**Authentication System**:
+```python
+class AuthManager:
+    async def get_auth_provider(self) -> AuthProvider:
+        # Multi-provider detection: CLI -> API -> Bedrock -> Vertex
+        if self.detect_cli_auth():
+            return CLIAuthProvider()
+        # ... other providers
 ```
 
-**Press Enter** to skip (recommended for local development), then the server will start and check for Claude authentication.
+#### **What Python App Excels At**
+- Official SDK provides better error handling and metadata
+- Sophisticated message processing with content filtering
+- Real token counting and cost tracking
+- Comprehensive parameter validation with OpenAI compatibility warnings
+- Production-ready deployment patterns
 
-### 2. Configure Claude Authentication
+#### **Python vs TypeScript Comparison**
+| Feature | Python App | TypeScript POC | TypeScript Original |
+|---------|------------|----------------|-------------------|
+| **SDK Integration** | ✅ Official Python SDK | ❌ CLI subprocess | ✅ Claude SDK |
+| **Code Complexity** | 🟡 Moderate (~2000 lines) | ✅ Simple (~200 lines) | ❌ Complex (~8000 lines) |
+| **Session Management** | ✅ Full TTL system | ❌ None | ✅ Full system |
+| **Streaming** | ✅ Production SSE | ❌ None | ✅ Production SSE |
+| **Authentication** | ✅ Multi-provider | ❌ None | ✅ Multi-provider |
+| **Template Approach** | ❌ Parser-based | ✅ Template-based | ❌ Parser-based |
+| **Self-Correction** | ❌ None | ✅ Re-prompting | ❌ None |
+| **Maintenance** | 🟡 SDK dependency | ✅ Simple CLI calls | ❌ Complex abstractions |
 
-If you don't have Claude credentials configured, the server will show an error. Set up one of these:
+---
 
-```bash
-# Anthropic API (easiest)
-export ANTHROPIC_API_KEY="your-api-key-here"
-claude-wrapper
+## 📋 Comprehensive Feature Analysis
 
-# Or use AWS Bedrock / Google Vertex AI / Claude CLI
-# (see Authentication section below)
+### **HTTP API Endpoints Comparison**
+
+| Endpoint | POC | Original TS | Python | Analysis |
+|----------|-----|-------------|---------|----------|
+| `POST /v1/chat/completions` | ✅ Basic | ✅ Full streaming | ✅ Full streaming | All implement core functionality |
+| `GET /v1/models` | ✅ Static list | ✅ Dynamic detection | ✅ Dynamic detection | POC needs enhancement |
+| `GET /health` | ✅ Basic | ✅ Comprehensive | ✅ Comprehensive | POC has minimal implementation |
+| `GET /v1/auth/status` | ❌ | ✅ | ✅ | Missing from POC |
+| `GET /v1/sessions/*` | ❌ | ✅ | ✅ | Session management endpoints |
+
+### **Claude Integration Approaches**
+
+#### **POC's CLI Approach (Innovative)**
+```typescript
+// Direct subprocess with stdin (unlimited length)
+const command = `echo '${prompt}' | claude --print --model ${model}`;
+const { stdout } = await execAsync(command);
 ```
+**Advantages**: Simple, reliable, no SDK dependencies, handles unlimited prompts
+**Disadvantages**: Less metadata, basic error handling
 
-### 3. Test the API
-
-```bash
-curl -X POST http://localhost:8000/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "claude-3-5-sonnet-20241022",
-    "messages": [
-      {"role": "user", "content": "Hello, Claude!"}
-    ]
-  }'
-```
-
-### 4. Use with OpenAI SDK
-
-```javascript
-import OpenAI from 'openai';
-
-const client = new OpenAI({
-  baseURL: 'http://localhost:8000/v1',
-  apiKey: 'not-needed' // Optional API key protection
+#### **Original's SDK Approach (Standard)**
+```typescript
+// Claude SDK integration with abstractions
+const response = await claudeClient.messages.create({
+    model: request.model,
+    messages: convertedMessages,
+    // ... other parameters
 });
+```
+**Advantages**: Rich metadata, official support, comprehensive error handling
+**Disadvantages**: SDK dependencies, abstraction overhead
 
-const response = await client.chat.completions.create({
-  model: 'claude-3-5-sonnet-20241022',
-  messages: [
-    { role: 'user', content: 'Explain quantum computing' }
-  ]
+#### **Python's Official SDK (Best Practice)**
+```python
+# Official Python SDK with streaming
+async for message in query(
+    prompt=prompt,
+    options=ClaudeCodeOptions(model=model, max_turns=max_turns)
+):
+    # Rich message processing with metadata
+```
+**Advantages**: Official implementation, comprehensive features, excellent error handling
+**Disadvantages**: Python ecosystem, SDK version dependencies
+
+### **Tool Integration Philosophy**
+
+#### **POC: Client-Side Execution (Security-First)**
+```typescript
+// Template instructs Claude to generate OpenAI tool_calls format
+const formatInstruction = `Return raw JSON: {"tool_calls": [...]}`;
+// Client executes tools in their environment
+```
+**Philosophy**: Tools run locally, server never executes tools, MCP compatible
+**Security**: Maximum security, no server-side execution risks
+
+#### **Original: Server-Side Configuration**
+```typescript
+// Server configures which tools Claude can use
+const response = await claude.create({
+    allowed_tools: ['LS', 'Read'],
+    disallowed_tools: ['Bash']
 });
 ```
+**Philosophy**: Server controls tool availability, Claude executes tools
+**Security**: Server-side tool execution, requires trust
 
-## 🚀 CLI Usage Examples
+#### **Python: Hybrid Approach**
+```python
+# Server configures tools, Claude executes with filtering
+options = ClaudeCodeOptions(
+    allowed_tools=allowed_tools,
+    disallowed_tools=disallowed_tools
+)
+```
+**Philosophy**: Configurable tool control with content filtering
+**Security**: Balanced approach with post-execution filtering
 
-### Basic Server Management
+---
 
-```bash
-# Start on default port 8000
-claude-wrapper
+## 🎯 Rewrite Strategy Based on Three-Way Analysis
 
-# Custom port (two ways)
-claude-wrapper 3000
-claude-wrapper --port 3000
+### **Adopt POC's Innovations**
+1. **Template-Based Format Control** - Proven 100% success rate
+2. **Self-Correction Mechanism** - Eliminates parsing errors
+3. **Client-Side Tool Philosophy** - Maximum security and flexibility
+4. **Minimal Architecture** - Easier maintenance and understanding
 
-# Skip API protection prompt
-claude-wrapper --no-interactive
+### **Integrate Original's Production Features** 
+1. **CLI Interface** - Professional command-line tool
+2. **Session Management** - Conversation continuity
+3. **Streaming Support** - Real-time responses
+4. **Authentication System** - Multi-provider support
+5. **Process Management** - Background operation
+
+### **Learn from Python's Best Practices**
+1. **Session TTL Management** - Automatic cleanup patterns
+2. **Parameter Validation** - Comprehensive OpenAI compatibility
+3. **Streaming Implementation** - Robust SSE patterns
+4. **Authentication Flow** - Multi-provider detection logic
+
+### **Avoid Original's Over-Engineering**
+1. **❌ 18+ Interface Files** - Use direct class instantiation
+2. **❌ Factory Pattern Abstractions** - Simple constructors
+3. **❌ Multiple Middleware Layers** - Consolidated validation
+4. **❌ Complex Error Hierarchies** - Standard HTTP errors
+5. **❌ Event-Driven Architecture** - Linear request/response
+
+---
+
+## 📊 Target Architecture (Best of Three Worlds)
+
+### **Core Innovation from POC**
+```typescript
+// Template-based format control (POC's key innovation)
+const formatInstruction = {
+  role: 'system',
+  content: `Return raw JSON only: {"id":"${requestId}","object":"chat.completion",...}`
+};
 ```
 
-### Development & Debugging
+### **Production Features from Original**
+```typescript
+// Session management (from original)
+class SessionManager {
+  private sessions = new Map<string, Session>();
+  async cleanup() { /* TTL-based cleanup */ }
+}
 
-```bash
-# Verbose logging
-claude-wrapper --verbose
-
-# Debug mode with verbose
-claude-wrapper --debug --verbose
-
-# Custom port with debugging
-claude-wrapper --port 8080 --debug --verbose
+// CLI interface (from original)
+program
+  .command('start')
+  .option('--port <port>', 'port number')
+  .action(async (options) => { /* start server */ });
 ```
 
-### Daemon Mode (Background Server)
-
-```bash
-# Start background server
-claude-wrapper --start
-
-# Start background with custom port
-claude-wrapper --start --port 3000
-
-# Check if running
-claude-wrapper --status
-
-# Stop background server
-claude-wrapper --stop
-```
-
-### Real-World Scenarios
-
-```bash
-# Production server
-claude-wrapper --port 80 --no-interactive
-
-# Development with debug
-claude-wrapper 8080 --debug --verbose
-
-# Secure remote server
-claude-wrapper --port 443
-# (then answer 'y' to API protection prompt)
-```
-
-## 📋 All CLI Options
-
-```bash
-Usage: claude-wrapper [options] [port]
-
-Arguments:
-  port               Port to run server on (default: 8000)
-
-Options:
-  -V, --version          Output the version number
-  -p, --port <port>      Port to run server on (default: 8000)
-  -v, --verbose          Enable verbose logging
-  -d, --debug            Enable debug mode
-  --api-key <key>        Set API key for endpoint protection
-  --no-interactive       Disable interactive API key setup
-  --production           Enable production server management features
-  --health-monitoring    Enable health monitoring system
-  --start                Start server in background (daemon mode)
-  --stop                 Stop background server
-  --status               Check background server status
-  -h, --help             Display help for command
-```
-
-## 🔐 Understanding Authentication vs API Protection
-
-### Claude Authentication (Required)
-- **Purpose**: Authenticate with Claude services (Anthropic/Bedrock/Vertex)
-- **Required**: Yes, or the server won't work
-- **Setup**: Environment variables before starting
-
-### API Protection (Optional)
-- **Purpose**: Protect your local server endpoints with Bearer tokens
-- **Required**: No, purely optional
-- **Setup**: Interactive prompt when starting server
-
-## 🔐 Authentication Methods
-
-### Option 1: Anthropic Direct
-
-```bash
-export ANTHROPIC_API_KEY="your-api-key-here"
-claude-wrapper
-```
-
-### Option 2: AWS Bedrock
-
-```bash
-export CLAUDE_CODE_USE_BEDROCK=1
-export AWS_ACCESS_KEY_ID="your-access-key"
-export AWS_SECRET_ACCESS_KEY="your-secret-key"
-export AWS_REGION="us-east-1"
-claude-wrapper
-```
-
-### Option 3: Google Vertex AI
-
-```bash
-export CLAUDE_CODE_USE_VERTEX=1
-export ANTHROPIC_VERTEX_PROJECT_ID="your-project-id"
-export GOOGLE_APPLICATION_CREDENTIALS="path/to/credentials.json"
-claude-wrapper
-```
-
-### Option 4: Claude CLI
-
-```bash
-# Uses existing Claude CLI authentication
-claude-wrapper
-```
-
-## 🛠️ OpenAI Tools API Examples
-
-Define tools that Claude can call, with execution handled by your client:
-
-```javascript
-const response = await client.chat.completions.create({
-  model: 'claude-3-5-sonnet-20241022',
-  messages: [
-    { role: 'user', content: 'Read the file config.json' }
-  ],
-  tools: [
-    {
-      type: 'function',
-      function: {
-        name: 'read_file',
-        description: 'Read content from a file',
-        parameters: {
-          type: 'object',
-          properties: {
-            path: {
-              type: 'string',
-              description: 'Path to the file to read'
-            }
-          },
-          required: ['path']
-        }
-      }
-    }
-  ],
-  tool_choice: 'auto'
-});
-
-// Claude will return a tool call that you execute in your environment
-if (response.choices[0].message.tool_calls) {
-  const toolCall = response.choices[0].message.tool_calls[0];
-  const args = JSON.parse(toolCall.function.arguments);
-  
-  // Execute the tool in YOUR environment
-  const fileContent = fs.readFileSync(args.path, 'utf8');
-  
-  // Send the result back to Claude
-  const followUp = await client.chat.completions.create({
-    model: 'claude-3-5-sonnet-20241022',
-    messages: [
-      ...previousMessages,
-      response.choices[0].message,
-      {
-        role: 'tool',
-        tool_call_id: toolCall.id,
-        content: fileContent
-      }
-    ]
-  });
+### **Best Practices from Python**
+```typescript
+// Multi-provider auth detection (inspired by Python)
+class AuthManager {
+  async detectProvider(): Promise<AuthProvider> {
+    if (await this.detectCLI()) return new CLIAuth();
+    if (process.env.ANTHROPIC_API_KEY) return new AnthropicAuth();
+    // ... other providers
+  }
 }
 ```
 
-### Example Tools You Can Define
-- File operations (read/write files in your project)
-- API calls to your services
-- Database queries
-- System commands
-- Custom business logic
-- Integration with your development tools
-
-## 🔄 Daemon Mode Examples
-
-### Basic Daemon Operations
-
-```bash
-# Start daemon
-$ claude-wrapper --start
-✅ Server started in background
-   PID: 12345
-   Port: 8000
-   Logs: /tmp/claude-wrapper.log
-   Stop: claude-wrapper --stop
-
-# Check status
-$ claude-wrapper --status
-📊 Server Status: RUNNING
-   PID: 12345
-   Logs: /tmp/claude-wrapper.log
-   Health: ✅ OK (port 8000)
-
-# Stop daemon
-$ claude-wrapper --stop
-✅ Server stopped (PID: 12345)
+### **Final Architecture Combining All Three**
+```typescript
+src/
+├── core/              # POC's validated core logic
+│   ├── wrapper.ts     # Template-based format control
+│   ├── claude-client.ts # CLI integration with self-correction
+│   └── validator.ts   # Response validation
+├── session/           # Original's session management
+│   ├── manager.ts     # Session lifecycle with TTL
+│   └── storage.ts     # In-memory storage with cleanup
+├── streaming/         # Original + Python streaming patterns
+│   ├── handler.ts     # SSE implementation
+│   └── formatter.ts   # Streaming format control
+├── auth/              # Python's auth patterns, simplified
+│   ├── providers.ts   # Multi-provider detection
+│   └── middleware.ts  # Request authentication
+├── cli/               # Original's CLI interface, simplified
+│   ├── commands.ts    # Commander.js integration
+│   └── interactive.ts # Setup prompts
+└── api/               # Enhanced from POC
+    ├── routes/        # Express routes
+    ├── middleware/    # Minimal middleware stack
+    └── server.ts      # Server setup
 ```
-
-## 📡 API Endpoints
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `POST` | `/v1/chat/completions` | Main chat completions with streaming support |
-| `GET` | `/v1/models` | List available Claude models |
-| `GET` | `/v1/auth/status` | Claude Code authentication status |
-| `GET` | `/health` | Service health check |
-| `GET` | `/v1/sessions` | List active sessions |
-| `POST` | `/v1/sessions` | Create new session |
-| `DELETE` | `/v1/sessions/{id}` | Delete specific session |
-
-### Available Models
-
-- `claude-3-5-sonnet-20241022` (Latest)
-- `claude-3-5-haiku-20241022`
-- `claude-3-opus-20240229`
-- `claude-3-sonnet-20240229`
-- `claude-3-haiku-20240307`
-
-## ⚙️ Configuration
-
-### Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `PORT` | Server port | `8000` |
-| `API_KEY` | Optional API protection | `none` |
-| `DEBUG_MODE` | Enable debug logging | `false` |
-| `VERBOSE` | Enable verbose logging | `false` |
-| `CORS_ORIGINS` | Allowed CORS origins | `["*"]` |
-| `MAX_TIMEOUT` | Request timeout (ms) | `600000` |
-
-### Custom Headers
-
-| Header | Description | Type |
-|--------|-------------|------|
-| `X-Claude-Max-Turns` | Maximum conversation turns | `integer` |
-| `X-Claude-Permission-Mode` | Permission mode | `default`, `acceptEdits`, `bypassPermissions` |
-| `X-Claude-Max-Thinking-Tokens` | Maximum thinking tokens | `integer` |
-
-## 🛠️ Development
-
-### Prerequisites
-
-- **Node.js**: 18.0.0 or higher
-- **npm**: 8.0.0 or higher
-- **TypeScript**: 4.9.0 or higher
-- **Claude Code CLI** (automatically installed as optional dependency)
-
-### Development Commands
-
-```bash
-# Clone the repository
-git clone https://github.com/ChrisColeTech/claude-wrapper.git
-cd claude-wrapper
-
-# Install dependencies
-npm install
-
-# Build the project
-npm run build
-
-# Development with hot reload
-npm run dev
-
-# Run tests
-npm test
-npm run test:watch
-npm run test:coverage
-
-# Performance tests
-npm run test:performance
-npm run test:stress
-
-# Code quality
-npm run lint
-npm run lint:fix
-npm run type-check
-
-# Install CLI globally for testing
-npm install -g .
-```
-
-### Project Structure
-
-See [PROJECT_STRUCTURE.md](docs/PROJECT_STRUCTURE.md) for detailed codebase organization and file mapping.
-
-## 🚀 Production Deployment
-
-### Docker Deployment
-
-```dockerfile
-FROM node:18-alpine
-
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci --only=production
-
-COPY . .
-RUN npm run build
-
-EXPOSE 8000
-ENV NODE_ENV=production
-
-CMD ["claude-wrapper", "--no-interactive"]
-```
-
-```bash
-# Build and run
-docker build -t claude-wrapper .
-docker run -p 8000:8000 \
-  -e ANTHROPIC_API_KEY="your-key" \
-  claude-wrapper
-```
-
-### Environment Setup
-
-```bash
-# Production environment variables
-export NODE_ENV=production
-export PORT=8000
-export ANTHROPIC_API_KEY="your-production-key"
-export API_KEY="secure-api-protection-key"
-export CORS_ORIGINS='["https://your-domain.com"]'
-export MAX_TIMEOUT=300000
-
-# Start in production mode
-claude-wrapper --no-interactive
-```
-
-## 📚 Documentation
-
-### Core Documentation
-
-- **[API Reference](API_REFERENCE.md)** - Complete endpoint documentation with authentication details
-- **[Security Guide](SECURITY.md)** - Comprehensive security documentation including API key protection
-- **[Usage Examples](USAGE_EXAMPLES.md)** - Practical examples for all features and deployment scenarios
-- **[Troubleshooting Guide](TROUBLESHOOTING.md)** - Detailed solutions for common issues
-
-### Technical Documentation
-
-- **[Architecture Guide](ARCHITECTURE.md)** - System architecture including security component integration  
-- **[Implementation Rules](IMPLEMENTATION_RULES.md)** - Coding standards and best practices
-- **[Testing Guide](TESTING.md)** - Testing strategies and systematic diagnostic methodology
-- **[Systematic Diagnostic Methodology](SYSTEMATIC_DIAGNOSTIC_METHODOLOGY.md)** - 🔬 **NEW**: Revolutionary approach to integration test recovery
-- **[Project Structure](PROJECT_STRUCTURE.md)** - Codebase organization and file mapping
-
-### Development Documentation
-
-- **[Phase Implementation Plans](critical-gaps-phases/)** - Detailed development phases
-- **[Claude SDK Integration](claude-sdk-phases/)** - Claude SDK integration documentation
-- **[OpenAI Tools API](openai-tools-phases/)** - Tools API implementation details
-
-## 🔧 Troubleshooting
-
-### Quick Diagnostics
-
-```bash
-# Check server status
-curl http://localhost:8000/health
-
-# Check authentication status  
-curl http://localhost:8000/v1/auth/status
-
-# Enable debug mode
-claude-wrapper --debug --verbose
-```
-
-### Common Issues
-
-#### Authentication Errors
-
-```bash
-# Check authentication status
-curl http://localhost:8000/v1/auth/status
-
-# Test with debug mode
-claude-wrapper --debug --verbose
-
-# Verify environment variables
-echo $ANTHROPIC_API_KEY
-```
-
-#### Port Already in Use
-
-```bash
-# Use a different port
-claude-wrapper --port 3001
-
-# Or find what's using the port
-lsof -i :8000
-```
-
-#### API Key Protection Issues
-
-```bash
-# Check security status
-curl http://localhost:8000/v1/auth/status | jq '.security_config'
-
-# Disable protection for testing
-claude-wrapper --no-interactive
-
-# Set API key directly
-claude-wrapper --api-key your-secure-key
-```
-
-**For detailed troubleshooting, see [TROUBLESHOOTING.md](TROUBLESHOOTING.md)**
-
-## 🤝 Contributing
-
-We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
-
-### Development Guidelines
-
-1. Follow TypeScript strict mode
-2. Maintain 100% test coverage
-3. Use conventional commits
-4. Update documentation
-
-## 📄 License
-
-MIT License - see [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- **Anthropic** for the powerful Claude models and Claude Code CLI
-- **OpenAI** for the standardized Chat Completions API
-- **The open source community** for the foundational tools and libraries
 
 ---
 
-⭐ **Star this repository** if you find it useful!  
-🐛 **Report issues** or suggest features  
-🔧 **Contribute** to make it even better!
+## 🎯 Implementation Strategy
 
-**Get started today** - `npm install -g claude-wrapper` and unlock Claude's power in your existing OpenAI applications!
+### **Phase 1: POC Enhancement**
+- Preserve all POC innovations (template control, self-correction)
+- Add production-ready error handling and logging
+- Implement comprehensive testing
+
+### **Phase 2: Original Feature Integration**
+- Add CLI interface from original (simplified)
+- Implement session management (using Python's TTL patterns)
+- Add streaming support (combining original + Python approaches)
+
+### **Phase 3: Authentication & Process Management**
+- Implement multi-provider auth (Python's detection logic)
+- Add process management (original's daemon patterns)
+- Complete production readiness
+
+### **Success Metrics**
+- **Code Quality**: <3000 lines total (vs Original's 8000+, Python's 2000)
+- **Dependencies**: <20 packages (vs Original's 50+)
+- **Performance**: POC's speed + Original's features + Python's reliability
+- **Maintainability**: POC's simplicity + Production features
+
+This comprehensive analysis provides the foundation for creating the optimal claude-wrapper that combines the best innovations from all three implementations while avoiding their respective pitfalls.
+
+#### **Session Management** (`session/manager.ts`)
+- **Conversation Continuity** - Multi-turn conversations with context preservation
+- **TTL-based Cleanup** - Automatic session expiration and memory management
+- **Session Storage** - In-memory Map-based storage matching Python dict approach
+- **Session Statistics** - Usage metrics and monitoring
+
+#### **Streaming Support** (`routes/streaming-handler.ts`)
+- **Server-Sent Events** - Real-time response streaming
+- **Streaming Tool Calls** - Progressive tool call generation
+- **Connection Management** - Graceful connection handling and cleanup
+- **Backpressure Handling** - Proper flow control for streaming
+
+#### **CLI Interface** (`cli.ts`)
+- **Daemon Mode** - Background process management with PID files
+- **Interactive Setup** - User-friendly configuration prompts
+- **Process Management** - Start/stop/status commands
+- **Graceful Shutdown** - SIGTERM/SIGINT handling
+
+#### **Authentication System** (`auth/auth-manager.ts`)
+- **Multi-provider Support** - Anthropic, AWS Bedrock, Google Vertex AI, CLI
+- **Bearer Token Protection** - Optional API endpoint security
+- **Credential Validation** - Secure authentication validation
+- **Environment Variable Configuration** - No database dependencies
+
+#### **Enhanced Error Handling** (`middleware/error.ts`)
+- **OpenAI-compatible Error Responses** - Standard error format
+- **Detailed Validation Messages** - Clear error descriptions
+- **Request Logging** - Comprehensive request/response logging
+- **Health Monitoring** - Service health checks and metrics
+
+### **❌ Over-Engineering to Avoid**
+
+The original project contains significant over-engineering that should be avoided:
+
+#### **Excessive Abstractions**
+- ❌ **18+ Interface Files** - Simple operations don't need complex interfaces
+- ❌ **Factory Patterns** - Direct instantiation is clearer
+- ❌ **Dependency Injection Containers** - Constructor injection is sufficient
+- ❌ **Event-driven Architecture** - Linear request/response is simpler
+
+#### **Redundant Validation**
+- ❌ **Multiple Middleware Layers** - Consolidate validation logic
+- ❌ **Complex Error Hierarchies** - Standard HTTP errors are sufficient
+- ❌ **Schema Validation Overkill** - Simple validation for simple requests
+
+#### **Unnecessary Infrastructure**
+- ❌ **Performance Monitoring Abstraction** - Simple metrics are sufficient
+- ❌ **Resource Lifecycle Management** - Not needed for HTTP API
+- ❌ **Memory Management Patterns** - Node.js handles garbage collection
+- ❌ **Complex Configuration Systems** - Environment variables are sufficient
+
+## 🏗️ Architecture Comparison
+
+### **POC Architecture (Simple & Effective)**
+```
+src/
+├── claude-client.ts     # Claude CLI execution
+├── claude-resolver.ts   # Cross-platform Claude detection  
+├── wrapper.ts          # Core request handling
+├── validator.ts        # Response validation
+├── server.ts          # Express server setup
+├── types.ts           # TypeScript definitions
+└── index.ts           # Application entry point
+```
+
+### **Original Project Architecture (Complex but Feature-Rich)**
+```
+src/
+├── auth/              # Multi-provider authentication (18 files)
+├── claude/            # Claude SDK integration (8 files)
+├── session/           # Session management (3 files)
+├── message/           # Message processing (9 files)
+├── middleware/        # Express middleware (12 files)
+├── routes/            # API endpoints (8 files)
+├── services/          # Business logic (4 files)
+├── models/            # Data models (8 files)
+├── validation/        # Request validation (7 files)
+├── utils/             # Utility functions (8 files)
+└── types/             # Type definitions (1 file)
+```
+
+### **Target Architecture (Best of Both)**
+```
+src/
+├── core/              # Core business logic (enhanced from POC)
+│   ├── wrapper.ts     # Main request handling
+│   ├── claude-client.ts # Claude CLI integration
+│   └── validator.ts   # Response validation
+├── session/           # Session management (from original)
+│   ├── manager.ts     # Session lifecycle
+│   └── storage.ts     # In-memory TTL storage
+├── streaming/         # Real-time responses (from original)
+│   ├── handler.ts     # SSE implementation
+│   └── formatter.ts   # Streaming format
+├── auth/              # Authentication (simplified from original)
+│   ├── providers.ts   # Multi-provider support
+│   └── middleware.ts  # Request authentication
+├── api/               # HTTP layer (enhanced from POC)
+│   ├── routes/        # Express routes
+│   ├── middleware/    # Request/response middleware
+│   └── server.ts      # Server setup
+├── cli/               # CLI interface (from original)
+│   ├── commands.ts    # CLI command handling
+│   ├── daemon.ts      # Background process management
+│   └── interactive.ts # Setup prompts
+└── config/            # Configuration management
+    ├── env.ts         # Environment variables
+    └── constants.ts   # Application constants
+```
+
+## 📋 Complete Feature Analysis
+
+### **HTTP API Endpoints**
+
+#### **Currently Implemented in POC**
+- ✅ `POST /v1/chat/completions` - Main chat completions endpoint
+- ✅ `GET /v1/models` - Available model information
+- ✅ `GET /health` - Basic health check
+
+#### **Available in Original Project**
+- 🔄 `POST /v1/chat/completions` - Enhanced with streaming support
+- 🔄 `GET /v1/models` - Enhanced with dynamic model detection
+- 🔄 `GET /health` - Enhanced with detailed health metrics
+- ➕ `GET /v1/auth/status` - Claude authentication status
+- ➕ `GET /v1/sessions` - List active sessions
+- ➕ `GET /v1/sessions/stats` - Session statistics
+- ➕ `GET /v1/sessions/{id}` - Get specific session info
+- ➕ `DELETE /v1/sessions/{id}` - Delete specific session
+
+### **Claude Code Integration**
+
+#### **POC Implementation**
+- ✅ **Cross-platform Detection** - Handles aliases, global installs, local paths
+- ✅ **Stdin Approach** - Unlimited prompt length support
+- ✅ **Model Specification** - Claude Sonnet 4 support
+- ✅ **Error Recovery** - Robust failure handling
+
+#### **Original Project Enhancements**
+- ➕ **Multiple Auth Providers** - Anthropic API, AWS Bedrock, Google Vertex AI
+- ➕ **SDK Integration** - Direct Claude SDK usage alongside CLI
+- ➕ **Tool Configuration** - Allowed/disallowed tools management
+- ➕ **Response Caching** - Optional response caching
+
+### **Tools Integration**
+
+#### **POC Achievements**
+- ✅ **OpenAI Tools API Format** - Perfect `tool_calls` generation
+- ✅ **Multi-tool Support** - Multiple tools in single response
+- ✅ **Tool Result Processing** - Handles tool execution results
+- ✅ **Client-side Execution** - MCP-compatible architecture
+
+#### **Original Project Tools**
+- 🔄 **Tool Configuration** - Enhanced allowed/disallowed tools
+- ➕ **Tool State Management** - Persistent tool execution history
+- ➕ **Tool Analytics** - Usage metrics and monitoring
+- ➕ **Tool Access Control** - Permission-based tool restrictions
+
+### **Session Management**
+
+#### **POC Status**
+- ❌ **Not Implemented** - Currently stateless only
+
+#### **Original Project Implementation**
+- ➕ **Conversation Continuity** - Multi-turn conversation support
+- ➕ **Session Storage** - In-memory Map with TTL cleanup
+- ➕ **Session Lifecycle** - Create, update, delete operations
+- ➕ **Session Statistics** - Usage metrics and analytics
+- ➕ **Memory Management** - Automatic cleanup and garbage collection
+
+### **Streaming Support**
+
+#### **POC Status**
+- ❌ **Not Implemented** - Response-at-once only
+
+#### **Original Project Implementation**
+- ➕ **Server-Sent Events** - Real-time response streaming
+- ➕ **Streaming Tool Calls** - Progressive tool call generation
+- ➕ **Connection Management** - WebSocket-style connection handling
+- ➕ **Backpressure Control** - Flow control for streaming responses
+- ➕ **Error Recovery** - Stream interruption handling
+
+### **Authentication & Security**
+
+#### **POC Status**
+- ❌ **No Authentication** - Direct Claude CLI usage only
+
+#### **Original Project Implementation**
+- ➕ **Multi-provider Auth** - Anthropic, AWS Bedrock, Google Vertex AI, CLI
+- ➕ **Bearer Token Protection** - Optional API endpoint security
+- ➕ **Credential Validation** - Secure authentication workflows
+- ➕ **Security Headers** - CORS, security middleware
+- ➕ **API Key Management** - Secure token generation and validation
+
+### **CLI Interface**
+
+#### **POC Status**
+- ❌ **No CLI** - Manual npm start only
+
+#### **Original Project Implementation**
+- ➕ **Full CLI Interface** - Command-line tool with options
+- ➕ **Daemon Mode** - Background process management
+- ➕ **Interactive Setup** - User-friendly configuration
+- ➕ **Process Management** - Start/stop/status commands
+- ➕ **Graceful Shutdown** - Proper signal handling
+
+### **Error Handling & Monitoring**
+
+#### **POC Implementation**
+- ✅ **Basic Error Handling** - Try/catch with JSON responses
+- ✅ **Response Validation** - Self-correcting format validation
+- ✅ **Request Logging** - Console logging for debugging
+
+#### **Original Project Enhancements**
+- ➕ **OpenAI Error Format** - Standard error response format
+- ➕ **Detailed Validation** - Comprehensive request validation
+- ➕ **Health Monitoring** - Service health checks and metrics
+- ➕ **Performance Metrics** - Request timing and analytics
+- ➕ **Audit Logging** - Comprehensive request/response logging
+
+## 🎯 Rewrite Strategy
+
+### **Phase-based Implementation Approach**
+
+The rewrite will be implemented in phases, with each phase adding one complete feature while maintaining the POC's working state:
+
+#### **Phase 1: Production Architecture Refactoring**
+- **Goal**: Transform POC into production-ready codebase
+- **Scope**: Clean architecture, error handling, configuration management
+- **Deliverable**: Enhanced POC with professional code structure
+
+#### **Phase 2: Session Management Integration**
+- **Goal**: Add conversation continuity
+- **Scope**: Session storage, lifecycle management, cleanup
+- **Deliverable**: Multi-turn conversation support
+
+#### **Phase 3: Streaming Support Implementation**
+- **Goal**: Add real-time response streaming
+- **Scope**: Server-Sent Events, streaming tool calls, connection management
+- **Deliverable**: Real-time streaming responses
+
+#### **Phase 4: CLI Interface & Daemon Mode**
+- **Goal**: Add command-line interface
+- **Scope**: CLI commands, daemon mode, process management
+- **Deliverable**: Full CLI tool with background operation
+
+#### **Phase 5: Authentication System Integration**
+- **Goal**: Add multi-provider authentication
+- **Scope**: Provider support, API protection, credential management
+- **Deliverable**: Secure, production-ready authentication
+
+### **Success Criteria**
+
+#### **Functional Requirements**
+- ✅ **Maintain POC Functionality** - All current features preserved
+- ✅ **Add Production Features** - Session, streaming, CLI, auth
+- ✅ **Preserve Simplicity** - No unnecessary complexity
+- ✅ **Maintain Performance** - No significant overhead addition
+
+#### **Code Quality Requirements**
+- ✅ **Clean Architecture** - SOLID principles, clear separation
+- ✅ **Comprehensive Testing** - Unit, integration, and E2E tests
+- ✅ **Professional Documentation** - Complete API and usage docs
+- ✅ **Type Safety** - Full TypeScript coverage
+
+#### **Production Readiness**
+- ✅ **Error Handling** - Graceful failure handling
+- ✅ **Monitoring & Logging** - Observability and debugging
+- ✅ **Security** - Authentication and secure defaults
+- ✅ **Scalability** - Horizontal scaling support
+
+## 📚 Implementation Resources
+
+### **Reference Materials**
+- **POC Codebase** - `/mnt/c/Projects/claude-wrapper-poc/src/`
+- **Original Project** - `/mnt/c/Projects/claude-wrapper/app/src/`
+- **Requirements Document** - `/mnt/c/Projects/claude-wrapper-poc/REQUIREMENTS.md`
+- **Implementation Guides** - `/mnt/c/Projects/claude-wrapper-poc/docs/guides/`
+
+### **Documentation Deliverables**
+- **Implementation Plan** - Phase-by-phase feature implementation
+- **Project Structure** - Target file organization and architecture
+- **Architecture Guide** - SOLID principles and anti-pattern prevention
+- **API Reference** - Complete endpoint documentation
+- **Code Examples** - POC enhancement and feature extraction patterns
+
+### **Key Principles**
+- **Simplicity First** - Avoid over-engineering from original project
+- **Feature Completeness** - Each phase delivers working functionality
+- **Documentation Driven** - Document before implementing
+- **Test Driven** - Tests before features
+- **POC Foundation** - Build upon proven concepts
+
+This comprehensive analysis provides the foundation for creating a production-ready claude-wrapper that combines the POC's simplicity with essential enterprise features, while avoiding the over-engineering present in the original implementation.
