@@ -59,9 +59,22 @@ class CustomReporter {
         ? testResult.displayName 
         : testResult.displayName?.name || 'Tests';
       
-      if (testResult.numFailingTests > 0) {
+      // Check for compilation errors or test execution errors
+      const hasCompilationError = testResult.testExecError;
+      const hasFailingTests = testResult.numFailingTests > 0;
+      const hasNoTests = testResult.numTotalTests === 0;
+      
+      if (hasCompilationError || hasFailingTests) {
         // Log failures immediately to console
         console.error(`FAIL ${displayName} ${testResult.testFilePath}`);
+        
+        // Handle compilation errors
+        if (hasCompilationError) {
+          console.error(`  ● Test suite failed to run`);
+          console.error(`    ${testResult.testExecError.message}`);
+        }
+        
+        // Handle test failures
         testResult.testResults.forEach(result => {
           if (result.status === 'failed') {
             console.error(`  ● ${result.fullName}`);
@@ -101,7 +114,10 @@ class CustomReporter {
       : testResult.displayName?.name || 'Tests';
     lines.push(`Display Name: ${displayName}`);
     
-    lines.push(`Status: ${testResult.numFailingTests > 0 ? 'FAILED' : 'PASSED'}`);
+    const hasCompilationError = testResult.testExecError;
+    const hasFailures = testResult.numFailingTests > 0;
+    
+    lines.push(`Status: ${hasCompilationError || hasFailures ? 'FAILED' : 'PASSED'}`);
     const totalTests = testResult.numTotalTests || (testResult.numPassingTests + testResult.numFailingTests + (testResult.numPendingTests || 0));
     lines.push(`Tests: ${testResult.numPassingTests} passed, ${testResult.numFailingTests} failed, ${totalTests} total`);
     
@@ -110,8 +126,17 @@ class CustomReporter {
     lines.push(`Time: ${runtime}ms`);
     lines.push('');
     
-    if (testResult.numFailingTests > 0) {
+    if (hasCompilationError || hasFailures) {
       lines.push('FAILURES:');
+      
+      // Handle compilation errors
+      if (hasCompilationError) {
+        lines.push(`  ● Test suite failed to run`);
+        lines.push(`    ${testResult.testExecError.message}`);
+        lines.push('');
+      }
+      
+      // Handle test failures
       testResult.testResults.forEach(result => {
         if (result.status === 'failed') {
           lines.push(`  ● ${result.fullName}`);

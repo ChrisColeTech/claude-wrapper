@@ -1,10 +1,27 @@
 /**
- * Global Test Setup
- * Handles timeouts, environment setup, and cleanup
+ * Test Setup File
+ * Configures the test environment before each test file runs
  */
 
-// Set global timeouts
+import { setupTestEnvironment, teardownTestEnvironment } from './mocks';
+
+// =============================================================================
+// GLOBAL CONFIGURATION
+// =============================================================================
+
 jest.setTimeout(30000);
+
+// =============================================================================
+// TEST ENVIRONMENT SETUP
+// =============================================================================
+
+beforeEach(() => {
+  setupTestEnvironment();
+});
+
+afterEach(() => {
+  teardownTestEnvironment();
+});
 
 // Track cleanup functions
 const cleanupFunctions: (() => void | Promise<void>)[] = [];
@@ -31,8 +48,6 @@ afterAll(async () => {
   if (global.gc) {
     global.gc();
   }
-  
-  console.log('Global test cleanup completed');
 });
 
 // Helper function to register cleanup
@@ -40,7 +55,60 @@ afterAll(async () => {
   cleanupFunctions.push(fn);
 };
 
-// Store original process.exit but don't mock it (causes CI issues)
-const originalExit = process.exit;
+// =============================================================================
+// GLOBAL MOCKS
+// =============================================================================
+
+// Mock Claude Code SDK
+jest.mock('@anthropic-ai/claude-code', () => ({
+  ClaudeCode: jest.fn().mockImplementation(() => ({
+    sendMessage: jest.fn(),
+    verifyConnection: jest.fn(),
+    getConfig: jest.fn(),
+    isConnected: jest.fn().mockReturnValue(true),
+    connect: jest.fn().mockResolvedValue(undefined),
+    disconnect: jest.fn().mockResolvedValue(undefined),
+  })),
+}));
+
+// Mock Winston logger
+jest.mock('winston', () => ({
+  createLogger: jest.fn(() => require('./mocks').mockLoggerImpl),
+  format: {
+    combine: jest.fn(),
+    timestamp: jest.fn(),
+    printf: jest.fn(),
+    colorize: jest.fn(),
+    simple: jest.fn(),
+    json: jest.fn(),
+    errors: jest.fn(),
+  },
+  transports: {
+    Console: jest.fn(),
+    File: jest.fn(),
+  },
+}));
+
+// =============================================================================
+// CUSTOM MATCHERS
+// =============================================================================
+
+declare global {
+  namespace jest {
+    interface Matchers<R> {
+      toEndWith(expected: string): R;
+    }
+  }
+}
+
+expect.extend({
+  toEndWith(received: string, expected: string) {
+    const pass = received.endsWith(expected);
+    return {
+      message: () => `expected ${received} ${pass ? 'not ' : ''}to end with ${expected}`,
+      pass,
+    };
+  },
+});
 
 export {};

@@ -81,14 +81,19 @@ export class AuthManager implements IAuthManager {
       logger.debug('ANTHROPIC_API_KEY detected, using Anthropic');
       const anthropicProvider = this.providers.find(p => p.getMethod() === AuthMethod.ANTHROPIC);
       if (anthropicProvider) {
-        const result = await anthropicProvider.validate();
-        if (result.valid) {
-          logger.info('Anthropic authentication validated via API key presence');
-          this.currentProvider = anthropicProvider;
-          return result;
-        } else {
-          logger.debug(`Anthropic validation failed: ${result.errors.join(', ')}`);
-          // Continue to Claude CLI fallback - matches Python behavior
+        try {
+          const result = await anthropicProvider.validate();
+          if (result.valid) {
+            logger.info('Anthropic authentication validated via API key presence');
+            this.currentProvider = anthropicProvider;
+            return result;
+          } else {
+            logger.debug(`Anthropic validation failed: ${result.errors.join(', ')}`);
+            // Continue to Claude CLI fallback - matches Python behavior
+          }
+        } catch (error) {
+          logger.debug(`Anthropic provider validation threw error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          // Continue to Claude CLI fallback
         }
       }
     }
@@ -97,13 +102,17 @@ export class AuthManager implements IAuthManager {
     logger.debug('No explicit flags or ANTHROPIC_API_KEY, defaulting to Claude CLI');
     const cliProvider = this.providers.find(p => p.getMethod() === AuthMethod.CLAUDE_CLI);
     if (cliProvider) {
-      const result = await cliProvider.validate();
-      if (result.valid) {
-        logger.info('Claude CLI authentication validated as fallback');
-        this.currentProvider = cliProvider;
-        return result;
-      } else {
-        logger.debug(`Claude CLI validation failed: ${result.errors.join(', ')}`);
+      try {
+        const result = await cliProvider.validate();
+        if (result.valid) {
+          logger.info('Claude CLI authentication validated as fallback');
+          this.currentProvider = cliProvider;
+          return result;
+        } else {
+          logger.debug(`Claude CLI validation failed: ${result.errors.join(', ')}`);
+        }
+      } catch (error) {
+        logger.debug(`Claude CLI provider validation threw error: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     }
 

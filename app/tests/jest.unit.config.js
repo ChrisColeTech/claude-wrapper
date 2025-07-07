@@ -7,6 +7,11 @@ module.exports = {
   displayName: "Unit Tests",
   preset: "ts-jest",
   testEnvironment: "node",
+  transform: {
+    '^.+\\.ts$': ['ts-jest', {
+      tsconfig: '<rootDir>/tsconfig.json'
+    }]
+  },
   testMatch: ["<rootDir>/unit/**/*.test.ts"],
   setupFilesAfterEnv: ["<rootDir>/setup.ts"],
   moduleNameMapper: {
@@ -20,6 +25,7 @@ module.exports = {
     "../src/**/*.ts",
     "!../src/**/*.d.ts",
     "!../src/index.ts",
+    "!../src/cli.ts"
   ],
   // coverageReporters: ["text", "lcov", "html"], // Moved to CLI args
   maxWorkers: "50%",

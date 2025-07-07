@@ -63,12 +63,18 @@ export async function handleClaudeSDKCall<T>(
   try {
     return await operation();
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
+    // Preserve existing Claude SDK error types
+    if (error instanceof ClaudeSDKError) {
+      throw error;
+    }
     
-    if (errorMessage.includes('authentication')) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const lowerMessage = errorMessage.toLowerCase();
+    
+    if (lowerMessage.includes('authentication') || lowerMessage.includes('auth')) {
       throw new AuthenticationError(`Claude Code authentication failed: ${errorMessage}`);
     }
-    if (errorMessage.includes('stream')) {
+    if (lowerMessage.includes('stream')) {
       throw new StreamingError(`Streaming failed: ${errorMessage}`);
     }
     throw new ClaudeSDKError(`SDK operation failed: ${errorMessage}`);

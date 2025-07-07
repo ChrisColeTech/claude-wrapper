@@ -134,17 +134,25 @@ export class ClaudeMetadataExtractor {
           textParts.push(block.text);
         }
       }
-      return textParts.join('\n');
+      const arrayContent = textParts.join('\n');
+      if (arrayContent) {
+        return arrayContent;
+      }
     }
     
-    // Handle string content
-    if (typeof message.content === 'string') {
+    // Handle string content (only if non-empty)
+    if (typeof message.content === 'string' && message.content.trim()) {
       return message.content;
     }
     
     // Handle message with nested content (message is string type, not object)
     if (message.message && typeof message.message === 'string') {
       return message.message;
+    }
+    
+    // Fallback to empty string content if it exists
+    if (typeof message.content === 'string') {
+      return message.content;
     }
     
     return '';

@@ -29,7 +29,65 @@ export class ClaudeResponseParser {
    * Based on Python parse_claude_message method
    */
   static parseClaudeMessage(messages: ClaudeCodeMessage[]): string | null {
+    // Process messages in order to get the first assistant message content
     for (const message of messages) {
+      
+      // Handle new SDK format - AssistantMessage with content blocks
+      if (message.content && Array.isArray(message.content)) {
+        const textParts: string[] = [];
+        
+        for (const block of message.content) {
+          if (this.hasTextProperty(block)) {
+            textParts.push(block.text);
+          } else if (this.isTextBlock(block)) {
+            textParts.push(block.text || '');
+          } else if (typeof block === 'string') {
+            textParts.push(block);
+          }
+        }
+        
+        if (textParts.length > 0) {
+          return textParts.join('\n');
+        }
+      }
+      
+      // Handle old format fallback
+      else if (message.type === 'assistant' && message.message) {
+        const sdkMessage = message.message;
+        if (this.isMessageWithContent(sdkMessage)) {
+          const content = sdkMessage.content;
+          
+          if (Array.isArray(content)) {
+            const textParts: string[] = [];
+            for (const block of content) {
+              if (this.isTextBlock(block)) {
+                textParts.push(block.text || '');
+              }
+            }
+            return textParts.length > 0 ? textParts.join('\n') : null;
+          } else if (typeof content === 'string') {
+            return content;
+          }
+        }
+      }
+      
+      // Handle direct content string
+      else if (message.type === 'assistant' && typeof message.content === 'string') {
+        return message.content;
+      }
+    }
+    
+    return null;
+  }
+
+  /**
+   * Parse Claude Code SDK messages to extract latest assistant response for streaming
+   */
+  static parseLatestClaudeMessage(messages: ClaudeCodeMessage[]): string | null {
+    // Process messages in reverse order to get the latest assistant message content
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const message = messages[i];
+      
       // Handle new SDK format - AssistantMessage with content blocks
       if (message.content && Array.isArray(message.content)) {
         const textParts: string[] = [];
@@ -176,7 +234,7 @@ export class StreamResponseParser {
    * Get current parsed content
    */
   getCurrentContent(): string | null {
-    return ClaudeResponseParser.parseClaudeMessage(this.buffer);
+    return ClaudeResponseParser.parseLatestClaudeMessage(this.buffer);
   }
 
   /**
@@ -190,7 +248,25 @@ export class StreamResponseParser {
    * Get final parsed response
    */
   getFinalResponse(): ParsedClaudeResponse | null {
-    return ClaudeResponseParser.parseToOpenAIResponse(this.buffer);
+    if (!this.isComplete()) {
+      return null;
+    }
+    // For streaming, use the latest content
+    const content = ClaudeResponseParser.parseLatestClaudeMessage(this.buffer);
+    
+    if (!content) {
+      return null;
+    }
+
+    // Extract session ID from messages
+    const sessionId = ClaudeResponseParser.extractSessionId(this.buffer);
+    
+    return {
+      content,
+      role: 'assistant',
+      stop_reason: 'stop',
+      session_id: sessionId
+    };
   }
 
   /**

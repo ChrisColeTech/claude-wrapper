@@ -1,0 +1,26 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "ES2020",
+    "strict": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "paths": {
+      "@/*": ["../src/*"],
+      "@/models/*": ["../src/models/*"],
+      "@/auth/*": ["../src/auth/*"],
+      "@/utils/*": ["../src/utils/*"]
+    }
+  },
+  "include": [
+    "../src/**/*",
+    "**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "../dist"
+  ]
+}

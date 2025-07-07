@@ -39,7 +39,7 @@ export interface ClaudeCodeOptions {
 
 export interface ClaudeCodeMessage {
   role: string;
-  content: string;
+  content: string | any[];
   type?: string;
   subtype?: string;
   message?: string;

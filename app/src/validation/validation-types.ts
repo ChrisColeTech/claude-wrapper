@@ -22,3 +22,28 @@ export interface EnhancedValidationResult extends ValidationResult {
     validation_time_ms: number;
   };
 }
+
+/**
+ * Model validation result interface
+ */
+export interface ModelValidationResult extends ValidationResult {
+  model: string;
+  normalized_model: string;
+  suggestions?: Array<{
+    suggested_model: string;
+    reason: string;
+  }>;
+}
+
+/**
+ * Model compatibility result interface
+ */
+export interface ModelCompatibilityResult extends ValidationResult {
+  model: string;
+  features: string[];
+  suggestions?: Array<{
+    suggested_model: string;
+    reason: string;
+  }>;
+  alternative_models: string[];
+}

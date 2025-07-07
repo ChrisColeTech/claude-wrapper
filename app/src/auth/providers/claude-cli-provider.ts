@@ -40,10 +40,11 @@ export class ClaudeCliProvider implements IAutoDetectProvider {
    * Uses bash shell to ensure aliases and shell functions work
    */
   private async executeShellCommand(command: string, options: ShellExecOptions = {}): Promise<CommandResult> {
+    const mergedEnv = { ...process.env, CLAUDE_CLI_NO_INTERACTION: '1', ...(options.env || {}) };
     const defaultOptions = {
       timeout: 10000,
-      env: { ...process.env, CLAUDE_CLI_NO_INTERACTION: '1' },
-      ...options
+      ...options,
+      env: mergedEnv
     };
 
     try {
@@ -77,7 +78,6 @@ export class ClaudeCliProvider implements IAutoDetectProvider {
   private getClaudeCommands(): string[] {
     return [
       'claude',  // Shell alias - try first
-      '/home/risky/.claude/local/claude',
       '~/.claude/local/claude',
       'npx @anthropic-ai/claude-code'
     ];
@@ -218,7 +218,7 @@ export class ClaudeCliProvider implements IAutoDetectProvider {
         }
 
         // Check for successful authentication
-        if (result.success || this.isValidResponse(result)) {
+        if (this.isValidResponse(result)) {
           logger.debug(`Claude CLI authentication test passed with: ${baseCommand}`);
           return {
             authenticated: true,
@@ -249,8 +249,9 @@ export class ClaudeCliProvider implements IAutoDetectProvider {
   private isAuthenticationError(stderr: string): boolean {
     const authErrors = [
       'not authenticated',
-      'API key',
+      'api key',
       'authentication failed',
+      'authentication required',
       'login required',
       'unauthorized'
     ];
@@ -265,12 +266,12 @@ export class ClaudeCliProvider implements IAutoDetectProvider {
   private isValidResponse(result: CommandResult): boolean {
     // Consider response valid if:
     // 1. Command succeeded, OR
-    // 2. Got stdout output without critical errors, OR
-    // 3. No authentication-related errors in stderr
+    // 2. Got stdout output, OR
+    // 3. Only warnings/non-critical errors in stderr
     return result.success || 
-           (result.stdout && result.stdout.trim().length > 0) ||
+           (typeof result.stdout === 'string' && result.stdout.trim().length > 0) ||
            (!this.isAuthenticationError(result.stderr) && 
-            !result.stderr.toLowerCase().includes('error') && 
+            !result.stderr.toLowerCase().includes('not found') && 
             !result.stderr.toLowerCase().includes('timeout'));
   }
 }

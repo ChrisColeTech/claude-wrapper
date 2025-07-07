@@ -125,4 +125,19 @@ export interface IAuthManager extends IApiKeyManager {
    * Get current authentication method
    */
   getCurrentMethod(): AuthMethod | null;
+
+  /**
+   * Get all authentication providers
+   */
+  getProviders(): IAuthProvider[];
+
+  /**
+   * Get authentication status information
+   */
+  getAuthStatus(): Promise<{
+    authenticated: boolean;
+    method: AuthMethod | null;
+    apiKeyProtected: boolean;
+    errors: string[];
+  }>;
 }
