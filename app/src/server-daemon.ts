@@ -24,12 +24,13 @@ function parseDaemonArgs(): { port: number; apiKey?: string; verbose?: boolean; 
       case '--port':
         result.port = parseInt(args[++i] || '8000');
         break;
-      case '--api-key':
+      case '--api-key': {
         const apiKeyValue = args[++i];
         if (apiKeyValue) {
           result.apiKey = apiKeyValue;
         }
         break;
+      }
       case '--verbose':
         result.verbose = true;
         break;

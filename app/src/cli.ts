@@ -12,7 +12,7 @@ import { interactiveSetup } from './cli/interactive';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { exec } from 'child_process';
+import { exec, spawn } from 'child_process';
 import { promisify } from 'util';
 import * as packageJson from '../package.json';
 
@@ -165,7 +165,6 @@ class CliRunner {
     }
 
     // Spawn detached background server process
-    const { spawn } = require('child_process');
     const serverScript = path.join(__dirname, 'server-daemon.js');
     const args = ['--port', port];
     
@@ -214,7 +213,9 @@ class CliRunner {
       // Process doesn't exist, clean up stale PID file
       try {
         fs.unlinkSync(pidFile);
-      } catch {}
+      } catch (error) {
+        // Ignore cleanup errors
+      }
       return false;
     }
   }

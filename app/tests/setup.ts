@@ -49,6 +49,7 @@ process.on('unhandledRejection', (reason, promise) => {
 
 // Configure test environment
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace jest {
     interface Matchers<R> {
       toBeWithinRange(floor: number, ceiling: number): R;
