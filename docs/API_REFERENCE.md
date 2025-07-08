@@ -12,15 +12,11 @@ http://localhost:8000
 
 ## 🔑 Authentication
 
-### **Development Mode (Phase 4A Complete)**
-- **No Authentication Required**: Direct access to all endpoints
-- **Production-Ready Core**: Streaming, sessions, and CLI implemented
-- **Local Development**: Designed for local development and testing
-
-### **Production Mode (Planned)**
-- **Bearer Token Authentication**: Optional API protection
-- **Multi-Provider Support**: Anthropic, AWS Bedrock, Google Vertex AI
-- **Interactive Setup**: CLI-based authentication configuration
+### **HTTP API Protection (Optional)**
+- **No Authentication Required**: Default mode - direct access to all endpoints
+- **Bearer Token Protection**: Optional API key protection with `--api-key` flag
+- **Selective Protection**: Health and models endpoints always public
+- **Local Development**: Perfect for development and testing without auth overhead
 
 ## 📊 Core Endpoints
 
@@ -231,47 +227,6 @@ Service health status.
 }
 ```
 
-## 🔐 Authentication Endpoints (Planned)
-
-### **Authentication Status**
-
-#### `GET /v1/auth/status`
-
-Get current authentication status.
-
-**Response:**
-```json
-{
-  "authenticated": true,
-  "provider": "anthropic",
-  "expires_at": "2024-01-01T00:00:00Z"
-}
-```
-
-### **Authenticate**
-
-#### `POST /v1/auth/authenticate`
-
-Authenticate with Claude provider.
-
-**Request Body:**
-```json
-{
-  "provider": "anthropic",
-  "credentials": {
-    "api_key": "sk-ant-..."
-  }
-}
-```
-
-**Response:**
-```json
-{
-  "authenticated": true,
-  "provider": "anthropic",
-  "expires_at": "2024-01-01T00:00:00Z"
-}
-```
 
 ## 🗂️ Session Management Endpoints (Planned)
 

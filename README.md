@@ -190,13 +190,21 @@ curl http://localhost:8000/v1/sessions/my-conversation
 curl -X DELETE http://localhost:8000/v1/sessions/my-conversation
 ```
 
-## 🔐 Authentication System
+## 🔐 HTTP API Protection
 
-**Multi-provider authentication with automatic detection and optional API protection:**
+**Optional bearer token authentication for HTTP endpoints:**
 
 **⚠️ IMPORTANT: Authentication is completely optional!** Claude Wrapper works perfectly without any authentication setup - just start the server and make requests.
 
-### Two Authentication Modes
+### Security Features
+
+- **🔓 No Authentication Required** - Default mode, full access without tokens
+- **🔐 Bearer Token Protection** - Optional API key protection for endpoints  
+- **⚡ Constant-Time Comparison** - Prevents timing attack vulnerabilities
+- **🎯 Selective Protection** - Health/models endpoints always public
+- **🔑 Secure Key Generation** - Built-in secure API key generator
+
+### Two Modes
 
 **🔓 Mode 1: No Authentication (Default)**
 - Start: `claude-wrapper` 
@@ -205,50 +213,16 @@ curl -X DELETE http://localhost:8000/v1/sessions/my-conversation
 
 **🔐 Mode 2: API Key Protection (Optional)**  
 - Start: `claude-wrapper --api-key your-key`
-- Use: Include `Authorization: Bearer your-key` header
+- Use: Include `Authorization: Bearer your-key` header  
 - Perfect for: Shared servers, production deployments, access control
 
-Claude Wrapper automatically detects your Claude Code CLI authentication method and supports multiple providers for maximum flexibility.
+### Claude CLI Integration
 
-### Supported Authentication Methods
-
-1. **Claude CLI System Auth** (Default fallback)
-   - Uses your existing `claude` CLI authentication
-   - No additional setup required
-   - Works with any authentication method configured in Claude CLI
-
-2. **Anthropic API Direct**
-   - Set `ANTHROPIC_API_KEY` environment variable
-   - Format: `sk-ant-api03-...` (starts with `sk-ant-`)
-   
-3. **AWS Bedrock**
-   - Requires `CLAUDE_CODE_USE_BEDROCK=1` flag
-   - AWS credentials: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION`
-   - Optional: `AWS_SESSION_TOKEN`, `AWS_PROFILE`
-
-4. **Google Vertex AI**
-   - Requires `CLAUDE_CODE_USE_VERTEX=1` flag  
-   - Google credentials: `GOOGLE_APPLICATION_CREDENTIALS`, `GOOGLE_CLOUD_PROJECT`
-   - Alternative: `GCLOUD_PROJECT`
-
-### Authentication Priority
-
-The system uses this priority order (highest to lowest):
-
-1. **Bedrock** - If `CLAUDE_CODE_USE_BEDROCK=1` is set
-2. **Vertex** - If `CLAUDE_CODE_USE_VERTEX=1` is set  
-3. **Anthropic** - If `ANTHROPIC_API_KEY` is present
-4. **Claude CLI** - System authentication (fallback)
+Claude Wrapper simply calls your existing Claude Code CLI. Set up Claude CLI authentication however you normally would - the wrapper doesn't manage or configure Claude authentication.
 
 ### No Authentication Required
 
-**Default Behavior (No Authentication Required):**
-- Start server without any authentication setup: `claude-wrapper`
-- Make requests without Authorization headers - full access to all features
-- No environment variables or API keys needed
-- Zero authentication overhead
-
-**Example - Default Usage (No Authentication):**
+**Default Behavior:**
 ```bash
 # Start server (no authentication needed)
 claude-wrapper
@@ -264,27 +238,23 @@ curl -X POST http://localhost:8000/v1/chat/completions \
 # All endpoints work without authentication
 curl http://localhost:8000/health
 curl http://localhost:8000/v1/models
-curl http://localhost:8000/v1/auth/status
 ```
 
 ### API Protection (Optional)
 
-Optionally protect your API endpoints with bearer token authentication:
+Protect your HTTP endpoints with bearer token authentication:
 
-```bash
-# Start server with API key protection
-claude-wrapper --api-key your-secure-api-key-12345
-
-# Or set via environment variable
-export API_KEY=your-secure-api-key-12345
-claude-wrapper
-```
-
-**Example - With API Protection:**
 ```bash
 # Start server with API key protection
 claude-wrapper --api-key my-secure-api-key-12345
 
+# Or set via environment variable
+export API_KEY=my-secure-api-key-12345
+claude-wrapper
+```
+
+**Protected endpoint usage:**
+```bash
 # Protected endpoints require Authorization header
 curl -X POST http://localhost:8000/v1/chat/completions \
   -H "Content-Type: application/json" \
@@ -295,86 +265,16 @@ curl -X POST http://localhost:8000/v1/chat/completions \
   }'
 
 # Public endpoints still work without authentication
-curl http://localhost:8000/health                    # ✅ Works
-curl http://localhost:8000/v1/models                 # ✅ Works  
-curl http://localhost:8000/v1/auth/status            # ✅ Works
+curl http://localhost:8000/health                    # ✅ Always works
+curl http://localhost:8000/v1/models                 # ✅ Always works  
 
-# Protected endpoints without token are blocked
+# Missing token is rejected
 curl -X POST http://localhost:8000/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{"model": "sonnet", "messages": [{"role": "user", "content": "test"}]}'
 # Returns: {"error": {"message": "Missing Authorization header..."}}
-
-# Wrong token is rejected
-curl -X POST http://localhost:8000/v1/chat/completions \
-  -H "Authorization: Bearer wrong-key" \
-  -H "Content-Type: application/json" \
-  -d '{"model": "sonnet", "messages": [{"role": "user", "content": "test"}]}'
-# Returns: {"error": {"message": "Invalid bearer token..."}}
 ```
 
-### Authentication Status
-
-Check your authentication configuration:
-
-```bash
-# Get authentication status
-curl http://localhost:8000/v1/auth/status
-
-# Example response
-{
-  "claude_code_auth": {
-    "method": "anthropic",
-    "status": {
-      "method": "anthropic", 
-      "valid": true,
-      "errors": [],
-      "config": {
-        "validated": true,
-        "keyPrefix": "sk-ant-api..."
-      }
-    },
-    "environment_variables": ["ANTHROPIC_API_KEY"]
-  },
-  "server_info": {
-    "api_key_required": true,
-    "api_key_source": "environment", 
-    "version": "1.0.0"
-  }
-}
-```
-
-### Environment Variable Examples
-
-**Anthropic Direct:**
-```bash
-export ANTHROPIC_API_KEY=sk-ant-api03-your-key-here
-claude-wrapper
-```
-
-**AWS Bedrock:**
-```bash
-export CLAUDE_CODE_USE_BEDROCK=1
-export AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE  
-export AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
-export AWS_REGION=us-east-1
-claude-wrapper
-```
-
-**Google Vertex AI:**
-```bash
-export CLAUDE_CODE_USE_VERTEX=1
-export GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account.json
-export GOOGLE_CLOUD_PROJECT=your-project-id
-claude-wrapper
-```
-
-**With API Protection:**
-```bash
-export ANTHROPIC_API_KEY=sk-ant-api03-your-key-here
-export API_KEY=your-secure-server-api-key-12345
-claude-wrapper
-```
 
 ## 🖥️ CLI Command Reference
 

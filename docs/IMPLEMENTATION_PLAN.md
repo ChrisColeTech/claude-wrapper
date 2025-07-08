@@ -64,17 +64,17 @@
 
 ---
 
-### **Phase 5: Authentication System Integration**
-**Goal**: Add optional multi-provider authentication and API protection.
+### **Phase 5: HTTP API Protection**
+**Goal**: Add optional bearer token authentication for HTTP endpoints.
 
 📋 **[Complete Phase 5 Documentation](phases/rewrite-phases/PHASE_05_AUTHENTICATION_SYSTEM_INTEGRATION.md)**
 
 **Key Deliverables**:
-- Multi-provider Claude authentication
-- Optional API protection with bearer tokens
-- Interactive authentication setup
-- Secure credential handling
-- Authentication status monitoring
+- Optional HTTP API protection with bearer tokens
+- Secure bearer token authentication middleware
+- Constant-time comparison for security
+- Selective endpoint protection (health/models always public)
+- No Claude CLI authentication management (handled by Claude CLI directly)
 
 ---
 
@@ -172,8 +172,8 @@ Based on analysis of the original project's over-engineering:
 | **Phase 3B** | Session Management Review | ✅ Complete | 2025-01-08 | 2025-01-08 | Bug fixed, tested | Session continuity verified working correctly |
 | **Phase 4A** | Streaming Support Implementation | ✅ Complete | 2025-01-07 | 2025-01-08 | 314 tests pass | Add real-time SSE streaming with 64 streaming tests |
 | **Phase 4B** | Streaming Support Review | ✅ Complete | 2025-01-08 | 2025-01-08 | Session continuity fixed | Critical session bug discovered and resolved |
-| **Phase 5A** | Authentication System Implementation | ✅ Complete | 2025-01-08 | 2025-01-08 | 28 tests pass | Multi-provider auth with 84% coverage |
-| **Phase 5B** | Authentication System Review | ⏳ Not Started | - | - | - | Security and credential handling review |
+| **Phase 5A** | HTTP API Protection Implementation | ✅ Complete | 2025-01-08 | 2025-01-08 | Simplified auth | HTTP bearer token protection only |
+| **Phase 5B** | HTTP API Protection Review | ⏳ Not Started | - | - | - | Bearer token security review |
 | **Phase 6A** | Process Management Implementation | ✅ Complete | 2025-01-08 | 2025-01-08 | 48 tests pass | Background process management with PID, daemon, and signals |
 | **Phase 6B** | Process Management Review | ⏳ Not Started | - | - | - | Process reliability and lifecycle review |
 

@@ -79,6 +79,66 @@ This document explains the different types of test doubles used in the Claude Wr
 - Use `jest.clearAllMocks()` in `beforeEach`
 - Ensure clean state for each test
 
+### 5. Dynamic Import Mocking Strategy
+- Top-level `jest.mock()` doesn't affect dynamic imports (`await import()`)
+- Instead, mock the functions that process dynamically imported modules:
+
+```typescript
+// ❌ This doesn't work for dynamic imports
+jest.mock('child_process', () => ({ exec: jest.fn() }));
+
+// ✅ This works - mock the function that processes the dynamically imported module
+const { promisify } = require('util');
+const mockExecAsync = jest.fn().mockResolvedValue({ stdout: 'result', stderr: '' });
+promisify.mockReturnValue(mockExecAsync);
+```
+
+### 6. Mock State Management for Complex Operations
+- Use closure-based state for multi-step operations like restart scenarios:
+
+```typescript
+// ✅ Stateful mock for process lifecycle testing
+let processState = 'running';
+mock.validateAndCleanup = jest.fn(() => {
+  if (processState === 'running') {
+    processState = 'stopped';
+    return true;
+  }
+  return false;
+});
+```
+
+### 7. Externalized Mock Architecture
+- Create reusable mock classes in dedicated files
+- Test your mocks to ensure reliability
+- Use consistent naming: `{module}-mock.ts` and `{module}-mock.test.ts`
+- Implement standard mock patterns:
+
+```typescript
+export class SomeMock {
+  private static config = {};
+  
+  static setup(config = {}) { /* setup logic */ }
+  static reset() { /* cleanup logic */ }
+  static updateConfig(updates) { /* configuration */ }
+}
+```
+
+### 8. TypeScript-Compatible Mock Patterns
+- Prefix unused parameters with underscores: `(_command: string, _options: any, callback: Function)`
+- Maintain proper typing for mock interfaces
+- Use proper return types for async mock functions
+
+### 9. Jest Configuration for Mock Testing
+- Include mock test files in Jest configuration:
+
+```javascript
+testMatch: [
+  "<rootDir>/tests/unit/**/*.test.ts",
+  "<rootDir>/tests/mocks/**/*.test.ts"  // Add this line
+]
+```
+
 ## Test Organization Patterns
 
 ### Unit Test Patterns
@@ -142,6 +202,21 @@ This document explains the different types of test doubles used in the Claude Wr
 - Avoid file system operations
 - Don't make network calls
 - Mock databases and external APIs
+
+**Incorrect Dynamic Import Mocking**:
+- Don't rely on `jest.mock()` for dynamic imports (`await import()`)
+- Top-level Jest mocks don't affect runtime dynamic imports
+- Mock the functions that process dynamically imported modules instead
+
+**Poor Mock State Management**:
+- Don't use static configurations for multi-step operations
+- Avoid complex mock state that's hard to track
+- Don't forget to simulate state transitions in restart/lifecycle tests
+
+**TypeScript Parameter Warnings**:
+- Don't ignore unused parameter warnings in mock implementations
+- Prefix unused parameters with underscores: `_parameter`
+- Maintain proper typing for mock interfaces
 
 ## Performance Considerations
 
