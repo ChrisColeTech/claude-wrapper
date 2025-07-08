@@ -36,7 +36,6 @@ jest.mock('util', () => ({
     });
   }))
 }));
-import { WSLMock } from '../../mocks/utils/wsl-mock';
 
 describe('ProcessManager - Phase 02', () => {
   let processManager: IProcessManager;
@@ -50,7 +49,6 @@ describe('ProcessManager - Phase 02', () => {
     PidManagerMock.resetAll();
     SignalHandlerMock.resetAll();
     ChildProcessMock.reset();
-    WSLMock.resetAll();
 
     // Create fresh mock instances
     mockDaemonManager = DaemonManagerMock.createSuccessScenario();
@@ -71,7 +69,6 @@ describe('ProcessManager - Phase 02', () => {
     PidManagerMock.resetAll();
     SignalHandlerMock.resetAll();
     ChildProcessMock.reset();
-    WSLMock.resetAll();
   });
 
   describe('Process Lifecycle Management', () => {
@@ -210,7 +207,6 @@ describe('ProcessManager - Phase 02', () => {
 
       it('should handle WSL port forwarding cleanup', async () => {
         // Setup WSL environment
-        WSLMock.setupWSLEnvironment();
 
         const runningMock = PidManagerMock.createRunningProcessScenario(12345);
         const wslProcessManager = new ProcessManager(
@@ -229,7 +225,6 @@ describe('ProcessManager - Phase 02', () => {
 
       it('should handle WSL cleanup failure gracefully', async () => {
         // Setup WSL environment with networking issues
-        WSLMock.setupWSLWithNetworkingIssues();
 
         const runningMock = PidManagerMock.createRunningProcessScenario(12345);
         const wslProcessManager = new ProcessManager(
@@ -703,7 +698,6 @@ describe('ProcessManager - Phase 02', () => {
       exec.mockImplementation((_command: string, _options: any, callback: Function) => {
         callback(null, '{"status":"healthy"}', '');
       });
-      WSLMock.setupWSLEnvironment();
 
       // Start process
       mockDaemonManager.updateConfig({ startPid: 99999 });
