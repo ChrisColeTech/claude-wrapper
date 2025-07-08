@@ -200,7 +200,7 @@ describe('Authentication Debug Mock', () => {
         
         const result = mockUtils.createSafeHash('test-api-key-123456789');
         
-        expect(result).toBe('test-api-...');
+        expect(result).toBe('test-api...');
       });
 
       it('should handle invalid values for safe hash', () => {
@@ -616,7 +616,7 @@ describe('Authentication Debug Mock', () => {
       it('should create test safe hash', () => {
         const hash = AuthDebugTestUtils.createTestSafeHash('test-api-key-123456789');
         
-        expect(hash).toBe('test-api-...');
+        expect(hash).toBe('test-api...');
       });
 
       it('should handle invalid values for test safe hash', () => {
@@ -758,13 +758,13 @@ describe('Authentication Debug Mock', () => {
       });
 
       it('should support error tracking workflow', () => {
-        const error1 = AuthDebugMock.createMockAuthenticationError(
+        AuthDebugMock.createMockAuthenticationError(
           AuthErrorType.MISSING_TOKEN,
           'Missing Authorization header',
           401
         );
         
-        const error2 = AuthDebugMock.createMockAuthenticationError(
+        AuthDebugMock.createMockAuthenticationError(
           AuthErrorType.INVALID_TOKEN,
           'Invalid bearer token',
           401
@@ -773,8 +773,8 @@ describe('Authentication Debug Mock', () => {
         const errors = AuthDebugMock.getErrorInstances();
         
         expect(errors).toHaveLength(2);
-        expect(errors[0].type).toBe(AuthErrorType.MISSING_TOKEN);
-        expect(errors[1].type).toBe(AuthErrorType.INVALID_TOKEN);
+        expect(errors[0]?.type).toBe(AuthErrorType.MISSING_TOKEN);
+        expect(errors[1]?.type).toBe(AuthErrorType.INVALID_TOKEN);
       });
     });
 

@@ -58,6 +58,10 @@ export class BearerTokenValidator implements IBearerTokenValidator {
       return true;
     }
 
+    if (!token) {
+      return false;
+    }
+
     // Constant-time comparison to prevent timing attacks
     if (token.length !== this.expectedToken.length) {
       return false;
@@ -84,7 +88,11 @@ export class BearerTokenValidator implements IBearerTokenValidator {
       return null;
     }
 
-    return parts[1] || null;
+    const tokenPart = parts[1];
+    if (!tokenPart || tokenPart.includes('\n') || tokenPart.includes('\t')) {
+      return null;
+    }
+    return tokenPart;
   }
 }
 
@@ -167,8 +175,8 @@ export function createAuthMiddleware(
       if (error instanceof AuthenticationError) {
         logger.error(`Authentication failed: ${error.message}`, error, {
           type: error.type,
-          path: req.path,
-          method: req.method
+          path: req?.path || 'unknown',
+          method: req?.method || 'unknown'
         });
 
         res.status(error.statusCode).json({
@@ -180,8 +188,8 @@ export function createAuthMiddleware(
         });
       } else {
         logger.error(`Unexpected authentication error: ${error}`, error instanceof Error ? error : undefined, {
-          path: req.path,
-          method: req.method
+          path: req?.path || 'unknown',
+          method: req?.method || 'unknown'
         });
 
         res.status(500).json({

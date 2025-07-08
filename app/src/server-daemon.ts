@@ -66,6 +66,7 @@ function startDaemon(): void {
       logger.info(`🚀 Claude Wrapper daemon running on port ${options.port}`);
       logger.info(`📡 API available at http://localhost:${options.port}/v1/chat/completions`);
       logger.info(`📊 Health check at http://localhost:${options.port}/health`);
+      logger.info(`📚 API docs at http://localhost:${options.port}/docs`);
     }
   });
 

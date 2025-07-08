@@ -5,7 +5,7 @@
  * Single Responsibility: Mock authentication debugging utilities and validation
  */
 
-import { AuthenticationError, AuthErrorType, BearerTokenValidator, AuthUtils } from '../../../src/auth/middleware';
+import { AuthenticationError, AuthErrorType } from '../../../src/auth/middleware';
 
 export interface AuthDebugMockConfig {
   apiKey?: string;
@@ -168,7 +168,7 @@ export class AuthDebugMock {
     });
 
     const mockIsApiKeyProtectionEnabled = jest.fn((): boolean => {
-      return this.config.apiKey !== undefined || process.env.API_KEY !== undefined;
+      return this.config.apiKey !== undefined || process.env['API_KEY'] !== undefined;
     });
 
     this.mockAuthEnvironment = {
@@ -241,7 +241,7 @@ export class AuthDebugMock {
    * Remove API key for testing
    */
   static removeApiKey(): void {
-    this.config.apiKey = undefined;
+    delete this.config.apiKey;
     delete process.env['API_KEY'];
   }
 
@@ -483,7 +483,7 @@ export class AuthDebugTestUtils {
     return [
       {
         name: 'no-auth',
-        config: { apiKey: undefined },
+        config: {},
         description: 'No authentication configured'
       },
       {

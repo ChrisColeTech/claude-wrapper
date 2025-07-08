@@ -15,4 +15,8 @@ module.exports = {
   // Global settings
   verbose: false,
   collectCoverage: false, // Use specific test configs for coverage
+  
+  // Reduce log clutter and worker warnings
+  silent: true,
+  detectOpenHandles: false
 };

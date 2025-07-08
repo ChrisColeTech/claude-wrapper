@@ -210,7 +210,7 @@ describe('Authentication Debug Tests', () => {
     describe('Safe hash creation debugging', () => {
       it('should create safe hash for valid values', () => {
         const testCases = [
-          { input: 'test-api-key-123456789', expected: 'test-api-...' },
+          { input: 'test-api-key-123456789', expected: 'test-api...' },
           { input: 'abcdefghijklmnop', expected: 'abcdefgh...' },
           { input: '12345678901234567890', expected: '12345678...' }
         ];
@@ -473,7 +473,7 @@ describe('Authentication Debug Tests', () => {
         const middleware = createAuthMiddleware();
         const { req, res, next } = AuthMockFactory.createMiddlewareSetup();
         
-        middleware(req, res, next.fn);
+        middleware(req as any, res as any, next.fn);
         
         expect(next.wasCalled()).toBe(true);
         expect(next.wasCalledWithError()).toBe(false);
@@ -484,7 +484,7 @@ describe('Authentication Debug Tests', () => {
         const middleware = createAuthMiddleware({ apiKey: 'test-key-123' });
         const { req, res, next } = AuthMockFactory.createMiddlewareSetup('test-key-123');
         
-        middleware(req, res, next.fn);
+        middleware(req as any, res as any, next.fn);
         
         expect(next.wasCalled()).toBe(true);
         expect(next.wasCalledWithError()).toBe(false);
@@ -495,7 +495,7 @@ describe('Authentication Debug Tests', () => {
         const middleware = createAuthMiddleware({ apiKey: 'correct-key' });
         const { req, res, next } = AuthMockFactory.createMiddlewareSetup('wrong-key');
         
-        middleware(req, res, next.fn);
+        middleware(req as any, res as any, next.fn);
         
         expect(next.wasCalled()).toBe(false);
         expect(res.wasStatusCalled()).toBe(true);
@@ -508,7 +508,7 @@ describe('Authentication Debug Tests', () => {
         const middleware = createAuthMiddleware({ apiKey: 'test-key' });
         const { req, res, next } = AuthMockFactory.createMiddlewareSetup();
         
-        middleware(req, res, next.fn);
+        middleware(req as any, res as any, next.fn);
         
         expect(next.wasCalled()).toBe(false);
         expect(res.wasStatusCalled()).toBe(true);
@@ -522,7 +522,7 @@ describe('Authentication Debug Tests', () => {
         const res = AuthMockFactory.createResponse();
         const next = AuthMockFactory.createNext();
         
-        middleware(req, res, next.fn);
+        middleware(req as any, res as any, next.fn);
         
         expect(next.wasCalled()).toBe(false);
         expect(res.wasStatusCalled()).toBe(true);
@@ -543,7 +543,7 @@ describe('Authentication Debug Tests', () => {
           const res = new MockResponse();
           const next = new MockNext();
           
-          middleware(req, res, next.fn);
+          middleware(req as any, res as any, next.fn);
           
           expect(next.wasCalled()).toBe(true);
           expect(res.wasStatusCalled()).toBe(false);
@@ -557,7 +557,7 @@ describe('Authentication Debug Tests', () => {
         const res = new MockResponse();
         const next = new MockNext();
         
-        middleware(req, res, next.fn);
+        middleware(req as any, res as any, next.fn);
         
         expect(next.wasCalled()).toBe(false);
         expect(res.wasStatusCalled()).toBe(true);
@@ -571,7 +571,7 @@ describe('Authentication Debug Tests', () => {
         const middleware = createAuthMiddleware({ apiKey: 'test-key' });
         const { req, res, next } = AuthMockFactory.createMiddlewareSetup();
         
-        middleware(req, res, next.fn);
+        middleware(req as any, res as any, next.fn);
         
         const error = res.responseData.error;
         expect(error).toHaveProperty('message');
@@ -604,11 +604,11 @@ describe('Authentication Debug Tests', () => {
           }
         ];
         
-        testCases.forEach(({ setup, expectedCode, description }) => {
+        testCases.forEach(({ setup, expectedCode }) => {
           const middleware = createAuthMiddleware({ apiKey: 'correct-key' });
           const { req, res, next } = setup();
           
-          middleware(req, res, next.fn);
+          middleware(req as any, res as any, next.fn);
           
           const error = res.responseData.error;
           expect(error.code).toBe(expectedCode);
@@ -632,7 +632,7 @@ describe('Authentication Debug Tests', () => {
         // Test valid request
         const { req, res, next } = AuthMockFactory.createMiddlewareSetup('integration-test-key-123456789');
         
-        middleware(req, res, next.fn);
+        middleware(req as any, res as any, next.fn);
         
         // Verify successful authentication
         expect(next.wasCalled()).toBe(true);
@@ -671,7 +671,7 @@ describe('Authentication Debug Tests', () => {
             trigger: () => {
               const middleware = createAuthMiddleware({ apiKey: 'test-key' });
               const { req, res, next } = AuthMockFactory.createMiddlewareSetup();
-              middleware(req, res, next.fn);
+              middleware(req as any, res as any, next.fn);
               return res;
             }
           },
@@ -681,7 +681,7 @@ describe('Authentication Debug Tests', () => {
             trigger: () => {
               const middleware = createAuthMiddleware({ apiKey: 'correct-key' });
               const { req, res, next } = AuthMockFactory.createMiddlewareSetup('wrong-key');
-              middleware(req, res, next.fn);
+              middleware(req as any, res as any, next.fn);
               return res;
             }
           }
