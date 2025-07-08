@@ -7,14 +7,15 @@ The Claude Wrapper provides an OpenAI-compatible API interface for interacting w
 ## 🌐 Base URL
 
 ```
-http://localhost:3000
+http://localhost:8000
 ```
 
 ## 🔑 Authentication
 
-### **Development Mode (Current POC)**
+### **Development Mode (Phase 4A Complete)**
 - **No Authentication Required**: Direct access to all endpoints
-- **Local Development**: Designed for local development use
+- **Production-Ready Core**: Streaming, sessions, and CLI implemented
+- **Local Development**: Designed for local development and testing
 
 ### **Production Mode (Planned)**
 - **Bearer Token Authentication**: Optional API protection
@@ -154,7 +155,7 @@ Create a streaming chat completion using Server-Sent Events.
 **Request Body:**
 ```json
 {
-  "model": "claude-3-5-sonnet-20241022",
+  "model": "sonnet",
   "messages": [...],
   "stream": true
 }
@@ -169,11 +170,11 @@ Connection: keep-alive
 
 **Response Format:**
 ```
-data: {"id":"chatcmpl-abc123","object":"chat.completion.chunk","created":1677652288,"model":"claude-3-5-sonnet-20241022","choices":[{"index":0,"delta":{"role":"assistant","content":"Hello"},"finish_reason":null}]}
+data: {"id":"chatcmpl-abc123","object":"chat.completion.chunk","created":1677652288,"model":"sonnet","choices":[{"index":0,"delta":{"role":"assistant","content":"Hello"},"finish_reason":null}]}
 
-data: {"id":"chatcmpl-abc123","object":"chat.completion.chunk","created":1677652288,"model":"claude-3-5-sonnet-20241022","choices":[{"index":0,"delta":{"content":" there"},"finish_reason":null}]}
+data: {"id":"chatcmpl-abc123","object":"chat.completion.chunk","created":1677652288,"model":"sonnet","choices":[{"index":0,"delta":{"content":" there"},"finish_reason":null}]}
 
-data: {"id":"chatcmpl-abc123","object":"chat.completion.chunk","created":1677652288,"model":"claude-3-5-sonnet-20241022","choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}
+data: {"id":"chatcmpl-abc123","object":"chat.completion.chunk","created":1677652288,"model":"sonnet","choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}
 
 data: [DONE]
 ```
