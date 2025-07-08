@@ -46,10 +46,11 @@ export class DaemonOSMock {
         switch (this.config.killBehavior) {
           case 'failure':
             throw new Error(this.config.killError);
-          case 'no-such-process':
+          case 'no-such-process': {
             const error = new Error('No such process') as any;
             error.code = 'ESRCH';
             throw error;
+          }
           case 'success':
           default:
             return true;
@@ -149,11 +150,12 @@ export class DaemonOSMock {
             case 'failure':
               reject(new Error(this.config.killError));
               break;
-            case 'no-such-process':
+            case 'no-such-process': {
               const error = new Error('No such process') as any;
               error.code = 'ESRCH';
               reject(error);
               break;
+            }
             case 'success':
             default:
               resolve(true);

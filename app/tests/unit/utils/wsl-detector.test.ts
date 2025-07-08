@@ -20,7 +20,7 @@ jest.mock('../../../src/utils/logger', () => ({
 }));
 
 describe('WSLDetector', () => {
-  let originalEnv: NodeJS.ProcessEnv;
+  let originalEnv: Record<string, string | undefined>;
   
   beforeEach(() => {
     // Store original environment

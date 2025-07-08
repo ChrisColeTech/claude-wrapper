@@ -43,14 +43,14 @@ export class WSLFilesystemMock {
   /**
    * Mock fs.readFile implementation (async)
    */
-  static async readFile(path: string, encoding?: BufferEncoding): Promise<string> {
+  static async readFile(path: string, encoding?: string): Promise<string> {
     return this.readFileSync(path, encoding);
   }
 
   /**
    * Mock fs.readFileSync implementation (sync)
    */
-  static readFileSync(path: string, encoding?: BufferEncoding): string {
+  static readFileSync(path: string, encoding?: string): string {
     this.calls.push({ method: 'readFile', args: [path, encoding] });
 
     if (path === '/proc/version') {
@@ -205,7 +205,7 @@ export class WSLFilesystemMock {
   static createFSMock(): any {
     return {
       promises: {
-        readFile: (path: string, encoding?: BufferEncoding) => this.readFile(path, encoding),
+        readFile: (path: string, encoding?: string) => this.readFile(path, encoding),
         access: (path: string) => this.access(path),
         stat: (path: string) => this.stat(path)
       }
@@ -218,7 +218,7 @@ export class WSLFilesystemMock {
  */
 export const mockFS = {
   promises: {
-    readFile: (path: string, encoding?: BufferEncoding) => WSLFilesystemMock.readFile(path, encoding),
+    readFile: (path: string, encoding?: string) => WSLFilesystemMock.readFile(path, encoding),
     access: (path: string) => WSLFilesystemMock.access(path),
     stat: (path: string) => WSLFilesystemMock.stat(path)
   }

@@ -133,7 +133,7 @@ describe('ProcessManager - Phase 02', () => {
 
         try {
           await runningProcessManager.start(options);
-          fail('Should have thrown ProcessError');
+          throw new Error('Should have thrown ProcessError');
         } catch (error) {
           expect(error).toBeInstanceOf(ProcessError);
           const processError = error as ProcessError;
@@ -158,7 +158,7 @@ describe('ProcessManager - Phase 02', () => {
 
         try {
           await failureProcessManager.start(options);
-          fail('Should have thrown ProcessError');
+          throw new Error('Should have thrown ProcessError');
         } catch (error) {
           expect(error).toBeInstanceOf(ProcessError);
           const processError = error as ProcessError;
@@ -264,7 +264,7 @@ describe('ProcessManager - Phase 02', () => {
 
         try {
           await failureProcessManager.stop();
-          fail('Should have thrown ProcessError');
+          throw new Error('Should have thrown ProcessError');
         } catch (error) {
           expect(error).toBeInstanceOf(ProcessError);
           const processError = error as ProcessError;
@@ -376,7 +376,7 @@ describe('ProcessManager - Phase 02', () => {
 
         try {
           await failureProcessManager.restart();
-          fail('Should have thrown ProcessError');
+          throw new Error('Should have thrown ProcessError');
         } catch (error) {
           expect(error).toBeInstanceOf(ProcessError);
           const processError = error as ProcessError;

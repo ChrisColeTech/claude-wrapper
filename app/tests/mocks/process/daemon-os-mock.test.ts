@@ -61,7 +61,7 @@ describe('DaemonOSMock', () => {
       
       try {
         mock.kill(12345, 'SIGTERM');
-        fail('Should have thrown error');
+        throw new Error('Should have thrown error');
       } catch (error: any) {
         expect(error.message).toBe('No such process');
         expect(error.code).toBe('ESRCH');
