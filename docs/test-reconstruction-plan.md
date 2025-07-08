@@ -94,9 +94,10 @@ Remaining phases (06-16) are marked as future enhancements since the core functi
 
 | Phase | Title | Status | Notes |
 |-------|-------|---------|-------|
-| 06 | Port Forwarder Tests | ⏳ **Pending** | Future enhancement |
-| 07 | CLI WSL Integration Tests | ✅ **Complete** | CLI WSL integration mocks and tests completed - 38/38 tests passing (100%) |
-| 08 | Core Module Resolution Tests | 🔄 **In Progress** | Core module resolution mocks and tests in development |
+| 06 | Port Forwarder Tests | ✅ **Verified** | Port forwarder mocks and tests completed - 73/73 tests passing (100%) (37 main + 36 network mock), externalized mock architecture verified |
+| 07 | CLI WSL Integration Tests | ✅ **Verified** | CLI WSL integration mocks and tests completed - 38/38 tests passing (100%) |
+| 08 | Core Module Resolution Tests | ✅ **Verified** | Core module resolution mocks and tests completed - 78/78 tests passing (100%) (32 resolver mock + 46 config mock), externalized mock architecture verified |
+| 09 | Authentication Debug Tests | 🔄 **In Progress** | Authentication debug mocks and tests in development |
 
 **Status Legend:**
 - ✅ **Verified**: All tests passing and quality gates met

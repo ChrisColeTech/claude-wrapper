@@ -164,7 +164,7 @@ describe('ClaudeResolverMock', () => {
       expect(commands).toHaveProperty('command -v claude');
       expect(commands).toHaveProperty('bash -i -c "which claude"');
       expect(commands).toHaveProperty('zsh -i -c "which claude"');
-      expect(commands['which claude'].stdout).toContain('/usr/local/bin/claude');
+      expect(commands['which claude']?.stdout).toContain('/usr/local/bin/claude');
     });
 
     it('should create Windows commands correctly', () => {
@@ -172,7 +172,7 @@ describe('ClaudeResolverMock', () => {
 
       expect(commands).toHaveProperty('where claude');
       expect(commands).toHaveProperty('powershell -c "Get-Command claude -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source"');
-      expect(commands['where claude'].stdout).toContain('C:\\Users\\user\\AppData\\Roaming\\npm\\claude.cmd');
+      expect(commands['where claude']?.stdout).toContain('C:\\Users\\user\\AppData\\Roaming\\npm\\claude.cmd');
     });
 
     it('should create Docker commands correctly', () => {
@@ -180,7 +180,7 @@ describe('ClaudeResolverMock', () => {
 
       expect(commands).toHaveProperty('docker run --rm anthropic/claude --version');
       expect(commands).toHaveProperty('podman run --rm anthropic/claude --version');
-      expect(commands['docker run --rm anthropic/claude --version'].stdout).toContain('Claude CLI v1.0.0');
+      expect(commands['docker run --rm anthropic/claude --version']?.stdout).toContain('Claude CLI v1.0.0');
     });
 
     it('should create alias scenarios correctly', () => {
@@ -188,7 +188,7 @@ describe('ClaudeResolverMock', () => {
 
       expect(commands).toHaveProperty('bash -i -c "which claude"');
       expect(commands).toHaveProperty('zsh -i -c "which claude"');
-      expect(commands['bash -i -c "which claude"'].stdout).toContain('aliased to');
+      expect(commands['bash -i -c "which claude"']?.stdout).toContain('aliased to');
     });
 
     it('should create failure scenarios correctly', () => {
@@ -196,8 +196,8 @@ describe('ClaudeResolverMock', () => {
 
       expect(commands).toHaveProperty('which claude');
       expect(commands).toHaveProperty('command -v claude');
-      expect(commands['which claude'].error).toBeDefined();
-      expect(commands['which claude'].stderr).toContain('command not found');
+      expect(commands['which claude']?.error).toBeDefined();
+      expect(commands['which claude']?.stderr).toContain('command not found');
     });
 
     it('should create timeout scenarios correctly', () => {
@@ -205,7 +205,7 @@ describe('ClaudeResolverMock', () => {
 
       expect(commands).toHaveProperty('docker run --rm anthropic/claude --version');
       expect(commands).toHaveProperty('/usr/local/bin/claude --version');
-      expect(commands['docker run --rm anthropic/claude --version'].error?.message).toBe('timeout');
+      expect(commands['docker run --rm anthropic/claude --version']?.error?.message).toBe('timeout');
     });
   });
 
@@ -239,7 +239,7 @@ describe('ClaudeResolverMock', () => {
     it('should set environment variables', () => {
       const envVars = { 'TEST_VAR': 'test_value' };
       ClaudeResolverMock.setEnvironmentVariables(envVars);
-      expect(process.env.TEST_VAR).toBe('test_value');
+      expect(process.env['TEST_VAR']).toBe('test_value');
     });
 
     it('should update configuration', () => {
@@ -256,7 +256,7 @@ describe('ClaudeResolverMock', () => {
   describe('reset', () => {
     it('should reset all configurations', () => {
       const originalPlatform = process.platform;
-      const originalEnv = process.env.TEST_VAR;
+      const originalEnv = process.env['TEST_VAR'];
 
       ClaudeResolverMock.setup({
         platform: 'win32',
@@ -266,7 +266,7 @@ describe('ClaudeResolverMock', () => {
       ClaudeResolverMock.reset();
 
       expect(process.platform).toBe(originalPlatform);
-      expect(process.env.TEST_VAR).toBe(originalEnv);
+      expect(process.env['TEST_VAR']).toBe(originalEnv);
       expect(ClaudeResolverMock.getMockInstance()).toBeNull();
     });
 

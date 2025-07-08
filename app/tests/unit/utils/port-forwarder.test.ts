@@ -9,15 +9,22 @@ import { LoggerMock } from '../../mocks/shared/logger-mock';
 import { MockWSLDetector } from '../../mocks/utils/wsl-mock';
 
 // Mock external dependencies using externalized mocks
+const mockExecAsync = jest.fn();
+const mockLogger = LoggerMock.setup();
+
 jest.mock('../../../src/utils/wsl-detector', () => ({
-  WSLDetector: MockWSLDetector
+  WSLDetector: {
+    isWSL: () => MockWSLDetector.isWSL(),
+    getWSLIP: () => MockWSLDetector.getWSLIP(),
+    getWSLInfo: () => MockWSLDetector.getWSLInfo(),
+    isWSLNetworkingAvailable: () => MockWSLDetector.isWSLNetworkingAvailable()
+  }
 }));
 
 jest.mock('../../../src/utils/logger', () => ({
-  logger: LoggerMock.setup()
+  logger: mockLogger
 }));
 
-const mockExecAsync = jest.fn();
 jest.mock('child_process', () => ({
   exec: jest.fn()
 }));
@@ -48,7 +55,9 @@ describe('PortForwarder', () => {
       shouldFailIPValidation: false
     });
     
-    LoggerMock.setup({ captureCallHistory: true });
+    // Setup logger mock with call history tracking
+    const newMockLogger = LoggerMock.setup({ captureCallHistory: true });
+    Object.assign(mockLogger, newMockLogger);
     
     // Setup mock exec function for successful PowerShell execution
     mockExecAsync.mockImplementation(async () => ({
@@ -338,7 +347,7 @@ describe('PortForwarder', () => {
 
       expect(result).toEqual({
         isValid: false,
-        error: 'PowerShell test failed'
+        error: 'PowerShell command failed: PowerShell test failed'
       });
     });
 
@@ -410,8 +419,11 @@ describe('PortForwarder', () => {
       await PortForwarder.setupWSLForwarding(3001);
 
       const forwards = PortForwarder.getActiveForwards();
-      expect(forwards[0]?.wslIP).toBe('172.20.10.5');
-      expect(forwards[1]?.wslIP).toBe('172.20.10.10');
+      const forward3000 = forwards.find(f => f.port === 3000);
+      const forward3001 = forwards.find(f => f.port === 3001);
+      
+      expect(forward3000?.wslIP).toBe('172.20.10.5');
+      expect(forward3001?.wslIP).toBe('172.20.10.10');
     });
 
     it('should handle bulk operations performance', async () => {

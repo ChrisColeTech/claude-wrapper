@@ -56,20 +56,18 @@ export class ClaudeConfigMock {
       Object.assign(process.env, config.environmentVariables);
     }
 
-    // Create mock configuration
-    const mockConfig: EnvironmentConfig = {
-      port: config.port || 8000,
-      timeout: config.timeout || 30000,
-      claudeCommand: config.claudeCommand,
-      logLevel: config.logLevel || 'info'
-    };
-
     // Create mock functions
     const mockGetConfig = jest.fn((): EnvironmentConfig => {
       if (this.config.shouldFailValidation) {
         throw new Error('Configuration validation failed');
       }
-      return mockConfig;
+      // Return current config state
+      return {
+        port: this.config.port || 8000,
+        timeout: this.config.timeout || 30000,
+        claudeCommand: this.config.claudeCommand,
+        logLevel: this.config.logLevel || 'info'
+      };
     });
 
     const mockIsProduction = jest.fn((): boolean => {
@@ -194,10 +192,6 @@ export class ClaudeConfigMock {
    */
   static createIncompleteConfig(): ClaudeConfigMockConfig {
     return {
-      port: undefined,
-      timeout: undefined,
-      claudeCommand: undefined,
-      logLevel: undefined,
       shouldFailValidation: false
     };
   }
