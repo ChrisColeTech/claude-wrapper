@@ -144,8 +144,6 @@ describe('DaemonOSMock', () => {
 
   describe('global process mocking', () => {
     it('should apply mock to global process', () => {
-      const originalProcess = global.process;
-      
       DaemonOSMock.applyToGlobal();
       
       expect(global.process.execPath).toBe('/usr/bin/node');
@@ -181,7 +179,9 @@ describe('DaemonOSMock', () => {
       DaemonOSMock.setKillBehavior('failure', 'Custom error');
       
       const mock = DaemonOSMock.setup();
-      mock.kill(12345, 'SIGTERM');
+      
+      // Test that kill behavior is set to failure (should throw)
+      expect(() => mock.kill(12345, 'SIGTERM')).toThrow('Custom error');
       
       // Reset
       DaemonOSMock.reset();
