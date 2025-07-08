@@ -37,6 +37,14 @@ afterEach(async () => {
   // Clear any intervals or timeouts that might be hanging
   jest.clearAllTimers();
   
+  // Clean up all streaming managers to prevent timeout leaks
+  try {
+    const { shutdownAllStreamingManagers } = await import('../src/streaming/manager');
+    shutdownAllStreamingManagers();
+  } catch (error) {
+    // Ignore if module is not available
+  }
+  
   // Give time for async cleanup
   await new Promise(resolve => setTimeout(resolve, 10));
 });

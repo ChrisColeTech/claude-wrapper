@@ -1,6 +1,7 @@
 import request from 'supertest';
 import { Express } from 'express';
 import { createServer } from '../../../src/api/server';
+import { shutdownAllStreamingManagers } from '../../../src/streaming/manager';
 
 // Mock the CoreWrapper to avoid actual Claude CLI calls
 jest.mock('../../../src/core/wrapper', () => {
@@ -26,6 +27,9 @@ describe('Streaming Integration Tests', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+    
+    // Clean up all streaming managers to prevent timeout leaks
+    shutdownAllStreamingManagers();
   });
 
   describe('POST /v1/chat/completions validation', () => {

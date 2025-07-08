@@ -1,5 +1,6 @@
 import request from 'supertest';
 import { createServer } from '../../../src/api/server';
+import { shutdownAllStreamingManagers } from '../../../src/streaming/manager';
 
 // Mock the CoreWrapper to avoid actual Claude CLI calls in tests
 jest.mock('../../../src/core/wrapper', () => {
@@ -29,6 +30,9 @@ describe('API Integration Tests', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+    
+    // Clean up all streaming managers to prevent timeout leaks
+    shutdownAllStreamingManagers();
   });
 
   describe('Health endpoint', () => {

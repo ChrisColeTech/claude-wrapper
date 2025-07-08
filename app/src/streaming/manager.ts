@@ -2,6 +2,20 @@ import { IStreamingManager, StreamConnection } from '../types';
 import { STREAMING_CONFIG } from '../config/constants';
 import { logger } from '../utils/logger';
 
+// Global registry to track all StreamingManager instances
+const streamingManagerRegistry = new Set<StreamingManager>();
+
+/**
+ * Global cleanup function for all StreamingManager instances
+ * Used primarily for test cleanup
+ */
+export function shutdownAllStreamingManagers(): void {
+  for (const manager of streamingManagerRegistry) {
+    manager.shutdown();
+  }
+  streamingManagerRegistry.clear();
+}
+
 /**
  * StreamingManager - Manages active streaming connections
  * Single Responsibility: Connection lifecycle management
@@ -13,6 +27,8 @@ export class StreamingManager implements IStreamingManager {
   private connectionTimeouts: Map<string, ReturnType<typeof setTimeout>> = new Map();
 
   constructor() {
+    // Register this instance globally for cleanup
+    streamingManagerRegistry.add(this);
     this.startCleanupTimer();
   }
 
@@ -154,8 +170,11 @@ export class StreamingManager implements IStreamingManager {
 
       // Clear timeout if connection closes normally
       response.on('finish', () => {
-        clearTimeout(timeout);
-        this.connectionTimeouts.delete(id);
+        const timeout = this.connectionTimeouts.get(id);
+        if (timeout) {
+          clearTimeout(timeout);
+          this.connectionTimeouts.delete(id);
+        }
       });
     }
   }
@@ -168,6 +187,7 @@ export class StreamingManager implements IStreamingManager {
       this.cleanup();
     }, STREAMING_CONFIG.HEARTBEAT_INTERVAL_MS);
   }
+
 
   /**
    * Shutdown manager and cleanup resources
@@ -188,6 +208,9 @@ export class StreamingManager implements IStreamingManager {
     for (const id of this.activeConnections.keys()) {
       this.closeConnection(id);
     }
+
+    // Remove from global registry
+    streamingManagerRegistry.delete(this);
 
     logger.info('StreamingManager shutdown complete');
   }
