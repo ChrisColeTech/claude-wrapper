@@ -230,6 +230,39 @@ npm test -- --runInBand --forceExit --detectOpenHandles
 - **Prevention Rate**: <5% issue recurrence
 - **Developer Confidence**: Clear system health understanding
 
+## ⚠️ Critical Lessons Learned: Test Deletion Anti-Pattern
+
+**NEVER Delete Failing Tests**: The most dangerous anti-pattern in test maintenance is deleting failing tests instead of fixing them.
+
+**What NOT to Do**:
+- ❌ Delete test files when they fail in CI
+- ❌ Remove test coverage to "fix" build failures  
+- ❌ Rewrite tests from scratch instead of debugging existing ones
+- ❌ Commit broken test files that show "0 tests" or compilation errors
+- ❌ Push changes without verifying tests work locally first
+
+**Why This is Dangerous**:
+- **Removes safety net**: Deleting tests removes protection against regressions
+- **Hides real bugs**: Failing tests may be catching actual code issues
+- **Creates more work**: Rewriting from scratch is always harder than fixing
+- **Bad engineering practice**: Tests are documentation and specifications
+- **Reduces confidence**: Less coverage means less reliability
+
+**Correct Approach**:
+- ✅ Debug the specific mocking or setup issue causing failures
+- ✅ Fix the root cause (e.g., Jest mock configuration, hoisting problems)
+- ✅ Maintain test coverage while improving test quality
+- ✅ Learn from the failure to prevent similar issues
+- ✅ Verify fixes work locally before committing
+
+**Common Mock Setup Issues**:
+- Variable hoisting problems with `jest.mock()` callbacks
+- Incorrect mock return values or function signatures
+- Module import order causing initialization errors
+- Missing mock cleanup between test runs
+
+**Example Lesson**: ClaudeResolver test failures showed mock setup problems, not code problems. The correct solution was fixing the Jest mock configuration, not deleting the test file.
+
 ## 🔮 Future Enhancements
 
 **Planned Improvements**:

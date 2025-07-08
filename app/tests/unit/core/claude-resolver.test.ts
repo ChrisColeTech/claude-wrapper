@@ -6,17 +6,14 @@
 import { ClaudeResolver } from '../../../src/core/claude-resolver';
 import { ClaudeCliError, TimeoutError } from '../../../src/utils/errors';
 
-// Create mock functions first
-const mockExecAsync = jest.fn();
-
 // Mock child_process
 jest.mock('child_process', () => ({
   exec: jest.fn()
 }));
 
-// Mock util
+// Mock util with a factory function that returns a mock
 jest.mock('util', () => ({
-  promisify: jest.fn(() => mockExecAsync)
+  promisify: jest.fn(() => jest.fn())
 }));
 
 // Mock logger
@@ -43,10 +40,16 @@ jest.mock('../../../src/config/env', () => ({
 
 describe('ClaudeResolver', () => {
   let resolver: ClaudeResolver;
+  let mockExecAsync: jest.Mock;
   let mockEnvironmentManager: any;
 
   beforeEach(() => {
     jest.clearAllMocks();
+    
+    // Setup the execAsync mock
+    mockExecAsync = jest.fn();
+    const { promisify } = require('util');
+    (promisify as jest.Mock).mockReturnValue(mockExecAsync);
     
     // Reset EnvironmentManager mock to default
     mockEnvironmentManager = require('../../../src/config/env').EnvironmentManager;
