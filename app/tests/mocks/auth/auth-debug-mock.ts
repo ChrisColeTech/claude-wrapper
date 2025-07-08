@@ -63,7 +63,7 @@ export class AuthDebugMock {
     
     // Set API key if provided
     if (config.apiKey) {
-      process.env.API_KEY = config.apiKey;
+      process.env['API_KEY'] = config.apiKey;
     }
     
     this.debugLogs = [];
@@ -164,7 +164,7 @@ export class AuthDebugMock {
    */
   static createMockAuthEnvironment(): MockAuthEnvironment {
     const mockGetApiKey = jest.fn((): string | undefined => {
-      return this.config.apiKey || process.env.API_KEY;
+      return this.config.apiKey || process.env['API_KEY'];
     });
 
     const mockIsApiKeyProtectionEnabled = jest.fn((): boolean => {
@@ -234,7 +234,7 @@ export class AuthDebugMock {
    */
   static setApiKey(apiKey: string): void {
     this.config.apiKey = apiKey;
-    process.env.API_KEY = apiKey;
+    process.env['API_KEY'] = apiKey;
   }
 
   /**
@@ -242,7 +242,7 @@ export class AuthDebugMock {
    */
   static removeApiKey(): void {
     this.config.apiKey = undefined;
-    delete process.env.API_KEY;
+    delete process.env['API_KEY'];
   }
 
   /**

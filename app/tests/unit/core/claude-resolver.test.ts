@@ -371,7 +371,7 @@ describe('ClaudeResolver', () => {
       it('should escape shell strings properly', async () => {
         const mockCommands = {
           ...ClaudeResolverMock.createUnixCommands(),
-          'echo \'test\'\"\'\"\'prompt\' | /usr/local/bin/claude --print --model sonnet': {
+          "echo 'test'\"'\"'prompt' | /usr/local/bin/claude --print --model sonnet": {
             stdout: 'Escaped response',
             stderr: ''
           }
@@ -665,7 +665,7 @@ describe('ClaudeResolver', () => {
     it('should handle prompt with single quotes correctly', async () => {
       const mockCommands = {
         ...ClaudeResolverMock.createUnixCommands(),
-        'echo \'test\'\"\'\"\'prompt\' | /usr/local/bin/claude --print --model sonnet': {
+        "echo 'test'\"'\"'prompt' | /usr/local/bin/claude --print --model sonnet": {
           stdout: 'Escaped response',
           stderr: ''
         }
@@ -701,7 +701,7 @@ describe('ClaudeResolver', () => {
     it('should handle prompt with multiple quotes correctly', async () => {
       const mockCommands = {
         ...ClaudeResolverMock.createUnixCommands(),
-        'echo \'test\'\"\'\"\'string\'\"\'\"\'with\'\"\'\"\'quotes\' | /usr/local/bin/claude --print --model sonnet': {
+        "echo 'test'\"'\"'string'\"'\"'with'\"'\"'quotes' | /usr/local/bin/claude --print --model sonnet": {
           stdout: 'Multi-quote response',
           stderr: ''
         }

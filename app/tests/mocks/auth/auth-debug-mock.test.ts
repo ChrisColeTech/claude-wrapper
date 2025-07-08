@@ -62,12 +62,12 @@ describe('Authentication Debug Mock', () => {
         
         AuthDebugMock.setup({ customEnvironmentVariables: customEnv });
         
-        expect(process.env.TEST_VAR).toBe('test-value');
-        expect(process.env.API_KEY).toBe('env-api-key');
+        expect(process.env['TEST_VAR']).toBe('test-value');
+        expect(process.env['API_KEY']).toBe('env-api-key');
       });
 
       it('should reset configuration and environment', () => {
-        const originalApiKey = process.env.API_KEY;
+        const originalApiKey = process.env['API_KEY'];
         
         AuthDebugMock.setup({ 
           apiKey: 'test-key',
@@ -78,8 +78,8 @@ describe('Authentication Debug Mock', () => {
         
         const config = AuthDebugMock.getCurrentConfig();
         expect(config).toEqual({});
-        expect(process.env.API_KEY).toBe(originalApiKey);
-        expect(process.env.TEST_VAR).toBeUndefined();
+        expect(process.env['API_KEY']).toBe(originalApiKey);
+        expect(process.env['TEST_VAR']).toBeUndefined();
       });
     });
 
@@ -94,7 +94,7 @@ describe('Authentication Debug Mock', () => {
       });
 
       it('should validate token correctly when no API key configured', () => {
-        AuthDebugMock.setup({ apiKey: undefined });
+        AuthDebugMock.setup({});
         const mockValidator = AuthDebugMock.createMockBearerTokenValidator();
         
         const result = mockValidator.validateToken('any-token');
@@ -262,7 +262,7 @@ describe('Authentication Debug Mock', () => {
       });
 
       it('should get API key from environment', () => {
-        process.env.API_KEY = 'env-key';
+        process.env['API_KEY'] = 'env-key';
         const mockEnv = AuthDebugMock.createMockAuthEnvironment();
         
         const result = mockEnv.getApiKey();
@@ -280,8 +280,8 @@ describe('Authentication Debug Mock', () => {
       });
 
       it('should detect API key protection disabled', () => {
-        AuthDebugMock.setup({ apiKey: undefined });
-        delete process.env.API_KEY;
+        AuthDebugMock.setup({});
+        delete process.env['API_KEY'];
         const mockEnv = AuthDebugMock.createMockAuthEnvironment();
         
         const result = mockEnv.isApiKeyProtectionEnabled();
@@ -305,12 +305,12 @@ describe('Authentication Debug Mock', () => {
       });
 
       it('should track error instances', () => {
-        const error1 = AuthDebugMock.createMockAuthenticationError(
+        AuthDebugMock.createMockAuthenticationError(
           AuthErrorType.MISSING_TOKEN,
           'Missing token',
           401
         );
-        const error2 = AuthDebugMock.createMockAuthenticationError(
+        AuthDebugMock.createMockAuthenticationError(
           AuthErrorType.INVALID_TOKEN,
           'Invalid token',
           401
@@ -319,8 +319,8 @@ describe('Authentication Debug Mock', () => {
         const errors = AuthDebugMock.getErrorInstances();
         
         expect(errors).toHaveLength(2);
-        expect(errors[0]).toBe(error1);
-        expect(errors[1]).toBe(error2);
+        expect(errors[0]?.type).toBe(AuthErrorType.MISSING_TOKEN);
+        expect(errors[1]?.type).toBe(AuthErrorType.INVALID_TOKEN);
       });
 
       it('should clear error instances', () => {
@@ -380,11 +380,11 @@ describe('Authentication Debug Mock', () => {
       it('should set and remove API key', () => {
         AuthDebugMock.setApiKey('test-key');
         expect(AuthDebugMock.getCurrentConfig().apiKey).toBe('test-key');
-        expect(process.env.API_KEY).toBe('test-key');
+        expect(process.env['API_KEY']).toBe('test-key');
         
         AuthDebugMock.removeApiKey();
         expect(AuthDebugMock.getCurrentConfig().apiKey).toBeUndefined();
-        expect(process.env.API_KEY).toBeUndefined();
+        expect(process.env['API_KEY']).toBeUndefined();
       });
 
       it('should set debug mode', () => {
@@ -780,7 +780,7 @@ describe('Authentication Debug Mock', () => {
 
     describe('Environment management', () => {
       it('should handle environment variable manipulation', () => {
-        const originalApiKey = process.env.API_KEY;
+        const originalApiKey = process.env['API_KEY'];
         
         AuthDebugMock.setup({ 
           customEnvironmentVariables: {
@@ -789,23 +789,23 @@ describe('Authentication Debug Mock', () => {
           }
         });
         
-        expect(process.env.API_KEY).toBe('custom-key');
-        expect(process.env.DEBUG_MODE).toBe('true');
+        expect(process.env['API_KEY']).toBe('custom-key');
+        expect(process.env['DEBUG_MODE']).toBe('true');
         
         AuthDebugMock.reset();
         
-        expect(process.env.API_KEY).toBe(originalApiKey);
-        expect(process.env.DEBUG_MODE).toBeUndefined();
+        expect(process.env['API_KEY']).toBe(originalApiKey);
+        expect(process.env['DEBUG_MODE']).toBeUndefined();
       });
 
       it('should support dynamic API key management', () => {
         AuthDebugMock.setup();
         
         AuthDebugMock.setApiKey('dynamic-key');
-        expect(process.env.API_KEY).toBe('dynamic-key');
+        expect(process.env['API_KEY']).toBe('dynamic-key');
         
         AuthDebugMock.removeApiKey();
-        expect(process.env.API_KEY).toBeUndefined();
+        expect(process.env['API_KEY']).toBeUndefined();
       });
     });
   });
