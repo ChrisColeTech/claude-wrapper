@@ -11,6 +11,8 @@ import { logger } from './utils/logger';
 import { interactiveSetup } from './cli/interactive';
 import * as packageJson from '../package.json';
 import { processManager } from './process/manager';
+import { WSLDetector } from './utils/wsl-detector';
+import { PortForwarder } from './utils/port-forwarder';
 
 
 /**
@@ -26,6 +28,7 @@ export interface CliOptions {
   status?: boolean;
   production?: boolean;
   healthMonitoring?: boolean;
+  wslForwarding?: boolean;
 }
 
 /**
@@ -54,6 +57,7 @@ class CliParser {
       .option('--no-interactive', 'disable interactive API key setup')
       .option('--production', 'enable production server management features')
       .option('--health-monitoring', 'enable health monitoring system')
+      .option('--no-wsl-forwarding', 'disable automatic WSL port forwarding')
       .option('--stop', 'stop background server')
       .option('--status', 'check background server status')
       .helpOption('-h, --help', 'display help for command')
@@ -142,6 +146,7 @@ class CliRunner {
    */
   private async startServer(options: CliOptions): Promise<void> {
     const port = options.port || EnvironmentManager.getConfig().port.toString();
+    const portNumber = parseInt(port, 10);
 
     // Interactive setup if enabled (like original)
     if (options.interactive !== false && !options.apiKey) {
@@ -149,6 +154,20 @@ class CliRunner {
         await interactiveSetup();
       } catch (error) {
         logger.warn('Interactive setup skipped:', error);
+      }
+    }
+
+    // Setup WSL port forwarding if enabled and in WSL environment
+    if (options.wslForwarding !== false && WSLDetector.isWSL()) {
+      try {
+        await PortForwarder.setupWSLForwarding(portNumber);
+        console.log(`🔗 WSL port forwarding enabled: Windows localhost:${port} → WSL`);
+      } catch (error) {
+        if (error instanceof Error) {
+          logger.warn('WSL port forwarding failed', { error: error.message, port });
+          console.log(`⚠️  WSL port forwarding failed: ${error.message}`);
+          console.log(`   Server will still be accessible from within WSL at localhost:${port}`);
+        }
       }
     }
 
@@ -164,6 +183,15 @@ class CliRunner {
       console.log(`🚀 Claude Wrapper server started in background (PID: ${pid})`);
       console.log(`📡 API available at http://localhost:${port}/v1/chat/completions`);
       console.log(`📊 Health check at http://localhost:${port}/health`);
+      
+      // Additional WSL information
+      if (WSLDetector.isWSL() && options.wslForwarding !== false) {
+        if (PortForwarder.isPortForwarded(portNumber)) {
+          console.log(`🪟 Windows access: http://localhost:${port} (via WSL port forwarding)`);
+        } else {
+          console.log(`🐧 WSL access only: http://localhost:${port} (use --no-wsl-forwarding to disable this message)`);
+        }
+      }
       
       process.exit(0);
     } catch (error) {

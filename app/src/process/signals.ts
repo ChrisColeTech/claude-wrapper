@@ -49,7 +49,7 @@ export class SignalError extends Error {
 export class SignalHandler implements ISignalHandler {
   private shutdownSteps: ShutdownStep[] = [];
   private isShuttingDown = false;
-  private shutdownTimer: NodeJS.Timeout | null = null;
+  private shutdownTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
     logger.debug('SignalHandler initialized');

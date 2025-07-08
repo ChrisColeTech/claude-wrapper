@@ -9,7 +9,7 @@ import { logger } from '../utils/logger';
  */
 export class StreamingManager implements IStreamingManager {
   private activeConnections: Map<string, StreamConnection> = new Map();
-  private cleanupTimer: NodeJS.Timeout | null = null;
+  private cleanupTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
     this.startCleanupTimer();

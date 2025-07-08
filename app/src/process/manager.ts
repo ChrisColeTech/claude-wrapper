@@ -8,6 +8,8 @@
 import { PROCESS_CONFIG, PROCESS_PERFORMANCE } from '../config/constants';
 import { logger } from '../utils/logger';
 import { pidManager, IPidManager } from './pid';
+import { PortForwarder } from '../utils/port-forwarder';
+import { WSLDetector } from '../utils/wsl-detector';
 import { daemonManager, IDaemonManager, DaemonOptions } from './daemon';
 import { signalHandler, ISignalHandler } from './signals';
 
@@ -148,6 +150,19 @@ export class ProcessManager implements IProcessManager {
       if (!this.isRunning()) {
         logger.debug('No process running, nothing to stop');
         return false;
+      }
+
+      // Clean up WSL port forwarding before stopping the process
+      if (WSLDetector.isWSL()) {
+        try {
+          await PortForwarder.removeAllWSLForwarding();
+          logger.debug('WSL port forwarding cleanup completed');
+        } catch (error) {
+          logger.warn('WSL port forwarding cleanup failed', { 
+            error: error instanceof Error ? error.message : 'Unknown error' 
+          });
+          // Don't fail the stop operation if forwarding cleanup fails
+        }
       }
 
       const stopped = await this.daemonManager.stopDaemon();

@@ -23,15 +23,19 @@
     "lint:fix": "eslint src tests --ext .ts --fix",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist",
-    "clean:logs": "rm -rf tests/logs/pass/* tests/logs/fail/*",
+    "clean:logs": "rm -rf tests/logs/pass/* tests/logs/fail/* tests/logs/verbose/*",
     "postinstall": "npm run build > build.log 2>&1"
   },
   "dependencies": {
+    "@types/swagger-jsdoc": "^6.0.4",
+    "@types/swagger-ui-express": "^4.1.8",
     "commander": "^11.1.0",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
-    "inquirer": "^9.2.12"
+    "inquirer": "^9.2.12",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",

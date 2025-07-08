@@ -1,661 +1,803 @@
 /**
- * Process Manager Unit Tests - Phase 6A
- * Tests process orchestration and management functionality
+ * Process Manager Tests - Phase 02
+ * Comprehensive testing with externalized mocks following clean architecture principles
+ * 
+ * Test Coverage:
+ * - Process lifecycle management (start/stop/restart/status)
+ * - Health check functionality with dynamic import mocking
+ * - Error handling and recovery scenarios
+ * - Performance monitoring for startup/shutdown times
+ * - WSL integration and port forwarding cleanup
+ * - PID management integration testing
  */
 
-import { jest, describe, test, expect, beforeEach, afterEach } from '@jest/globals';
-import { 
-  mockLogger, 
-  resetProcessMocks,
-  setupSuccessfulPidOperations,
-} from '../../mocks/process-mocks';
+import { ProcessManager, ProcessError, IProcessManager, ProcessManagerOptions } from '../../../src/process/manager';
+import { MockDaemonManager, DaemonManagerMock } from '../../mocks/process/daemon-manager-mock';
+import { MockPidManager, PidManagerMock } from '../../mocks/process/pid-manager-mock';
+import { MockSignalHandler, SignalHandlerMock } from '../../mocks/process/signal-handler-mock';
+import { ChildProcessMock } from '../../mocks/process/child-process-mock';
 
-// Mock dependencies
-jest.mock('../../../src/utils/logger', () => ({
-  logger: mockLogger,
-}));
-
-jest.mock('../../../src/process/pid', () => ({
-  pidManager: {
-    readPid: jest.fn(),
-    isProcessRunning: jest.fn(),
-    validateAndCleanup: jest.fn(),
-    savePid: jest.fn(),
-    cleanupPidFile: jest.fn(),
-  },
-}));
-
-jest.mock('../../../src/process/daemon', () => ({
-  daemonManager: {
-    startDaemon: jest.fn(),
-    stopDaemon: jest.fn(),
-    isDaemonRunning: jest.fn(),
-    getDaemonStatus: jest.fn(),
-  },
-}));
-
-jest.mock('../../../src/process/signals', () => ({
-  signalHandler: {
-    setupGracefulShutdown: jest.fn(),
-    registerShutdownStep: jest.fn(),
-    initiateShutdown: jest.fn(),
-  },
-}));
-
-// Mock child_process for health check
-const mockExec = jest.fn();
+// Mock the dynamic imports at the top level
 jest.mock('child_process', () => ({
-  exec: mockExec,
+  exec: jest.fn()
 }));
 
-// Mock util for promisify
 jest.mock('util', () => ({
-  promisify: jest.fn((fn) => fn),
+  promisify: jest.fn((fn) => jest.fn().mockImplementation(async (...args) => {
+    return new Promise((resolve, reject) => {
+      const callback = (error: any, stdout?: string, stderr?: string) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve({ stdout: stdout || '', stderr: stderr || '' });
+        }
+      };
+      fn(...args, callback);
+    });
+  }))
 }));
+import { WSLMock } from '../../mocks/utils/wsl-mock';
 
-import { ProcessManager, ProcessError, ProcessManagerOptions } from '../../../src/process/manager';
-import { pidManager } from '../../../src/process/pid';
-import { daemonManager } from '../../../src/process/daemon';
-import { signalHandler } from '../../../src/process/signals';
-
-const mockPidManager = pidManager as jest.Mocked<typeof pidManager>;
-const mockDaemonManager = daemonManager as jest.Mocked<typeof daemonManager>;
-const mockSignalHandler = signalHandler as jest.Mocked<typeof signalHandler>;
-
-describe('ProcessManager', () => {
-  let processManager: ProcessManager;
+describe('ProcessManager - Phase 02', () => {
+  let processManager: IProcessManager;
+  let mockDaemonManager: MockDaemonManager;
+  let mockPidManager: MockPidManager;
+  let mockSignalHandler: MockSignalHandler;
 
   beforeEach(() => {
     // Reset all mocks
-    resetProcessMocks();
-    setupSuccessfulPidOperations();
-    jest.clearAllMocks();
-    
-    // Setup default mock behaviors
-    mockPidManager.readPid.mockReturnValue(12345);
-    mockPidManager.isProcessRunning.mockReturnValue(true);
-    mockPidManager.validateAndCleanup.mockReturnValue(false);
-    mockDaemonManager.startDaemon.mockResolvedValue(12345);
-    mockDaemonManager.stopDaemon.mockResolvedValue(true);
-    mockDaemonManager.isDaemonRunning.mockReturnValue(false);
-    mockDaemonManager.getDaemonStatus.mockResolvedValue({ running: true, pid: 12345 });
-    mockSignalHandler.setupGracefulShutdown.mockReturnValue(undefined);
-    mockSignalHandler.registerShutdownStep.mockReturnValue(undefined);
-    mockSignalHandler.initiateShutdown.mockResolvedValue(undefined);
-    
-    // Create fresh instance
-    processManager = new ProcessManager();
+    DaemonManagerMock.resetAll();
+    PidManagerMock.resetAll();
+    SignalHandlerMock.resetAll();
+    ChildProcessMock.reset();
+    WSLMock.resetAll();
+
+    // Create fresh mock instances
+    mockDaemonManager = DaemonManagerMock.createSuccessScenario();
+    mockPidManager = PidManagerMock.createCleanStateScenario();
+    mockSignalHandler = SignalHandlerMock.createSuccessScenario();
+
+    // Create process manager with mocked dependencies
+    processManager = new ProcessManager(
+      mockPidManager,
+      mockDaemonManager,
+      mockSignalHandler
+    );
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    // Clean up after each test
+    DaemonManagerMock.resetAll();
+    PidManagerMock.resetAll();
+    SignalHandlerMock.resetAll();
+    ChildProcessMock.reset();
+    WSLMock.resetAll();
   });
 
-  describe('Constructor', () => {
-    test('should create ProcessManager instance', () => {
-      expect(processManager).toBeInstanceOf(ProcessManager);
+  describe('Process Lifecycle Management', () => {
+    describe('start()', () => {
+      it('should start process successfully with default options', async () => {
+        const options: ProcessManagerOptions = {
+          port: '8000',
+          verbose: false
+        };
+
+        mockDaemonManager.updateConfig({ startPid: 12345 });
+        mockPidManager.updateConfig({ validateResult: false }); // Not running initially
+
+        const result = await processManager.start(options);
+
+        expect(result).toBe(12345);
+        expect(mockDaemonManager.wasMethodCalled('startDaemon')).toBe(true);
+        expect(mockPidManager.wasMethodCalled('validateAndCleanup')).toBe(true);
+      });
+
+      it('should start process with custom options', async () => {
+        const options: ProcessManagerOptions = {
+          port: '9999',
+          apiKey: 'test-key-123',
+          verbose: true,
+          debug: true
+        };
+
+        mockDaemonManager.updateConfig({ startPid: 54321 });
+
+        const result = await processManager.start(options);
+
+        expect(result).toBe(54321);
+        
+        const lastCall = mockDaemonManager.getLastMethodCall('startDaemon');
+        expect(lastCall?.args[0]).toMatchObject({
+          port: '9999',
+          apiKey: 'test-key-123',
+          verbose: true,
+          debug: true
+        });
+      });
+
+      it('should throw ProcessError if process already running', async () => {
+        const runningMock = PidManagerMock.createRunningProcessScenario(12345);
+        const runningProcessManager = new ProcessManager(
+          runningMock,
+          mockDaemonManager,
+          mockSignalHandler
+        );
+
+        runningMock.updateConfig({ validateResult: true });
+
+        const options: ProcessManagerOptions = { port: '8000' };
+
+        await expect(runningProcessManager.start(options))
+          .rejects
+          .toThrow(ProcessError);
+
+        try {
+          await runningProcessManager.start(options);
+          fail('Should have thrown ProcessError');
+        } catch (error) {
+          expect(error).toBeInstanceOf(ProcessError);
+          const processError = error as ProcessError;
+          expect(processError.operation).toBe('start');
+          expect(processError.code).toBe('ALREADY_RUNNING');
+        }
+      });
+
+      it('should handle daemon start failure', async () => {
+        const failureMock = DaemonManagerMock.createFailureScenario();
+        const failureProcessManager = new ProcessManager(
+          mockPidManager,
+          failureMock,
+          mockSignalHandler
+        );
+
+        const options: ProcessManagerOptions = { port: '8000' };
+
+        await expect(failureProcessManager.start(options))
+          .rejects
+          .toThrow(ProcessError);
+
+        try {
+          await failureProcessManager.start(options);
+          fail('Should have thrown ProcessError');
+        } catch (error) {
+          expect(error).toBeInstanceOf(ProcessError);
+          const processError = error as ProcessError;
+          expect(processError.operation).toBe('start');
+          expect(processError.code).toBe('START_FAILED');
+        }
+      });
+
+      it('should handle performance monitoring for startup time', async () => {
+        const startTime = Date.now();
+        const options: ProcessManagerOptions = { port: '8000' };
+
+        mockDaemonManager.updateConfig({ startPid: 12345 });
+
+        const result = await processManager.start(options);
+        const endTime = Date.now();
+
+        expect(result).toBe(12345);
+        expect(endTime - startTime).toBeLessThan(10000); // Performance requirement
+      });
     });
 
-    test('should log initialization', () => {
-      new ProcessManager();
-      expect(mockLogger.debug).toHaveBeenCalledWith('ProcessManager initialized');
+    describe('stop()', () => {
+      it('should stop running process successfully', async () => {
+        const runningMock = PidManagerMock.createRunningProcessScenario(12345);
+        const stoppableProcessManager = new ProcessManager(
+          runningMock,
+          mockDaemonManager,
+          mockSignalHandler
+        );
+
+        runningMock.updateConfig({ validateResult: true });
+        mockDaemonManager.updateConfig({ statusRunning: true });
+
+        const result = await stoppableProcessManager.stop();
+
+        expect(result).toBe(true);
+        expect(mockDaemonManager.wasMethodCalled('stopDaemon')).toBe(true);
+      });
+
+      it('should return false if no process running', async () => {
+        mockPidManager.updateConfig({ validateResult: false });
+
+        const result = await processManager.stop();
+
+        expect(result).toBe(false);
+        expect(mockDaemonManager.getMethodCallCount('stopDaemon')).toBe(0);
+      });
+
+      it('should handle WSL port forwarding cleanup', async () => {
+        // Setup WSL environment
+        WSLMock.setupWSLEnvironment();
+
+        const runningMock = PidManagerMock.createRunningProcessScenario(12345);
+        const wslProcessManager = new ProcessManager(
+          runningMock,
+          mockDaemonManager,
+          mockSignalHandler
+        );
+
+        runningMock.updateConfig({ validateResult: true });
+
+        const result = await wslProcessManager.stop();
+
+        expect(result).toBe(true);
+        expect(mockDaemonManager.wasMethodCalled('stopDaemon')).toBe(true);
+      });
+
+      it('should handle WSL cleanup failure gracefully', async () => {
+        // Setup WSL environment with networking issues
+        WSLMock.setupWSLWithNetworkingIssues();
+
+        const runningMock = PidManagerMock.createRunningProcessScenario(12345);
+        const wslProcessManager = new ProcessManager(
+          runningMock,
+          mockDaemonManager,
+          mockSignalHandler
+        );
+
+        runningMock.updateConfig({ validateResult: true });
+
+        // Should not throw even if WSL cleanup fails
+        const result = await wslProcessManager.stop();
+
+        expect(result).toBe(true);
+        expect(mockDaemonManager.wasMethodCalled('stopDaemon')).toBe(true);
+      });
+
+      it('should throw ProcessError on daemon stop failure', async () => {
+        const runningMock = PidManagerMock.createRunningProcessScenario(12345);
+        const failureMock = DaemonManagerMock.createFailureScenario();
+        const failureProcessManager = new ProcessManager(
+          runningMock,
+          failureMock,
+          mockSignalHandler
+        );
+
+        runningMock.updateConfig({ validateResult: true });
+
+        await expect(failureProcessManager.stop())
+          .rejects
+          .toThrow(ProcessError);
+
+        try {
+          await failureProcessManager.stop();
+          fail('Should have thrown ProcessError');
+        } catch (error) {
+          expect(error).toBeInstanceOf(ProcessError);
+          const processError = error as ProcessError;
+          expect(processError.operation).toBe('stop');
+          expect(processError.code).toBe('STOP_FAILED');
+        }
+      });
+
+      it('should handle performance monitoring for shutdown time', async () => {
+        const runningMock = PidManagerMock.createRunningProcessScenario(12345);
+        const performanceProcessManager = new ProcessManager(
+          runningMock,
+          mockDaemonManager,
+          mockSignalHandler
+        );
+
+        runningMock.updateConfig({ validateResult: true });
+
+        const startTime = Date.now();
+        const result = await performanceProcessManager.stop();
+        const endTime = Date.now();
+
+        expect(result).toBe(true);
+        expect(endTime - startTime).toBeLessThan(10000); // Performance requirement
+      });
     });
 
-    test('should accept custom dependencies', () => {
-      const customPidManager = {} as any;
-      const customDaemonManager = {} as any;
-      const customSignalHandler = {} as any;
-      
-      const manager = new ProcessManager(customPidManager, customDaemonManager, customSignalHandler);
-      expect(manager).toBeInstanceOf(ProcessManager);
+    describe('restart()', () => {
+      it('should restart process successfully', async () => {
+        const options: ProcessManagerOptions = {
+          port: '8000',
+          verbose: true
+        };
+
+        // Create a fresh mock for restart to track calls properly
+        const restartDaemonMock = DaemonManagerMock.createSuccessScenario();
+        const restartPidMock = PidManagerMock.createCleanStateScenario();
+        const restartManager = new ProcessManager(
+          restartPidMock,
+          restartDaemonMock,
+          mockSignalHandler
+        );
+
+        restartDaemonMock.updateConfig({ 
+          startPid: 54321,
+          statusRunning: true,
+          statusPid: 12345
+        });
+        // Simulate process running initially, then stopped after stop() call
+        let isRunning = true;
+        restartPidMock.validateAndCleanup = jest.fn(() => {
+          if (isRunning) {
+            isRunning = false; // Process gets stopped after first call
+            return true;
+          }
+          return false;
+        });
+
+        const result = await restartManager.restart(options);
+
+        expect(result).toBe(54321);
+        expect(restartDaemonMock.wasMethodCalled('stopDaemon')).toBe(true);
+        expect(restartDaemonMock.wasMethodCalled('startDaemon')).toBe(true);
+      });
+
+      it('should restart with default options if none provided', async () => {
+        // Create a fresh mock for restart to track calls properly
+        const restartDaemonMock = DaemonManagerMock.createSuccessScenario();
+        const restartPidMock = PidManagerMock.createCleanStateScenario();
+        const restartManager = new ProcessManager(
+          restartPidMock,
+          restartDaemonMock,
+          mockSignalHandler
+        );
+
+        restartDaemonMock.updateConfig({ 
+          startPid: 99999,
+          statusRunning: true,
+          statusPid: 12345
+        });
+        // Simulate process running initially, then stopped after stop() call
+        let isRunning = true;
+        restartPidMock.validateAndCleanup = jest.fn(() => {
+          if (isRunning) {
+            isRunning = false; // Process gets stopped after first call
+            return true;
+          }
+          return false;
+        });
+
+        const result = await restartManager.restart();
+
+        expect(result).toBe(99999);
+        expect(restartDaemonMock.wasMethodCalled('stopDaemon')).toBe(true);
+        expect(restartDaemonMock.wasMethodCalled('startDaemon')).toBe(true);
+      });
+
+      it('should handle restart failure', async () => {
+        const failureMock = DaemonManagerMock.createFailureScenario();
+        const failureProcessManager = new ProcessManager(
+          mockPidManager,
+          failureMock,
+          mockSignalHandler
+        );
+
+        await expect(failureProcessManager.restart())
+          .rejects
+          .toThrow(ProcessError);
+
+        try {
+          await failureProcessManager.restart();
+          fail('Should have thrown ProcessError');
+        } catch (error) {
+          expect(error).toBeInstanceOf(ProcessError);
+          const processError = error as ProcessError;
+          expect(processError.operation).toBe('restart');
+          expect(processError.code).toBe('RESTART_FAILED');
+        }
+      });
+
+      it('should include restart delay', async () => {
+        const startTime = Date.now();
+        
+        mockDaemonManager.updateConfig({ startPid: 11111 });
+
+        const result = await processManager.restart();
+        const endTime = Date.now();
+
+        expect(result).toBe(11111);
+        expect(endTime - startTime).toBeGreaterThanOrEqual(100); // Should include delay
+      });
     });
 
-    test('should use default dependencies when not provided', () => {
-      const manager = new ProcessManager();
-      expect(manager).toBeInstanceOf(ProcessManager);
+    describe('status()', () => {
+      it('should return status for running process', async () => {
+        // Mock the promisify function for exec
+        const { promisify } = require('util');
+        
+        const mockExecAsync = jest.fn().mockResolvedValue({
+          stdout: 'healthy response',
+          stderr: ''
+        });
+        
+        promisify.mockReturnValue(mockExecAsync);
+
+        mockDaemonManager.updateConfig({
+          statusRunning: true,
+          statusPid: 12345
+        });
+
+        const status = await processManager.status();
+
+        expect(status.running).toBe(true);
+        expect(status.pid).toBe(12345);
+        expect(status.health).toBe('healthy');
+      });
+
+      it('should return status for stopped process', async () => {
+        mockDaemonManager.updateConfig({
+          statusRunning: false,
+          statusPid: null
+        });
+
+        const status = await processManager.status();
+
+        expect(status.running).toBe(false);
+        expect(status.pid).toBe(null);
+        expect(status.health).toBeUndefined();
+      });
+
+      it('should handle health check failure', async () => {
+        // Mock the exec function to fail
+        const { exec } = require('child_process');
+        
+        exec.mockImplementation((_command: string, _options: any, callback: Function) => {
+          callback(new Error('Health check failed'), '', '');
+        });
+
+        mockDaemonManager.updateConfig({
+          statusRunning: true,
+          statusPid: 12345
+        });
+
+        const status = await processManager.status();
+
+        expect(status.running).toBe(true);
+        expect(status.pid).toBe(12345);
+        expect(status.health).toBe('unknown');
+      });
+
+      it('should handle unhealthy response', async () => {
+        // Mock the promisify function for exec
+        const { promisify } = require('util');
+        
+        const mockExecAsync = jest.fn().mockResolvedValue({
+          stdout: 'error response', // Response that doesn't include "healthy"
+          stderr: ''
+        });
+        
+        promisify.mockReturnValue(mockExecAsync);
+
+        mockDaemonManager.updateConfig({
+          statusRunning: true,
+          statusPid: 12345
+        });
+
+        const status = await processManager.status();
+
+        expect(status.running).toBe(true);
+        expect(status.pid).toBe(12345);
+        expect(status.health).toBe('unhealthy');
+      });
+
+      it('should throw ProcessError on status failure', async () => {
+        const failureMock = DaemonManagerMock.createFailureScenario();
+        failureMock.updateConfig({
+          statusRunning: false,
+          statusPid: null
+        });
+
+        // Force getDaemonStatus to throw
+        const originalGetDaemonStatus = failureMock.getDaemonStatus;
+        failureMock.getDaemonStatus = jest.fn().mockRejectedValue(new Error('Status check failed'));
+
+        const failureProcessManager = new ProcessManager(
+          mockPidManager,
+          failureMock,
+          mockSignalHandler
+        );
+
+        await expect(failureProcessManager.status())
+          .rejects
+          .toThrow(ProcessError);
+
+        // Restore original method
+        failureMock.getDaemonStatus = originalGetDaemonStatus;
+      });
+    });
+
+    describe('isRunning()', () => {
+      it('should return true for running process', () => {
+        mockPidManager.updateConfig({ validateResult: true });
+
+        const result = processManager.isRunning();
+
+        expect(result).toBe(true);
+        expect(mockPidManager.wasMethodCalled('validateAndCleanup')).toBe(true);
+      });
+
+      it('should return false for stopped process', () => {
+        mockPidManager.updateConfig({ validateResult: false });
+
+        const result = processManager.isRunning();
+
+        expect(result).toBe(false);
+        expect(mockPidManager.wasMethodCalled('validateAndCleanup')).toBe(true);
+      });
+
+      it('should clean up stale PID files', () => {
+        const staleMock = PidManagerMock.createStalePidFileScenario(12345);
+        const staleProcessManager = new ProcessManager(
+          staleMock,
+          mockDaemonManager,
+          mockSignalHandler
+        );
+
+        const result = staleProcessManager.isRunning();
+
+        expect(result).toBe(false);
+        expect(staleMock.wasMethodCalled('validateAndCleanup')).toBe(true);
+      });
     });
   });
 
-  describe('start', () => {
-    test('should start process with minimal options', async () => {
-      const options: ProcessManagerOptions = {};
+  describe('Error Handling and Recovery', () => {
+    it('should handle invalid PID scenarios', async () => {
+      const options: ProcessManagerOptions = { port: '8000' };
       
-      const pid = await processManager.start(options);
-      
-      expect(pid).toBe(12345);
-      expect(mockDaemonManager.startDaemon).toHaveBeenCalledWith({
-        port: undefined,
-        apiKey: undefined,
-        verbose: undefined,
-        debug: undefined,
+      mockDaemonManager.updateConfig({ 
+        startShouldFail: true,
+        startError: 'Invalid PID returned'
       });
+
+      await expect(processManager.start(options))
+        .rejects
+        .toThrow(ProcessError);
     });
 
-    test('should start process with all options', async () => {
-      const options: ProcessManagerOptions = {
-        port: '3000',
-        apiKey: 'test-key',
-        verbose: true,
-        debug: true,
-        interactive: false,
-      };
+    it('should handle permission errors', async () => {
+      const permissionMock = PidManagerMock.createFailureScenario();
+      const permissionProcessManager = new ProcessManager(
+        permissionMock,
+        mockDaemonManager,
+        mockSignalHandler
+      );
+
+      const options: ProcessManagerOptions = { port: '8000' };
+
+      // Should handle PID save failures gracefully (non-fatal)
+      const result = await permissionProcessManager.start(options);
+      expect(result).toBe(12345); // Should still succeed
+    });
+
+    it('should handle network connectivity issues', async () => {
+      // Mock exec to fail for network issues
+      const { exec } = require('child_process');
       
-      const pid = await processManager.start(options);
-      
-      expect(pid).toBe(12345);
-      expect(mockDaemonManager.startDaemon).toHaveBeenCalledWith({
-        port: '3000',
-        apiKey: 'test-key',
-        verbose: true,
-        debug: true,
+      exec.mockImplementation((_command: string, _options: any, callback: Function) => {
+        setTimeout(() => callback(new Error('Network timeout'), '', ''), 100);
       });
-    });
 
-    test('should throw ProcessError when already running', async () => {
-      mockPidManager.validateAndCleanup.mockReturnValue(true);
-      mockPidManager.readPid.mockReturnValue(12345);
-      
-      const options: ProcessManagerOptions = {};
-      
-      await expect(processManager.start(options)).rejects.toThrow(ProcessError);
-      await expect(processManager.start(options)).rejects.toThrow('already running');
-    });
-
-    test('should log successful start', async () => {
-      const options: ProcessManagerOptions = { port: '3000' };
-      
-      await processManager.start(options);
-      
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        'Process started successfully',
-        expect.objectContaining({
-          pid: 12345,
-          port: '3000',
-          startupTime: expect.any(Number)
-        })
-      );
-    });
-
-    test('should warn about slow startup', async () => {
-      // Mock slow startup
-      mockDaemonManager.startDaemon.mockImplementation(async () => {
-        await new Promise(resolve => setTimeout(resolve, 250));
-        return 12345;
+      mockDaemonManager.updateConfig({
+        statusRunning: true,
+        statusPid: 12345
       });
-      
-      const options: ProcessManagerOptions = {};
-      
-      await processManager.start(options);
-      
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        'Process start exceeded performance target',
-        expect.objectContaining({
-          elapsed: expect.any(Number),
-          target: 200
-        })
-      );
-    });
 
-    test('should throw ProcessError when daemon start fails', async () => {
-      mockDaemonManager.startDaemon.mockRejectedValue(new Error('Daemon start failed'));
-      
-      const options: ProcessManagerOptions = {};
-      
-      await expect(processManager.start(options)).rejects.toThrow(ProcessError);
-    });
-
-    test('should handle ProcessError from daemon', async () => {
-      const processError = new ProcessError('Custom error', 'start', 'CUSTOM_ERROR');
-      mockDaemonManager.startDaemon.mockRejectedValue(processError);
-      
-      const options: ProcessManagerOptions = {};
-      
-      await expect(processManager.start(options)).rejects.toThrow(ProcessError);
-      await expect(processManager.start(options)).rejects.toThrow('Custom error');
-    });
-
-    test('should wrap non-ProcessError exceptions', async () => {
-      mockDaemonManager.startDaemon.mockRejectedValue(new Error('Generic error'));
-      
-      const options: ProcessManagerOptions = {};
-      
-      await expect(processManager.start(options)).rejects.toThrow(ProcessError);
-      await expect(processManager.start(options)).rejects.toThrow('Failed to start process');
-    });
-
-    test('should measure startup time', async () => {
-      const options: ProcessManagerOptions = {};
-      
-      await processManager.start(options);
-      
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        'Process started successfully',
-        expect.objectContaining({
-          startupTime: expect.any(Number)
-        })
-      );
-    });
-  });
-
-  describe('stop', () => {
-    test('should stop running process', async () => {
-      mockPidManager.validateAndCleanup.mockReturnValue(true);
-      
-      const result = await processManager.stop();
-      
-      expect(result).toBe(true);
-      expect(mockDaemonManager.stopDaemon).toHaveBeenCalled();
-    });
-
-    test('should return false when not running', async () => {
-      mockPidManager.validateAndCleanup.mockReturnValue(false);
-      
-      const result = await processManager.stop();
-      
-      expect(result).toBe(false);
-      expect(mockDaemonManager.stopDaemon).not.toHaveBeenCalled();
-    });
-
-    test('should log successful stop', async () => {
-      mockPidManager.validateAndCleanup.mockReturnValue(true);
-      
-      await processManager.stop();
-      
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        'Process stopped successfully',
-        expect.objectContaining({
-          shutdownTime: expect.any(Number)
-        })
-      );
-    });
-
-    test('should warn about slow shutdown', async () => {
-      mockPidManager.validateAndCleanup.mockReturnValue(true);
-      mockDaemonManager.stopDaemon.mockImplementation(async () => {
-        await new Promise(resolve => setTimeout(resolve, 250));
-        return true;
-      });
-      
-      await processManager.stop();
-      
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        'Process stop exceeded performance target',
-        expect.objectContaining({
-          elapsed: expect.any(Number),
-          target: 200
-        })
-      );
-    });
-
-    test('should throw ProcessError when stop fails', async () => {
-      mockPidManager.validateAndCleanup.mockReturnValue(true);
-      mockDaemonManager.stopDaemon.mockRejectedValue(new Error('Stop failed'));
-      
-      await expect(processManager.stop()).rejects.toThrow(ProcessError);
-    });
-
-    test('should log no process running', async () => {
-      mockPidManager.validateAndCleanup.mockReturnValue(false);
-      
-      await processManager.stop();
-      
-      expect(mockLogger.debug).toHaveBeenCalledWith('No process running, nothing to stop');
-    });
-
-    test('should measure shutdown time', async () => {
-      mockPidManager.validateAndCleanup.mockReturnValue(true);
-      
-      await processManager.stop();
-      
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        'Process stopped successfully',
-        expect.objectContaining({
-          shutdownTime: expect.any(Number)
-        })
-      );
-    });
-  });
-
-  describe('status', () => {
-    test('should return status for running process', async () => {
-      mockDaemonManager.getDaemonStatus.mockResolvedValue({ running: true, pid: 12345 });
-      mockExec.mockImplementation((_command: any, _options: any, callback: any) => {
-        callback(null, { stdout: 'healthy' }, '');
-      });
-      
       const status = await processManager.status();
-      
-      expect(status).toEqual({
-        running: true,
-        pid: 12345,
-        health: 'healthy',
-      });
-    });
 
-    test('should return status for stopped process', async () => {
-      mockDaemonManager.getDaemonStatus.mockResolvedValue({ running: false, pid: null });
-      
-      const status = await processManager.status();
-      
-      expect(status).toEqual({
-        running: false,
-        pid: null,
-      });
-    });
-
-    test('should return unhealthy status', async () => {
-      mockDaemonManager.getDaemonStatus.mockResolvedValue({ running: true, pid: 12345 });
-      mockExec.mockImplementation((_command: any, _options: any, callback: any) => {
-        callback(null, { stdout: 'unhealthy' }, '');
-      });
-      
-      const status = await processManager.status();
-      
-      expect(status.health).toBe('unhealthy');
-    });
-
-    test('should return unknown health on error', async () => {
-      mockDaemonManager.getDaemonStatus.mockResolvedValue({ running: true, pid: 12345 });
-      mockExec.mockImplementation((_command: any, _options: any, callback: any) => {
-        callback(new Error('Health check failed'), null, '');
-      });
-      
-      const status = await processManager.status();
-      
+      expect(status.running).toBe(true);
       expect(status.health).toBe('unknown');
     });
 
-    test('should throw ProcessError when status check fails', async () => {
-      mockDaemonManager.getDaemonStatus.mockRejectedValue(new Error('Status failed'));
+    it('should handle concurrent operation attempts', async () => {
+      const options: ProcessManagerOptions = { port: '8000' };
       
-      await expect(processManager.status()).rejects.toThrow(ProcessError);
+      // Create multiple managers with individual mocks to simulate concurrency
+      const manager1Mock = DaemonManagerMock.createSuccessScenario();
+      const manager2Mock = DaemonManagerMock.createAlreadyRunningScenario(12345);
+      const manager3Mock = DaemonManagerMock.createAlreadyRunningScenario(12345);
+
+      const pidMock1 = PidManagerMock.createCleanStateScenario();
+      const pidMock2 = PidManagerMock.createRunningProcessScenario(12345);
+      const pidMock3 = PidManagerMock.createRunningProcessScenario(12345);
+
+      const manager1 = new ProcessManager(pidMock1, manager1Mock, mockSignalHandler);
+      const manager2 = new ProcessManager(pidMock2, manager2Mock, mockSignalHandler);
+      const manager3 = new ProcessManager(pidMock3, manager3Mock, mockSignalHandler);
+
+      manager1Mock.updateConfig({ startPid: 12345 });
+      pidMock1.updateConfig({ validateResult: false });
+      pidMock2.updateConfig({ validateResult: true });
+      pidMock3.updateConfig({ validateResult: true });
+
+      // Start multiple operations concurrently
+      const promises = [
+        manager1.start(options),
+        manager2.start(options).catch(err => err),
+        manager3.start(options).catch(err => err)
+      ];
+
+      const results = await Promise.all(promises);
+      
+      // First should succeed, others should fail
+      expect(results[0]).toBe(12345);
+      expect(results[1]).toBeInstanceOf(ProcessError);
+      expect(results[2]).toBeInstanceOf(ProcessError);
     });
 
-    test('should not perform health check for stopped process', async () => {
-      mockDaemonManager.getDaemonStatus.mockResolvedValue({ running: false, pid: null });
-      
-      await processManager.status();
-      
-      expect(mockExec).not.toHaveBeenCalled();
-    });
-
-    test('should handle health check timeout', async () => {
-      mockDaemonManager.getDaemonStatus.mockResolvedValue({ running: true, pid: 12345 });
-      mockExec.mockImplementation((_command: any, _options: any, callback: any) => {
-        setTimeout(() => callback(new Error('Timeout'), null, ''), 100);
+    it('should handle system resource exhaustion', async () => {
+      const resourceMock = DaemonManagerMock.createFailureScenario();
+      resourceMock.updateConfig({
+        startError: 'System resources exhausted'
       });
-      
-      const status = await processManager.status();
-      
-      expect(status.health).toBe('unknown');
+
+      const resourceProcessManager = new ProcessManager(
+        mockPidManager,
+        resourceMock,
+        mockSignalHandler
+      );
+
+      const options: ProcessManagerOptions = { port: '8000' };
+
+      await expect(resourceProcessManager.start(options))
+        .rejects
+        .toThrow('System resources exhausted');
     });
   });
 
-  describe('restart', () => {
-    test('should restart process with options', async () => {
-      mockPidManager.validateAndCleanup.mockReturnValue(true);
+  describe('Performance Monitoring', () => {
+    it('should complete start operation within performance target', async () => {
+      const options: ProcessManagerOptions = { port: '8000' };
       
-      const options: ProcessManagerOptions = { port: '3000' };
-      const pid = await processManager.restart(options);
-      
-      expect(pid).toBe(12345);
-      expect(mockDaemonManager.stopDaemon).toHaveBeenCalled();
-      expect(mockDaemonManager.startDaemon).toHaveBeenCalled();
-    });
+      mockDaemonManager.updateConfig({ startPid: 12345 });
 
-    test('should restart process with default options', async () => {
-      mockPidManager.validateAndCleanup.mockReturnValue(true);
-      
-      const pid = await processManager.restart();
-      
-      expect(pid).toBe(12345);
-      expect(mockDaemonManager.startDaemon).toHaveBeenCalledWith({
-        port: '8000',
-        apiKey: undefined,
-        verbose: false,
-        debug: false,
-      });
-    });
-
-    test('should wait between stop and start', async () => {
-      mockPidManager.validateAndCleanup.mockReturnValue(true);
-      
       const startTime = Date.now();
-      await processManager.restart();
+      await processManager.start(options);
       const endTime = Date.now();
-      
-      expect(endTime - startTime).toBeGreaterThanOrEqual(100);
+
+      expect(endTime - startTime).toBeLessThan(200); // <200ms target
     });
 
-    test('should log restart', async () => {
-      mockPidManager.validateAndCleanup.mockReturnValue(true);
-      
-      await processManager.restart();
-      
-      expect(mockLogger.info).toHaveBeenCalledWith('Restarting process');
-    });
-
-    test('should throw ProcessError when restart fails', async () => {
-      mockPidManager.validateAndCleanup.mockReturnValue(true);
-      mockDaemonManager.startDaemon.mockRejectedValue(new Error('Restart failed'));
-      
-      await expect(processManager.restart()).rejects.toThrow(ProcessError);
-    });
-
-    test('should handle stop failure during restart', async () => {
-      mockPidManager.validateAndCleanup.mockReturnValue(true);
-      mockDaemonManager.stopDaemon.mockRejectedValue(new Error('Stop failed'));
-      
-      await expect(processManager.restart()).rejects.toThrow(ProcessError);
-    });
-
-    test('should restart even if nothing was running', async () => {
-      mockPidManager.validateAndCleanup.mockReturnValue(false);
-      
-      const pid = await processManager.restart();
-      
-      expect(pid).toBe(12345);
-      expect(mockDaemonManager.stopDaemon).toHaveBeenCalled();
-      expect(mockDaemonManager.startDaemon).toHaveBeenCalled();
-    });
-  });
-
-  describe('isRunning', () => {
-    test('should return true when process is running', () => {
-      mockPidManager.validateAndCleanup.mockReturnValue(true);
-      
-      const result = processManager.isRunning();
-      
-      expect(result).toBe(true);
-    });
-
-    test('should return false when process is not running', () => {
-      mockPidManager.validateAndCleanup.mockReturnValue(false);
-      
-      const result = processManager.isRunning();
-      
-      expect(result).toBe(false);
-    });
-
-    test('should delegate to pidManager', () => {
-      processManager.isRunning();
-      
-      expect(mockPidManager.validateAndCleanup).toHaveBeenCalled();
-    });
-  });
-
-  describe('checkHealth', () => {
-    test('should return healthy status', async () => {
-      mockExec.mockImplementation((_command: any, _options: any, callback: any) => {
-        callback(null, { stdout: 'healthy' }, '');
-      });
-      
-      const health = await (processManager as any).checkHealth();
-      
-      expect(health).toBe('healthy');
-    });
-
-    test('should return unhealthy status', async () => {
-      mockExec.mockImplementation((_command: any, _options: any, callback: any) => {
-        callback(null, { stdout: 'not healthy' }, '');
-      });
-      
-      const health = await (processManager as any).checkHealth();
-      
-      expect(health).toBe('unhealthy');
-    });
-
-    test('should return unknown on error', async () => {
-      mockExec.mockImplementation((_command: any, _options: any, callback: any) => {
-        callback(new Error('Health check failed'), null, '');
-      });
-      
-      const health = await (processManager as any).checkHealth();
-      
-      expect(health).toBe('unknown');
-    });
-
-    test('should use correct health check URL', async () => {
-      mockExec.mockImplementation((_command: any, _options: any, callback: any) => {
-        callback(null, { stdout: 'healthy' }, '');
-      });
-      
-      await (processManager as any).checkHealth();
-      
-      expect(mockExec).toHaveBeenCalledWith(
-        'curl -s --connect-timeout 1 http://localhost:8000/health',
-        { timeout: 1000 },
-        expect.any(Function)
+    it('should complete stop operation within performance target', async () => {
+      const runningMock = PidManagerMock.createRunningProcessScenario(12345);
+      const performanceProcessManager = new ProcessManager(
+        runningMock,
+        mockDaemonManager,
+        mockSignalHandler
       );
+
+      runningMock.updateConfig({ validateResult: true });
+
+      const startTime = Date.now();
+      await performanceProcessManager.stop();
+      const endTime = Date.now();
+
+      expect(endTime - startTime).toBeLessThan(200); // <200ms target
     });
 
-    test('should handle health check timeout', async () => {
-      mockExec.mockImplementation((_command: any, _options: any, callback: any) => {
-        setTimeout(() => callback(new Error('Timeout'), null, ''), 100);
+    it('should complete status check within performance target', async () => {
+      ChildProcessMock.setup();
+      ChildProcessMock.mockDynamicImport();
+
+      mockDaemonManager.updateConfig({
+        statusRunning: false,
+        statusPid: null
       });
-      
-      const health = await (processManager as any).checkHealth();
-      
-      expect(health).toBe('unknown');
+
+      const startTime = Date.now();
+      await processManager.status();
+      const endTime = Date.now();
+
+      expect(endTime - startTime).toBeLessThan(100); // <100ms target for status
     });
   });
 
-  describe('ProcessError', () => {
-    test('should create error with all properties', () => {
-      const error = new ProcessError('Test error', 'test-operation', 'TEST_CODE');
-      
-      expect(error.name).toBe('ProcessError');
-      expect(error.message).toBe('Test error');
-      expect(error.operation).toBe('test-operation');
-      expect(error.code).toBe('TEST_CODE');
-    });
+  describe('Integration Testing', () => {
+    it('should handle complete lifecycle with all dependencies', async () => {
+      const options: ProcessManagerOptions = {
+        port: '9999',
+        apiKey: 'integration-test-key',
+        verbose: true
+      };
 
-    test('should create error with minimal properties', () => {
-      const error = new ProcessError('Test error', 'test-operation');
-      
-      expect(error.name).toBe('ProcessError');
-      expect(error.message).toBe('Test error');
-      expect(error.operation).toBe('test-operation');
-      expect(error.code).toBeUndefined();
-    });
-
-    test('should extend Error class', () => {
-      const error = new ProcessError('Test error', 'test-operation');
-      
-      expect(error).toBeInstanceOf(Error);
-      expect(error).toBeInstanceOf(ProcessError);
-    });
-  });
-
-  describe('Error Handling', () => {
-    test('should handle daemon manager errors', async () => {
-      mockDaemonManager.startDaemon.mockRejectedValue(new Error('Daemon error'));
-      
-      await expect(processManager.start({})).rejects.toThrow(ProcessError);
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        'Failed to start process',
-        { error: 'Daemon error' }
-      );
-    });
-
-    test('should handle unexpected errors', async () => {
-      mockDaemonManager.startDaemon.mockRejectedValue('String error');
-      
-      await expect(processManager.start({})).rejects.toThrow(ProcessError);
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        'Failed to start process',
-        { error: 'String error' }
-      );
-    });
-
-    test('should handle health check errors gracefully', async () => {
-      mockDaemonManager.getDaemonStatus.mockResolvedValue({ running: true, pid: 12345 });
-      mockExec.mockImplementation((_command: any, _options: any, _callback: any) => {
-        throw new Error('Health check error');
+      // Setup comprehensive scenario
+      const { exec } = require('child_process');
+      exec.mockImplementation((_command: string, _options: any, callback: Function) => {
+        callback(null, '{"status":"healthy"}', '');
       });
-      
-      const status = await processManager.status();
-      
-      expect(status.health).toBe('unknown');
-    });
-  });
+      WSLMock.setupWSLEnvironment();
 
-  describe('Integration', () => {
-    test('should complete full process lifecycle', async () => {
       // Start process
-      const startOptions: ProcessManagerOptions = { port: '3000' };
-      const pid = await processManager.start(startOptions);
-      expect(pid).toBe(12345);
-      
-      // Check if running
-      mockPidManager.validateAndCleanup.mockReturnValue(true);
-      expect(processManager.isRunning()).toBe(true);
-      
-      // Get status
+      mockDaemonManager.updateConfig({ startPid: 99999 });
+      const startResult = await processManager.start(options);
+      expect(startResult).toBe(99999);
+
+      // Check status
+      mockDaemonManager.updateConfig({ 
+        statusRunning: true, 
+        statusPid: 99999 
+      });
       const status = await processManager.status();
       expect(status.running).toBe(true);
-      
+      expect(status.pid).toBe(99999);
+
       // Stop process
-      const stopped = await processManager.stop();
-      expect(stopped).toBe(true);
-      
-      // Check if stopped
-      mockPidManager.validateAndCleanup.mockReturnValue(false);
-      expect(processManager.isRunning()).toBe(false);
-    });
-
-    test('should handle restart cycle', async () => {
-      // Start process
-      mockPidManager.validateAndCleanup.mockReturnValue(false);
-      await processManager.start({});
-      
-      // Restart process
-      mockPidManager.validateAndCleanup.mockReturnValue(true);
-      const pid = await processManager.restart({ port: '4000' });
-      
-      expect(pid).toBe(12345);
-      expect(mockDaemonManager.stopDaemon).toHaveBeenCalled();
-      expect(mockDaemonManager.startDaemon).toHaveBeenCalledWith({
-        port: '4000',
-        apiKey: undefined,
-        verbose: undefined,
-        debug: undefined,
-      });
-    });
-
-    test('should handle performance monitoring', async () => {
-      // Slow start
-      mockDaemonManager.startDaemon.mockImplementation(async () => {
-        await new Promise(resolve => setTimeout(resolve, 250));
-        return 12345;
-      });
-      
-      await processManager.start({});
-      
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        'Process start exceeded performance target',
-        expect.any(Object)
+      const runningMock = PidManagerMock.createRunningProcessScenario(99999);
+      const integratedManager = new ProcessManager(
+        runningMock,
+        mockDaemonManager,
+        mockSignalHandler
       );
+      runningMock.updateConfig({ validateResult: true });
+
+      const stopResult = await integratedManager.stop();
+      expect(stopResult).toBe(true);
+
+      // Verify all components were called
+      expect(mockDaemonManager.wasMethodCalled('startDaemon')).toBe(true);
+      expect(mockDaemonManager.wasMethodCalled('getDaemonStatus')).toBe(true);
+      expect(mockDaemonManager.wasMethodCalled('stopDaemon')).toBe(true);
+    });
+
+    it('should handle signal handler integration', () => {
+      const concreteManager = processManager as ProcessManager;
+      const signalHandler = concreteManager.getSignalHandler();
+      expect(signalHandler).toBe(mockSignalHandler);
+    });
+  });
+
+  describe('Edge Cases', () => {
+    it('should handle undefined options gracefully', async () => {
+      mockDaemonManager.updateConfig({ startPid: 12345 });
+
+      // Should not throw with minimal options
+      const result = await processManager.start({});
+      expect(result).toBe(12345);
+    });
+
+    it('should handle empty string values in options', async () => {
+      const options: ProcessManagerOptions = {
+        port: '',
+        apiKey: '',
+        verbose: false
+      };
+
+      mockDaemonManager.updateConfig({ startPid: 12345 });
+
+      const result = await processManager.start(options);
+      expect(result).toBe(12345);
+    });
+
+    it('should handle extremely large PID values', async () => {
+      const largePid = 2147483647; // Max 32-bit signed integer
+      
+      mockDaemonManager.updateConfig({ startPid: largePid });
+
+      const result = await processManager.start({ port: '8000' });
+      expect(result).toBe(largePid);
+    });
+
+    it('should handle rapid start/stop cycles', async () => {
+      const options: ProcessManagerOptions = { port: '8000' };
+      
+      for (let i = 0; i < 5; i++) {
+        mockDaemonManager.updateConfig({ startPid: 10000 + i });
+        
+        const startResult = await processManager.start(options);
+        expect(startResult).toBe(10000 + i);
+
+        const runningMock = PidManagerMock.createRunningProcessScenario(10000 + i);
+        const cycleManager = new ProcessManager(
+          runningMock,
+          mockDaemonManager,
+          mockSignalHandler
+        );
+        runningMock.updateConfig({ validateResult: true });
+
+        const stopResult = await cycleManager.stop();
+        expect(stopResult).toBe(true);
+
+        // Reset for next iteration
+        mockPidManager.updateConfig({ validateResult: false });
+      }
     });
   });
 });

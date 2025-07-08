@@ -1,13 +1,12 @@
 /**
- * Authentication middleware implementation
- * Based on claude-wrapper/app/src/middleware/auth.ts patterns
+ * HTTP API Protection Middleware
+ * Simple bearer token authentication for HTTP endpoints
  * 
- * Single Responsibility: Bearer token authentication middleware
+ * Single Responsibility: Protect HTTP API endpoints with optional bearer token authentication
  */
 
 import { Request, Response, NextFunction } from 'express';
 import { logger } from '../utils/logger';
-import { AuthManager } from './manager';
 
 /**
  * Authentication error types
@@ -41,34 +40,32 @@ export interface IBearerTokenValidator {
 }
 
 /**
- * Bearer token validator implementation
+ * Simple bearer token validator implementation
  */
 export class BearerTokenValidator implements IBearerTokenValidator {
-  private authManager: AuthManager;
+  private expectedToken: string | undefined;
 
-  constructor(authManager: AuthManager) {
-    this.authManager = authManager;
+  constructor(expectedToken?: string) {
+    this.expectedToken = expectedToken;
   }
 
   /**
-   * Validate bearer token against configured API key
+   * Validate bearer token against expected token
    */
   validateToken(token: string): boolean {
-    const activeApiKey = this.authManager.getApiKey();
-    
-    if (!activeApiKey) {
-      // No API key protection configured
+    if (!this.expectedToken) {
+      // No token protection configured
       return true;
     }
 
-    // Simple constant-time comparison to prevent timing attacks
-    if (token.length !== activeApiKey.length) {
+    // Constant-time comparison to prevent timing attacks
+    if (token.length !== this.expectedToken.length) {
       return false;
     }
 
     let result = 0;
     for (let i = 0; i < token.length; i++) {
-      result |= token.charCodeAt(i) ^ activeApiKey.charCodeAt(i);
+      result |= token.charCodeAt(i) ^ this.expectedToken.charCodeAt(i);
     }
 
     return result === 0;
@@ -96,18 +93,18 @@ export class BearerTokenValidator implements IBearerTokenValidator {
  */
 export interface AuthMiddlewareOptions {
   skipPaths?: string[];
-  requireAuth?: boolean;
+  apiKey?: string;
 }
 
 /**
- * Create authentication middleware
+ * Create HTTP API protection middleware
+ * Only protects endpoints when API key is configured
  */
 export function createAuthMiddleware(
-  authManager: AuthManager,
   options: AuthMiddlewareOptions = {}
 ): (req: Request, res: Response, next: NextFunction) => void {
-  const validator = new BearerTokenValidator(authManager);
-  const { skipPaths = [], requireAuth = false } = options;
+  const { skipPaths = [], apiKey } = options;
+  const validator = new BearerTokenValidator(apiKey);
 
   return (req: Request, res: Response, next: NextFunction): void => {
     try {
@@ -118,10 +115,10 @@ export function createAuthMiddleware(
       }
 
       // Check if API key protection is enabled
-      const isProtected = authManager.isProtected();
+      const isProtected = !!apiKey;
       
-      if (!isProtected && !requireAuth) {
-        // No protection enabled and not required
+      if (!isProtected) {
+        // No protection enabled
         logger.debug('API key protection disabled, allowing request');
         return next();
       }
@@ -200,45 +197,6 @@ export function createAuthMiddleware(
 }
 
 /**
- * Simple authentication middleware (default export for compatibility)
- */
-export const authMiddleware = (_req: Request, _res: Response, next: NextFunction): void => {
-  // This will be replaced by the proper middleware once AuthManager is available
-  logger.debug('Using placeholder authentication middleware');
-  next();
-};
-
-/**
- * Authentication status middleware - adds auth info to response headers
- */
-export function authStatusMiddleware(authManager: AuthManager) {
-  return (req: Request, res: Response, next: NextFunction): void => {
-    try {
-      // Add authentication status headers
-      const isProtected = authManager.isProtected();
-      const currentMethod = authManager.getCurrentMethod();
-
-      res.setHeader('X-Auth-Protected', isProtected ? 'true' : 'false');
-      if (currentMethod) {
-        res.setHeader('X-Auth-Method', currentMethod);
-      }
-
-      logger.debug(`Auth status headers added`, {
-        protected: isProtected,
-        method: currentMethod,
-        path: req.path
-      });
-
-      next();
-    } catch (error) {
-      logger.warn(`Failed to add auth status headers: ${error}`);
-      // Don't fail the request, just proceed without headers
-      next();
-    }
-  };
-}
-
-/**
  * Utility functions for authentication
  */
 export class AuthUtils {
@@ -278,4 +236,18 @@ export class AuthUtils {
     const pattern = /^[A-Za-z0-9_-]{16,}$/;
     return pattern.test(apiKey);
   }
+}
+
+/**
+ * Get API key from environment or runtime
+ */
+export function getApiKey(): string | undefined {
+  return process.env['API_KEY'];
+}
+
+/**
+ * Check if API key protection is enabled
+ */
+export function isApiKeyProtectionEnabled(): boolean {
+  return getApiKey() !== undefined;
 }

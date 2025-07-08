@@ -1,15 +1,15 @@
 import express from 'express';
 import cors from 'cors';
+import swaggerUi from 'swagger-ui-express';
 import { errorHandler } from './middleware/error';
 import chatRoutes from './routes/chat';
 import modelsRoutes from './routes/models';
 import healthRoutes from './routes/health';
-import authRoutes from './routes/auth';
 import sessionRoutes from './routes/sessions';
 import { logger } from '../utils/logger';
 import { EnvironmentManager } from '../config/env';
-import { authManager } from '../auth/manager';
-import { createAuthMiddleware } from '../auth/middleware';
+import { createAuthMiddleware, getApiKey } from '../auth/middleware';
+import { swaggerSpec } from './swagger';
 
 const app = express();
 
@@ -27,17 +27,28 @@ app.use((req, _res, next) => {
   next();
 });
 
-// Optional authentication middleware (only if API key protection is enabled)
-const authMiddleware = createAuthMiddleware(authManager, {
-  skipPaths: ['/health', '/v1/models', '/v1/auth/status'], // Always allow these endpoints
-  requireAuth: false // Only protect if API key is configured
+// Optional HTTP API protection middleware (only if API key is configured)
+const apiKey = getApiKey();
+const authMiddleware = createAuthMiddleware({
+  skipPaths: ['/health', '/v1/models', '/docs', '/swagger.json'], // Always allow these endpoints
+  ...(apiKey && { apiKey }) // Only include apiKey if it exists
 });
 app.use(authMiddleware);
+
+// Swagger documentation routes (always public)
+app.get('/swagger.json', (_req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.send(swaggerSpec);
+});
+
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: 'Claude Wrapper API Documentation'
+}));
 
 // Routes
 app.use('/', healthRoutes);
 app.use('/', modelsRoutes);
-app.use('/', authRoutes);
 app.use('/', sessionRoutes);
 app.use('/', chatRoutes);
 

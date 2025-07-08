@@ -94,7 +94,7 @@ export class SessionManager implements ISessionManager, ISessionCleanup {
   // Storage for future persistence features
   private _storage: MemorySessionStorage;
   private lock = new SyncLock();
-  private cleanupTask: NodeJS.Timeout | null = null;
+  private cleanupTask: ReturnType<typeof setTimeout> | null = null;
 
   constructor(
     private readonly _defaultTtlHours: number = SESSION_CONFIG.DEFAULT_TTL_HOURS,

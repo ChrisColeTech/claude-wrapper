@@ -63,6 +63,7 @@ describe('StreamingHandler Core Functionality', () => {
       mockRequest.stream = true;
       
       const mockAsyncGenerator = async function* () {
+        yield 'data: test\n\n';
         throw new Error('Streaming error');
       };
       

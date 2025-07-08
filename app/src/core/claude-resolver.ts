@@ -22,7 +22,7 @@ export class ClaudeResolver implements IClaudeResolver {
       return config.claudeCommand;
     }
 
-    // Try PATH resolution - covers npm global installs and aliases
+    // Try PATH resolution - covers npm global installs, aliases, and Docker
     const pathCommands = [
       // Interactive shells (handles aliases)
       'bash -i -c "which claude"',
@@ -30,7 +30,11 @@ export class ClaudeResolver implements IClaudeResolver {
       
       // Direct PATH lookups (handles npm global installs)
       'command -v claude',
-      'which claude'
+      'which claude',
+      
+      // Docker detection (check if Docker containers are available)
+      'docker run --rm anthropic/claude --version',
+      'podman run --rm anthropic/claude --version'
     ];
     
     // Windows-specific commands
@@ -51,11 +55,18 @@ export class ClaudeResolver implements IClaudeResolver {
           // Clean up shell prompt output that might be mixed in
           const cleanedPath = claudePath.replace(/\]633;[^;]*;[^;]*;[^;]*;[^;]*]/g, '').trim();
           
-          // Handle shell alias output
+          // Handle different command types
           let actualPath = cleanedPath;
           logger.debug('Processing Claude path detection', { claudePath: cleanedPath, pathCmd });
           
-          if (cleanedPath.includes(': aliased to ')) {
+          // Handle Docker commands
+          if (pathCmd.includes('docker run') || pathCmd.includes('podman run')) {
+            // For Docker, the full command is the "path"
+            actualPath = pathCmd.replace(' --version', '');
+            logger.debug('Parsed Docker command', { actualPath });
+          }
+          // Handle shell alias output
+          else if (cleanedPath.includes(': aliased to ')) {
             const splitPath = cleanedPath.split(': aliased to ')[1];
             actualPath = splitPath ? splitPath.trim() : cleanedPath;
             logger.debug('Parsed alias', { actualPath });
@@ -84,7 +95,9 @@ export class ClaudeResolver implements IClaudeResolver {
     // Try environment variables as fallback
     const envVars = [
       process.env['CLAUDE_COMMAND'],
-      process.env['CLAUDE_CLI_PATH']
+      process.env['CLAUDE_CLI_PATH'],
+      process.env['CLAUDE_DOCKER_IMAGE'] ? `docker run --rm ${process.env['CLAUDE_DOCKER_IMAGE']}` : undefined,
+      process.env['DOCKER_CLAUDE_CMD']
     ].filter(Boolean) as string[];
 
     for (const envPath of envVars) {
@@ -111,12 +124,14 @@ export class ClaudeResolver implements IClaudeResolver {
     throw new ClaudeCliError(
       'Claude CLI not found. Please either:\n' +
       '1. Install Claude CLI: npm install -g @anthropic-ai/claude\n' +
-      '2. Ensure \'claude\' is in your PATH\n' +
-      '3. Set CLAUDE_COMMAND environment variable with the correct path\n' +
+      '2. Use Docker: docker pull anthropic/claude\n' +
+      '3. Ensure \'claude\' is in your PATH\n' +
+      '4. Set CLAUDE_COMMAND environment variable with the correct path\n' +
       '\nSupported detection methods:\n' +
       '- npm global installs (recommended)\n' +
+      '- Docker containers (docker run anthropic/claude)\n' +
       '- Shell aliases (bash, zsh)\n' +
-      '- Environment variables (CLAUDE_COMMAND, CLAUDE_CLI_PATH, etc.)'
+      '- Environment variables (CLAUDE_COMMAND, CLAUDE_CLI_PATH, CLAUDE_DOCKER_IMAGE, etc.)'
     );
   }
 
@@ -124,11 +139,24 @@ export class ClaudeResolver implements IClaudeResolver {
     const claudeCmd = await this.findClaudeCommand();
     const config = EnvironmentManager.getConfig();
     
-    const command = claudeCmd.includes('bash -c') 
-      ? `echo '${this.escapeShellString(prompt)}' | ${claudeCmd.replace('"claude"', `"claude --print --model ${model}"`)}`
-      : `echo '${this.escapeShellString(prompt)}' | ${claudeCmd} --print --model ${model}`;
+    let command: string;
+    
+    // Handle Docker commands
+    if (claudeCmd.includes('docker run') || claudeCmd.includes('podman run')) {
+      // For Docker, we need to modify the container command
+      const dockerCommand = claudeCmd + ` --print --model ${model}`;
+      command = `echo '${this.escapeShellString(prompt)}' | ${dockerCommand}`;
+    }
+    // Handle bash -c wrapped commands
+    else if (claudeCmd.includes('bash -c')) {
+      command = `echo '${this.escapeShellString(prompt)}' | ${claudeCmd.replace('"claude"', `"claude --print --model ${model}"`)}`;
+    }
+    // Handle regular commands
+    else {
+      command = `echo '${this.escapeShellString(prompt)}' | ${claudeCmd} --print --model ${model}`;
+    }
 
-    logger.debug('Executing Claude command', { model, promptLength: prompt.length });
+    logger.debug('Executing Claude command', { model, promptLength: prompt.length, isDocker: claudeCmd.includes('docker') || claudeCmd.includes('podman') });
     
     try {
       const { stdout, stderr } = await execAsync(command, { 

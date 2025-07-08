@@ -83,8 +83,12 @@ export class DaemonManager implements IDaemonManager {
         throw new DaemonError('Failed to spawn daemon process', 'start');
       }
 
-      // Save PID for management
-      pidManager.savePid(child.pid);
+      // Save PID for management (non-fatal if this fails)
+      try {
+        pidManager.savePid(child.pid);
+      } catch (pidError) {
+        logger.warn('Failed to save PID file, daemon started but may be harder to manage', { pid: child.pid, error: pidError instanceof Error ? pidError.message : 'Unknown error' });
+      }
       
       // Allow parent to exit
       child.unref();
@@ -122,7 +126,11 @@ export class DaemonManager implements IDaemonManager {
 
     if (!pidManager.isProcessRunning(pid)) {
       logger.debug('Daemon process not running, cleaning up PID file');
-      pidManager.cleanupPidFile();
+      try {
+        pidManager.cleanupPidFile();
+      } catch (cleanupError) {
+        logger.warn('Failed to cleanup stale PID file', { pid, error: cleanupError instanceof Error ? cleanupError.message : 'Unknown error' });
+      }
       return false;
     }
 
@@ -133,14 +141,18 @@ export class DaemonManager implements IDaemonManager {
       // Wait for graceful shutdown
       await this.waitForProcessExit(pid, PROCESS_CONFIG.DEFAULT_SHUTDOWN_TIMEOUT_MS);
       
-      // Clean up PID file
-      pidManager.cleanupPidFile();
+      // Clean up PID file (non-fatal if this fails)
+      try {
+        pidManager.cleanupPidFile();
+      } catch (cleanupError) {
+        logger.warn('Failed to cleanup PID file after stopping daemon', { pid, error: cleanupError instanceof Error ? cleanupError.message : 'Unknown error' });
+      }
       
       logger.info('Daemon process stopped successfully', { pid });
       return true;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('Failed to stop daemon process', error instanceof Error ? error : undefined, { pid: pid, error: errorMessage });
+      logger.error('Failed to stop daemon process', error instanceof Error ? error : undefined, { pid, error: errorMessage });
       
       throw new DaemonError(
         `Failed to stop daemon: ${errorMessage}`,
@@ -154,10 +166,24 @@ export class DaemonManager implements IDaemonManager {
    * Get daemon status information
    */
   async getDaemonStatus(): Promise<{ running: boolean; pid: number | null }> {
-    const pid = pidManager.readPid();
-    const running = pid ? pidManager.isProcessRunning(pid) : false;
-    
-    return { running, pid };
+    try {
+      const pid = pidManager.readPid();
+      
+      if (!pid) {
+        return { running: false, pid: null };
+      }
+      
+      // Use validateAndCleanup to handle stale PID files
+      const running = pidManager.validateAndCleanup();
+      
+      // Return the original PID even if process is not running (for logging)
+      // but validateAndCleanup will have cleaned up the stale file
+      return { running, pid: running ? pid : null };
+    } catch (error) {
+      // Return safe defaults on error
+      logger.debug('Error reading daemon status', { error: error instanceof Error ? error.message : 'Unknown error' });
+      return { running: false, pid: null };
+    }
   }
 
   /**

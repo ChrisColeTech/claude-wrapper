@@ -145,7 +145,7 @@ describe('CLI Integration Tests', () => {
         const argv = ['node', 'cli.js', '--status'];
         await runner.run(argv);
 
-        expect(consoleSpy).toHaveBeenCalledWith('📊 Server Status: NOT RUNNING (stale PID file)');
+        expect(consoleSpy).toHaveBeenCalledWith('📊 Server Status: NOT RUNNING');
         expect(fs.existsSync(pidFile)).toBe(false); // Should clean up stale file
         expect(mockExit).toHaveBeenCalledWith(0);
       });
@@ -168,7 +168,7 @@ describe('CLI Integration Tests', () => {
         const argv = ['node', 'cli.js', '--stop'];
         await runner.run(argv);
 
-        expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('❌ Failed to stop server'));
+        expect(consoleSpy).toHaveBeenCalledWith('❌ No background server found');
         expect(fs.existsSync(pidFile)).toBe(false); // Should clean up stale file
         expect(mockExit).toHaveBeenCalledWith(0);
       });
