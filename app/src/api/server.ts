@@ -5,6 +5,7 @@ import chatRoutes from './routes/chat';
 import modelsRoutes from './routes/models';
 import healthRoutes from './routes/health';
 import authRoutes from './routes/auth';
+import sessionRoutes from './routes/sessions';
 import { logger } from '../utils/logger';
 import { EnvironmentManager } from '../config/env';
 
@@ -28,6 +29,7 @@ app.use((req, _res, next) => {
 app.use('/', healthRoutes);
 app.use('/', modelsRoutes);
 app.use('/', authRoutes);
+app.use('/', sessionRoutes);
 app.use('/', chatRoutes);
 
 // Error handling (must be last)

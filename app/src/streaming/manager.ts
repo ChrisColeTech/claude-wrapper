@@ -1,20 +1,171 @@
-export class StreamingManager {
-  private activeStreams: Map<string, any> = new Map();
+import { IStreamingManager, StreamConnection } from '../types';
+import { STREAMING_CONFIG } from '../config/constants';
+import { logger } from '../utils/logger';
 
-  createStream(id: string): void {
-    this.activeStreams.set(id, { id, createdAt: new Date() });
+/**
+ * StreamingManager - Manages active streaming connections
+ * Single Responsibility: Connection lifecycle management
+ * Max 200 lines, functions under 50 lines (SOLID compliance)
+ */
+export class StreamingManager implements IStreamingManager {
+  private activeConnections: Map<string, StreamConnection> = new Map();
+  private cleanupTimer: NodeJS.Timeout | null = null;
+
+  constructor() {
+    this.startCleanupTimer();
   }
 
-  getStream(id: string): any {
-    return this.activeStreams.get(id);
+  /**
+   * Create new streaming connection
+   */
+  createConnection(id: string, response: any): void {
+    const connection: StreamConnection = {
+      id,
+      createdAt: new Date(),
+      lastActivity: new Date(),
+      isActive: true,
+      response
+    };
+
+    this.activeConnections.set(id, connection);
+    this.setupConnectionCleanup(id, response);
+    
+    logger.info('Streaming connection created', { 
+      connectionId: id, 
+      totalConnections: this.activeConnections.size 
+    });
   }
 
-  closeStream(id: string): boolean {
-    return this.activeStreams.delete(id);
+  /**
+   * Get existing connection
+   */
+  getConnection(id: string): StreamConnection | null {
+    const connection = this.activeConnections.get(id);
+    
+    if (connection) {
+      connection.lastActivity = new Date();
+      return connection;
+    }
+    
+    return null;
   }
 
+  /**
+   * Close streaming connection
+   */
+  closeConnection(id: string): boolean {
+    const connection = this.activeConnections.get(id);
+    
+    if (connection) {
+      connection.isActive = false;
+      
+      if (connection.response && !connection.response.headersSent) {
+        try {
+          connection.response.end();
+        } catch (error) {
+          logger.warn('Error closing connection response', error);
+        }
+      }
+      
+      this.activeConnections.delete(id);
+      logger.info('Streaming connection closed', { 
+        connectionId: id, 
+        totalConnections: this.activeConnections.size 
+      });
+      
+      return true;
+    }
+    
+    return false;
+  }
+
+  /**
+   * Get number of active connections
+   */
+  getActiveConnections(): number {
+    return this.activeConnections.size;
+  }
+
+  /**
+   * Cleanup stale connections
+   */
   cleanup(): void {
-    // TODO: Implement stream cleanup
-    console.log('Cleaning up inactive streams...');
+    const now = new Date();
+    const staleConnections: string[] = [];
+    
+    for (const [id, connection] of this.activeConnections) {
+      const timeSinceActivity = now.getTime() - connection.lastActivity.getTime();
+      
+      if (timeSinceActivity > STREAMING_CONFIG.CONNECTION_TIMEOUT_MS) {
+        staleConnections.push(id);
+      }
+    }
+    
+    for (const id of staleConnections) {
+      this.closeConnection(id);
+    }
+    
+    if (staleConnections.length > 0) {
+      logger.info('Cleaned up stale streaming connections', { 
+        count: staleConnections.length,
+        remaining: this.activeConnections.size 
+      });
+    }
+  }
+
+  /**
+   * Setup connection cleanup handlers
+   */
+  private setupConnectionCleanup(id: string, response: any): void {
+    if (response) {
+      // Handle client disconnect
+      response.on('close', () => {
+        logger.info('Client disconnected from stream', { connectionId: id });
+        this.closeConnection(id);
+      });
+
+      // Handle errors
+      response.on('error', (error: Error) => {
+        logger.error('Streaming response error', error, { connectionId: id });
+        this.closeConnection(id);
+      });
+
+      // Set connection timeout
+      const timeout = setTimeout(() => {
+        logger.warn('Streaming connection timeout', { connectionId: id });
+        this.closeConnection(id);
+      }, STREAMING_CONFIG.CONNECTION_TIMEOUT_MS);
+
+      // Clear timeout if connection closes normally
+      response.on('finish', () => {
+        clearTimeout(timeout);
+      });
+    }
+  }
+
+  /**
+   * Start periodic cleanup timer
+   */
+  private startCleanupTimer(): void {
+    this.cleanupTimer = setInterval(() => {
+      this.cleanup();
+    }, STREAMING_CONFIG.HEARTBEAT_INTERVAL_MS);
+  }
+
+  /**
+   * Shutdown manager and cleanup resources
+   */
+  shutdown(): void {
+    if (this.cleanupTimer) {
+      clearInterval(this.cleanupTimer);
+      this.cleanupTimer = null;
+    }
+
+    // Close all active connections
+    for (const id of this.activeConnections.keys()) {
+      this.closeConnection(id);
+    }
+
+    logger.info('StreamingManager shutdown complete');
   }
 }

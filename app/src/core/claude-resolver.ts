@@ -22,41 +22,78 @@ export class ClaudeResolver implements IClaudeResolver {
       return config.claudeCommand;
     }
 
-    const candidates = [
-      'claude',
-      'bash -c "claude"',
-      '~/.claude/local/claude',
-      '/usr/local/bin/claude',
-      '/usr/bin/claude',
-      '$(npm root -g)/@anthropic-ai/claude-code/bin/claude',
-      'npx @anthropic-ai/claude-code'
+    // Try dynamic PATH resolution first
+    const pathCommands = [
+      'which claude',
+      'command -v claude',
+      'type -p claude'
     ];
 
-    for (const candidate of candidates) {
+    for (const pathCmd of pathCommands) {
       try {
-        logger.debug('Trying Claude command', { candidate });
+        logger.debug('Trying PATH resolution', { command: pathCmd });
+        const { stdout } = await execAsync(pathCmd, { timeout: 2000 });
+        const claudePath = stdout.trim();
         
-        const testCommand = candidate.includes('bash -c') 
-          ? candidate.replace('"claude"', '"claude --version"')
-          : `${candidate} --version`;
-          
-        const { stdout } = await execAsync(testCommand, { timeout: 5000 });
-        
-        if (stdout.includes('Claude Code')) {
-          logger.info('Found working Claude command', { command: candidate });
-          this.claudeCommand = candidate;
-          return candidate;
+        if (claudePath && !claudePath.includes('not found')) {
+          // Handle alias output like "claude: aliased to /path/to/claude"
+          let actualPath = claudePath;
+          if (claudePath.includes('aliased to ')) {
+            const splitPath = claudePath.split('aliased to ')[1];
+            actualPath = splitPath ? splitPath.trim() : claudePath;
+          } else if (claudePath.includes('alias ')) {
+            // Handle "alias claude=/path/to/claude"
+            const splitResult = claudePath.split('=')[1];
+            actualPath = splitResult ? splitResult.trim() : claudePath;
+          }
+          // Verify it works
+          const testResult = await this.testClaudeCommand(actualPath);
+          if (testResult) {
+            logger.info('Found Claude via PATH resolution', { path: actualPath, original: claudePath });
+            this.claudeCommand = actualPath;
+            return actualPath;
+          }
         }
       } catch (error) {
-        logger.debug('Claude command failed', { 
-          candidate, 
+        logger.debug('PATH resolution failed', { command: pathCmd, error });
+        continue;
+      }
+    }
+
+    // Try environment variables as fallback
+    const envVars = [
+      process.env['CLAUDE_COMMAND'],
+      process.env['CLAUDE_CLI_PATH'],
+      process.env['CLAUDE_EXECUTABLE']
+    ].filter(Boolean) as string[];
+
+    for (const envPath of envVars) {
+      try {
+        logger.debug('Trying environment variable path', { path: envPath });
+        const isWorking = await this.testClaudeCommand(envPath);
+        
+        if (isWorking) {
+          logger.info('Found Claude via environment variable', { path: envPath });
+          this.claudeCommand = envPath;
+          return envPath;
+        }
+      } catch (error) {
+        logger.debug('Environment path failed', { 
+          path: envPath, 
           error: error instanceof Error ? error.message : 'Unknown error' 
         });
         continue;
       }
     }
 
-    throw new ClaudeCliError('Could not find working Claude CLI installation. Please install Claude Code CLI.');
+    // No more guessing - fail clearly if not found
+    throw new ClaudeCliError(
+      'Claude CLI not found. Please either:\n' +
+      '1. Install Claude CLI and ensure \'claude\' is in your PATH\n' +
+      '2. Set CLAUDE_COMMAND environment variable with the correct path\n' +
+      '3. Configure claudeCommand in your config file\n' +
+      '\nAvoid hardcoded paths - use proper installation or configuration.'
+    );
   }
 
   async executeClaudeCommand(prompt: string, model: string): Promise<string> {
@@ -90,6 +127,25 @@ export class ClaudeResolver implements IClaudeResolver {
       }
       
       throw new ClaudeCliError(`Claude CLI execution failed: ${errorMessage}`);
+    }
+  }
+
+  private async testClaudeCommand(command: string): Promise<boolean> {
+    try {
+      const testCmd = `${command} --version`;
+      const { stdout, stderr } = await execAsync(testCmd, { timeout: 3000 });
+      const output = (stdout + stderr).toLowerCase();
+      
+      // Check for Claude CLI indicators
+      return output.includes('claude') || 
+             output.includes('anthropic') ||
+             output.includes('@anthropic-ai');
+    } catch (error) {
+      logger.debug('Command test failed', { 
+        command, 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      });
+      return false;
     }
   }
 

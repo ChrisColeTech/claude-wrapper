@@ -11,6 +11,7 @@ export interface OpenAIRequest {
   stream?: boolean;
   temperature?: number;
   max_tokens?: number;
+  session_id?: string;
 }
 
 export interface OpenAIUsage {
@@ -78,4 +79,95 @@ export interface ClaudeWrapperError {
   code: string;
   message: string;
   details?: any;
+}
+
+// Session Management Types (Phase 3A)
+export interface SessionInfo {
+  session_id: string;
+  messages: OpenAIMessage[];
+  created_at: Date;
+  last_accessed: Date;
+  expires_at: Date;
+}
+
+export interface SessionStorage {
+  store(session: SessionInfo): Promise<void>;
+  get(sessionId: string): Promise<SessionInfo | null>;
+  update(session: SessionInfo): Promise<void>;
+  delete(sessionId: string): Promise<void>;
+  list(): Promise<SessionInfo[]>;
+  cleanup(): Promise<number>;
+}
+
+export interface ISessionManager {
+  getOrCreateSession(sessionId: string): SessionInfo;
+  processMessages(messages: OpenAIMessage[], sessionId?: string | null): [OpenAIMessage[], string | null];
+  listSessions(): SessionInfo[];
+  deleteSession(sessionId: string): void;
+  getSessionCount(): number;
+}
+
+export interface ISessionCleanup {
+  startCleanupTask(): void;
+  shutdown(): void;
+  isRunning(): boolean;
+}
+
+export interface SessionStats {
+  totalSessions: number;
+  activeSessions: number;
+  expiredSessions: number;
+  averageMessageCount: number;
+  oldestSessionAge: number;
+}
+
+// Streaming Types (Phase 4A)
+export interface StreamingDelta {
+  role?: 'assistant';
+  content?: string;
+}
+
+export interface OpenAIStreamingChoice {
+  index: number;
+  delta: StreamingDelta;
+  finish_reason?: 'stop' | 'length' | 'tool_calls' | 'content_filter' | null;
+}
+
+export interface OpenAIStreamingResponse {
+  id: string;
+  object: 'chat.completion.chunk';
+  created: number;
+  model: string;
+  choices: OpenAIStreamingChoice[];
+}
+
+export interface StreamConnection {
+  id: string;
+  createdAt: Date;
+  lastActivity: Date;
+  isActive: boolean;
+  response?: any; // Express Response object
+}
+
+export interface IStreamingHandler {
+  handleStreamingRequest(request: OpenAIRequest, response: any): Promise<void>;
+  createStreamingResponse(request: OpenAIRequest): AsyncGenerator<string, void, unknown>;
+}
+
+export interface IStreamingFormatter {
+  formatChunk(chunk: OpenAIStreamingResponse): string;
+  formatError(error: Error): string;
+  formatDone(): string;
+  formatInitialChunk(requestId: string, model: string): string;
+  createContentChunk(requestId: string, model: string, content: string): string;
+  createFinalChunk(requestId: string, model: string, finishReason?: string): string;
+}
+
+export interface IStreamingManager {
+  createConnection(id: string, response: any): void;
+  getConnection(id: string): StreamConnection | null;
+  closeConnection(id: string): boolean;
+  cleanup(): void;
+  getActiveConnections(): number;
+  shutdown(): void;
 }

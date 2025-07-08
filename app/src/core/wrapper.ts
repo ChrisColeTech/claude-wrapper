@@ -150,6 +150,21 @@ Please provide a correctly formatted OpenAI Chat Completions JSON response. Reme
     };
   }
 
+  /**
+   * Handle streaming chat completion (future enhancement)
+   * Currently returns single response, but structured for future streaming support
+   */
+  async handleStreamingChatCompletion(request: OpenAIRequest): Promise<OpenAIResponse> {
+    logger.info('Processing streaming chat completion (simulated)', {
+      model: request.model,
+      messageCount: request.messages.length
+    });
+
+    // For now, delegate to regular completion
+    // Future: Implement true streaming with Claude CLI
+    return this.handleChatCompletion(request);
+  }
+
   private generateRequestId(): string {
     return `${API_CONSTANTS.DEFAULT_REQUEST_ID_PREFIX}${Math.random().toString(36).substring(2, 15)}`;
   }

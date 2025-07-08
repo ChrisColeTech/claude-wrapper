@@ -57,12 +57,12 @@ describe('API Integration Tests', () => {
         object: 'list',
         data: expect.arrayContaining([
           expect.objectContaining({ 
-            id: 'claude-3-5-sonnet-20241022', 
+            id: 'sonnet', 
             object: 'model', 
             owned_by: 'anthropic' 
           }),
           expect.objectContaining({ 
-            id: 'claude-3-5-haiku-20241022', 
+            id: 'opus', 
             object: 'model', 
             owned_by: 'anthropic' 
           })
