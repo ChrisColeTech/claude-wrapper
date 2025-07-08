@@ -22,12 +22,24 @@ export class ClaudeResolver implements IClaudeResolver {
       return config.claudeCommand;
     }
 
-    // Try dynamic PATH resolution first
+    // Try PATH resolution - covers npm global installs and aliases
     const pathCommands = [
-      'which claude',
+      // Interactive shells (handles aliases)
+      'bash -i -c "which claude"',
+      'zsh -i -c "which claude"',
+      
+      // Direct PATH lookups (handles npm global installs)
       'command -v claude',
-      'type -p claude'
+      'which claude'
     ];
+    
+    // Windows-specific commands
+    if (process.platform === 'win32') {
+      pathCommands.push(
+        'where claude',
+        'powershell -c "Get-Command claude -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source"'
+      );
+    }
 
     for (const pathCmd of pathCommands) {
       try {
@@ -36,15 +48,23 @@ export class ClaudeResolver implements IClaudeResolver {
         const claudePath = stdout.trim();
         
         if (claudePath && !claudePath.includes('not found')) {
-          // Handle alias output like "claude: aliased to /path/to/claude"
-          let actualPath = claudePath;
-          if (claudePath.includes('aliased to ')) {
-            const splitPath = claudePath.split('aliased to ')[1];
-            actualPath = splitPath ? splitPath.trim() : claudePath;
-          } else if (claudePath.includes('alias ')) {
-            // Handle "alias claude=/path/to/claude"
-            const splitResult = claudePath.split('=')[1];
-            actualPath = splitResult ? splitResult.trim() : claudePath;
+          // Clean up shell prompt output that might be mixed in
+          const cleanedPath = claudePath.replace(/\]633;[^;]*;[^;]*;[^;]*;[^;]*]/g, '').trim();
+          
+          // Handle shell alias output
+          let actualPath = cleanedPath;
+          logger.debug('Processing Claude path detection', { claudePath: cleanedPath, pathCmd });
+          
+          if (cleanedPath.includes(': aliased to ')) {
+            const splitPath = cleanedPath.split(': aliased to ')[1];
+            actualPath = splitPath ? splitPath.trim() : cleanedPath;
+            logger.debug('Parsed alias', { actualPath });
+          } else if (cleanedPath.includes('aliased to ')) {
+            const splitPath = cleanedPath.split('aliased to ')[1];
+            actualPath = splitPath ? splitPath.trim() : cleanedPath;
+            logger.debug('Parsed alias', { actualPath });
+          } else {
+            logger.debug('Using path as-is', { actualPath });
           }
           // Verify it works
           const testResult = await this.testClaudeCommand(actualPath);
@@ -60,11 +80,11 @@ export class ClaudeResolver implements IClaudeResolver {
       }
     }
 
+
     // Try environment variables as fallback
     const envVars = [
       process.env['CLAUDE_COMMAND'],
-      process.env['CLAUDE_CLI_PATH'],
-      process.env['CLAUDE_EXECUTABLE']
+      process.env['CLAUDE_CLI_PATH']
     ].filter(Boolean) as string[];
 
     for (const envPath of envVars) {
@@ -86,13 +106,17 @@ export class ClaudeResolver implements IClaudeResolver {
       }
     }
 
+
     // No more guessing - fail clearly if not found
     throw new ClaudeCliError(
       'Claude CLI not found. Please either:\n' +
-      '1. Install Claude CLI and ensure \'claude\' is in your PATH\n' +
-      '2. Set CLAUDE_COMMAND environment variable with the correct path\n' +
-      '3. Configure claudeCommand in your config file\n' +
-      '\nAvoid hardcoded paths - use proper installation or configuration.'
+      '1. Install Claude CLI: npm install -g @anthropic-ai/claude\n' +
+      '2. Ensure \'claude\' is in your PATH\n' +
+      '3. Set CLAUDE_COMMAND environment variable with the correct path\n' +
+      '\nSupported detection methods:\n' +
+      '- npm global installs (recommended)\n' +
+      '- Shell aliases (bash, zsh)\n' +
+      '- Environment variables (CLAUDE_COMMAND, CLAUDE_CLI_PATH, etc.)'
     );
   }
 

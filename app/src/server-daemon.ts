@@ -6,9 +6,7 @@
 
 import app from './api/server';
 import { logger } from './utils/logger';
-import * as fs from 'fs';
-import * as path from 'path';
-import * as os from 'os';
+import { signalHandler } from './process/signals';
 
 /**
  * Parse daemon arguments
@@ -43,45 +41,6 @@ function parseDaemonArgs(): { port: number; apiKey?: string; verbose?: boolean; 
   return result;
 }
 
-/**
- * Setup graceful shutdown handlers
- */
-function setupGracefulShutdown(server: any): void {
-  const getPidFile = () => path.join(os.tmpdir(), 'claude-wrapper.pid');
-  
-  const shutdown = (signal: string) => {
-    if (process.env['VERBOSE'] === 'true' || process.env['DEBUG_MODE'] === 'true') {
-      logger.info(`Received ${signal}, starting graceful shutdown...`);
-    }
-    
-    server.close(() => {
-      if (process.env['VERBOSE'] === 'true' || process.env['DEBUG_MODE'] === 'true') {
-        logger.info('HTTP server closed');
-      }
-      
-      // Clean up PID file
-      try {
-        const pidFile = getPidFile();
-        if (fs.existsSync(pidFile)) {
-          fs.unlinkSync(pidFile);
-        }
-      } catch (error) {
-        // Silent cleanup in daemon mode
-      }
-      
-      process.exit(0);
-    });
-
-    // Force exit after 10 seconds
-    setTimeout(() => {
-      process.exit(1);
-    }, 10000);
-  };
-
-  // Setup signal handlers
-  process.on('SIGTERM', () => shutdown('SIGTERM'));
-  process.on('SIGINT', () => shutdown('SIGINT'));
-}
 
 /**
  * Main daemon function
@@ -110,8 +69,8 @@ function startDaemon(): void {
     }
   });
 
-  // Setup graceful shutdown
-  setupGracefulShutdown(server);
+  // Setup graceful shutdown using new signal handler
+  signalHandler.setupGracefulShutdown(server);
 }
 
 // Only run if this is the main module

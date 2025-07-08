@@ -1,6 +1,6 @@
 // API Constants (from POC requirements)
 export const API_CONSTANTS = {
-  DEFAULT_PORT: 3000,
+  DEFAULT_PORT: 8000,
   DEFAULT_TIMEOUT: 30000,
   MAX_VALIDATION_ATTEMPTS: 3,
   DEFAULT_REQUEST_ID_PREFIX: 'chatcmpl-',
@@ -94,4 +94,37 @@ export const SESSION_PERFORMANCE = {
   MAX_OPERATION_TIME_MS: 50,
   CLEANUP_BATCH_SIZE: 100,
   MEMORY_WARNING_THRESHOLD: 0.9,
+} as const;
+
+// Process Management Configuration (Phase 6A)
+export const PROCESS_CONFIG = {
+  PID_FILE_NAME: 'claude-wrapper.pid',
+  DEFAULT_SHUTDOWN_TIMEOUT_MS: 10000,
+  FORCE_KILL_TIMEOUT_MS: 5000,
+  HEALTH_CHECK_TIMEOUT_MS: 1000,
+  HEALTH_CHECK_INTERVAL_MS: 30000,
+  RESTART_DELAY_MS: 2000,
+  MAX_RESTART_ATTEMPTS: 3,
+  PROCESS_CHECK_INTERVAL_MS: 1000,
+} as const;
+
+// Signal Handling Configuration
+export const SIGNAL_CONFIG = {
+  GRACEFUL_SHUTDOWN_SIGNALS: ['SIGTERM', 'SIGINT'] as const,
+  FORCE_KILL_SIGNAL: 'SIGKILL' as const,
+  PROCESS_CHECK_SIGNAL: 0 as const, // Signal 0 for existence check
+  SHUTDOWN_STEPS: {
+    CLOSE_SERVER: 1,
+    CLEANUP_SESSIONS: 2,
+    REMOVE_PID_FILE: 3,
+    EXIT_PROCESS: 4,
+  } as const,
+} as const;
+
+// Process Performance Requirements (Phase 6A)
+export const PROCESS_PERFORMANCE = {
+  MAX_OPERATION_TIME_MS: 200,
+  STARTUP_TIMEOUT_MS: 5000,
+  SHUTDOWN_TIMEOUT_MS: 10000,
+  STATUS_CHECK_TIMEOUT_MS: 1000,
 } as const;

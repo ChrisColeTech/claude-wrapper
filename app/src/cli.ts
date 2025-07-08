@@ -9,14 +9,9 @@ import { Command } from 'commander';
 import { EnvironmentManager } from './config/env';
 import { logger } from './utils/logger';
 import { interactiveSetup } from './cli/interactive';
-import * as fs from 'fs';
-import * as path from 'path';
-import * as os from 'os';
-import { exec, spawn } from 'child_process';
-import { promisify } from 'util';
 import * as packageJson from '../package.json';
+import { processManager } from './process/manager';
 
-const execAsync = promisify(exec);
 
 /**
  * CLI options interface
@@ -146,14 +141,7 @@ class CliRunner {
    * Start server with options
    */
   private async startServer(options: CliOptions): Promise<void> {
-    const port = options.port || EnvironmentManager.getConfig().port.toString() || '8000';
-
-    // Check if already running
-    if (this.isServerRunning()) {
-      console.log(`⚠️  Server already running on port ${port}`);
-      process.exit(0);
-      return;
-    }
+    const port = options.port || EnvironmentManager.getConfig().port.toString();
 
     // Interactive setup if enabled (like original)
     if (options.interactive !== false && !options.apiKey) {
@@ -164,103 +152,43 @@ class CliRunner {
       }
     }
 
-    // Spawn detached background server process
-    const serverScript = path.join(__dirname, 'server-daemon.js');
-    const args = ['--port', port];
-    
-    if (options.apiKey) {
-      args.push('--api-key', options.apiKey);
-    }
-    if (options.verbose) {
-      args.push('--verbose');
-    }
-    if (options.debug) {
-      args.push('--debug');
-    }
-
-    const child = spawn(process.execPath, [serverScript, ...args], {
-      detached: true,
-      stdio: 'ignore'
-    });
-
-    // Save PID for daemon management
-    this.savePid(child.pid!);
-    
-    child.unref(); // Allow parent to exit
-    
-    console.log(`🚀 Claude Wrapper server started in background (PID: ${child.pid})`);
-    console.log(`📡 API available at http://localhost:${port}/v1/chat/completions`);
-    console.log(`📊 Health check at http://localhost:${port}/health`);
-    
-    process.exit(0); // Exit CLI immediately
-  }
-
-  /**
-   * Check if server is already running
-   */
-  private isServerRunning(): boolean {
-    const pidFile = this.getPidFile();
-    
-    if (!fs.existsSync(pidFile)) {
-      return false;
-    }
-
     try {
-      const pid = parseInt(fs.readFileSync(pidFile, 'utf8').trim());
-      process.kill(pid, 0); // Check if process exists
-      return true;
-    } catch {
-      // Process doesn't exist, clean up stale PID file
-      try {
-        fs.unlinkSync(pidFile);
-      } catch (error) {
-        // Ignore cleanup errors
-      }
-      return false;
-    }
-  }
+      const pid = await processManager.start({
+        port,
+        ...(options.apiKey && { apiKey: options.apiKey }),
+        ...(options.verbose !== undefined && { verbose: options.verbose }),
+        ...(options.debug !== undefined && { debug: options.debug }),
+        ...(options.interactive !== undefined && { interactive: options.interactive })
+      });
 
-
-  /**
-   * Get PID file path
-   */
-  private getPidFile(): string {
-    return path.join(os.tmpdir(), 'claude-wrapper.pid');
-  }
-
-  /**
-   * Save process PID
-   */
-  private savePid(pid: number): void {
-    try {
-      fs.writeFileSync(this.getPidFile(), pid.toString());
+      console.log(`🚀 Claude Wrapper server started in background (PID: ${pid})`);
+      console.log(`📡 API available at http://localhost:${port}/v1/chat/completions`);
+      console.log(`📊 Health check at http://localhost:${port}/health`);
+      
+      process.exit(0);
     } catch (error) {
-      logger.warn('Failed to save PID file:', error);
+      if (error instanceof Error && error.message.includes('already running')) {
+        console.log(`⚠️  ${error.message}`);
+        process.exit(0);
+      }
+      throw error;
     }
   }
+
 
   /**
    * Stop daemon server
    */
   private async stopDaemon(): Promise<void> {
-    const pidFile = this.getPidFile();
-    
-    if (!fs.existsSync(pidFile)) {
-      console.log('❌ No background server found');
-      return;
-    }
-
-    const pid = fs.readFileSync(pidFile, 'utf8').trim();
-    
     try {
-      process.kill(parseInt(pid), 'SIGTERM');
-      fs.unlinkSync(pidFile);
-      console.log(`✅ Server stopped (PID: ${pid})`);
-    } catch (error) {
-      console.log(`❌ Failed to stop server: ${error}`);
-      if (fs.existsSync(pidFile)) {
-        fs.unlinkSync(pidFile); // Remove stale PID file
+      const stopped = await processManager.stop();
+      if (stopped) {
+        console.log(`✅ Server stopped successfully`);
+      } else {
+        console.log('❌ No background server found');
       }
+    } catch (error) {
+      console.log(`❌ Failed to stop server: ${error instanceof Error ? error.message : error}`);
     }
   }
 
@@ -268,33 +196,23 @@ class CliRunner {
    * Check daemon status
    */
   private async checkDaemonStatus(): Promise<void> {
-    const pidFile = this.getPidFile();
-    
-    if (!fs.existsSync(pidFile)) {
-      console.log('📊 Server Status: NOT RUNNING');
-      return;
-    }
-
-    const pid = fs.readFileSync(pidFile, 'utf8').trim();
-    
     try {
-      process.kill(parseInt(pid), 0); // Check if process exists
-      console.log('📊 Server Status: RUNNING');
-      console.log(`   PID: ${pid}`);
+      const status = await processManager.status();
       
-      // Try to test health endpoint
-      try {
-        const { stdout } = await execAsync('curl -s --connect-timeout 1 http://localhost:8000/health');
-        if (stdout.includes('healthy')) {
-          console.log('   Health: ✅ OK');
+      if (status.running) {
+        console.log('📊 Server Status: RUNNING');
+        console.log(`   PID: ${status.pid}`);
+        
+        if (status.health) {
+          const healthIcon = status.health === 'healthy' ? '✅' : 
+                            status.health === 'unhealthy' ? '❌' : '❓';
+          console.log(`   Health: ${healthIcon} ${status.health.toUpperCase()}`);
         }
-      } catch {
-        console.log('   Health: ❓ Unknown');
+      } else {
+        console.log('📊 Server Status: NOT RUNNING');
       }
-      
-    } catch {
-      console.log('📊 Server Status: NOT RUNNING (stale PID file)');
-      fs.unlinkSync(pidFile);
+    } catch (error) {
+      console.log(`❌ Failed to check status: ${error instanceof Error ? error.message : error}`);
     }
   }
 

@@ -8,6 +8,8 @@ import authRoutes from './routes/auth';
 import sessionRoutes from './routes/sessions';
 import { logger } from '../utils/logger';
 import { EnvironmentManager } from '../config/env';
+import { authManager } from '../auth/manager';
+import { createAuthMiddleware } from '../auth/middleware';
 
 const app = express();
 
@@ -24,6 +26,13 @@ app.use((req, _res, next) => {
   });
   next();
 });
+
+// Optional authentication middleware (only if API key protection is enabled)
+const authMiddleware = createAuthMiddleware(authManager, {
+  skipPaths: ['/health', '/v1/models', '/v1/auth/status'], // Always allow these endpoints
+  requireAuth: false // Only protect if API key is configured
+});
+app.use(authMiddleware);
 
 // Routes
 app.use('/', healthRoutes);
