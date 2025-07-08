@@ -10,6 +10,7 @@ import { logger } from '../utils/logger';
 export class StreamingManager implements IStreamingManager {
   private activeConnections: Map<string, StreamConnection> = new Map();
   private cleanupTimer: ReturnType<typeof setTimeout> | null = null;
+  private connectionTimeouts: Map<string, ReturnType<typeof setTimeout>> = new Map();
 
   constructor() {
     this.startCleanupTimer();
@@ -19,6 +20,11 @@ export class StreamingManager implements IStreamingManager {
    * Create new streaming connection
    */
   createConnection(id: string, response: any): void {
+    // Clean up existing connection if it exists
+    if (this.activeConnections.has(id)) {
+      this.closeConnection(id);
+    }
+
     const connection: StreamConnection = {
       id,
       createdAt: new Date(),
@@ -58,6 +64,13 @@ export class StreamingManager implements IStreamingManager {
     
     if (connection) {
       connection.isActive = false;
+      
+      // Clear connection timeout if it exists
+      const timeout = this.connectionTimeouts.get(id);
+      if (timeout) {
+        clearTimeout(timeout);
+        this.connectionTimeouts.delete(id);
+      }
       
       if (connection.response && !connection.response.headersSent) {
         try {
@@ -136,9 +149,13 @@ export class StreamingManager implements IStreamingManager {
         this.closeConnection(id);
       }, STREAMING_CONFIG.CONNECTION_TIMEOUT_MS);
 
+      // Store timeout for cleanup
+      this.connectionTimeouts.set(id, timeout);
+
       // Clear timeout if connection closes normally
       response.on('finish', () => {
         clearTimeout(timeout);
+        this.connectionTimeouts.delete(id);
       });
     }
   }
@@ -160,6 +177,12 @@ export class StreamingManager implements IStreamingManager {
       clearInterval(this.cleanupTimer);
       this.cleanupTimer = null;
     }
+
+    // Clear all connection timeouts
+    for (const timeout of this.connectionTimeouts.values()) {
+      clearTimeout(timeout);
+    }
+    this.connectionTimeouts.clear();
 
     // Close all active connections
     for (const id of this.activeConnections.keys()) {
