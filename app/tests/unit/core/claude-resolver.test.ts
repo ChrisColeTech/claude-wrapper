@@ -3,18 +3,21 @@
  * Tests Claude CLI command resolution and execution using proper mocking
  */
 
-import { ClaudeResolver } from '../../../src/core/claude-resolver';
-import { ClaudeCliError, TimeoutError } from '../../../src/utils/errors';
+// Create the mock BEFORE any imports
+const mockExecAsync = jest.fn();
 
 // Mock child_process
 jest.mock('child_process', () => ({
   exec: jest.fn()
 }));
 
-// Mock util with a factory function that returns a mock
+// Mock util with our specific mock function
 jest.mock('util', () => ({
-  promisify: jest.fn(() => jest.fn())
+  promisify: jest.fn(() => mockExecAsync)
 }));
+
+import { ClaudeResolver } from '../../../src/core/claude-resolver';
+import { ClaudeCliError, TimeoutError } from '../../../src/utils/errors';
 
 // Mock logger
 jest.mock('../../../src/utils/logger', () => ({
@@ -39,16 +42,10 @@ jest.mock('../../../src/config/env', () => ({
 }));
 
 describe('ClaudeResolver', () => {
-  let mockExecAsync: jest.Mock;
   let mockEnvironmentManager: any;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    
-    // Setup the execAsync mock - must be done before creating resolver
-    mockExecAsync = jest.fn();
-    const { promisify } = require('util');
-    (promisify as jest.Mock).mockReturnValue(mockExecAsync);
     
     // Reset EnvironmentManager mock to default
     mockEnvironmentManager = require('../../../src/config/env').EnvironmentManager;
@@ -90,12 +87,14 @@ describe('ClaudeResolver', () => {
       });
 
       it('should handle Docker container detection', async () => {
+        // Mock all PATH resolution attempts to fail, then Docker to succeed
         mockExecAsync
-          .mockRejectedValueOnce(new Error('Command not found'))
-          .mockRejectedValueOnce(new Error('Command not found'))
-          .mockRejectedValueOnce(new Error('Command not found'))
-          .mockRejectedValueOnce(new Error('Command not found'))
-          .mockResolvedValueOnce({ stdout: 'Claude CLI v1.0.0 @anthropic-ai', stderr: '' });
+          .mockRejectedValueOnce(new Error('Command not found'))  // bash -i -c "which claude"
+          .mockRejectedValueOnce(new Error('Command not found'))  // zsh -i -c "which claude"
+          .mockRejectedValueOnce(new Error('Command not found'))  // command -v claude
+          .mockRejectedValueOnce(new Error('Command not found'))  // which claude
+          .mockResolvedValueOnce({ stdout: 'Claude CLI v1.0.0 @anthropic-ai', stderr: '' })  // docker run --rm anthropic/claude --version
+          .mockResolvedValueOnce({ stdout: 'Claude CLI v1.0.0 @anthropic-ai', stderr: '' });  // validation call
 
         const resolver = new ClaudeResolver();
         const command = await resolver.findClaudeCommand();
