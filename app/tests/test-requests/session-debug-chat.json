@@ -1,0 +1,10 @@
+{
+  "model": "sonnet",
+  "messages": [
+    {
+      "role": "user", 
+      "content": "This should be message #5 in the conversation"
+    }
+  ],
+  "session_id": "programming-session"
+}

@@ -1,0 +1,8 @@
+{
+  "messages": [
+    {
+      "role": "user",
+      "content": "Hello, I want to learn about Python programming"
+    }
+  ]
+}

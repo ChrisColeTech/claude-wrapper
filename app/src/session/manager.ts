@@ -176,8 +176,11 @@ export class SessionManager implements ISessionManager, ISessionCleanup {
       return [messages, null];
     }
 
+    // Get or create session
     this.getOrCreateSession(sessionId);
     const session = this.sessions.get(sessionId)!;
+    
+    // For new messages, add them to the session and return ALL messages (history + new)
     session.addMessages(messages);
     const allMessages = session.getAllMessages();
     
