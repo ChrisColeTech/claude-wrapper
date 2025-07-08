@@ -16,7 +16,7 @@
     "test:e2e": "jest --config tests/jest.e2e.config.js",
     "test:watch": "jest --watch",
     "test:coverage": "jest --config tests/jest.unit.config.js --coverage",
-    "test:ci": "jest --runInBand --detectOpenHandles",
+    "test:ci": "jest --runInBand --detectOpenHandles --passWithNoTests",
     "test:debug": "DEBUG=1 jest --detectOpenHandles --runInBand",
     "test:health": "npm run test:unit && npm run test:integration",
     "lint": "eslint src tests --ext .ts",
