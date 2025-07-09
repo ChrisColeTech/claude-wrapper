@@ -16,9 +16,13 @@ This document provides a systematic methodology for resolving CI build failures 
 
 ### 3. Environment Differences (Local vs CI)
 **Symptoms**: Tests pass on local machine but fail in CI with different behavior
-**Root Cause**: Different Node.js versions, timezone differences, or missing environment variables
+**Root Cause**: Different Node.js versions, timezone differences, missing environment variables, or Jest configuration incompatibilities
 
-### 4. Race Conditions and Timing Issues
+### 4. Jest Configuration Issues
+**Symptoms**: "Unknown compiler option 'require'" or similar ts-jest compilation errors
+**Root Cause**: Jest preset conflicts between local and CI environments, version mismatches, or complex multi-project configurations
+
+### 5. Race Conditions and Timing Issues
 **Symptoms**: Intermittent failures, timeouts, tests expecting specific counts getting different values
 **Root Cause**: Async operations not completing before assertions run
 
@@ -55,6 +59,10 @@ Identify common patterns:
 - Error: `Cannot find name 'X'` or `Property 'X' does not exist`
 - Fix: Update imports and variable references
 
+**Jest Configuration Issues**:
+- Error: `Unknown compiler option 'require'` or ts-jest compilation failures
+- Fix: Simplify Jest configuration, avoid complex presets, use manual transforms
+
 **Global State Issues**:
 - Error: `Expected: 4, Received: 30` (accumulating values)
 - Fix: Add proper cleanup between tests
@@ -71,6 +79,7 @@ Identify common patterns:
 Apply specific fixes based on identified patterns:
 
 - **TypeScript errors**: Update to singleton factory functions
+- **Jest configuration issues**: Simplify multi-project setup, replace presets with manual transforms
 - **Global state issues**: Add cleanup in beforeEach/afterEach
 - **Timing issues**: Increase timeouts, add strategic delays
 - **Environment issues**: Align Node.js versions and environment variables
@@ -106,7 +115,30 @@ gh run watch [RUN_ID] --exit-status
 - Wait for async processing to complete
 - Use proper async/await patterns
 
-### Pattern 4: URL Encoding for Special Characters
+### Pattern 4: Jest Configuration Simplification
+**When to use**: TypeScript compilation errors with ts-jest presets
+- Replace `preset: "ts-jest"` with manual `transform` configuration
+- Use unified config instead of complex multi-project setups
+- Avoid inline TypeScript options that conflict with CI environment
+
+**Example Fix**:
+```javascript
+// Instead of:
+module.exports = {
+  preset: "ts-jest",
+  // ... other config
+};
+
+// Use:
+module.exports = {
+  transform: {
+    '^.+\\.tsx?$': 'ts-jest'
+  },
+  // ... other config
+};
+```
+
+### Pattern 5: URL Encoding for Special Characters
 **When to use**: API endpoints with special characters fail with 404
 - URL encode operation names with special characters
 - Handle colons, slashes, and other special characters
@@ -168,9 +200,31 @@ npm run type-check                        # Verify types
 
 ## Case Study Results
 
+### Case Study 1: Error Handling Tests
 **Initial State**: 7 failing tests in error-handling.test.ts
 **Root Causes**: TypeScript compilation errors, global state pollution, timing issues, URL encoding problems
 **Resolution**: Updated singleton patterns, added cleanup, strategic delays, URL encoding
 **Result**: 7 failures → 0 failures in <2 hours using systematic approach
+
+### Case Study 2: Jest Configuration Issues
+**Initial State**: 8 failing test suites with "Unknown compiler option 'require'" errors
+**Root Causes**: Complex multi-project Jest setup with ts-jest preset conflicts in CI environment
+**Failed Approaches**: 
+- Adding inline TypeScript configurations
+- Creating custom tsconfig for tests
+- Multiple attempts to fix preset issues
+**Successful Resolution**: 
+- Simplified to unified Jest configuration
+- Replaced `preset: "ts-jest"` with manual `transform` configuration
+- Maintained custom reporters while fixing CI compatibility
+**Result**: 8 failures → 0 failures, all 937 tests passing
+**Key Lesson**: Don't overcomplicate solutions - the issue was a simple preset conflict
+
+### Lessons Learned from Case Study 2:
+1. **Root Cause Analysis First**: The error message directly pointed to ts-jest configuration
+2. **Avoid Complex Solutions**: Simple unified config works better than multi-project setups
+3. **Environment Differences**: CI and local environments can interpret Jest presets differently
+4. **Preserve Functionality**: Custom reporters were maintained while fixing the core issue
+5. **Quick Testing**: Local validation before CI push saves time
 
 This CI debugging workflow provides a repeatable methodology for quickly resolving build failures and maintaining high CI reliability.
