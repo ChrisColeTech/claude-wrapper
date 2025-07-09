@@ -1,6 +1,6 @@
 {
   "name": "claude-wrapper",
-  "version": "1.1.4",
+  "version": "1.1.23",
   "description": "OpenAI-compatible HTTP API wrapper for Claude Code CLI with Session Management",
   "main": "dist/cli.js",
   "bin": {
@@ -22,6 +22,7 @@
   },
   "scripts": {
     "build": "tsc > build.log 2>&1",
+    "prepublishOnly": "npm run build",
     "start": "node dist/cli.js",
     "dev": "ts-node src/cli.ts",
     "test": "jest",
@@ -38,12 +39,13 @@
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist",
     "clean:logs": "rm -rf tests/logs/pass/* tests/logs/fail/* tests/logs/verbose/*",
-    "precommit": "npm run build && npm run test:unit && npm run lint && npm run typecheck"
+    "precommit": "npm run build && npm run test:ci && npm run lint && npm run typecheck"
   },
   "dependencies": {
     "@types/swagger-jsdoc": "^6.0.4",
     "@types/swagger-ui-express": "^4.1.8",
     "@types/uuid": "^10.0.0",
+    "chalk": "^4.1.2",
     "commander": "^11.1.0",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",

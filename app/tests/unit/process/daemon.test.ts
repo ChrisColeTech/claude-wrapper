@@ -138,7 +138,13 @@ describe('DaemonManager', () => {
       expect(command).toBe('/usr/bin/node');
       expect(args[0]).toBe('/mock/server-daemon.js');
       expect(args.slice(1)).toEqual(['--port', '9999', '--api-key', 'test-key', '--verbose', '--debug']);
-      expect(options_param).toEqual({ detached: true, stdio: 'ignore' });
+      expect(options_param).toEqual({ 
+        detached: true, 
+        stdio: 'ignore',
+        env: expect.objectContaining({
+          ...process.env  // Should include all environment variables from parent process
+        })
+      });
     });
 
     it('should throw error if daemon already running', async () => {

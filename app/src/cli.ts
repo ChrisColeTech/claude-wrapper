@@ -18,7 +18,6 @@ import { processManager } from './process/manager';
  */
 export interface CliOptions {
   port?: string;
-  verbose?: boolean;
   debug?: boolean;
   interactive?: boolean;
   apiKey?: string;
@@ -48,7 +47,7 @@ class CliParser {
       .description(`${packageJson.description}\n\nAvailable commands: 'wrapper' (recommended) or 'claude-wrapper'`)
       .version(packageJson.version)
       .option('-p, --port <port>', 'port to run server on (default: 8000)')
-      .option('-v, --verbose', 'enable verbose logging')
+      .option('-v, --version', 'output the version number')
       .option('-d, --debug', 'enable debug mode (runs in foreground)')
       .option('-k, --api-key <key>', 'set API key for endpoint protection')
       .option('-n, --no-interactive', 'disable interactive API key setup')
@@ -63,8 +62,8 @@ Examples:
   wrapper                    Start server on default port (8000)
   wrapper 9999              Start server on port 9999
   wrapper -p 8080           Start server on port 8080
-  wrapper -v                Start with verbose logging
-  wrapper -d -v             Start in debug mode with verbose logging
+  wrapper -v                Show version number
+  wrapper -d                Start in debug mode
   wrapper -k my-key         Start with API key protection
   wrapper -n                Skip interactive API key setup
   wrapper -s                Stop background server
@@ -174,7 +173,6 @@ class CliRunner {
         const pid = await processManager.start({
           port,
           ...(options.apiKey && { apiKey: options.apiKey }),
-          ...(options.verbose !== undefined && { verbose: options.verbose }),
           ...(options.debug !== undefined && { debug: options.debug }),
           ...(options.interactive !== undefined && { interactive: options.interactive })
         });
@@ -225,9 +223,6 @@ class CliRunner {
     // Set environment variables
     if (options.apiKey) {
       process.env['API_KEY'] = options.apiKey;
-    }
-    if (options.verbose) {
-      process.env['VERBOSE'] = 'true';
     }
     if (options.debug) {
       process.env['DEBUG_MODE'] = 'true';

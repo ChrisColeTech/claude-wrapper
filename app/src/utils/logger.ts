@@ -1,4 +1,5 @@
 import { EnvironmentManager } from '../config/env';
+import chalk from 'chalk';
 
 export enum LogLevel {
   ERROR = 'error',
@@ -32,11 +33,6 @@ export class Logger {
       return LogLevel.DEBUG;
     }
 
-    // CLI verbose mode
-    if (EnvironmentManager.isVerboseMode()) {
-      return LogLevel.INFO;
-    }
-
     // Default config level
     const configLevel = EnvironmentManager.getConfig().logLevel;
     return LogLevel[configLevel.toUpperCase() as keyof typeof LogLevel] || LogLevel.INFO;
@@ -46,6 +42,42 @@ export class Logger {
     this.logStorage.push(entry);
     if (this.logStorage.length > this.maxStorageSize) {
       this.logStorage.shift(); // Remove oldest entry
+    }
+  }
+
+  private colorizeConsoleOutput(level: LogLevel, message: string, prefix: string): string {
+    // Only use colors in debug mode
+    if (!EnvironmentManager.isDebugMode()) {
+      return `${prefix} ${message}`;
+    }
+
+    switch (level) {
+      case LogLevel.ERROR:
+        return chalk.red(`${prefix} ${message}`);
+      case LogLevel.WARN:
+        return chalk.yellow(`${prefix} ${message}`);
+      case LogLevel.INFO:
+        return chalk.green(`${prefix} ${message}`);
+      case LogLevel.DEBUG:
+        return chalk.cyan(`${prefix} ${message}`);
+      default:
+        return `${prefix} ${message}`;
+    }
+  }
+
+  private colorizeHttpOutput(type: 'request' | 'response', message: string, prefix: string): string {
+    // Only use colors in debug mode
+    if (!EnvironmentManager.isDebugMode()) {
+      return `${prefix} ${message}`;
+    }
+
+    switch (type) {
+      case 'request':
+        return chalk.magenta(`${prefix} ${message}`);
+      case 'response':
+        return chalk.blue(`${prefix} ${message}`);
+      default:
+        return `${prefix} ${message}`;
     }
   }
 
@@ -60,7 +92,12 @@ export class Logger {
     };
     
     this.storeLog(entry);
-    console.error(`[ERROR] ${timestamp} ${message}`, error, context);
+    const colorizedOutput = this.colorizeConsoleOutput(LogLevel.ERROR, `${timestamp} ${message}`, '[ERROR]');
+    if (error !== undefined || context !== undefined) {
+      console.error(colorizedOutput, error, context);
+    } else {
+      console.error(colorizedOutput);
+    }
   }
 
   warn(message: string, context?: any): void {
@@ -74,7 +111,12 @@ export class Logger {
       };
       
       this.storeLog(entry);
-      console.warn(`[WARN] ${timestamp} ${message}`, context);
+      const colorizedOutput = this.colorizeConsoleOutput(LogLevel.WARN, `${timestamp} ${message}`, '[WARN]');
+      if (context !== undefined) {
+        console.warn(colorizedOutput, context);
+      } else {
+        console.warn(colorizedOutput);
+      }
     }
   }
 
@@ -89,7 +131,12 @@ export class Logger {
       };
       
       this.storeLog(entry);
-      console.info(`[INFO] ${timestamp} ${message}`, context);
+      const colorizedOutput = this.colorizeConsoleOutput(LogLevel.INFO, `${timestamp} ${message}`, '[INFO]');
+      if (context !== undefined) {
+        console.info(colorizedOutput, context);
+      } else {
+        console.info(colorizedOutput);
+      }
     }
   }
 
@@ -104,17 +151,25 @@ export class Logger {
       };
       
       this.storeLog(entry);
-      console.debug(`[DEBUG] ${timestamp} ${message}`, context);
+      const colorizedOutput = this.colorizeConsoleOutput(LogLevel.DEBUG, `${timestamp} ${message}`, '[DEBUG]');
+      if (context !== undefined) {
+        console.debug(colorizedOutput, context);
+      } else {
+        console.debug(colorizedOutput);
+      }
     }
   }
 
   // New method for HTTP request/response logging
   http(type: 'request' | 'response', message: string, context?: any, requestId?: string): void {
-    if (this.shouldLog(LogLevel.DEBUG)) {
+    // HTTP logging works at DEBUG level in debug mode
+    const logLevel = LogLevel.DEBUG;
+    
+    if (this.shouldLog(logLevel)) {
       const timestamp = new Date().toISOString();
       const entry: LogEntry = {
         timestamp,
-        level: LogLevel.DEBUG,
+        level: logLevel,
         message,
         ...(context && { context }),
         ...(requestId && { requestId }),
@@ -122,7 +177,12 @@ export class Logger {
       };
       
       this.storeLog(entry);
-      console.debug(`[${type.toUpperCase()}] ${timestamp} ${message}`, context);
+      const colorizedOutput = this.colorizeHttpOutput(type, `${timestamp} ${message}`, `[${type.toUpperCase()}]`);
+      if (context !== undefined) {
+        console.log(colorizedOutput, context);
+      } else {
+        console.log(colorizedOutput);
+      }
     }
   }
 
@@ -181,17 +241,12 @@ export class Logger {
     console.error(message);
   }
 
-  cliVerbose(message: string): void {
-    // Only show in verbose mode
-    if (EnvironmentManager.isVerboseMode()) {
-      console.log(`[VERBOSE] ${message}`);
-    }
-  }
 
   cliDebug(message: string): void {
     // Only show in debug mode
     if (EnvironmentManager.isDebugMode()) {
-      console.log(`[DEBUG] ${message}`);
+      const colorizedOutput = this.colorizeConsoleOutput(LogLevel.DEBUG, message, '[DEBUG]');
+      console.log(colorizedOutput);
     }
   }
 }
