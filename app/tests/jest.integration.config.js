@@ -16,14 +16,7 @@ module.exports = {
     "^@types/(.*)$": "<rootDir>/src/types/$1"
   },
   transform: {
-    '^.+\\.tsx?$': ['ts-jest', {
-      tsconfig: {
-        target: 'ES2022',
-        module: 'commonjs',
-        esModuleInterop: true,
-        skipLibCheck: true
-      }
-    }]
+    '^.+\\.tsx?$': 'ts-jest'
   },
   // Use timeout in setup.ts instead
   clearMocks: true,
