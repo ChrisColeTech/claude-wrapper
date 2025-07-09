@@ -131,26 +131,44 @@ jobs:
       env:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         
-    - name: Create GitHub Release (manual trigger only)
-      if: github.event_name == 'workflow_dispatch'
-      uses: actions/create-release@v1
+    - name: Create GitHub Release (release branch or manual trigger)
+      if: github.ref == 'refs/heads/release' || github.event_name == 'workflow_dispatch'
+      run: |
+        cd app
+        VERSION=$(node -p "require('./package.json').version")
+        
+        # Check if release already exists
+        if gh release view "v$VERSION" >/dev/null 2>&1; then
+          echo "Release v$VERSION already exists, skipping release creation"
+          exit 0
+        fi
+        
+        # Create release
+        gh release create "v$VERSION" \
+          --title "Release v$VERSION" \
+          --notes "## Features
+        - Colored console logging with improved readability
+        - Enhanced HTTP request/response logging 
+        - Better environment variable handling in daemon processes
+        - Comprehensive test coverage and validation
+        
+        ## Installation
+        \`\`\`bash
+        npm install -g claude-wrapper@$VERSION
+        \`\`\`
+        
+        ## Quick Start
+        \`\`\`bash
+        claude-wrapper --help
+        \`\`\`
+        
+        ## Colored Logging
+        \`\`\`bash
+        # Debug mode with colors
+        claude-wrapper --debug --verbose
+        
+        # Background mode with HTTP logging  
+        claude-wrapper --verbose
+        \`\`\`"
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: v${{ steps.version.outputs.new_version }}
-        release_name: Release v${{ steps.version.outputs.new_version }}
-        body: |
-          ## Changes
-          - Version bump to ${{ steps.version.outputs.new_version }}
-          
-          ## Installation
-          ```bash
-          npm install -g claude-wrapper
-          ```
-          
-          ## Quick Start
-          ```bash
-          claude-wrapper
-          ```
-        draft: false
-        prerelease: false
