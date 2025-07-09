@@ -98,7 +98,11 @@ export class Logger {
     
     this.storeLog(entry);
     const colorizedOutput = this.colorizeConsoleOutput(LogLevel.ERROR, `${timestamp} ${message}`, '[ERROR]');
-    console.error(colorizedOutput, error, context);
+    if (error !== undefined || context !== undefined) {
+      console.error(colorizedOutput, error, context);
+    } else {
+      console.error(colorizedOutput);
+    }
   }
 
   warn(message: string, context?: any): void {
@@ -113,7 +117,11 @@ export class Logger {
       
       this.storeLog(entry);
       const colorizedOutput = this.colorizeConsoleOutput(LogLevel.WARN, `${timestamp} ${message}`, '[WARN]');
-      console.warn(colorizedOutput, context);
+      if (context !== undefined) {
+        console.warn(colorizedOutput, context);
+      } else {
+        console.warn(colorizedOutput);
+      }
     }
   }
 
@@ -129,7 +137,11 @@ export class Logger {
       
       this.storeLog(entry);
       const colorizedOutput = this.colorizeConsoleOutput(LogLevel.INFO, `${timestamp} ${message}`, '[INFO]');
-      console.info(colorizedOutput, context);
+      if (context !== undefined) {
+        console.info(colorizedOutput, context);
+      } else {
+        console.info(colorizedOutput);
+      }
     }
   }
 
@@ -145,7 +157,11 @@ export class Logger {
       
       this.storeLog(entry);
       const colorizedOutput = this.colorizeConsoleOutput(LogLevel.DEBUG, `${timestamp} ${message}`, '[DEBUG]');
-      console.debug(colorizedOutput, context);
+      if (context !== undefined) {
+        console.debug(colorizedOutput, context);
+      } else {
+        console.debug(colorizedOutput);
+      }
     }
   }
 
@@ -167,7 +183,11 @@ export class Logger {
       
       this.storeLog(entry);
       const colorizedOutput = this.colorizeHttpOutput(type, `${timestamp} ${message}`, `[${type.toUpperCase()}]`);
-      console.log(colorizedOutput, context);
+      if (context !== undefined) {
+        console.log(colorizedOutput, context);
+      } else {
+        console.log(colorizedOutput);
+      }
     }
   }
 
