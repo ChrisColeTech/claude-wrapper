@@ -24,14 +24,11 @@ Transform your Claude Code CLI into a powerful HTTP API server with intelligent 
 
 This approach gives you **maximum flexibility** with Claude's tool capabilities.
 
-## 🚀 Key Features
+## Key Features
 
-- **🔌 OpenAI Compatible**: Drop-in replacement for OpenAI Chat Completions API
-- **🧠 Session Management**: Automatic message history accumulation for conversation continuity
-- **🌊 Streaming Support**: Real-time response streaming with Server-Sent Events
-- **🔍 Auto-Detection**: Automatically finds Claude CLI across different installation methods (npm, Docker, aliases)
-- **🛡️ API Protection**: Optional bearer token authentication for endpoints
-- **🛠️ Perfect Tool Calls**: Claude automatically generates OpenAI `tool_calls` format
+- **OpenAI Compatible**: Drop-in replacement for OpenAI Chat Completions API
+- **Session Management**: Automatic message history accumulation for conversation continuity
+- **Streaming Support**: Real-time response streaming with Server-Sent Events
 
 ## 📦 Installation
 
@@ -41,8 +38,28 @@ npm install -g claude-wrapper
 ```
 
 After installation, you can use the CLI with either:
+
 - `wrapper` (recommended short command)
 - `claude-wrapper` (full package name)
+
+## 🚀 Quick Start
+
+```bash
+wrapper
+```
+
+You'll see an interactive prompt asking if you want API key protection:
+
+```bash
+🚀 Starting Claude Wrapper...
+🔐 API Key Protection Setup
+Would you like to enable API key protection? (y/n):
+```
+
+- **Choose 'y'** to generate a secure API key for protection
+- **Choose 'n' or press Enter** to run without authentication
+
+Server starts at `http://localhost:8000` - you're ready to make API calls!
 
 ## 📋 CLI Options
 
@@ -69,42 +86,7 @@ Options:
   -h, --help           display help for command
 ```
 
-## 📡 API Endpoints
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `POST` | `/v1/chat/completions` | Main chat completions with session support |
-| `GET` | `/v1/models` | List available Claude models (sonnet, opus) |
-| `GET` | `/v1/sessions` | List all active sessions |
-| `GET` | `/v1/sessions/stats` | Get session statistics |
-| `GET` | `/v1/sessions/:id` | Get specific session details |
-| `DELETE` | `/v1/sessions/:id` | Delete a specific session |
-| `POST` | `/v1/sessions/:id/messages` | Add messages to a session |
-| `GET` | `/v1/auth/status` | Check authentication configuration and status |
-| `GET` | `/health` | Service health check |
-| `GET` | `/docs` | Swagger UI |
-| `GET` | `/swagger.json` | OpenAPI 3.0 specification JSON schema |
-
-## 🚀 Quick Start
-
-```bash
-wrapper
-```
-
-You'll see an interactive prompt asking if you want API key protection:
-
-```
-🚀 Starting Claude Wrapper...
-🔐 API Key Protection Setup
-Would you like to enable API key protection? (y/n): 
-```
-
-- **Choose 'y'** to generate a secure API key for protection
-- **Choose 'n' or press Enter** to run without authentication
-
-Server starts at `http://localhost:8000` - you're ready to make API calls!
-
-## 🔐 Authentication Options
+### Authentication Options
 
 **Authentication is completely optional!** You can also bypass the interactive setup:
 
@@ -117,6 +99,22 @@ wrapper -n                         # shorthand
 wrapper --api-key my-secure-key
 wrapper -k my-secure-key           # shorthand
 ```
+
+## 📡 API Endpoints
+
+| Method   | Endpoint                    | Description                                   |
+| -------- | --------------------------- | --------------------------------------------- |
+| `POST`   | `/v1/chat/completions`      | Main chat completions with session support    |
+| `GET`    | `/v1/models`                | List available Claude models (sonnet, opus)   |
+| `GET`    | `/v1/sessions`              | List all active sessions                      |
+| `GET`    | `/v1/sessions/stats`        | Get session statistics                        |
+| `GET`    | `/v1/sessions/:id`          | Get specific session details                  |
+| `DELETE` | `/v1/sessions/:id`          | Delete a specific session                     |
+| `POST`   | `/v1/sessions/:id/messages` | Add messages to a session                     |
+| `GET`    | `/v1/auth/status`           | Check authentication configuration and status |
+| `GET`    | `/health`                   | Service health check                          |
+| `GET`    | `/docs`                     | Swagger UI                                    |
+| `GET`    | `/swagger.json`             | OpenAPI 3.0 specification JSON schema         |
 
 ## 🚀 CLI Usage
 
