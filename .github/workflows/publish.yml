@@ -143,14 +143,15 @@ jobs:
           exit 0
         fi
         
-        # Create release
+        # Generate release notes from recent commits
+        RELEASE_NOTES=$(git log --pretty=format:"- %s" --since="24 hours ago" --grep="^(?!Merge)" | head -10 | sed '/^$/d' || echo "- Bug fixes and improvements")
+        
+        # Create release with dynamic notes
         gh release create "v$VERSION" \
           --title "Release v$VERSION" \
-          --notes "## Features
-        - Colored console logging with improved readability
-        - Enhanced HTTP request/response logging 
-        - Better environment variable handling in daemon processes
-        - Comprehensive test coverage and validation
+          --notes "## What's New
+        
+        $RELEASE_NOTES
         
         ## Installation
         \`\`\`bash
@@ -159,16 +160,19 @@ jobs:
         
         ## Quick Start
         \`\`\`bash
-        claude-wrapper --help
-        \`\`\`
+        # Start server (default port 8000)
+        claude-wrapper
         
-        ## Colored Logging
-        \`\`\`bash
-        # Debug mode with colors
+        # Start with colored logging
         claude-wrapper --debug --verbose
         
-        # Background mode with HTTP logging  
+        # Start in background with HTTP logging
         claude-wrapper --verbose
-        \`\`\`"
+        \`\`\`
+        
+        ## More Info
+        - [Documentation](https://github.com/ChrisColeTech/claude-wrapper#readme)
+        - [API Endpoints](http://localhost:8000/docs) (when server is running)
+        - [Release Process](https://github.com/ChrisColeTech/claude-wrapper/blob/main/app/RELEASE_PROCESS.md)"
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

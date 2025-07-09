@@ -1,0 +1,52 @@
+name: Validation
+on:
+  pull_request:
+    branches: [develop, release, main]
+  push:
+    branches: [develop]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: app/package-lock.json
+    
+    - name: Install dependencies
+      run: |
+        cd app
+        npm ci
+    
+    - name: Run full precommit validation
+      run: |
+        cd app
+        npm run precommit
+        echo "✅ Precommit validation completed successfully!"
+    
+    - name: Check package integrity
+      run: |
+        cd app
+        npm run build
+        echo "📦 Build artifacts:"
+        ls -la dist/
+        echo "📊 Package size:"
+        du -sh dist/
+    
+    - name: Security audit
+      run: |
+        cd app
+        npm audit --audit-level=moderate || echo "⚠️ Security audit found issues"
+    
+    - name: Validate release documentation
+      run: |
+        test -f app/RELEASE_PROCESS.md && echo "✅ Release process documented" || echo "❌ Missing release process documentation"
+        test -f app/README.md && echo "✅ README exists" || echo "❌ Missing README"
