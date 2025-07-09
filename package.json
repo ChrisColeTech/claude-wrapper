@@ -1,6 +1,6 @@
 {
   "name": "claude-wrapper",
-  "version": "1.0.0",
+  "version": "1.0.10",
   "description": "Production-ready OpenAI-compatible API wrapper for Claude Code CLI with streaming, sessions, and authentication",
   "main": "app/dist/cli.js",
   "bin": {
