@@ -141,8 +141,8 @@ jobs:
         git fetch origin main
         git checkout main
         
-        # Fast-forward merge from release
-        git merge origin/release --ff-only
+        # Merge from release (allow non-fast-forward)
+        git merge origin/release --no-edit -m "Sync from release branch"
         
         # Push to main
         git push origin main
