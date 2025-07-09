@@ -3,6 +3,10 @@ module.exports = {
   preset: "ts-jest",
   testEnvironment: "node",
   rootDir: "../",
+  reporters: [
+    ["<rootDir>/tests/scripts/custom-reporter.js", {}],
+    ["<rootDir>/tests/scripts/verbose-reporter.js", {}]
+  ],
   testMatch: [
     "<rootDir>/tests/unit/**/*.test.ts",
     "<rootDir>/tests/mocks/**/*.test.ts"
