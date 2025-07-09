@@ -179,11 +179,33 @@ class CliRunner {
           ...(options.interactive !== undefined && { interactive: options.interactive })
         });
 
+        const { exec } = require('child_process');
+        const wslIp = await new Promise<string>((resolve) => {
+          exec('hostname -I', (error: any, stdout: string) => {
+            if (error) resolve('localhost');
+            else resolve(stdout.trim().split(' ')[0] || 'localhost');
+          });
+        });
+        
         console.log(`🚀 Claude Wrapper server started in background (PID: ${pid})`);
-        console.log(`📡 API available at http://localhost:${port}/v1/chat/completions`);
-        console.log(`📊 Health check at http://localhost:${port}/health`);
-        console.log(`📚 Swagger UI at http://localhost:${port}/docs`);
-        console.log(`📋 OpenAPI spec at http://localhost:${port}/swagger.json`);
+        console.log(`\n📡 API Endpoints:`);
+        console.log(`   POST   http://localhost:${port}/v1/chat/completions      - Main chat API`);
+        console.log(`   GET    http://localhost:${port}/v1/models                - List available models`);
+        console.log(`   GET    http://localhost:${port}/v1/sessions              - List active sessions`);
+        console.log(`   GET    http://localhost:${port}/v1/sessions/stats        - Session statistics`);
+        console.log(`   GET    http://localhost:${port}/v1/sessions/:id          - Get session details`);
+        console.log(`   DELETE http://localhost:${port}/v1/sessions/:id          - Delete session`);
+        console.log(`   POST   http://localhost:${port}/v1/sessions/:id/messages - Add to session`);
+        console.log(`   GET    http://localhost:${port}/v1/auth/status            - Auth status`);
+        console.log(`\n🔧 System Endpoints:`);
+        console.log(`   GET    http://localhost:${port}/health                   - Health check`);
+        console.log(`   GET    http://localhost:${port}/docs                     - Swagger UI`);
+        console.log(`   GET    http://localhost:${port}/swagger.json             - OpenAPI spec`);
+        console.log(`   GET    http://localhost:${port}/logs                     - Server logs`);
+        console.log(`   POST   http://localhost:${port}/logs/clear               - Clear logs`);
+        if (wslIp !== 'localhost') {
+          console.log(`\n🌐 WSL Access (for Windows): http://${wslIp}:${port}`);
+        }
         
         process.exit(0);
       }
@@ -215,15 +237,37 @@ class CliRunner {
     const app = await import('./api/server');
     const { signalHandler } = await import('./process/signals');
     
+    const { exec } = require('child_process');
+    const wslIp = await new Promise<string>((resolve) => {
+      exec('hostname -I', (error: any, stdout: string) => {
+        if (error) resolve('localhost');
+        else resolve(stdout.trim().split(' ')[0] || 'localhost');
+      });
+    });
+    
     console.log(`🚀 Claude Wrapper server starting in foreground (debug mode)`);
-    console.log(`📡 API available at http://localhost:${port}/v1/chat/completions`);
-    console.log(`📊 Health check at http://localhost:${port}/health`);
-    console.log(`📚 Swagger UI at http://localhost:${port}/docs`);
-    console.log(`📋 OpenAPI spec at http://localhost:${port}/swagger.json`);
-    console.log(`🐛 Debug mode enabled - server will run in foreground`);
+    console.log(`\n📡 API Endpoints:`);
+    console.log(`   POST   http://localhost:${port}/v1/chat/completions      - Main chat API`);
+    console.log(`   GET    http://localhost:${port}/v1/models                - List available models`);
+    console.log(`   GET    http://localhost:${port}/v1/sessions              - List active sessions`);
+    console.log(`   GET    http://localhost:${port}/v1/sessions/stats        - Session statistics`);
+    console.log(`   GET    http://localhost:${port}/v1/sessions/:id          - Get session details`);
+    console.log(`   DELETE http://localhost:${port}/v1/sessions/:id          - Delete session`);
+    console.log(`   POST   http://localhost:${port}/v1/sessions/:id/messages - Add to session`);
+    console.log(`   GET    http://localhost:${port}/v1/auth/status            - Auth status`);
+    console.log(`\n🔧 System Endpoints:`);
+    console.log(`   GET    http://localhost:${port}/health                   - Health check`);
+    console.log(`   GET    http://localhost:${port}/docs                     - Swagger UI`);
+    console.log(`   GET    http://localhost:${port}/swagger.json             - OpenAPI spec`);
+    console.log(`   GET    http://localhost:${port}/logs                     - Server logs`);
+    console.log(`   POST   http://localhost:${port}/logs/clear               - Clear logs`);
+    if (wslIp !== 'localhost') {
+      console.log(`\n🌐 WSL Access (for Windows): http://${wslIp}:${port}`);
+    }
+    console.log(`\n🐛 Debug mode enabled - server will run in foreground`);
     console.log(`📝 Press Ctrl+C to stop the server`);
 
-    const server = app.default.listen(parseInt(port), () => {
+    const server = app.default.listen(parseInt(port), '0.0.0.0', () => {
       console.log(`✅ Server listening on port ${port}`);
     });
 

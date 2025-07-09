@@ -60,7 +60,7 @@ function startDaemon(): void {
   }
 
   // Start server
-  const server = app.listen(options.port, () => {
+  const server = app.listen(options.port, '0.0.0.0', () => {
     // Only log in verbose/debug mode for daemon
     if (options.verbose || options.debug) {
       logger.info(`🚀 Claude Wrapper daemon running on port ${options.port}`);

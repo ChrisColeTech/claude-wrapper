@@ -1,6 +1,6 @@
 {
   "name": "claude-wrapper",
-  "version": "1.0.13",
+  "version": "1.1.0",
   "description": "OpenAI-compatible HTTP API wrapper for Claude Code CLI with Session Management",
   "main": "dist/cli.js",
   "bin": {
@@ -44,13 +44,15 @@
   "dependencies": {
     "@types/swagger-jsdoc": "^6.0.4",
     "@types/swagger-ui-express": "^4.1.8",
+    "@types/uuid": "^10.0.0",
     "commander": "^11.1.0",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
     "inquirer": "^9.2.12",
     "swagger-jsdoc": "^6.2.8",
-    "swagger-ui-express": "^5.0.1"
+    "swagger-ui-express": "^5.0.1",
+    "uuid": "^11.1.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",
