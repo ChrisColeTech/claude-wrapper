@@ -6,6 +6,7 @@ import chatRoutes from './routes/chat';
 import modelsRoutes from './routes/models';
 import healthRoutes from './routes/health';
 import sessionRoutes from './routes/sessions';
+import authRoutes from './routes/auth';
 import { logger } from '../utils/logger';
 import { EnvironmentManager } from '../config/env';
 import { createAuthMiddleware, getApiKey } from '../auth/middleware';
@@ -27,13 +28,15 @@ app.use((req, _res, next) => {
   next();
 });
 
-// Optional HTTP API protection middleware (only if API key is configured)
-const apiKey = getApiKey();
-const authMiddleware = createAuthMiddleware({
-  skipPaths: ['/health', '/v1/models', '/docs', '/swagger.json'], // Always allow these endpoints
-  ...(apiKey && { apiKey }) // Only include apiKey if it exists
+// Optional HTTP API protection middleware (lazy initialization to handle runtime API key setting)
+app.use((req, res, next) => {
+  const apiKey = getApiKey();
+  const authMiddleware = createAuthMiddleware({
+    skipPaths: ['/health', '/docs', '/swagger.json', '/v1/auth/status'], // Always allow these endpoints
+    ...(apiKey && { apiKey }) // Only include apiKey if it exists
+  });
+  authMiddleware(req, res, next);
 });
-app.use(authMiddleware);
 
 // Swagger documentation routes (always public)
 app.get('/swagger.json', (_req, res) => {
@@ -50,6 +53,7 @@ app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
 app.use('/', healthRoutes);
 app.use('/', modelsRoutes);
 app.use('/', sessionRoutes);
+app.use('/', authRoutes);
 app.use('/', chatRoutes);
 
 // Error handling (must be last)
