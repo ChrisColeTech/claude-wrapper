@@ -40,6 +40,10 @@ This approach gives you **maximum flexibility** with Claude's tool capabilities.
 npm install -g claude-wrapper
 ```
 
+After installation, you can use the CLI with either:
+- `wrapper` (recommended short command)
+- `claude-wrapper` (full package name)
+
 ## 🛠️ Development
 
 ```bash
@@ -61,7 +65,7 @@ npm install -g .
 ## 📋 CLI Options
 
 ```bash
-Usage: claude-wrapper [options] [port]
+Usage: wrapper [options] [port]
 
 Claude API wrapper with OpenAI compatibility
 
@@ -74,12 +78,12 @@ Options:
   -p, --port <port>    port to run server on (default: 8000)
   -v, --verbose        enable verbose logging
   -d, --debug          enable debug mode (runs in foreground)
-  --api-key <key>      set API key for endpoint protection
-  --no-interactive     disable interactive API key setup
-  --production         enable production server management features
-  --health-monitoring  enable health monitoring system
-  --stop               stop background server
-  --status             check background server status
+  -k, --api-key <key>  set API key for endpoint protection
+  -n, --no-interactive disable interactive API key setup
+  -P, --production     enable production server management features
+  -H, --health-monitoring enable health monitoring system
+  -s, --stop           stop background server
+  -t, --status         check background server status
   -h, --help           display help for command
 ```
 
@@ -102,7 +106,7 @@ Options:
 ## 🚀 Quick Start
 
 ```bash
-claude-wrapper
+wrapper
 ```
 
 You'll see an interactive prompt asking if you want API key protection:
@@ -124,10 +128,12 @@ Server starts at `http://localhost:8000` - you're ready to make API calls!
 
 ```bash
 # Skip interactive setup (no authentication)
-claude-wrapper --no-interactive
+wrapper --no-interactive
+wrapper -n                         # shorthand
 
 # Or provide API key directly
-claude-wrapper --api-key my-secure-key
+wrapper --api-key my-secure-key
+wrapper -k my-secure-key           # shorthand
 ```
 
 ## 🚀 CLI Usage
@@ -136,27 +142,32 @@ claude-wrapper --api-key my-secure-key
 
 ```bash
 # Start server on default port (8000)
-claude-wrapper
+wrapper
 
 # Start server on specific port
-claude-wrapper 9999
-claude-wrapper --port 8080
+wrapper 9999
+wrapper --port 8080
+wrapper -p 8080                    # shorthand
 
 # Start with verbose logging
-claude-wrapper --verbose
+wrapper --verbose
+wrapper -v                         # shorthand
 
 # Start with debug information (runs in foreground)
-claude-wrapper --debug --verbose
+wrapper --debug --verbose
+wrapper -d -v                      # shorthand
 ```
 
 ### Managing the Background Service
 
 ```bash
 # Check if server is running
-claude-wrapper --status
+wrapper --status
+wrapper -t                         # shorthand
 
 # Stop the background server
-claude-wrapper --stop
+wrapper --stop
+wrapper -s                         # shorthand
 ```
 
 ## 📚 Documentation
@@ -172,4 +183,4 @@ MIT License - see [LICENSE](LICENSE) file for details.
 ⭐ **Star this repository** if you find it useful!  
 🐛 **Report issues** or suggest features at [GitHub Issues](https://github.com/ChrisColeTech/claude-wrapper/issues)
 
-**Get started today** - `npm install -g claude-wrapper` and transform your Claude CLI into a powerful HTTP API!
+**Get started today** - `npm install -g claude-wrapper` and run `wrapper` to transform your Claude CLI into a powerful HTTP API!
