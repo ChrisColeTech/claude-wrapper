@@ -45,7 +45,6 @@ describe('CLI Integration Tests', () => {
       const argv = [
         'node', 'cli.js',
         '--port', '3000',
-        '--verbose',
         '--debug',
         '--api-key', 'test-key-123',
         '--production',
@@ -56,7 +55,6 @@ describe('CLI Integration Tests', () => {
 
       expect(result).toMatchObject({
         port: '3000',
-        verbose: true,
         debug: true,
         apiKey: 'test-key-123',
         production: true,
@@ -70,13 +68,13 @@ describe('CLI Integration Tests', () => {
         'node', 'cli.js',
         '4000',              // positional port
         '--port', '3000',    // option port (should take precedence)
-        '--verbose'
+        '--debug'
       ];
 
       const result = parser.parseArguments(argv);
 
       expect(result.port).toBe('3000'); // Option takes precedence
-      expect(result.verbose).toBe(true);
+      expect(result.debug).toBe(true);
     });
 
     it('should validate port numbers during parsing', () => {
@@ -252,7 +250,6 @@ describe('CLI Integration Tests', () => {
     it('should respect environment variable configuration', async () => {
       // Set environment variables
       process.env['API_KEY'] = 'test-api-key';
-      process.env['VERBOSE'] = 'true';
       process.env['DEBUG_MODE'] = 'true';
       process.env['PORT'] = '5000';
       
@@ -261,7 +258,6 @@ describe('CLI Integration Tests', () => {
       
       // Verify environment variables are set
       expect(process.env['API_KEY']).toBe('test-api-key');
-      expect(process.env['VERBOSE']).toBe('true');
       expect(process.env['DEBUG_MODE']).toBe('true');
       expect(process.env['PORT']).toBe('5000');
     });
@@ -269,7 +265,6 @@ describe('CLI Integration Tests', () => {
     it('should handle missing environment variables gracefully', () => {
       // Clear environment variables
       delete process.env['API_KEY'];
-      delete process.env['VERBOSE'];
       delete process.env['DEBUG_MODE'];
       delete process.env['PORT'];
       
@@ -278,7 +273,7 @@ describe('CLI Integration Tests', () => {
       
       // Should not throw when env vars are missing
       expect(process.env['API_KEY']).toBeUndefined();
-      expect(process.env['VERBOSE']).toBeUndefined();
+      expect(process.env['DEBUG_MODE']).toBeUndefined();
     });
   });
 
@@ -298,7 +293,7 @@ describe('CLI Integration Tests', () => {
       const runner = new CliRunner();
       
       // Test that status command takes precedence and exits
-      const argv = ['node', 'cli.js', '--status', '--verbose'];
+      const argv = ['node', 'cli.js', '--status', '--debug'];
       await runner.run(argv);
       
       expect(mockExit).toHaveBeenCalledWith(0);

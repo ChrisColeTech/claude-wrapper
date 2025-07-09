@@ -60,10 +60,6 @@ export class EnvironmentManager {
     return process.env[SECURITY_ENV_VARS.API_KEY];
   }
 
-  static isVerboseMode(): boolean {
-    return process.env['VERBOSE'] === 'true' || process.env['VERBOSE'] === '1';
-  }
-
   static isDebugMode(): boolean {
     return process.env['DEBUG_MODE'] === 'true' || process.env['DEBUG_MODE'] === '1';
   }

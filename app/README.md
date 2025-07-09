@@ -75,9 +75,8 @@ Arguments:
                        --port option
 
 Options:
-  -V, --version        output the version number
+  -v, --version        output the version number
   -p, --port <port>    port to run server on (default: 8000)
-  -v, --verbose        enable verbose logging
   -d, --debug          enable debug mode (runs in foreground)
   -k, --api-key <key>  set API key for endpoint protection
   -n, --no-interactive disable interactive API key setup
@@ -131,13 +130,13 @@ wrapper 9999
 wrapper --port 8080
 wrapper -p 8080                    # shorthand
 
-# Start with verbose logging
-wrapper --verbose
+# Show version
+wrapper --version
 wrapper -v                         # shorthand
 
 # Start with debug information (runs in foreground)
-wrapper --debug --verbose
-wrapper -d -v                      # shorthand
+wrapper --debug
+wrapper -d                         # shorthand
 ```
 
 ### Managing the Background Service
