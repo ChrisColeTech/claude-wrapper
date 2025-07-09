@@ -24,21 +24,15 @@ git pull origin main
 npm install
 cd app && npm install && cd ..
 
-# Build the project
-npm run build
+# Run streamlined pre-commit validation
+npm run precommit
 
-# Run all tests
-npm run test
-npm run test:unit
+# Optional: Run additional tests
 npm run test:integration
 npm run test:e2e
-
-# Run linting and type checking
-npm run lint
-npm run typecheck
 ```
 
-**All steps above MUST pass before proceeding.**
+**The `precommit` command runs: build, unit tests, linting, and type checking - all must pass before proceeding.**
 
 ### 2. Version Update
 
