@@ -44,8 +44,8 @@ class CliParser {
    */
   private setupProgram(): void {
     this.program
-      .name(packageJson.name)
-      .description(packageJson.description)
+      .name('wrapper')
+      .description(`${packageJson.description}\n\nAvailable commands: 'wrapper' (recommended) or 'claude-wrapper'`)
       .version(packageJson.version)
       .option('-p, --port <port>', 'port to run server on (default: 8000)')
       .option('-v, --verbose', 'enable verbose logging')
@@ -57,7 +57,20 @@ class CliParser {
       .option('-s, --stop', 'stop background server')
       .option('-t, --status', 'check background server status')
       .helpOption('-h, --help', 'display help for command')
-      .argument('[port]', 'port to run server on (default: 8000) - alternative to --port option');
+      .argument('[port]', 'port to run server on (default: 8000) - alternative to --port option')
+      .addHelpText('after', `
+Examples:
+  wrapper                    Start server on default port (8000)
+  wrapper 9999              Start server on port 9999
+  wrapper -p 8080           Start server on port 8080
+  wrapper -v                Start with verbose logging
+  wrapper -d -v             Start in debug mode with verbose logging
+  wrapper -k my-key         Start with API key protection
+  wrapper -n                Skip interactive API key setup
+  wrapper -s                Stop background server
+  wrapper -t                Check server status
+  
+Alternative command: You can also use 'claude-wrapper' instead of 'wrapper'`);
   }
 
   /**

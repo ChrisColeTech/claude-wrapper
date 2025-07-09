@@ -44,24 +44,6 @@ After installation, you can use the CLI with either:
 - `wrapper` (recommended short command)
 - `claude-wrapper` (full package name)
 
-## 🛠️ Development
-
-```bash
-# Clone and setup
-git clone https://github.com/ChrisColeTech/claude-wrapper.git
-cd claude-wrapper
-npm install
-npm run build
-
-# Development commands
-npm run dev          # Hot reload development
-npm test            # Run tests
-npm run lint        # Code quality
-
-# Install CLI globally for testing
-npm install -g .
-```
-
 ## 📋 CLI Options
 
 ```bash
