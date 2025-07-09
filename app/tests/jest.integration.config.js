@@ -20,14 +20,4 @@ module.exports = {
   resetMocks: true,
   restoreMocks: true,
   // Less aggressive mocking for integration tests
-  transform: {
-    '^.+\\.ts$': ['ts-jest', {
-      tsconfig: {
-        target: 'ES2022',
-        module: 'commonjs',
-        esModuleInterop: true,
-        skipLibCheck: true
-      }
-    }]
-  }
 };

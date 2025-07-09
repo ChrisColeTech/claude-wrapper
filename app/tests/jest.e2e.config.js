@@ -20,15 +20,5 @@ module.exports = {
   resetMocks: false,
   restoreMocks: false,
   // No mocking for E2E tests - use real system components
-  detectOpenHandles: true,
-  transform: {
-    '^.+\\.ts$': ['ts-jest', {
-      tsconfig: {
-        target: 'ES2022',
-        module: 'commonjs',
-        esModuleInterop: true,
-        skipLibCheck: true
-      }
-    }]
-  }
+  detectOpenHandles: true
 };
