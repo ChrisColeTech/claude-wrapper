@@ -1,0 +1,115 @@
+name: Publish to NPM
+
+on:
+  push:
+    branches: [release]
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish (patch, minor, major, or specific version like 1.2.3)'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        fetch-depth: 0
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        registry-url: 'https://registry.npmjs.org'
+        
+    - name: Install dependencies
+      run: |
+        cd app
+        npm ci
+        
+    - name: Run tests
+      run: |
+        cd app
+        npm test
+        
+    - name: Build project
+      run: |
+        cd app
+        npm run build
+        
+    - name: Bump version (release branch or manual trigger)
+      if: github.ref == 'refs/heads/release' || github.event_name == 'workflow_dispatch'
+      run: |
+        cd app
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        
+        if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+          # Manual trigger - use specified version
+          if [[ "${{ github.event.inputs.version }}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            npm version ${{ github.event.inputs.version }} --no-git-tag-version
+          else
+            npm version ${{ github.event.inputs.version }} --no-git-tag-version
+          fi
+        else
+          # Release branch push - auto patch bump
+          npm version patch --no-git-tag-version
+        fi
+        
+        git add package.json package-lock.json
+        git commit -m "Bump version to $(node -p "require('./package.json').version")" || true
+        git push || true
+
+    - name: Create Git tag (release branch or manual trigger)
+      if: github.ref == 'refs/heads/release' || github.event_name == 'workflow_dispatch'
+      run: |
+        cd app
+        VERSION=$(node -p "require('./package.json').version")
+        git tag -a "v$VERSION" -m "Release v$VERSION" || true
+        git push origin "v$VERSION" || true
+        
+    - name: Publish to NPM
+      run: |
+        cd app
+        npm publish --provenance --access public
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        
+    - name: Create GitHub Release (manual trigger only)
+      if: github.event_name == 'workflow_dispatch'
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: v${{ steps.version.outputs.new_version }}
+        release_name: Release v${{ steps.version.outputs.new_version }}
+        body: |
+          ## Changes
+          - Version bump to ${{ steps.version.outputs.new_version }}
+          
+          ## Installation
+          ```bash
+          npm install -g claude-wrapper
+          ```
+          
+          ## Quick Start
+          ```bash
+          claude-wrapper
+          ```
+        draft: false
+        prerelease: false

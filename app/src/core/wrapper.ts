@@ -58,7 +58,8 @@ export class CoreWrapper implements ICoreWrapper {
 
     return {
       model: request.model,
-      messages: enhancedMessages
+      messages: enhancedMessages,
+      ...(request.tools && { tools: request.tools })
     };
   }
 
@@ -83,7 +84,7 @@ export class CoreWrapper implements ICoreWrapper {
       }
     };
 
-    return `Return raw JSON only, no formatting: ${JSON.stringify(template)}. Replace REPLACE_WITH_ANSWER with your response.`;
+    return `Return raw JSON only, no formatting: ${JSON.stringify(template)}. Replace REPLACE_WITH_ANSWER with your response. If you need to use tools, populate the tool_calls array instead of content (set content to null). Each tool call should have: {"id": "call_xxx", "type": "function", "function": {"name": "tool_name", "arguments": "json_string"}}.`;
   }
 
   private async validateAndCorrect(

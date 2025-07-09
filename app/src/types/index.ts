@@ -12,6 +12,7 @@ export interface OpenAIRequest {
   temperature?: number;
   max_tokens?: number;
   session_id?: string;
+  tools?: any[];
 }
 
 export interface OpenAIUsage {
@@ -45,6 +46,7 @@ export interface ValidationResult {
 export interface ClaudeRequest {
   model: string;
   messages: OpenAIMessage[];
+  tools?: any[];
 }
 
 // Core Interface Contracts (SOLID Principles)

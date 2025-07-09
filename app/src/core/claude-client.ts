@@ -12,10 +12,11 @@ export class ClaudeClient implements IClaudeClient {
 
   async execute(request: ClaudeRequest): Promise<string> {
     try {
-      const prompt = this.messagesToPrompt(request.messages);
+      const prompt = this.messagesToPrompt(request.messages, request.tools);
       logger.debug('Converting messages to prompt', { 
         messageCount: request.messages.length,
-        model: request.model 
+        model: request.model,
+        hasTools: !!request.tools 
       });
       
       const result = await this.resolver.executeClaudeCommand(prompt, request.model);
@@ -42,8 +43,13 @@ export class ClaudeClient implements IClaudeClient {
     }
   }
 
-  private messagesToPrompt(messages: any[]): string {
+  private messagesToPrompt(messages: any[], tools?: any[]): string {
     let prompt = '';
+    
+    // Add tools if provided
+    if (tools && tools.length > 0) {
+      prompt += `Available tools: ${JSON.stringify(tools)}\n\n`;
+    }
     
     for (const message of messages) {
       if (message.role === 'system') {
@@ -59,7 +65,8 @@ export class ClaudeClient implements IClaudeClient {
     
     logger.debug('Converted messages to prompt', { 
       promptLength: prompt.length,
-      messageCount: messages.length 
+      messageCount: messages.length,
+      toolCount: tools?.length || 0
     });
     
     return prompt;

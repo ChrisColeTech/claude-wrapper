@@ -109,10 +109,21 @@ export class StreamingHandler implements IStreamingHandler {
       yield this.formatter.formatInitialChunk(requestId, request.model);
       
       // Simulate streaming by processing request and chunking response
-      const fullResponse = await this.coreWrapper.handleChatCompletion({
-        ...request,
-        stream: false  // Get full response for chunking
-      });
+      logger.debug('Streaming: About to call handleChatCompletion', { requestId });
+      
+      // Create a clean request object without streaming
+      const nonStreamingRequest: OpenAIRequest = {
+        model: request.model,
+        messages: request.messages,
+        stream: false,
+        ...(request.tools && { tools: request.tools }),
+        ...(request.temperature && { temperature: request.temperature }),
+        ...(request.max_tokens && { max_tokens: request.max_tokens }),
+        ...(request.session_id && { session_id: request.session_id })
+      };
+      
+      const fullResponse = await this.coreWrapper.handleChatCompletion(nonStreamingRequest);
+      logger.debug('Streaming: handleChatCompletion completed', { requestId });
 
       // Extract content and stream it in chunks
       const content = fullResponse.choices[0]?.message?.content || '';

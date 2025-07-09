@@ -44,7 +44,7 @@ This approach gives you maximum flexibility with Claude's tool capabilities.
 - **🔌 OpenAI Compatible**: Drop-in replacement for OpenAI Chat Completions API
 - **🧠 Session Management**: Intelligent conversation continuity with session persistence
 - **🌊 Streaming Support**: Real-time response streaming with Server-Sent Events
-- **🔐 Multi-Provider Auth**: Automatic detection of Anthropic, Bedrock, Vertex, or Claude CLI authentication
+- **🔍 Auto-Detection**: Automatically finds Claude CLI across different installation methods (npm, Docker, aliases, environment variables)
 - **🛡️ API Protection**: Optional bearer token authentication for endpoint security
 - **🛠️ Perfect Tool Calls**: Claude automatically generates OpenAI `tool_calls` format
 - **⚡ Zero Conversion**: Direct JSON passthrough, no parsing overhead
@@ -225,9 +225,6 @@ curl -X POST http://localhost:8000/v1/chat/completions \
   -d '{"model": "sonnet", "messages": [{"role": "user", "content": "Hello"}]}'
 ```
 
-### Claude CLI Integration
-
-Claude Wrapper calls your existing Claude Code CLI. Set up Claude CLI authentication however you normally would - the wrapper doesn't manage or configure Claude authentication.
 
 ## CLI Usage
 
@@ -266,7 +263,36 @@ claude-wrapper --help
 
 ## Session Management
 
-Sessions provide conversation continuity across multiple API calls.
+Sessions provide conversation continuity by **automatically accumulating message history** and sending it to Claude CLI on each request.
+
+### How Sessions Work Under the Hood
+
+**Without session_id (stateless):**
+```bash
+# Request 1: Only your message goes to Claude
+Client sends: ["My name is John"]
+Claude CLI receives: ["My name is John"]
+
+# Request 2: Only your message goes to Claude (no memory)
+Client sends: ["What is my name?"]  
+Claude CLI receives: ["What is my name?"]
+Claude responds: "I don't know your name"
+```
+
+**With session_id (stateful):**
+```bash
+# Request 1: Your message goes to Claude, response stored in session
+Client sends: ["My name is John"] + session_id:"chat-123"
+Claude CLI receives: ["My name is John"]
+Session stores: [user:"My name is John", assistant:"I'll remember..."]
+
+# Request 2: Your new message + ALL previous history sent to Claude
+Client sends: ["What is my name?"] + session_id:"chat-123"  
+Claude CLI receives: [user:"My name is John", assistant:"I'll remember...", user:"What is my name?"]
+Claude responds: "John" (because it sees the full conversation)
+```
+
+**The CLI automatically prepends conversation history** - you send one message, Claude CLI receives the entire conversation.
 
 ### Session Features
 
