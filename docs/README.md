@@ -96,7 +96,7 @@ Options:
   -V, --version        output the version number
   -p, --port <port>    port to run server on (default: 8000)
   -v, --verbose        enable verbose logging
-  -d, --debug          enable debug mode
+  -d, --debug          enable debug mode (runs in foreground)
   --api-key <key>      set API key for endpoint protection
   --no-interactive     disable interactive API key setup
   --production         enable production server management features
@@ -119,16 +119,16 @@ Options:
 | `POST` | `/v1/sessions/:id/messages` | Add messages to a session |
 | `GET` | `/v1/auth/status` | Check authentication configuration and status |
 | `GET` | `/health` | Service health check |
-| `GET` | `/docs` | Interactive API documentation (Swagger UI) |
+| `GET` | `/docs` | Swagger UI |
 | `GET` | `/swagger.json` | OpenAPI 3.0 specification JSON schema |
 
 ## API Documentation
 
-Claude Wrapper includes comprehensive interactive API documentation powered by Swagger UI.
+Claude Wrapper includes comprehensive Swagger UI for interactive API exploration.
 
-### Accessing the Documentation
+### Accessing Swagger UI
 
-**Interactive Documentation:**
+**Swagger UI:**
 - Visit `http://localhost:8000/docs` in your browser
 - Full OpenAPI 3.0 specification with interactive testing
 - Try out API endpoints directly from the documentation
@@ -139,10 +139,10 @@ Claude Wrapper includes comprehensive interactive API documentation powered by S
 - Use with API clients, code generators, or other tools
 - Fully compliant OpenAPI 3.0 specification
 
-### Documentation Features
+### Swagger UI Features
 
 - **Complete API Reference**: All endpoints, parameters, and responses documented
-- **Interactive Testing**: Test API calls directly from the documentation
+- **Interactive Testing**: Test API calls directly from Swagger UI
 - **Schema Validation**: Full request/response schema definitions
 - **Authentication Examples**: Shows both authenticated and unauthenticated usage
 - **Tool Calling Documentation**: Complete OpenAI-compatible tool calling examples
@@ -167,7 +167,7 @@ Would you like to enable API key protection? (y/n):
 Server starts at `http://localhost:8000` - you're ready to make API calls!
 
 **🚀 Quick Links:**
-- API Documentation: `http://localhost:8000/docs`
+- Swagger UI: `http://localhost:8000/docs`
 - Health Check: `http://localhost:8000/health`
 - OpenAPI Spec: `http://localhost:8000/swagger.json`
 
@@ -244,7 +244,7 @@ claude-wrapper --port 8080
 # Start with verbose logging
 claude-wrapper --verbose
 
-# Start with debug information
+# Start with debug information (runs in foreground)
 claude-wrapper --debug --verbose
 ```
 

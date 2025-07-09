@@ -65,6 +65,7 @@ export class ProcessManager implements IProcessManager {
   private pidManager: IPidManager;
   private daemonManager: IDaemonManager;
   private signalHandler: ISignalHandler;
+  private currentPort: string = '8000'; // Track the current port
 
   constructor(
     customPidManager?: IPidManager,
@@ -74,6 +75,9 @@ export class ProcessManager implements IProcessManager {
     this.pidManager = customPidManager || pidManager;
     this.daemonManager = customDaemonManager || daemonManager;
     this.signalHandler = customSignalHandler || signalHandler;
+    
+    // Load the current port from file if available
+    this.currentPort = this.loadCurrentPort() || '8000';
     
     logger.debug('ProcessManager initialized');
   }
@@ -94,6 +98,10 @@ export class ProcessManager implements IProcessManager {
           'ALREADY_RUNNING'
         );
       }
+
+      // Store the port for health checks
+      this.currentPort = options.port || '8000';
+      this.saveCurrentPort(this.currentPort);
 
       // Prepare daemon options
       const daemonOptions: DaemonOptions = {
@@ -152,6 +160,10 @@ export class ProcessManager implements IProcessManager {
 
 
       const stopped = await this.daemonManager.stopDaemon();
+      
+      // Reset port when stopping
+      this.currentPort = '8000';
+      this.saveCurrentPort(this.currentPort);
       
       // Verify shutdown within performance requirements
       const elapsedTime = Date.now() - startTime;
@@ -269,10 +281,15 @@ export class ProcessManager implements IProcessManager {
       const { promisify } = await import('util');
       const execAsync = promisify(exec);
       
+      const command = `curl -s --connect-timeout 1 http://localhost:${this.currentPort}/health`;
+      logger.info('Running health check command', { command, port: this.currentPort });
+      
       const { stdout } = await execAsync(
-        'curl -s --connect-timeout 1 http://localhost:8000/health',
+        command,
         { timeout: PROCESS_CONFIG.HEALTH_CHECK_TIMEOUT_MS }
       );
+      
+      logger.info('Health check response', { stdout });
       
       if (stdout.includes('healthy')) {
         return 'healthy';
@@ -280,10 +297,47 @@ export class ProcessManager implements IProcessManager {
         return 'unhealthy';
       }
     } catch (error) {
-      logger.debug('Health check failed', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+      logger.info('Health check failed', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        port: this.currentPort
       });
       return 'unknown';
+    }
+  }
+
+  /**
+   * Save current port to file for persistence across CLI invocations
+   */
+  private saveCurrentPort(port: string): void {
+    try {
+      const { tmpdir } = require('os');
+      const { writeFileSync } = require('fs');
+      const portFilePath = require('path').join(tmpdir(), 'claude-wrapper-port');
+      writeFileSync(portFilePath, port);
+    } catch (error) {
+      // Non-fatal error - just log it
+      logger.debug('Failed to save current port', { error: error instanceof Error ? error.message : 'Unknown error' });
+    }
+  }
+
+  /**
+   * Load current port from file
+   */
+  private loadCurrentPort(): string | null {
+    try {
+      const { tmpdir } = require('os');
+      const { readFileSync, existsSync } = require('fs');
+      const portFilePath = require('path').join(tmpdir(), 'claude-wrapper-port');
+      
+      if (existsSync(portFilePath)) {
+        const portContent = readFileSync(portFilePath, 'utf8');
+        return portContent.trim();
+      }
+      return null;
+    } catch (error) {
+      // Non-fatal error - just log it
+      logger.debug('Failed to load current port', { error: error instanceof Error ? error.message : 'Unknown error' });
+      return null;
     }
   }
 }

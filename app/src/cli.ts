@@ -154,20 +154,26 @@ class CliRunner {
 
 
     try {
-      const pid = await processManager.start({
-        port,
-        ...(options.apiKey && { apiKey: options.apiKey }),
-        ...(options.verbose !== undefined && { verbose: options.verbose }),
-        ...(options.debug !== undefined && { debug: options.debug }),
-        ...(options.interactive !== undefined && { interactive: options.interactive })
-      });
+      // Run in foreground if debug mode is enabled
+      if (options.debug) {
+        await this.startForegroundServer(options, port);
+      } else {
+        const pid = await processManager.start({
+          port,
+          ...(options.apiKey && { apiKey: options.apiKey }),
+          ...(options.verbose !== undefined && { verbose: options.verbose }),
+          ...(options.debug !== undefined && { debug: options.debug }),
+          ...(options.interactive !== undefined && { interactive: options.interactive })
+        });
 
-      console.log(`🚀 Claude Wrapper server started in background (PID: ${pid})`);
-      console.log(`📡 API available at http://localhost:${port}/v1/chat/completions`);
-      console.log(`📊 Health check at http://localhost:${port}/health`);
-      console.log(`📚 API docs at http://localhost:${port}/docs`);
-      
-      process.exit(0);
+        console.log(`🚀 Claude Wrapper server started in background (PID: ${pid})`);
+        console.log(`📡 API available at http://localhost:${port}/v1/chat/completions`);
+        console.log(`📊 Health check at http://localhost:${port}/health`);
+        console.log(`📚 Swagger UI at http://localhost:${port}/docs`);
+        console.log(`📋 OpenAPI spec at http://localhost:${port}/swagger.json`);
+        
+        process.exit(0);
+      }
     } catch (error) {
       if (error instanceof Error && error.message.includes('already running')) {
         console.log(`⚠️  ${error.message}`);
@@ -177,6 +183,45 @@ class CliRunner {
     }
   }
 
+  /**
+   * Start server in foreground (for debug mode)
+   */
+  private async startForegroundServer(options: CliOptions, port: string): Promise<void> {
+    // Set environment variables
+    if (options.apiKey) {
+      process.env['API_KEY'] = options.apiKey;
+    }
+    if (options.verbose) {
+      process.env['VERBOSE'] = 'true';
+    }
+    if (options.debug) {
+      process.env['DEBUG_MODE'] = 'true';
+    }
+
+    // Import and start server directly
+    const app = await import('./api/server');
+    const { signalHandler } = await import('./process/signals');
+    
+    console.log(`🚀 Claude Wrapper server starting in foreground (debug mode)`);
+    console.log(`📡 API available at http://localhost:${port}/v1/chat/completions`);
+    console.log(`📊 Health check at http://localhost:${port}/health`);
+    console.log(`📚 Swagger UI at http://localhost:${port}/docs`);
+    console.log(`📋 OpenAPI spec at http://localhost:${port}/swagger.json`);
+    console.log(`🐛 Debug mode enabled - server will run in foreground`);
+    console.log(`📝 Press Ctrl+C to stop the server`);
+
+    const server = app.default.listen(parseInt(port), () => {
+      console.log(`✅ Server listening on port ${port}`);
+    });
+
+    // Setup graceful shutdown
+    signalHandler.setupGracefulShutdown(server);
+    
+    // Keep the process alive (don't exit)
+    return new Promise(() => {
+      // This promise never resolves, keeping the process running
+    });
+  }
 
   /**
    * Stop daemon server

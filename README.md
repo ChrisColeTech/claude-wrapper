@@ -73,7 +73,7 @@ Options:
   -V, --version        output the version number
   -p, --port <port>    port to run server on (default: 8000)
   -v, --verbose        enable verbose logging
-  -d, --debug          enable debug mode
+  -d, --debug          enable debug mode (runs in foreground)
   --api-key <key>      set API key for endpoint protection
   --no-interactive     disable interactive API key setup
   --production         enable production server management features
@@ -96,7 +96,7 @@ Options:
 | `POST` | `/v1/sessions/:id/messages` | Add messages to a session |
 | `GET` | `/v1/auth/status` | Check authentication configuration and status |
 | `GET` | `/health` | Service health check |
-| `GET` | `/docs` | Interactive API documentation (Swagger UI) |
+| `GET` | `/docs` | Swagger UI |
 | `GET` | `/swagger.json` | OpenAPI 3.0 specification JSON schema |
 
 ## 🚀 Quick Start
@@ -145,7 +145,7 @@ claude-wrapper --port 8080
 # Start with verbose logging
 claude-wrapper --verbose
 
-# Start with debug information
+# Start with debug information (runs in foreground)
 claude-wrapper --debug --verbose
 ```
 
