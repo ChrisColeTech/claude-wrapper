@@ -15,11 +15,8 @@ module.exports = {
     "^@utils/(.*)$": "<rootDir>/src/utils/$1",
     "^@types/(.*)$": "<rootDir>/src/types/$1"
   },
-  transform: {
-    '^.+\\.tsx?$': ['ts-jest', {
-      tsconfig: '<rootDir>/tests/tsconfig.json'
-    }]
-  },
+  // Use default ts-jest transform without custom config
+  // This avoids CI TypeScript compilation issues
   // Use timeout in setup.ts instead
   clearMocks: true,
   resetMocks: true,
