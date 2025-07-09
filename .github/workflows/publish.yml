@@ -131,6 +131,24 @@ jobs:
       env:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         
+    - name: Sync to main branch (release branch only)
+      if: github.ref == 'refs/heads/release'
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        
+        # Fetch and checkout main
+        git fetch origin main
+        git checkout main
+        
+        # Fast-forward merge from release
+        git merge origin/release --ff-only
+        
+        # Push to main
+        git push origin main
+        
+        echo "✅ Successfully synced release to main branch"
+        
     - name: Create GitHub Release (release branch or manual trigger)
       if: github.ref == 'refs/heads/release' || github.event_name == 'workflow_dispatch'
       run: |
