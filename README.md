@@ -1,138 +1,86 @@
-# Claude Wrapper POC
+# Claude Wrapper
 
+[![CI Status](https://github.com/ChrisColeTech/claude-wrapper/workflows/CI/badge.svg)](https://github.com/ChrisColeTech/claude-wrapper/actions)
+[![NPM Version](https://img.shields.io/npm/v/claude-wrapper.svg)](https://www.npmjs.com/package/claude-wrapper)
+[![GitHub Stars](https://img.shields.io/github/stars/ChrisColeTech/claude-wrapper.svg)](https://github.com/ChrisColeTech/claude-wrapper/stargazers)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Node.js Version](https://img.shields.io/node/v/claude-wrapper-poc.svg)](https://nodejs.org/en/download/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg)](https://www.typescriptlang.org/)
+
+[![Node Version](https://img.shields.io/node/v/claude-wrapper.svg)](https://nodejs.org/)
+[![Platform Support](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-blue.svg)](https://github.com/ChrisColeTech/claude-wrapper)
+[![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/ChrisColeTech/claude-wrapper/pulls)
 
 **OpenAI-compatible HTTP API wrapper for Claude Code CLI with Session Management**
 
-Transform your Claude Code CLI into a powerful HTTP API server that accepts OpenAI Chat Completions requests. Features intelligent session management for conversation continuity, streaming responses, and comprehensive CLI tooling.
+Transform your Claude Code CLI into a powerful HTTP API server with intelligent session management, streaming responses, and OpenAI-compatible tool calling.
 
 ## 🛠️ Tools-First Philosophy
 
-**Claude Wrapper embraces client-side tool execution with OpenAI Tools API compatibility:**
+**Claude Wrapper provides OpenAI Tools API compatibility:**
 
-- **Client-Side Execution**: Tools run in YOUR environment, not on the server
-- **Security First**: No server-side file access or command execution  
+- **Client-Side Execution**: Tools run in your local environment
 - **OpenAI Standard**: Uses standard `tools` array format from OpenAI specification
 - **MCP Compatible**: Works with your local MCP tool installations
 
-This approach gives you **maximum flexibility** while maintaining **security** - Claude gets the power of tools without server-side execution risks.
+This approach gives you **maximum flexibility** with Claude's tool capabilities.
 
 ## 🚀 Key Features
 
 - **🔌 OpenAI Compatible**: Drop-in replacement for OpenAI Chat Completions API
-- **🧠 Session Management**: Intelligent conversation continuity with session persistence
+- **🧠 Session Management**: Intelligent conversation continuity with persistence
 - **🌊 Streaming Support**: Real-time response streaming with Server-Sent Events
-- **🔐 Multi-Provider Auth**: Automatic detection of Anthropic, Bedrock, Vertex, or Claude CLI authentication
-- **🛡️ API Protection**: Optional bearer token authentication for endpoint security
+- **🔐 Multi-Provider Auth**: Auto-detects Anthropic, Bedrock, Vertex, Claude CLI auth
+- **🛡️ API Protection**: Optional bearer token authentication for endpoints
 - **🛠️ Perfect Tool Calls**: Claude automatically generates OpenAI `tool_calls` format
-- **⚡ Zero Conversion**: Direct JSON passthrough, no parsing overhead
-- **🔄 Multi-Tool Support**: Multiple tools in single response with intelligent orchestration
-- **📡 Cross-Platform**: Works across different Claude Code CLI installations
-- **🎯 Template-Based**: 100% success rate with concrete JSON templates
-- **🏗️ Production Ready**: Comprehensive CLI, background services, and monitoring
 
 ## 📦 Installation
 
-### Global Installation (Recommended)
+```bash
+# Install globally from npm
+npm install -g claude-wrapper
+```
+
+## 🛠️ Development
 
 ```bash
 # Clone and setup
-git clone <repository-url>
-cd claude-wrapper-poc/app
-npm install
-npm run build
-
-# Install globally for CLI access
-npm install -g .
-```
-
-### Local Development
-
-```bash
-# Development setup
-cd claude-wrapper-poc/app
+git clone https://github.com/ChrisColeTech/claude-wrapper.git
+cd claude-wrapper
 npm install
 npm run build
 
 # Development commands
-npm run dev          # Development mode with ts-node
-npm run build        # Build TypeScript to JavaScript
+npm run dev          # Hot reload development
 npm test            # Run tests
-npm run test:unit    # Run unit tests only
-npm run test:integration  # Run integration tests only
+npm run lint        # Code quality
+
+# Install CLI globally for testing
+npm install -g .
 ```
 
-## 🚀 Quick Start
-
-### 1. Start the Background Service
+## 📋 CLI Options
 
 ```bash
-# Start server on default port (8000)
-claude-wrapper
+Usage: claude-wrapper [options] [port]
 
-# Start with custom configuration  
-claude-wrapper --port 9999 --no-interactive --verbose
-```
+Claude API wrapper with OpenAI compatibility
 
-The CLI will start the server as a **background service** and exit immediately. The server runs independently with these endpoints:
-- `POST http://localhost:8000/v1/chat/completions` - Main chat completions with session support
-- `GET http://localhost:8000/v1/models` - Available models (sonnet, opus)
-- `GET http://localhost:8000/v1/sessions` - List active sessions
-- `GET http://localhost:8000/v1/sessions/stats` - Session statistics
-- `GET http://localhost:8000/health` - Health check
+Arguments:
+  port                 port to run server on (default: 8000) - alternative to
+                       --port option
 
-### 2. Manage the Service
-
-```bash
-# Check server status
-claude-wrapper --status
-
-# Stop the background server
-claude-wrapper --stop
-
-# View help and all available options
-claude-wrapper --help
-```
-
-### 3. Test with cURL
-
-```bash
-# Basic chat completion
-curl -X POST http://localhost:8000/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "sonnet",
-    "messages": [
-      {"role": "user", "content": "What is 2+2?"}
-    ]
-  }'
-
-# Session-aware conversation
-curl -X POST http://localhost:8000/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "sonnet",
-    "messages": [
-      {"role": "user", "content": "Hello, I want to learn Python"}
-    ],
-    "session_id": "learning-session"
-  }'
-
-# Continue conversation with session
-curl -X POST http://localhost:8000/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "sonnet",
-    "messages": [
-      {"role": "user", "content": "What are Python functions?"}
-    ],
-    "session_id": "learning-session"
-  }'
-
-# Test health endpoint
-curl http://localhost:8000/health
+Options:
+  -V, --version        output the version number
+  -p, --port <port>    port to run server on (default: 8000)
+  -v, --verbose        enable verbose logging
+  -d, --debug          enable debug mode
+  --api-key <key>      set API key for endpoint protection
+  --no-interactive     disable interactive API key setup
+  --production         enable production server management features
+  --health-monitoring  enable health monitoring system
+  --stop               stop background server
+  --status             check background server status
+  -h, --help           display help for command
 ```
 
 ## 📡 API Endpoints
@@ -148,372 +96,72 @@ curl http://localhost:8000/health
 | `POST` | `/v1/sessions/:id/messages` | Add messages to a session |
 | `GET` | `/v1/auth/status` | Check authentication configuration and status |
 | `GET` | `/health` | Service health check |
+| `GET` | `/docs` | Interactive API documentation (Swagger UI) |
+| `GET` | `/swagger.json` | OpenAPI 3.0 specification JSON schema |
 
-## 🧠 Session Management
-
-**Intelligent conversation continuity with automatic session persistence:**
-
-- **Session IDs**: Use `session_id` parameter to maintain conversation history
-- **Automatic Creation**: Sessions are created automatically when referenced
-- **TTL Management**: Sessions expire after 1 hour of inactivity (configurable)
-- **Background Cleanup**: Expired sessions are automatically cleaned up
-- **Memory Optimization**: Message history is limited to prevent memory bloat
-
-### Session Usage Examples
+## 🚀 Quick Start
 
 ```bash
-# Create a session by sending a message with session_id
-curl -X POST http://localhost:8000/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "sonnet",
-    "messages": [{"role": "user", "content": "Hello"}],
-    "session_id": "my-conversation"
-  }'
-
-# Continue the conversation - full history is maintained
-curl -X POST http://localhost:8000/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "sonnet", 
-    "messages": [{"role": "user", "content": "What did I just say?"}],
-    "session_id": "my-conversation"
-  }'
-
-# List all active sessions
-curl http://localhost:8000/v1/sessions
-
-# Get session details including full message history
-curl http://localhost:8000/v1/sessions/my-conversation
-
-# Delete a session
-curl -X DELETE http://localhost:8000/v1/sessions/my-conversation
-```
-
-## 🔐 HTTP API Protection
-
-**Optional bearer token authentication for HTTP endpoints:**
-
-**⚠️ IMPORTANT: Authentication is completely optional!** Claude Wrapper works perfectly without any authentication setup - just start the server and make requests.
-
-### Security Features
-
-- **🔓 No Authentication Required** - Default mode, full access without tokens
-- **🔐 Bearer Token Protection** - Optional API key protection for endpoints  
-- **⚡ Constant-Time Comparison** - Prevents timing attack vulnerabilities
-- **🎯 Selective Protection** - Health/models endpoints always public
-- **🔑 Secure Key Generation** - Built-in secure API key generator
-
-### Two Modes
-
-**🔓 Mode 1: No Authentication (Default)**
-- Start: `claude-wrapper` 
-- Use: Make requests without any Authorization headers
-- Perfect for: Local development, testing, private networks
-
-**🔐 Mode 2: API Key Protection (Optional)**  
-- Start: `claude-wrapper --api-key your-key`
-- Use: Include `Authorization: Bearer your-key` header  
-- Perfect for: Shared servers, production deployments, access control
-
-### Claude CLI Integration
-
-Claude Wrapper simply calls your existing Claude Code CLI. Set up Claude CLI authentication however you normally would - the wrapper doesn't manage or configure Claude authentication.
-
-### No Authentication Required
-
-**Default Behavior:**
-```bash
-# Start server (no authentication needed)
-claude-wrapper
-
-# Make requests directly - no Authorization header required
-curl -X POST http://localhost:8000/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "sonnet",
-    "messages": [{"role": "user", "content": "Hello"}]
-  }'
-
-# All endpoints work without authentication
-curl http://localhost:8000/health
-curl http://localhost:8000/v1/models
-```
-
-### API Protection (Optional)
-
-Protect your HTTP endpoints with bearer token authentication:
-
-```bash
-# Start server with API key protection
-claude-wrapper --api-key my-secure-api-key-12345
-
-# Or set via environment variable
-export API_KEY=my-secure-api-key-12345
 claude-wrapper
 ```
 
-**Protected endpoint usage:**
-```bash
-# Protected endpoints require Authorization header
-curl -X POST http://localhost:8000/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer my-secure-api-key-12345" \
-  -d '{
-    "model": "sonnet",
-    "messages": [{"role": "user", "content": "Hello"}]
-  }'
+You'll see an interactive prompt asking if you want API key protection:
 
-# Public endpoints still work without authentication
-curl http://localhost:8000/health                    # ✅ Always works
-curl http://localhost:8000/v1/models                 # ✅ Always works  
-
-# Missing token is rejected
-curl -X POST http://localhost:8000/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{"model": "sonnet", "messages": [{"role": "user", "content": "test"}]}'
-# Returns: {"error": {"message": "Missing Authorization header..."}}
+```
+🚀 Starting Claude Wrapper...
+🔐 API Key Protection Setup
+Would you like to enable API key protection? (y/n): 
 ```
 
+- **Choose 'y'** to generate a secure API key for protection
+- **Choose 'n' or press Enter** to run without authentication
 
-## 🖥️ CLI Command Reference
+Server starts at `http://localhost:8000` - you're ready to make API calls!
 
-### Installation and Basic Usage
+## 🔐 Authentication Options
+
+**Authentication is completely optional!** You can also bypass the interactive setup:
 
 ```bash
-# Install globally
-npm install -g .
+# Skip interactive setup (no authentication)
+claude-wrapper --no-interactive
 
-# Start background service (default port 8000)
+# Or provide API key directly
+claude-wrapper --api-key my-secure-key
+```
+
+## 🚀 CLI Usage
+
+### Starting the Server
+
+```bash
+# Start server on default port (8000)
 claude-wrapper
 
-# Start with custom configuration
-claude-wrapper --port 9999 --no-interactive --verbose
+# Start server on specific port
+claude-wrapper 9999
+claude-wrapper --port 8080
+
+# Start with verbose logging
+claude-wrapper --verbose
+
+# Start with debug information
+claude-wrapper --debug --verbose
 ```
 
-### Service Management
+### Managing the Background Service
 
 ```bash
-# Check service status
+# Check if server is running
 claude-wrapper --status
 
-# Stop background service
+# Stop the background server
 claude-wrapper --stop
-
-# View version
-claude-wrapper --version
-
-# Show help
-claude-wrapper --help
 ```
-
-### Available CLI Flags
-
-| Flag | Description | Example |
-|------|-------------|---------|
-| `-p, --port <port>` | Set server port (default: 8000) | `claude-wrapper --port 9999` |
-| `-v, --verbose` | Enable verbose logging | `claude-wrapper --verbose` |
-| `-d, --debug` | Enable debug mode | `claude-wrapper --debug` |
-| `--api-key <key>` | Set API key for endpoint protection | `claude-wrapper --api-key mykey123` |
-| `--no-interactive` | Disable interactive prompts | `claude-wrapper --no-interactive` |
-| `--stop` | Stop background server | `claude-wrapper --stop` |
-| `--status` | Check server status | `claude-wrapper --status` |
-| `--help` | Show help information | `claude-wrapper --help` |
-| `--version` | Show version number | `claude-wrapper --version` |
-
-### Background Service Architecture
-
-The CLI operates as a **service manager** that:
-1. **Spawns detached background process** - Server runs independently
-2. **Exits immediately** - CLI command returns control to terminal
-3. **Maintains PID files** - Enables status checking and stopping
-4. **Supports graceful shutdown** - Proper cleanup on stop
-
-```bash
-# This pattern works correctly:
-claude-wrapper --port 9999 --no-interactive       # Starts service, exits immediately
-claude-wrapper --status                            # Shows: RUNNING
-curl http://localhost:9999/health                  # Server responds
-claude-wrapper --stop                              # Stops service gracefully
-```
-
-## 🔧 Process Management (Phase 6A)
-
-**Enterprise-grade background process management with production-ready reliability:**
-
-Claude Wrapper now includes comprehensive process management capabilities for robust background service operation. This system provides proper daemon management, graceful shutdown handling, and process monitoring for production environments.
-
-### Background Service Features
-
-- **🔄 Daemon Process Management**: Spawns detached background processes with proper lifecycle management
-- **📁 PID File Management**: Safe creation, validation, and cleanup of process identification files
-- **🛑 Graceful Shutdown**: SIGTERM/SIGINT signal handling with configurable shutdown steps
-- **📊 Process Health Monitoring**: Real-time status checking and health validation
-- **⚡ Performance Optimized**: <200ms operation targets for all process management functions
-
-### Process Management Commands
-
-```bash
-# Start background service (daemon mode)
-claude-wrapper
-# Output: 🚀 Claude Wrapper server started in background (PID: 12345)
-
-# Check detailed service status
-claude-wrapper --status
-# Output: 📊 Server Status: RUNNING
-#         PID: 12345
-#         Health: ✅ HEALTHY
-
-# Stop background service gracefully
-claude-wrapper --stop
-# Output: ✅ Server stopped successfully
-
-# Service automatically handles:
-# - PID file creation and validation
-# - Graceful shutdown on system signals
-# - Stale process cleanup
-# - Health monitoring
-```
-
-### Production Process Architecture
-
-The process management system follows enterprise patterns:
-
-1. **Daemon Spawning**: Creates detached background processes that survive terminal closure
-2. **PID Management**: Maintains process identification files for service tracking
-3. **Signal Handling**: Responds to system signals (SIGTERM, SIGINT) for graceful shutdown
-4. **Health Monitoring**: Provides status checking and health validation endpoints
-5. **Error Recovery**: Automatic cleanup of stale processes and PID files
-
-### Process Lifecycle Example
-
-```bash
-# 1. Start the service
-$ claude-wrapper --port 9999 --verbose
-🚀 Claude Wrapper server started in background (PID: 67890)
-📡 API available at http://localhost:9999/v1/chat/completions
-📊 Health check at http://localhost:9999/health
-
-# CLI exits immediately, server continues running
-
-# 2. Verify service is running
-$ claude-wrapper --status
-📊 Server Status: RUNNING
-   PID: 67890  
-   Health: ✅ HEALTHY
-
-# 3. Service responds to requests
-$ curl http://localhost:9999/health
-{"status":"healthy","timestamp":"2025-01-08T12:00:00.000Z"}
-
-# 4. Stop service gracefully
-$ claude-wrapper --stop
-✅ Server stopped successfully
-
-# 5. Verify service stopped
-$ claude-wrapper --status
-📊 Server Status: NOT RUNNING
-```
-
-### Advanced Process Features
-
-**Automatic Cleanup:**
-- Detects and removes stale PID files from crashed processes
-- Validates process existence before reporting status
-- Handles system restarts and unexpected shutdowns
-
-**Production Reliability:**
-- Process operations complete within 200ms performance targets
-- Comprehensive error handling for all failure scenarios
-- SOLID architecture with dependency injection for testing
-
-**Development Integration:**
-- Seamless integration with existing CLI commands
-- Maintains full backward compatibility
-- Extensive test coverage (48 tests covering all process scenarios)
-
-### Process Management API
-
-The background service exposes process health information:
-
-```bash
-# Health check endpoint (used internally by --status)
-curl http://localhost:8000/health
-# Response: {"status":"healthy","timestamp":"2025-01-08T12:00:00.000Z"}
-
-# Service automatically registers with process manager
-# PID files stored in system temp directory
-# Graceful shutdown on SIGTERM/SIGINT signals
-```
-
-This process management system enables reliable production deployments with proper service lifecycle management, health monitoring, and graceful shutdown capabilities.
-
-## 🏆 Production Results
-
-### **✅ Validated Concepts**
-- **100% success rate** with Claude Sonnet 4 and template approach
-- **Perfect tool_calls generation** - OpenAI format without training
-- **Zero conversion overhead** - Direct JSON passthrough
-- **Cross-platform compatibility** - Works across Claude installations
-- **Session continuity** - Intelligent conversation management
-- **Streaming responses** - Real-time Server-Sent Events
-
-### **🎯 Key Discoveries**
-- **Template-based format control** beats abstract instructions
-- **Stdin approach** handles unlimited prompt lengths
-- **Client-side tool execution** provides security and flexibility
-- **Simple architecture** achieves enterprise-grade compatibility
-- **Session management** enables complex multi-turn conversations
-- **Background services** provide production-ready reliability
-
-### **⚡ Performance**
-- **~5ms template injection** overhead
-- **No parsing bottlenecks** 
-- **Direct JSON passthrough**
-- **Horizontally scalable** architecture
-- **Efficient session storage** with automatic cleanup
-- **Streaming latency** under 100ms first chunk delivery
 
 ## 📚 Documentation
 
-📖 **[Full Documentation](docs/README.md)** - Comprehensive analysis, technical details, implementation findings, and production rewrite planning.
-
-### **Documentation Index**
-- **[Complete Feature Analysis](docs/README.md)** - POC + original project comparison
-- **[Implementation Plan](docs/IMPLEMENTATION_PLAN.md)** - Phase-by-phase rewrite strategy
-- **[Project Structure](docs/PROJECT_STRUCTURE.md)** - Target architecture organization
-- **[Architecture Guide](docs/ARCHITECTURE.md)** - SOLID principles and best practices
-- **[API Reference](docs/API_REFERENCE.md)** - Complete endpoint documentation
-- **[Code Examples](docs/CODE_EXAMPLES.md)** - Implementation patterns and techniques
-
-## 🎯 Current Status
-
-**✅ PHASE 4A COMPLETE** - Streaming Support + Session Management
-
-**Production-Ready Implementation:**
-- **✅ Template-based format control** (100% success rate)
-- **✅ Zero-conversion architecture** (direct JSON passthrough) 
-- **✅ Client-side tool execution** (secure MCP integration)
-- **✅ Production CLI interface** with global installation
-- **✅ Background service architecture** with proper daemon management
-- **✅ Session management** with intelligent conversation continuity
-- **✅ Real-time streaming** with Server-Sent Events
-- **✅ Comprehensive test suite** (314 tests, 100% passing)
-
-### Latest Features Implemented
-- **✅ Session Management** - Intelligent conversation continuity with TTL
-- **✅ Session API** - Full CRUD operations for session management
-- **✅ Streaming Support** - Real-time response streaming
-- **✅ Background Cleanup** - Automatic expired session cleanup
-- **✅ Memory Optimization** - Message history limiting
-- **✅ Session Statistics** - Detailed session analytics
-- **✅ Enhanced CLI** - Improved command structure and reliability
-
-## 🔄 Next Steps
-
-**Production Rewrite Strategy**: Build upon POC foundation and selectively integrate essential features from the original claude-wrapper project while avoiding over-engineering.
-
-See **[Implementation Plan](docs/IMPLEMENTATION_PLAN.md)** for the complete phase-by-phase rewrite strategy.
+📖 **[Full Documentation](docs/README.md)** - Comprehensive guide with detailed examples, production deployment, troubleshooting, and advanced configuration.
 
 ## 📄 License
 
@@ -522,7 +170,6 @@ MIT License - see [LICENSE](LICENSE) file for details.
 ---
 
 ⭐ **Star this repository** if you find it useful!  
-🐛 **Report issues** or suggest features  
-📖 **Read the [Full Documentation](docs/README.md)** for comprehensive details
+🐛 **Report issues** or suggest features at [GitHub Issues](https://github.com/ChrisColeTech/claude-wrapper/issues)
 
-**POC Status**: All core concepts validated and ready for production implementation!
+**Get started today** - `npm install -g claude-wrapper` and transform your Claude CLI into a powerful HTTP API!
