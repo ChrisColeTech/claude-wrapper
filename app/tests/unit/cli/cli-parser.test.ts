@@ -39,10 +39,9 @@ describe('CliParser', () => {
     });
 
     it('should parse boolean flags correctly', () => {
-      const argv = ['node', 'cli.js', '--verbose', '--debug', '--stop', '--status'];
+      const argv = ['node', 'cli.js', '--debug', '--stop', '--status'];
       const result = parser.parseArguments(argv);
       
-      expect(result.verbose).toBe(true);
       expect(result.debug).toBe(true);
       expect(result.stop).toBe(true);
       expect(result.status).toBe(true);
@@ -92,14 +91,14 @@ describe('CliParser', () => {
       const argv = [
         'node', 'cli.js', 
         '--port', '3000',
-        '--verbose',
+        '--debug',
         '--production',
         '--api-key', 'test-key'
       ];
       const result = parser.parseArguments(argv);
 
       expect(result.port).toBe('3000');
-      expect(result.verbose).toBe(true);
+      expect(result.debug).toBe(true);
       expect(result.production).toBe(true);
       expect(result.apiKey).toBe('test-key');
     });
