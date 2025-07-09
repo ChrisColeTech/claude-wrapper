@@ -1,7 +1,9 @@
 module.exports = {
   displayName: "Integration Tests",
-  preset: "ts-jest",
   testEnvironment: "node",
+  transform: {
+    '^.+\\.tsx?$': 'ts-jest'
+  },
   rootDir: "../",
   testMatch: ["<rootDir>/tests/integration/**/*.test.ts"],
   setupFilesAfterEnv: ["<rootDir>/tests/setup.ts"],

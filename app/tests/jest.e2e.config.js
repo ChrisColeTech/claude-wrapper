@@ -1,7 +1,9 @@
 module.exports = {
   displayName: "E2E Tests",
-  preset: "ts-jest",
   testEnvironment: "node",
+  transform: {
+    '^.+\\.tsx?$': 'ts-jest'
+  },
   rootDir: "../",
   testMatch: ["<rootDir>/tests/e2e/**/*.test.ts"],
   setupFilesAfterEnv: ["<rootDir>/tests/setup.ts"],
