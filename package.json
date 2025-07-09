@@ -1,6 +1,6 @@
 {
   "name": "claude-wrapper",
-  "version": "1.0.10",
+  "version": "1.1.0",
   "description": "Production-ready OpenAI-compatible API wrapper for Claude Code CLI with streaming, sessions, and authentication",
   "main": "app/dist/cli.js",
   "bin": {
@@ -18,7 +18,8 @@
     "lint": "cd app && npm run lint",
     "typecheck": "cd app && npm run typecheck",
     "clean": "cd app && npm run clean",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "precommit": "npm run build && npm run test:unit && npm run lint && npm run typecheck"
   },
   "keywords": [
     "claude",
