@@ -37,8 +37,7 @@
     "lint:fix": "eslint src tests --ext .ts --fix",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist",
-    "clean:logs": "rm -rf tests/logs/pass/* tests/logs/fail/* tests/logs/verbose/*",
-    "postinstall": "npm run build > build.log 2>&1"
+    "clean:logs": "rm -rf tests/logs/pass/* tests/logs/fail/* tests/logs/verbose/*"
   },
   "dependencies": {
     "@types/swagger-jsdoc": "^6.0.4",
