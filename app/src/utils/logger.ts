@@ -1,4 +1,5 @@
 import { EnvironmentManager } from '../config/env';
+import chalk from 'chalk';
 
 export enum LogLevel {
   ERROR = 'error',
@@ -49,6 +50,42 @@ export class Logger {
     }
   }
 
+  private colorizeConsoleOutput(level: LogLevel, message: string, prefix: string): string {
+    // Only use colors in debug or verbose mode
+    if (!EnvironmentManager.isDebugMode() && !EnvironmentManager.isVerboseMode()) {
+      return `${prefix} ${message}`;
+    }
+
+    switch (level) {
+      case LogLevel.ERROR:
+        return chalk.red(`${prefix} ${message}`);
+      case LogLevel.WARN:
+        return chalk.yellow(`${prefix} ${message}`);
+      case LogLevel.INFO:
+        return chalk.green(`${prefix} ${message}`);
+      case LogLevel.DEBUG:
+        return chalk.cyan(`${prefix} ${message}`);
+      default:
+        return `${prefix} ${message}`;
+    }
+  }
+
+  private colorizeHttpOutput(type: 'request' | 'response', message: string, prefix: string): string {
+    // Only use colors in debug or verbose mode
+    if (!EnvironmentManager.isDebugMode() && !EnvironmentManager.isVerboseMode()) {
+      return `${prefix} ${message}`;
+    }
+
+    switch (type) {
+      case 'request':
+        return chalk.magenta(`${prefix} ${message}`);
+      case 'response':
+        return chalk.blue(`${prefix} ${message}`);
+      default:
+        return `${prefix} ${message}`;
+    }
+  }
+
   error(message: string, error?: Error, context?: any): void {
     const timestamp = new Date().toISOString();
     const entry: LogEntry = {
@@ -60,7 +97,8 @@ export class Logger {
     };
     
     this.storeLog(entry);
-    console.error(`[ERROR] ${timestamp} ${message}`, error, context);
+    const colorizedOutput = this.colorizeConsoleOutput(LogLevel.ERROR, `${timestamp} ${message}`, '[ERROR]');
+    console.error(colorizedOutput, error, context);
   }
 
   warn(message: string, context?: any): void {
@@ -74,7 +112,8 @@ export class Logger {
       };
       
       this.storeLog(entry);
-      console.warn(`[WARN] ${timestamp} ${message}`, context);
+      const colorizedOutput = this.colorizeConsoleOutput(LogLevel.WARN, `${timestamp} ${message}`, '[WARN]');
+      console.warn(colorizedOutput, context);
     }
   }
 
@@ -89,7 +128,8 @@ export class Logger {
       };
       
       this.storeLog(entry);
-      console.info(`[INFO] ${timestamp} ${message}`, context);
+      const colorizedOutput = this.colorizeConsoleOutput(LogLevel.INFO, `${timestamp} ${message}`, '[INFO]');
+      console.info(colorizedOutput, context);
     }
   }
 
@@ -104,17 +144,21 @@ export class Logger {
       };
       
       this.storeLog(entry);
-      console.debug(`[DEBUG] ${timestamp} ${message}`, context);
+      const colorizedOutput = this.colorizeConsoleOutput(LogLevel.DEBUG, `${timestamp} ${message}`, '[DEBUG]');
+      console.debug(colorizedOutput, context);
     }
   }
 
   // New method for HTTP request/response logging
   http(type: 'request' | 'response', message: string, context?: any, requestId?: string): void {
-    if (this.shouldLog(LogLevel.DEBUG)) {
+    // HTTP logging works at INFO level in verbose mode or DEBUG level in debug mode
+    const logLevel = EnvironmentManager.isVerboseMode() ? LogLevel.INFO : LogLevel.DEBUG;
+    
+    if (this.shouldLog(logLevel)) {
       const timestamp = new Date().toISOString();
       const entry: LogEntry = {
         timestamp,
-        level: LogLevel.DEBUG,
+        level: logLevel,
         message,
         ...(context && { context }),
         ...(requestId && { requestId }),
@@ -122,7 +166,8 @@ export class Logger {
       };
       
       this.storeLog(entry);
-      console.debug(`[${type.toUpperCase()}] ${timestamp} ${message}`, context);
+      const colorizedOutput = this.colorizeHttpOutput(type, `${timestamp} ${message}`, `[${type.toUpperCase()}]`);
+      console.log(colorizedOutput, context);
     }
   }
 
@@ -184,14 +229,16 @@ export class Logger {
   cliVerbose(message: string): void {
     // Only show in verbose mode
     if (EnvironmentManager.isVerboseMode()) {
-      console.log(`[VERBOSE] ${message}`);
+      const colorizedOutput = this.colorizeConsoleOutput(LogLevel.INFO, message, '[VERBOSE]');
+      console.log(colorizedOutput);
     }
   }
 
   cliDebug(message: string): void {
     // Only show in debug mode
     if (EnvironmentManager.isDebugMode()) {
-      console.log(`[DEBUG] ${message}`);
+      const colorizedOutput = this.colorizeConsoleOutput(LogLevel.DEBUG, message, '[DEBUG]');
+      console.log(colorizedOutput);
     }
   }
 }

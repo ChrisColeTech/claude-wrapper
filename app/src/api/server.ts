@@ -20,11 +20,11 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Enhanced request/response logging middleware (only in debug mode)
-if (EnvironmentManager.isDebugMode()) {
+// Enhanced request/response logging middleware (debug mode or verbose mode)
+if (EnvironmentManager.isDebugMode() || EnvironmentManager.isVerboseMode()) {
   app.use(requestLoggingMiddleware);
 } else {
-  // Basic request logging for non-debug mode
+  // Basic request logging for standard mode
   app.use((req, _res, next) => {
     logger.info('Request received', {
       method: req.method,
