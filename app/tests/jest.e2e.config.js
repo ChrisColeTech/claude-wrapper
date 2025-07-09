@@ -16,7 +16,9 @@ module.exports = {
     "^@types/(.*)$": "<rootDir>/src/types/$1"
   },
   transform: {
-    '^.+\\.tsx?$': 'ts-jest'
+    '^.+\\.tsx?$': ['ts-jest', {
+      tsconfig: '<rootDir>/tests/tsconfig.json'
+    }]
   },
   // Use timeout in setup.ts instead
   clearMocks: false,
