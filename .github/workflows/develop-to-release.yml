@@ -64,12 +64,18 @@ jobs:
     - name: Create or update PR to release
       if: steps.check-pr.outputs.pr_exists == '0'
       run: |
-        # Generate commit summary
-        COMMIT_SUMMARY=$(git log --oneline origin/release..HEAD | head -10)
+        # Generate commit summary (limit to 5 most recent, with total count)
+        COMMIT_COUNT=$(git log --oneline origin/release..HEAD | wc -l)
+        COMMIT_SUMMARY=$(git log --oneline origin/release..HEAD | head -5)
+        
+        # Generate change summary by category
+        FEATURES=$(git log --oneline origin/release..HEAD --grep="feat\|add\|new" | head -3)
+        FIXES=$(git log --oneline origin/release..HEAD --grep="fix\|bug" | head -3)
+        IMPROVEMENTS=$(git log --oneline origin/release..HEAD --grep="improve\|update\|enhance" | head -3)
         
         # Create PR with validation status
         gh pr create --base release --head develop \
-          --title "🚀 Release Candidate: $(date '+%Y-%m-%d %H:%M')" \
+          --title "🚀 Release Candidate: $(date '+%Y-%m-%d') - $COMMIT_COUNT commits" \
           --body "## 🎯 Validation Status
         
         ✅ **Automated Checks Completed**
@@ -87,10 +93,29 @@ jobs:
         - [ ] Documentation updated
         - [ ] Ready for release
         
-        ## 📝 Recent Changes
+        ## 📊 Change Summary ($COMMIT_COUNT commits)
+        
+        ### 🆕 New Features
+        \`\`\`
+        ${FEATURES:-"No new features"}
+        \`\`\`
+        
+        ### 🐛 Bug Fixes
+        \`\`\`
+        ${FIXES:-"No bug fixes"}
+        \`\`\`
+        
+        ### ⚡ Improvements
+        \`\`\`
+        ${IMPROVEMENTS:-"No improvements"}
+        \`\`\`
+        
+        ### 📝 Recent Commits (last 5)
         \`\`\`
         $COMMIT_SUMMARY
         \`\`\`
+        
+        $(if [ $COMMIT_COUNT -gt 5 ]; then echo "... and $(($COMMIT_COUNT - 5)) more commits"; fi)
         
         ## 🔧 Next Steps
         1. Review the code changes
