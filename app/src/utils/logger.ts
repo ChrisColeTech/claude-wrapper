@@ -33,11 +33,6 @@ export class Logger {
       return LogLevel.DEBUG;
     }
 
-    // CLI verbose mode
-    if (EnvironmentManager.isVerboseMode()) {
-      return LogLevel.INFO;
-    }
-
     // Default config level
     const configLevel = EnvironmentManager.getConfig().logLevel;
     return LogLevel[configLevel.toUpperCase() as keyof typeof LogLevel] || LogLevel.INFO;
@@ -51,8 +46,8 @@ export class Logger {
   }
 
   private colorizeConsoleOutput(level: LogLevel, message: string, prefix: string): string {
-    // Only use colors in debug or verbose mode
-    if (!EnvironmentManager.isDebugMode() && !EnvironmentManager.isVerboseMode()) {
+    // Only use colors in debug mode
+    if (!EnvironmentManager.isDebugMode()) {
       return `${prefix} ${message}`;
     }
 
@@ -71,8 +66,8 @@ export class Logger {
   }
 
   private colorizeHttpOutput(type: 'request' | 'response', message: string, prefix: string): string {
-    // Only use colors in debug or verbose mode
-    if (!EnvironmentManager.isDebugMode() && !EnvironmentManager.isVerboseMode()) {
+    // Only use colors in debug mode
+    if (!EnvironmentManager.isDebugMode()) {
       return `${prefix} ${message}`;
     }
 
@@ -167,8 +162,8 @@ export class Logger {
 
   // New method for HTTP request/response logging
   http(type: 'request' | 'response', message: string, context?: any, requestId?: string): void {
-    // HTTP logging works at INFO level in verbose mode or DEBUG level in debug mode
-    const logLevel = EnvironmentManager.isVerboseMode() ? LogLevel.INFO : LogLevel.DEBUG;
+    // HTTP logging works at DEBUG level in debug mode
+    const logLevel = LogLevel.DEBUG;
     
     if (this.shouldLog(logLevel)) {
       const timestamp = new Date().toISOString();
@@ -246,13 +241,6 @@ export class Logger {
     console.error(message);
   }
 
-  cliVerbose(message: string): void {
-    // Only show in verbose mode
-    if (EnvironmentManager.isVerboseMode()) {
-      const colorizedOutput = this.colorizeConsoleOutput(LogLevel.INFO, message, '[VERBOSE]');
-      console.log(colorizedOutput);
-    }
-  }
 
   cliDebug(message: string): void {
     // Only show in debug mode

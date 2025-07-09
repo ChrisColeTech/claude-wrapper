@@ -20,8 +20,8 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Enhanced request/response logging middleware (debug mode or verbose mode)
-if (EnvironmentManager.isDebugMode() || EnvironmentManager.isVerboseMode()) {
+// Enhanced request/response logging middleware (debug mode)
+if (EnvironmentManager.isDebugMode()) {
   app.use(requestLoggingMiddleware);
 } else {
   // Basic request logging for standard mode
