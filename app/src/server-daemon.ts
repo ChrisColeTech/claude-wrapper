@@ -4,7 +4,6 @@
  * Runs the Express server in background without CLI interaction
  */
 
-import app from './api/server';
 import { logger } from './utils/logger';
 import { signalHandler } from './process/signals';
 
@@ -45,10 +44,10 @@ function parseDaemonArgs(): { port: number; apiKey?: string; verbose?: boolean; 
 /**
  * Main daemon function
  */
-function startDaemon(): void {
+async function startDaemon(): Promise<void> {
   const options = parseDaemonArgs();
   
-  // Set environment variables if provided
+  // Set environment variables BEFORE importing server (critical for middleware configuration)
   if (options.apiKey) {
     process.env['API_KEY'] = options.apiKey;
   }
@@ -58,6 +57,9 @@ function startDaemon(): void {
   if (options.debug) {
     process.env['DEBUG_MODE'] = 'true';
   }
+
+  // Import server AFTER setting environment variables
+  const { default: app } = await import('./api/server');
 
   // Start server
   const server = app.listen(options.port, '0.0.0.0', () => {
@@ -77,7 +79,10 @@ function startDaemon(): void {
 
 // Only run if this is the main module
 if (require.main === module) {
-  startDaemon();
+  startDaemon().catch(error => {
+    logger.error('Failed to start daemon', error);
+    process.exit(1);
+  });
 }
 
 export { startDaemon };

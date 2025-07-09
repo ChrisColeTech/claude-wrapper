@@ -76,7 +76,10 @@ export class DaemonManager implements IDaemonManager {
     try {
       const child = spawn(process.execPath, [scriptPath, ...args], {
         detached: true,
-        stdio: 'ignore'
+        stdio: 'ignore',
+        env: {
+          ...process.env  // Inherit parent environment variables
+        }
       });
 
       if (!child.pid) {
