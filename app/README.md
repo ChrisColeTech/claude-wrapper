@@ -1,6 +1,6 @@
 # Claude Wrapper
 
-[![CI Status](https://github.com/ChrisColeTech/claude-wrapper/workflows/CI/badge.svg)](https://github.com/ChrisColeTech/claude-wrapper/actions)
+[![CI Status](https://github.com/ChrisColeTech/claude-wrapper/workflows/Continuous%20Integration/badge.svg)](https://github.com/ChrisColeTech/claude-wrapper/actions)
 [![NPM Version](https://img.shields.io/npm/v/claude-wrapper.svg)](https://www.npmjs.com/package/claude-wrapper)
 [![GitHub Stars](https://img.shields.io/github/stars/ChrisColeTech/claude-wrapper.svg)](https://github.com/ChrisColeTech/claude-wrapper/stargazers)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -54,10 +54,11 @@ You'll see an interactive prompt asking if you want API key protection:
 🚀 Starting Claude Wrapper...
 🔐 API Key Protection Setup
 Would you like to enable API key protection? (y/n):
-```
+
 
 - **Choose 'y'** to generate a secure API key for protection
 - **Choose 'n' or press Enter** to run without authentication
+```
 
 Server starts at `http://localhost:8000` - you're ready to make API calls!
 
