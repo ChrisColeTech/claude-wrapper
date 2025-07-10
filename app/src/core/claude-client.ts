@@ -13,10 +13,12 @@ export class ClaudeClient implements IClaudeClient {
   async execute(request: ClaudeRequest): Promise<string> {
     try {
       const prompt = this.messagesToPrompt(request.messages, request.tools);
-      logger.debug('Converting messages to prompt', { 
+      logger.info('Executing Claude with prompt', { 
         messageCount: request.messages.length,
         model: request.model,
-        hasTools: !!request.tools 
+        hasTools: !!request.tools,
+        promptLength: prompt.length,
+        promptPreview: prompt.substring(0, 200) + '...'
       });
       
       const result = await this.resolver.executeClaudeCommand(prompt, request.model);
@@ -53,11 +55,20 @@ export class ClaudeClient implements IClaudeClient {
     
     for (const message of messages) {
       // Ensure content is properly serialized to string
-      const content = typeof message.content === 'string' 
+      let content = typeof message.content === 'string' 
         ? message.content 
         : typeof message.content === 'object'
         ? JSON.stringify(message.content)
         : String(message.content);
+      
+      // Handle cached system prompt references
+      if (message.role === 'system' && content.startsWith('[CACHED_SYSTEM_PROMPT:')) {
+        const hashMatch = content.match(/\[CACHED_SYSTEM_PROMPT:([a-f0-9]+)\]/);
+        if (hashMatch) {
+          logger.debug('Skipping cached system prompt', { hash: hashMatch[1] });
+          continue; // Skip this message entirely
+        }
+      }
       
       if (message.role === 'system') {
         prompt += `System: ${content}\n\n`;

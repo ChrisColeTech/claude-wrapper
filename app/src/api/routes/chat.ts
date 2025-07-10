@@ -20,7 +20,11 @@ router.post('/v1/chat/completions',
     logger.info('Chat completion request received', {
       model: req.body.model,
       messageCount: req.body.messages?.length,
-      isStreaming: req.body.stream
+      isStreaming: req.body.stream,
+      firstMessagePreview: req.body.messages?.[0]?.content?.substring(0, 200) + '...',
+      firstMessageRole: req.body.messages?.[0]?.role,
+      messageRoles: req.body.messages?.map((m: any) => m.role),
+      totalRequestSize: JSON.stringify(req.body).length
     });
 
     const request: OpenAIRequest = req.body;

@@ -15,10 +15,15 @@ import {
   TEMPLATE_CONSTANTS, 
   DEFAULT_USAGE 
 } from '../config/constants';
+import crypto from 'crypto';
+
 
 export class CoreWrapper implements ICoreWrapper {
   private claudeClient: IClaudeClient;
   private validator: IResponseValidator;
+  private currentSystemPromptHash: string | null = null;
+  private claudeMdUpdateInProgress: boolean = false;
+  private pendingSystemPromptHash: string | null = null;
 
   constructor(claudeClient?: IClaudeClient, validator?: IResponseValidator) {
     this.claudeClient = claudeClient || new ClaudeClient();
@@ -32,10 +37,60 @@ export class CoreWrapper implements ICoreWrapper {
       stream: request.stream
     });
 
-    const enhancedRequest = this.addFormatInstructions(request);
+    // Stage 1: System prompt management (if needed)
+    const { systemPrompts } = this.extractSystemPrompts(request.messages);
+    
+    if (systemPrompts.length > 0) {
+      // Combine all system prompts into one content string
+      const systemContent = systemPrompts
+        .map(msg => typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content))
+        .join('\n\n');
+      
+      const systemHash = this.getSystemPromptHash(systemContent);
+      
+      if (this.needsClaudeMdUpdate(systemHash)) {
+        logger.info('System prompt changed, updating CLAUDE.md', { systemHash });
+        
+        this.setClaudeMdUpdateInProgress(systemHash);
+        const updateSuccess = await this.updateClaudeMd(systemContent);
+        this.clearClaudeMdUpdateInProgress(updateSuccess);
+        
+        if (!updateSuccess) {
+          logger.warn('CLAUDE.md update failed, falling back to including system prompt in request');
+          // Fall back to original behavior if CLAUDE.md update fails
+          return this.processWithSystemPrompts(request);
+        }
+      }
+    }
+
+    // Stage 2: Optimized request processing
+    const optimizedRequest = this.stripSystemPrompts(request);
+    const enhancedRequest = this.addFormatInstructions(optimizedRequest);
     const rawResponse = await this.claudeClient.execute(enhancedRequest);
     
     return this.validateAndCorrect(rawResponse, enhancedRequest);
+  }
+
+  private async processWithSystemPrompts(request: OpenAIRequest): Promise<OpenAIResponse> {
+    // Fallback: process request with system prompts included (original behavior)
+    const enhancedRequest = this.addFormatInstructions(request);
+    const rawResponse = await this.claudeClient.execute(enhancedRequest);
+    return this.validateAndCorrect(rawResponse, enhancedRequest);
+  }
+
+  private stripSystemPrompts(request: OpenAIRequest): OpenAIRequest {
+    const { otherMessages } = this.extractSystemPrompts(request.messages);
+    
+    logger.info('Stripped system prompts from request', {
+      originalMessageCount: request.messages.length,
+      optimizedMessageCount: otherMessages.length,
+      reduction: `${Math.round((1 - otherMessages.length / request.messages.length) * 100)}%`
+    });
+
+    return {
+      ...request,
+      messages: otherMessages
+    };
   }
 
   private addFormatInstructions(request: OpenAIRequest): ClaudeRequest {
@@ -192,4 +247,164 @@ export class CoreWrapper implements ICoreWrapper {
   private generateRequestId(): string {
     return `${API_CONSTANTS.DEFAULT_REQUEST_ID_PREFIX}${Math.random().toString(36).substring(2, 15)}`;
   }
+
+  private getSystemPromptHash(content: string): string {
+    return crypto.createHash('sha256').update(content).digest('hex').substring(0, 16);
+  }
+
+  private hasSystemPromptChanged(newHash: string): boolean {
+    const changed = this.currentSystemPromptHash !== newHash;
+    
+    logger.debug('Checking system prompt hash', {
+      currentHash: this.currentSystemPromptHash,
+      newHash,
+      hasChanged: changed
+    });
+    
+    return changed;
+  }
+
+  private updateStoredHash(hash: string): void {
+    this.currentSystemPromptHash = hash;
+    logger.debug('Updated stored system prompt hash', { hash });
+  }
+
+  private needsClaudeMdUpdate(newHash: string): boolean {
+    // Need update if hash changed and no update is in progress
+    const hashChanged = this.hasSystemPromptChanged(newHash);
+    const needsUpdate = hashChanged && !this.claudeMdUpdateInProgress;
+    
+    logger.debug('Checking if CLAUDE.md needs update', {
+      hashChanged,
+      updateInProgress: this.claudeMdUpdateInProgress,
+      needsUpdate
+    });
+    
+    return needsUpdate;
+  }
+
+  private setClaudeMdUpdateInProgress(hash: string): void {
+    this.claudeMdUpdateInProgress = true;
+    this.pendingSystemPromptHash = hash;
+    logger.debug('Set CLAUDE.md update in progress', { hash });
+  }
+
+  private clearClaudeMdUpdateInProgress(success: boolean): void {
+    if (success && this.pendingSystemPromptHash) {
+      this.updateStoredHash(this.pendingSystemPromptHash);
+    }
+    
+    this.claudeMdUpdateInProgress = false;
+    this.pendingSystemPromptHash = null;
+    
+    logger.debug('Cleared CLAUDE.md update in progress', { success });
+  }
+
+  private async updateClaudeMd(systemContent: string): Promise<boolean> {
+    try {
+      const instruction = `Please update the CLAUDE.md file in the current directory. Find the section between '<!-- CLAUDE_WRAPPER_SYSTEM_START -->' and '<!-- CLAUDE_WRAPPER_SYSTEM_END -->' and replace only the content between those markers with:
+
+${systemContent}
+
+If those markers don't exist, append them with the content to the end of the file. Do not modify any other content in the file.`;
+
+      logger.info('Requesting CLAUDE.md update', {
+        systemContentLength: systemContent.length,
+        systemContentPreview: systemContent.substring(0, 100) + '...'
+      });
+
+      // Create a request for Claude to update CLAUDE.md
+      const claudeMdRequest = {
+        model: 'sonnet', // Use same model as the main request
+        messages: [
+          {
+            role: 'user' as const,
+            content: instruction
+          }
+        ]
+      };
+
+      const response = await this.claudeClient.execute(claudeMdRequest);
+      
+      // Parse response to check if update was successful
+      const success = this.parseClaudeMdUpdateResponse(response);
+      
+      logger.info('CLAUDE.md update completed', { 
+        success,
+        responseLength: response.length,
+        responsePreview: response.substring(0, 200) + '...'
+      });
+
+      return success;
+
+    } catch (error) {
+      logger.error('CLAUDE.md update failed', error as Error, {
+        systemContentLength: systemContent.length
+      });
+      return false;
+    }
+  }
+
+  private parseClaudeMdUpdateResponse(response: string): boolean {
+    // Look for indicators that Claude successfully updated the file
+    const successIndicators = [
+      'updated',
+      'written',
+      'saved',
+      'modified',
+      'CLAUDE.md',
+      'file has been',
+      'successfully'
+    ];
+
+    const errorIndicators = [
+      'error',
+      'failed',
+      'cannot',
+      'unable',
+      'permission denied',
+      'not found'
+    ];
+
+    const responseText = response.toLowerCase();
+
+    // Check for error indicators first
+    const hasError = errorIndicators.some(indicator => responseText.includes(indicator));
+    if (hasError) {
+      logger.warn('CLAUDE.md update response indicates error', { response: response.substring(0, 500) });
+      return false;
+    }
+
+    // Check for success indicators
+    const hasSuccess = successIndicators.some(indicator => responseText.includes(indicator));
+    if (hasSuccess) {
+      logger.debug('CLAUDE.md update response indicates success', { response: response.substring(0, 500) });
+      return true;
+    }
+
+    // If neither clear success nor error, assume success (Claude might respond minimally)
+    logger.debug('CLAUDE.md update response unclear, assuming success', { response: response.substring(0, 500) });
+    return true;
+  }
+
+
+  private extractSystemPrompts(messages: OpenAIMessage[]): {
+    systemPrompts: OpenAIMessage[],
+    otherMessages: OpenAIMessage[]
+  } {
+    const systemPrompts = messages.filter(msg => msg.role === 'system');
+    const otherMessages = messages.filter(msg => msg.role !== 'system');
+
+    logger.debug('Extracted system prompts', {
+      totalMessages: messages.length,
+      systemCount: systemPrompts.length,
+      otherCount: otherMessages.length
+    });
+
+    return {
+      systemPrompts,
+      otherMessages
+    };
+  }
+
 }

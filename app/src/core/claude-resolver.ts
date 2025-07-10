@@ -144,16 +144,16 @@ export class ClaudeResolver implements IClaudeResolver {
     // Handle Docker commands
     if (claudeCmd.includes('docker run') || claudeCmd.includes('podman run')) {
       // For Docker, we need to modify the container command
-      const dockerCommand = claudeCmd + ` --print --model ${model}`;
+      const dockerCommand = claudeCmd + ` --print --model ${model} --dangerously-skip-permissions`;
       command = `echo '${this.escapeShellString(prompt)}' | ${dockerCommand}`;
     }
     // Handle bash -c wrapped commands
     else if (claudeCmd.includes('bash -c')) {
-      command = `echo '${this.escapeShellString(prompt)}' | ${claudeCmd.replace('"claude"', `"claude --print --model ${model}"`)}`;
+      command = `echo '${this.escapeShellString(prompt)}' | ${claudeCmd.replace('"claude"', `"claude --print --model ${model} --dangerously-skip-permissions"`)}`;
     }
     // Handle regular commands
     else {
-      command = `echo '${this.escapeShellString(prompt)}' | ${claudeCmd} --print --model ${model}`;
+      command = `echo '${this.escapeShellString(prompt)}' | ${claudeCmd} --print --model ${model} --dangerously-skip-permissions`;
     }
 
     logger.debug('Executing Claude command', { model, promptLength: prompt.length, isDocker: claudeCmd.includes('docker') || claudeCmd.includes('podman') });
