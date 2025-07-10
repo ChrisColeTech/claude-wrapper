@@ -136,27 +136,55 @@ export class ClaudeResolver implements IClaudeResolver {
   }
 
   async executeClaudeCommand(prompt: string, model: string): Promise<string> {
+    return this.executeClaudeCommandWithSession(prompt, model, null, false);
+  }
+
+  async executeClaudeCommandWithSession(
+    prompt: string, 
+    model: string, 
+    sessionId: string | null, 
+    useJsonOutput: boolean
+  ): Promise<string> {
     const claudeCmd = await this.findClaudeCommand();
     const config = EnvironmentManager.getConfig();
+    
+    // Build command flags
+    let flags = `--print --model ${model}`;
+    
+    // Add session flag if provided
+    if (sessionId) {
+      flags += ` --resume ${sessionId}`;
+    }
+    
+    // Add JSON output flag if requested
+    if (useJsonOutput) {
+      flags += ` --output-format json`;
+    }
     
     let command: string;
     
     // Handle Docker commands
     if (claudeCmd.includes('docker run') || claudeCmd.includes('podman run')) {
       // For Docker, we need to modify the container command
-      const dockerCommand = claudeCmd + ` --print --model ${model}`;
+      const dockerCommand = claudeCmd + ` ${flags}`;
       command = `echo '${this.escapeShellString(prompt)}' | ${dockerCommand}`;
     }
     // Handle bash -c wrapped commands
     else if (claudeCmd.includes('bash -c')) {
-      command = `echo '${this.escapeShellString(prompt)}' | ${claudeCmd.replace('"claude"', `"claude --print --model ${model}"`)}`;
+      command = `echo '${this.escapeShellString(prompt)}' | ${claudeCmd.replace('"claude"', `"claude ${flags}"`)}`;
     }
     // Handle regular commands
     else {
-      command = `echo '${this.escapeShellString(prompt)}' | ${claudeCmd} --print --model ${model}`;
+      command = `echo '${this.escapeShellString(prompt)}' | ${claudeCmd} ${flags}`;
     }
 
-    logger.debug('Executing Claude command', { model, promptLength: prompt.length, isDocker: claudeCmd.includes('docker') || claudeCmd.includes('podman') });
+    logger.debug('Executing Claude command with session', { 
+      model, 
+      promptLength: prompt.length, 
+      sessionId,
+      useJsonOutput,
+      isDocker: claudeCmd.includes('docker') || claudeCmd.includes('podman')
+    });
     
     try {
       const { stdout, stderr } = await execAsync(command, { 

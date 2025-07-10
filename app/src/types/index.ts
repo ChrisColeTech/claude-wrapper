@@ -52,11 +52,13 @@ export interface ClaudeRequest {
 // Core Interface Contracts (SOLID Principles)
 export interface IClaudeClient {
   execute(request: ClaudeRequest): Promise<string>;
+  executeWithSession(request: ClaudeRequest, sessionId: string | null, useJsonOutput: boolean): Promise<string>;
 }
 
 export interface IClaudeResolver {
   findClaudeCommand(): Promise<string>;
   executeClaudeCommand(prompt: string, model: string): Promise<string>;
+  executeClaudeCommandWithSession(prompt: string, model: string, sessionId: string | null, useJsonOutput: boolean): Promise<string>;
 }
 
 export interface IResponseValidator {

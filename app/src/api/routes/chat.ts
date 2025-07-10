@@ -5,16 +5,14 @@ import { OpenAIRequest } from '../../types';
 import { InvalidRequestError } from '../../utils/errors';
 import { asyncHandler } from '../middleware/error';
 import { streamingMiddleware } from '../middleware/streaming';
-import { sessionProcessingMiddleware } from '../middleware/session';
 import { logger } from '../../utils/logger';
 
 const router = Router();
 const coreWrapper = new CoreWrapper();
 const streamingHandler = new StreamingHandler();
 
-// Apply session and streaming middleware to chat completions
+// Apply streaming middleware to chat completions
 router.post('/v1/chat/completions', 
-  sessionProcessingMiddleware,
   streamingMiddleware,
   asyncHandler(async (req: Request, res: Response) => {
     logger.info('Chat completion request received', {
