@@ -52,12 +52,19 @@ export class ClaudeClient implements IClaudeClient {
     }
     
     for (const message of messages) {
+      // Ensure content is properly serialized to string
+      const content = typeof message.content === 'string' 
+        ? message.content 
+        : typeof message.content === 'object'
+        ? JSON.stringify(message.content)
+        : String(message.content);
+      
       if (message.role === 'system') {
-        prompt += `System: ${message.content}\n\n`;
+        prompt += `System: ${content}\n\n`;
       } else if (message.role === 'user') {
-        prompt += `Human: ${message.content}\n\n`;
+        prompt += `Human: ${content}\n\n`;
       } else if (message.role === 'assistant') {
-        prompt += `Assistant: ${message.content}\n\n`;
+        prompt += `Assistant: ${content}\n\n`;
       }
     }
     
