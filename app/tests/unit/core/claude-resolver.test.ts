@@ -88,7 +88,7 @@ describe('ClaudeResolver', () => {
     mockPathDetector.detectPath.mockResolvedValue('/usr/local/bin/claude');
 
     // Reset command executor mocks
-    mockCommandExecutor.execute.mockResolvedValue('{\"response\": \"test\"}');
+    mockCommandExecutor.execute.mockResolvedValue('{"response": "test"}');
     mockCommandExecutor.executeStreaming.mockResolvedValue({} as NodeJS.ReadableStream);
 
     // Reset singleton instance
