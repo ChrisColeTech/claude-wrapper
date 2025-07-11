@@ -26,13 +26,22 @@ interface ClaudeSessionState {
 }
 
 export class CoreWrapper implements ICoreWrapper {
+  private static instanceCount = 0;
+  private instanceId: string;
   private claudeClient: IClaudeClient;
   private validator: IResponseValidator;
   private claudeSessions: Map<string, ClaudeSessionState> = new Map();
 
   constructor(claudeClient?: IClaudeClient, validator?: IResponseValidator) {
+    this.instanceId = `wrapper-${++CoreWrapper.instanceCount}`;
     this.claudeClient = claudeClient || new ClaudeClient();
     this.validator = validator || new ResponseValidator();
+    
+    logger.debug('CoreWrapper instance created', { 
+      instanceId: this.instanceId,
+      totalInstances: CoreWrapper.instanceCount,
+      hasCustomClient: !!claudeClient 
+    });
   }
 
   async handleChatCompletion(request: OpenAIRequest): Promise<OpenAIResponse> {

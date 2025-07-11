@@ -4,20 +4,59 @@ import { IClaudeResolver } from '../types';
 import { ClaudeCliError, TimeoutError } from '../utils/errors';
 import { logger } from '../utils/logger';
 import { EnvironmentManager } from '../config/env';
+import { TempFileManager } from '../utils/temp-file-manager';
 
 const execAsync = promisify(exec);
 
 export class ClaudeResolver implements IClaudeResolver {
+  private static instanceCount = 0;
+  private instanceId: string;
   private claudeCommand: string | null = null;
 
+  constructor() {
+    this.instanceId = `resolver-${++ClaudeResolver.instanceCount}`;
+    logger.debug('ClaudeResolver instance created', { 
+      instanceId: this.instanceId,
+      totalInstances: ClaudeResolver.instanceCount 
+    });
+  }
+
   async findClaudeCommand(): Promise<string> {
+    logger.debug('Claude path cache check', { 
+      instanceId: this.instanceId,
+      hasCachedPath: !!this.claudeCommand,
+      cachedPath: this.claudeCommand 
+    });
+    
     if (this.claudeCommand) {
+      logger.debug('Using cached Claude path', { 
+        instanceId: this.instanceId,
+        cachedPath: this.claudeCommand 
+      });
       return this.claudeCommand;
     }
+    
+    logger.debug('Starting Claude path discovery', { 
+      instanceId: this.instanceId 
+    });
 
+    // Check environment variable override first
+    const envPath = process.env['CLAUDE_COMMAND'] || process.env['CLAUDE_CLI_PATH'];
+    if (envPath) {
+      logger.info('Using Claude path from environment variable', { 
+        instanceId: this.instanceId,
+        envPath 
+      });
+      this.claudeCommand = envPath;
+      return envPath;
+    }
+    
     const config = EnvironmentManager.getConfig();
     if (config.claudeCommand) {
-      logger.debug('Using Claude command from config', { command: config.claudeCommand });
+      logger.debug('Using Claude command from config', { 
+        instanceId: this.instanceId,
+        command: config.claudeCommand 
+      });
       this.claudeCommand = config.claudeCommand;
       return config.claudeCommand;
     }
@@ -80,8 +119,16 @@ export class ClaudeResolver implements IClaudeResolver {
           // Verify it works
           const testResult = await this.testClaudeCommand(actualPath);
           if (testResult) {
-            logger.info('Found Claude via PATH resolution', { path: actualPath, original: claudePath });
+            logger.info('Found Claude via PATH resolution', { 
+              instanceId: this.instanceId,
+              path: actualPath, 
+              original: claudePath 
+            });
             this.claudeCommand = actualPath;
+            logger.debug('Claude path cached', { 
+              instanceId: this.instanceId,
+              cachedPath: this.claudeCommand 
+            });
             return actualPath;
           }
         }
@@ -106,8 +153,15 @@ export class ClaudeResolver implements IClaudeResolver {
         const isWorking = await this.testClaudeCommand(envPath);
         
         if (isWorking) {
-          logger.info('Found Claude via environment variable', { path: envPath });
+          logger.info('Found Claude via environment variable', { 
+            instanceId: this.instanceId,
+            path: envPath 
+          });
           this.claudeCommand = envPath;
+          logger.debug('Claude path cached', { 
+            instanceId: this.instanceId,
+            cachedPath: this.claudeCommand 
+          });
           return envPath;
         }
       } catch (error) {
@@ -146,67 +200,15 @@ export class ClaudeResolver implements IClaudeResolver {
     useJsonOutput: boolean
   ): Promise<string> {
     const claudeCmd = await this.findClaudeCommand();
-    const config = EnvironmentManager.getConfig();
     
     // Build command flags
-    let flags = `--print --model ${model}`;
+    const flags = this.buildCommandFlags(model, sessionId, useJsonOutput);
     
-    // Add session flag if provided
-    if (sessionId) {
-      flags += ` --resume ${sessionId}`;
-    }
-    
-    // Add JSON output flag if requested
-    if (useJsonOutput) {
-      flags += ` --output-format json`;
-    }
-    
-    let command: string;
-    
-    // Handle Docker commands
-    if (claudeCmd.includes('docker run') || claudeCmd.includes('podman run')) {
-      // For Docker, we need to modify the container command
-      const dockerCommand = claudeCmd + ` ${flags}`;
-      command = `echo '${this.escapeShellString(prompt)}' | ${dockerCommand}`;
-    }
-    // Handle bash -c wrapped commands
-    else if (claudeCmd.includes('bash -c')) {
-      command = `echo '${this.escapeShellString(prompt)}' | ${claudeCmd.replace('"claude"', `"claude ${flags}"`)}`;
-    }
-    // Handle regular commands
-    else {
-      command = `echo '${this.escapeShellString(prompt)}' | ${claudeCmd} ${flags}`;
-    }
-
-    logger.debug('Executing Claude command with session', { 
-      model, 
-      promptLength: prompt.length, 
-      sessionId,
-      useJsonOutput,
-      isDocker: claudeCmd.includes('docker') || claudeCmd.includes('podman')
-    });
-    
-    try {
-      const { stdout, stderr } = await execAsync(command, { 
-        maxBuffer: 1024 * 1024 * 10,
-        timeout: config.timeout
-      });
-      
-      if (stderr && stderr.trim()) {
-        logger.warn('Claude CLI warning', { stderr: stderr.trim() });
-      }
-      
-      logger.debug('Claude command completed successfully');
-      return stdout.trim();
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('Claude CLI execution failed', error as Error);
-      
-      if (errorMessage.includes('timeout')) {
-        throw new TimeoutError(`Claude CLI execution timed out after ${config.timeout}ms`);
-      }
-      
-      throw new ClaudeCliError(`Claude CLI execution failed: ${errorMessage}`);
+    // Strategy selection based on prompt size
+    if (this.shouldUseStdin(prompt)) {
+      return this.executeWithStdin(prompt, claudeCmd, flags);
+    } else {
+      return this.executeWithCommandLine(prompt, claudeCmd, flags);
     }
   }
 
@@ -231,5 +233,191 @@ export class ClaudeResolver implements IClaudeResolver {
 
   private escapeShellString(str: string): string {
     return str.replace(/'/g, "'\"'\"'");
+  }
+
+  /**
+   * Determines if stdin approach should be used based on prompt size
+   * Use stdin for prompts > 50KB to avoid command line limits
+   */
+  private shouldUseStdin(prompt: string): boolean {
+    const threshold = 50 * 1024; // 50KB threshold
+    const useStdin = prompt.length > threshold;
+    
+    logger.debug('Execution strategy decision', {
+      promptLength: prompt.length,
+      threshold,
+      useStdin,
+      strategy: useStdin ? 'stdin' : 'command-line'
+    });
+    
+    return useStdin;
+  }
+
+  /**
+   * Builds command flags for Claude CLI
+   */
+  private buildCommandFlags(model: string, sessionId: string | null, useJsonOutput: boolean): string {
+    let flags = `--print --model ${model}`;
+    
+    // Add session flag if provided
+    if (sessionId) {
+      flags += ` --resume ${sessionId}`;
+    }
+    
+    // Add JSON output flag if requested
+    if (useJsonOutput) {
+      flags += ` --output-format json`;
+    }
+    
+    return flags;
+  }
+
+  /**
+   * Executes Claude command using stdin approach for large prompts
+   */
+  private async executeWithStdin(
+    prompt: string, 
+    claudeCmd: string, 
+    flags: string
+  ): Promise<string> {
+    const config = EnvironmentManager.getConfig();
+    let tempFile: string | null = null;
+    
+    try {
+      // Create temporary file with prompt content
+      tempFile = await TempFileManager.createTempFile(prompt);
+      
+      let command: string;
+      
+      // Handle Docker commands
+      if (claudeCmd.includes('docker run') || claudeCmd.includes('podman run')) {
+        // For Docker, we need to mount the temp file
+        const dockerCommand = claudeCmd.replace('docker run', `docker run -v "${tempFile}:${tempFile}:ro"`);
+        command = `cat "${tempFile}" | ${dockerCommand} ${flags}`;
+      }
+      // Handle bash -c wrapped commands
+      else if (claudeCmd.includes('bash -c')) {
+        command = `cat "${tempFile}" | ${claudeCmd.replace('"claude"', `"claude ${flags}"`)}`;;
+      }
+      // Handle regular commands
+      else {
+        command = `cat "${tempFile}" | ${claudeCmd} ${flags}`;
+      }
+      
+      logger.debug('Executing Claude command with stdin', { 
+        promptLength: prompt.length,
+        tempFile,
+        isDocker: claudeCmd.includes('docker') || claudeCmd.includes('podman')
+      });
+      
+      const { stdout, stderr } = await execAsync(command, { 
+        maxBuffer: 1024 * 1024 * 10,
+        timeout: config.timeout
+      });
+      
+      if (stderr && stderr.trim()) {
+        logger.warn('Claude CLI warning', { stderr: stderr.trim() });
+      }
+      
+      logger.debug('Claude command completed successfully via stdin');
+      return stdout.trim();
+      
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const stderr = (error as any).stderr || '';
+      const stdout = (error as any).stdout || '';
+      const code = (error as any).code || 'unknown';
+      
+      logger.error('Claude CLI execution failed (stdin)', error as Error, { 
+        tempFile,
+        stderr,
+        stdout,
+        code,
+        cwd: process.cwd()
+      });
+      
+      if (errorMessage.includes('timeout')) {
+        throw new TimeoutError(`Claude CLI execution timed out after ${config.timeout}ms`);
+      }
+      
+      throw new ClaudeCliError(`Claude CLI execution failed: ${errorMessage}. stderr: ${stderr}. stdout: ${stdout}`);
+      
+    } finally {
+      // Always cleanup temporary file
+      if (tempFile) {
+        await TempFileManager.cleanupTempFile(tempFile);
+      }
+    }
+  }
+
+  /**
+   * Executes Claude command using traditional command line approach
+   */
+  private async executeWithCommandLine(
+    prompt: string, 
+    claudeCmd: string, 
+    flags: string
+  ): Promise<string> {
+    const config = EnvironmentManager.getConfig();
+    let command: string;
+    
+    // Handle Docker commands
+    if (claudeCmd.includes('docker run') || claudeCmd.includes('podman run')) {
+      // For Docker, we need to modify the container command
+      const dockerCommand = claudeCmd + ` ${flags}`;
+      command = `echo '${this.escapeShellString(prompt)}' | ${dockerCommand}`;
+    }
+    // Handle bash -c wrapped commands
+    else if (claudeCmd.includes('bash -c')) {
+      command = `echo '${this.escapeShellString(prompt)}' | ${claudeCmd.replace('"claude"', `"claude ${flags}"`)}`;;
+    }
+    // Handle regular commands
+    else {
+      command = `echo '${this.escapeShellString(prompt)}' | ${claudeCmd} ${flags}`;
+    }
+
+    logger.debug('Executing Claude command with command line', { 
+      promptLength: prompt.length,
+      isDocker: claudeCmd.includes('docker') || claudeCmd.includes('podman')
+    });
+    
+    try {
+      const { stdout, stderr } = await execAsync(command, { 
+        maxBuffer: 1024 * 1024 * 10,
+        timeout: config.timeout
+      });
+      
+      if (stderr && stderr.trim()) {
+        logger.warn('Claude CLI warning', { stderr: stderr.trim() });
+      }
+      
+      logger.debug('Claude command completed successfully via command line');
+      return stdout.trim();
+      
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const stderr = (error as any).stderr || '';
+      const stdout = (error as any).stdout || '';
+      const code = (error as any).code || 'unknown';
+      
+      logger.error('Claude CLI execution failed (command line)', error as Error, {
+        command,
+        stderr,
+        stdout,
+        code,
+        cwd: process.cwd(),
+        env: {
+          PATH: process.env['PATH'],
+          HOME: process.env['HOME'],
+          USER: process.env['USER']
+        }
+      });
+      
+      if (errorMessage.includes('timeout')) {
+        throw new TimeoutError(`Claude CLI execution timed out after ${config.timeout}ms`);
+      }
+      
+      throw new ClaudeCliError(`Claude CLI execution failed: ${errorMessage}. stderr: ${stderr}. stdout: ${stdout}`);
+    }
   }
 }

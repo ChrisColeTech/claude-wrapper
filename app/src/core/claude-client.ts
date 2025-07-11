@@ -4,10 +4,18 @@ import { ClaudeCliError } from '../utils/errors';
 import { logger } from '../utils/logger';
 
 export class ClaudeClient implements IClaudeClient {
+  private static instanceCount = 0;
+  private instanceId: string;
   private resolver: ClaudeResolver;
 
   constructor() {
+    this.instanceId = `client-${++ClaudeClient.instanceCount}`;
     this.resolver = new ClaudeResolver();
+    
+    logger.debug('ClaudeClient instance created', { 
+      instanceId: this.instanceId,
+      totalInstances: ClaudeClient.instanceCount 
+    });
   }
 
   async execute(request: ClaudeRequest): Promise<string> {
