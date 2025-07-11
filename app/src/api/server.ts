@@ -9,6 +9,7 @@ import healthRoutes from './routes/health';
 import sessionRoutes from './routes/sessions';
 import authRoutes from './routes/auth';
 import logsRoutes from './routes/logs';
+import portForwardingRoutes from './routes/port-forwarding';
 import { logger } from '../utils/logger';
 import { EnvironmentManager } from '../config/env';
 import { createAuthMiddleware, getApiKey } from '../auth/middleware';
@@ -39,7 +40,7 @@ if (EnvironmentManager.isDebugMode()) {
 app.use((req, res, next) => {
   const apiKey = getApiKey();
   const authMiddleware = createAuthMiddleware({
-    skipPaths: ['/health', '/docs', '/swagger.json', '/v1/auth/status', '/logs'], // Always allow these endpoints
+    skipPaths: ['/health', '/docs', '/swagger.json', '/v1/auth/status', '/logs', '/port-forwarding'], // Always allow these endpoints
     ...(apiKey && { apiKey }) // Only include apiKey if it exists
   });
   authMiddleware(req, res, next);
@@ -62,6 +63,7 @@ app.use('/', modelsRoutes);
 app.use('/', sessionRoutes);
 app.use('/', authRoutes);
 app.use('/', logsRoutes);
+app.use('/', portForwardingRoutes);
 app.use('/', chatRoutes);
 
 // Error handling (must be last)
