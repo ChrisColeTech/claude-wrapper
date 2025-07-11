@@ -2,7 +2,7 @@
   "id": "chatcmpl-123",
   "object": "chat.completion",
   "created": 1677652288,
-  "model": "claude-3-sonnet-20240229",
+  "model": "sonnet",
   "choices": [{
     "index": 0,
     "message": {

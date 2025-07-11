@@ -53,6 +53,32 @@ export class TempFileManager {
       });
     }
   }
+
+  /**
+   * Startup cleanup - removes old temp files from previous runs
+   */
+  static async cleanupOnStartup(): Promise<void> {
+    try {
+      const files = await fs.readdir(this.tempDir);
+      const tempFiles = files.filter(file => 
+        file.startsWith('prompt-') && file.endsWith('.txt')
+      );
+      
+      if (tempFiles.length > 0) {
+        const cleanupPromises = tempFiles.map(file => 
+          this.cleanupTempFile(path.join(this.tempDir, file))
+        );
+        await Promise.all(cleanupPromises);
+        logger.info('Startup cleanup completed', { 
+          cleanedFiles: tempFiles.length 
+        });
+      }
+    } catch (error) {
+      logger.warn('Startup cleanup failed', { 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      });
+    }
+  }
   
   /**
    * Ensures the temporary directory exists

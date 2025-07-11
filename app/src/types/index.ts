@@ -21,7 +21,6 @@ export interface OpenAIRequest {
   stream?: boolean;
   temperature?: number;
   max_tokens?: number;
-  session_id?: string;
   tools?: any[];
 }
 
@@ -63,6 +62,7 @@ export interface ClaudeRequest {
 export interface IClaudeClient {
   execute(request: ClaudeRequest): Promise<string>;
   executeWithSession(request: ClaudeRequest, sessionId: string | null, useJsonOutput: boolean): Promise<string>;
+  messagesToPrompt(messages: any[], tools?: any[]): string;
 }
 
 export interface IClaudeResolver {
@@ -78,6 +78,7 @@ export interface IResponseValidator {
 
 export interface ICoreWrapper {
   handleChatCompletion(request: OpenAIRequest): Promise<OpenAIResponse>;
+  handleStreamingChatCompletion(request: OpenAIRequest): Promise<NodeJS.ReadableStream>;
 }
 
 // Configuration Types

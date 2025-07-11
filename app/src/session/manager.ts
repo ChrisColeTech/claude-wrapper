@@ -8,6 +8,7 @@ import { OpenAIMessage, SessionInfo, ISessionManager, ISessionCleanup, SessionSt
 import { MemorySessionStorage, SessionUtils } from './storage';
 import { SESSION_CONFIG } from '../config/constants';
 import { logger } from '../utils/logger';
+import { TempFileManager } from '../utils/temp-file-manager';
 
 /**
  * Session class for individual session management
@@ -101,6 +102,9 @@ export class SessionManager implements ISessionManager, ISessionCleanup {
     private readonly cleanupIntervalMinutes: number = SESSION_CONFIG.CLEANUP_INTERVAL_MINUTES
   ) {
     this._storage = new MemorySessionStorage();
+    
+    // Cleanup temp files from previous runs
+    TempFileManager.cleanupOnStartup();
     
     logger.info('SessionManager initialized', {
       defaultTtlHours: this._defaultTtlHours,

@@ -1,5 +1,5 @@
 import { ClaudeRequest, IClaudeClient } from '../types';
-import { ClaudeResolver } from './claude-resolver';
+import { ClaudeResolver } from './claude-resolver/index';
 import { ClaudeCliError } from '../utils/errors';
 import { logger } from '../utils/logger';
 
@@ -10,7 +10,7 @@ export class ClaudeClient implements IClaudeClient {
 
   constructor() {
     this.instanceId = `client-${++ClaudeClient.instanceCount}`;
-    this.resolver = new ClaudeResolver();
+    this.resolver = ClaudeResolver.getInstance();
     
     logger.debug('ClaudeClient instance created', { 
       instanceId: this.instanceId,
@@ -33,11 +33,11 @@ export class ClaudeClient implements IClaudeClient {
         useJsonOutput
       });
       
-      const result = await this.resolver.executeClaudeCommandWithSession(
+      const result = await this.resolver.executeCommand(
         prompt, 
         request.model, 
         sessionId, 
-        useJsonOutput
+        false
       );
       
       logger.info('Claude execution completed successfully', {
@@ -66,7 +66,7 @@ export class ClaudeClient implements IClaudeClient {
     }
   }
 
-  private messagesToPrompt(messages: any[], tools?: any[]): string {
+  messagesToPrompt(messages: any[], tools?: any[]): string {
     let prompt = '';
     
     // Add tools if provided

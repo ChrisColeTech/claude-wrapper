@@ -120,7 +120,7 @@ describe('StreamingFormatter Core Functionality', () => {
 
     it('should handle different model names', () => {
       const requestId = 'chatcmpl-test123';
-      const model = 'gpt-4';
+      const model = 'sonnet';
       
       const result = formatter.formatInitialChunk(requestId, model);
       

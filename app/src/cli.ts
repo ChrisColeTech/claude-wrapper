@@ -246,7 +246,7 @@ class CliRunner {
     }
 
     // Import and start server directly
-    const app = await import('./api/server');
+    const { startServer } = await import('./api/server');
     const { signalHandler } = await import('./process/signals');
     
     const wslInfo = WSLHelper.getWSLInfo();
@@ -296,9 +296,9 @@ class CliRunner {
     console.log(`\n🐛 Debug mode enabled - server will run in foreground`);
     console.log(`📝 Press Ctrl+C to stop the server`);
 
-    const server = app.default.listen(parseInt(port), '0.0.0.0', () => {
-      console.log(`✅ Server listening on port ${port}`);
-    });
+    console.log(`\n🔍 Initializing Claude CLI...`);
+    const server = await startServer();
+    console.log(`✅ Server listening on port ${port}`);
 
     // Setup graceful shutdown
     signalHandler.setupGracefulShutdown(server);

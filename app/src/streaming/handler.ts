@@ -11,7 +11,6 @@ import { StreamingManager } from './manager';
 import { CoreWrapper } from '../core/wrapper';
 import { 
   SSE_CONFIG, 
-  STREAMING_CONFIG, 
   API_CONSTANTS
 } from '../config/constants';
 import { logger } from '../utils/logger';
@@ -108,26 +107,16 @@ export class StreamingHandler implements IStreamingHandler {
       // Send initial chunk with role
       yield this.formatter.formatInitialChunk(requestId, request.model);
       
-      // Simulate streaming by processing request and chunking response
-      logger.debug('Streaming: About to call handleChatCompletion', { requestId });
+      // Get real streaming response from Claude CLI
+      logger.debug('Streaming: About to call handleStreamingChatCompletion', { requestId });
       
-      // Create a clean request object without streaming
-      const nonStreamingRequest: OpenAIRequest = {
-        model: request.model,
-        messages: request.messages,
-        stream: false,
-        ...(request.tools && { tools: request.tools }),
-        ...(request.temperature && { temperature: request.temperature }),
-        ...(request.max_tokens && { max_tokens: request.max_tokens }),
-        ...(request.session_id && { session_id: request.session_id })
-      };
-      
-      const fullResponse = await this.coreWrapper.handleChatCompletion(nonStreamingRequest);
-      logger.debug('Streaming: handleChatCompletion completed', { requestId });
+      // Create modified request with stream=false for core wrapper
+      const modifiedRequest = { ...request, stream: false };
+      const streamingResponse = await this.coreWrapper.handleStreamingChatCompletion(modifiedRequest);
+      logger.debug('Streaming: Got streaming response', { requestId });
 
-      // Extract content and stream it in chunks
-      const content = fullResponse.choices[0]?.message?.content || '';
-      yield* this.chunkContent(requestId, request.model, content);
+      // Process streaming JSON chunks
+      yield* this.processStreamingResponse(requestId, request.model, streamingResponse);
       
       // Send final chunk
       yield this.formatter.createFinalChunk(requestId, request.model);
@@ -140,26 +129,56 @@ export class StreamingHandler implements IStreamingHandler {
   }
 
   /**
-   * Chunk content into streaming pieces
+   * Process real streaming JSON chunks from Claude CLI
    */
-  private async* chunkContent(requestId: string, model: string, content: string): AsyncGenerator<string, void, unknown> {
-    // Split content into words for natural streaming
-    const words = content.split(' ');
-    let currentChunk = '';
+  private async* processStreamingResponse(
+    requestId: string,
+    model: string,
+    stream: NodeJS.ReadableStream
+  ): AsyncGenerator<string, void, unknown> {
+    const readline = require('readline');
+    const rl = readline.createInterface({
+      input: stream,
+      crlfDelay: Infinity
+    });
     
-    for (let i = 0; i < words.length; i++) {
-      currentChunk += (i > 0 ? ' ' : '') + words[i];
-      
-      // Send chunk when it reaches reasonable size or we're at the end
-      if (currentChunk.length >= STREAMING_CONFIG.MAX_CHUNK_SIZE || i === words.length - 1) {
-        yield this.formatter.createContentChunk(requestId, model, currentChunk);
-        currentChunk = '';
-        
-        // Small delay to simulate real streaming
-        await this.delay(STREAMING_CONFIG.CHUNK_TIMEOUT_MS);
+    for await (const line of rl) {
+      if (line.trim()) {
+        logger.info('Received streaming line', { line: line.trim() });
+        try {
+          // Parse streaming JSON chunk from Claude CLI
+          const chunk = JSON.parse(line);
+          logger.info('Parsed streaming chunk', { chunk });
+          
+          // Extract content from Claude's streaming format
+          const content = this.extractContentFromStreamChunk(chunk);
+          logger.info('Extracted content from chunk', { content });
+          
+          if (content) {
+            yield this.formatter.createContentChunk(requestId, model, content);
+          }
+        } catch (parseError) {
+          logger.warn('Failed to parse streaming chunk', { line, error: parseError });
+        }
       }
     }
   }
+
+  /**
+   * Extract content from Claude's stream-json format
+   */
+  private extractContentFromStreamChunk(chunk: any): string | null {
+    // Handle Claude CLI's stream-json format
+    if (chunk.type === 'assistant' && chunk.message?.content) {
+      for (const contentBlock of chunk.message.content) {
+        if (contentBlock.type === 'text' && contentBlock.text) {
+          return contentBlock.text;
+        }
+      }
+    }
+    return null;
+  }
+
 
   /**
    * Setup SSE headers for streaming
@@ -182,12 +201,6 @@ export class StreamingHandler implements IStreamingHandler {
     return `${API_CONSTANTS.DEFAULT_REQUEST_ID_PREFIX}${Math.random().toString(36).substring(2, 15)}`;
   }
 
-  /**
-   * Delay helper for streaming timing
-   */
-  private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
-  }
 
   /**
    * Cleanup resources

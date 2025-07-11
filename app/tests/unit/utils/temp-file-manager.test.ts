@@ -93,4 +93,30 @@ describe('TempFileManager', () => {
       await expect(fs.stat(file2)).rejects.toThrow();
     });
   });
+
+  describe('system prompt file creation', () => {
+    it('should handle system prompt content correctly', async () => {
+      const systemPrompt = 'You are a helpful math tutor. Always explain your reasoning step by step.';
+      const filePath = await TempFileManager.createTempFile(systemPrompt);
+      
+      expect(filePath).toContain('prompt-');
+      expect(filePath).toEndWith('.txt');
+      
+      const content = await fs.readFile(filePath, 'utf8');
+      expect(content).toBe(systemPrompt);
+    });
+
+    it('should handle multi-line system prompts', async () => {
+      const systemPrompt = `You are a helpful assistant.
+
+Please follow these guidelines:
+1. Be clear and concise
+2. Provide accurate information
+3. Ask for clarification when needed`;
+      
+      const filePath = await TempFileManager.createTempFile(systemPrompt);
+      const content = await fs.readFile(filePath, 'utf8');
+      expect(content).toBe(systemPrompt);
+    });
+  });
 });

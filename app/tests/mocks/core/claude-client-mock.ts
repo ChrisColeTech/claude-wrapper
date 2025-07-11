@@ -19,6 +19,7 @@ export interface ClaudeClientMockConfig {
 export interface MockClaudeClient {
   execute: jest.MockedFunction<(request: ClaudeRequest) => Promise<string>>;
   executeWithSession: jest.MockedFunction<(request: ClaudeRequest, sessionId: string | null, useJsonOutput: boolean) => Promise<string>>;
+  messagesToPrompt: jest.MockedFunction<(messages: any[], tools?: any[]) => string>;
 }
 
 /**
@@ -74,9 +75,38 @@ export class ClaudeClientMock {
       return this.config.defaultResponse || 'Mock response';
     });
 
+    // Create mock messagesToPrompt function
+    const mockMessagesToPrompt = jest.fn((messages: any[], tools?: any[]): string => {
+      let prompt = '';
+      
+      // Add tools if provided
+      if (tools && tools.length > 0) {
+        prompt += `Available tools: ${JSON.stringify(tools)}\n\n`;
+      }
+      
+      for (const message of messages) {
+        const content = typeof message.content === 'string' 
+          ? message.content 
+          : typeof message.content === 'object'
+          ? JSON.stringify(message.content)
+          : String(message.content);
+        
+        if (message.role === 'system') {
+          prompt += `${content}\n\n`;
+        } else if (message.role === 'user') {
+          prompt += `${content}\n\n`;
+        } else if (message.role === 'assistant') {
+          prompt += `${content}\n\n`;
+        }
+      }
+      
+      return prompt;
+    });
+
     this.mockInstance = {
       execute: mockExecute,
-      executeWithSession: mockExecuteWithSession
+      executeWithSession: mockExecuteWithSession,
+      messagesToPrompt: mockMessagesToPrompt
     };
 
     return this.mockInstance;

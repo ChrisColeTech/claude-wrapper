@@ -59,19 +59,10 @@ async function startDaemon(): Promise<void> {
   }
 
   // Import server AFTER setting environment variables
-  const { default: app } = await import('./api/server');
+  const { startServer } = await import('./api/server');
 
-  // Start server
-  const server = app.listen(options.port, '0.0.0.0', () => {
-    // Only log in verbose/debug mode for daemon
-    if (options.verbose || options.debug) {
-      logger.info(`🚀 Claude Wrapper daemon running on port ${options.port}`);
-      logger.info(`📡 API available at http://localhost:${options.port}/v1/chat/completions`);
-      logger.info(`📊 Health check at http://localhost:${options.port}/health`);
-      logger.info(`📚 Swagger UI at http://localhost:${options.port}/docs`);
-      logger.info(`📋 OpenAPI spec at http://localhost:${options.port}/swagger.json`);
-    }
-  });
+  // Start server with Claude CLI initialization
+  const server = await startServer();
 
   // Setup graceful shutdown using new signal handler
   signalHandler.setupGracefulShutdown(server);

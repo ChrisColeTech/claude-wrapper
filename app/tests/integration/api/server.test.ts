@@ -83,7 +83,7 @@ describe('API Integration Tests', () => {
         id: 'chatcmpl-123',
         object: 'chat.completion' as const,
         created: 1677652288,
-        model: 'claude-3-5-sonnet-20241022',
+        model: 'sonnet',
         choices: [{
           index: 0,
           message: { role: 'assistant' as const, content: 'Hello! How can I help you today?' },
@@ -95,7 +95,7 @@ describe('API Integration Tests', () => {
       mockHandleChatCompletion.mockResolvedValue(mockResponse);
 
       const requestBody = {
-        model: 'claude-3-5-sonnet-20241022',
+        model: 'sonnet',
         messages: [
           { role: 'user', content: 'Hello, how are you?' }
         ]
@@ -131,7 +131,7 @@ describe('API Integration Tests', () => {
 
     it('should reject request with missing messages', async () => {
       const requestBody = {
-        model: 'claude-3-5-sonnet-20241022'
+        model: 'sonnet'
       };
 
       const response = await request(app)
@@ -150,7 +150,7 @@ describe('API Integration Tests', () => {
 
     it('should reject request with empty messages array', async () => {
       const requestBody = {
-        model: 'claude-3-5-sonnet-20241022',
+        model: 'sonnet',
         messages: []
       };
 
@@ -170,7 +170,7 @@ describe('API Integration Tests', () => {
 
     it('should reject request with invalid message role', async () => {
       const requestBody = {
-        model: 'claude-3-5-sonnet-20241022',
+        model: 'sonnet',
         messages: [
           { role: 'invalid_role', content: 'Hello' }
         ]
@@ -192,7 +192,7 @@ describe('API Integration Tests', () => {
 
     it('should reject request with missing message content', async () => {
       const requestBody = {
-        model: 'claude-3-5-sonnet-20241022',
+        model: 'sonnet',
         messages: [
           { role: 'user' }
         ]
@@ -216,7 +216,7 @@ describe('API Integration Tests', () => {
       mockHandleChatCompletion.mockRejectedValue(new Error('Internal processing error'));
 
       const requestBody = {
-        model: 'claude-3-5-sonnet-20241022',
+        model: 'sonnet',
         messages: [{ role: 'user', content: 'Hello' }]
       };
 
@@ -239,7 +239,7 @@ describe('API Integration Tests', () => {
         id: 'chatcmpl-456',
         object: 'chat.completion' as const,
         created: 1677652300,
-        model: 'claude-3-5-sonnet-20241022',
+        model: 'sonnet',
         choices: [{
           index: 0,
           message: { role: 'assistant' as const, content: 'I understand the context.' },
@@ -251,7 +251,7 @@ describe('API Integration Tests', () => {
       mockHandleChatCompletion.mockResolvedValue(mockResponse);
 
       const requestBody = {
-        model: 'claude-3-5-sonnet-20241022',
+        model: 'sonnet',
         messages: [
           { role: 'system', content: 'You are a helpful assistant.' },
           { role: 'user', content: 'Hello!' },

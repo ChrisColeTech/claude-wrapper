@@ -63,7 +63,7 @@ describe('Session Middleware', () => {
     test('should process stateless request without session_id', () => {
       const messages = createTestMessages(2);
       mockReq.body = {
-        model: 'gpt-4',
+        model: 'sonnet',
         messages
       } as OpenAIRequest;
 
@@ -86,7 +86,7 @@ describe('Session Middleware', () => {
       const testSessionId = 'test-session-123';
 
       mockReq.body = {
-        model: 'gpt-4',
+        model: 'sonnet',
         messages: originalMessages,
         session_id: testSessionId
       } as OpenAIRequest & { session_id: string };
@@ -109,7 +109,7 @@ describe('Session Middleware', () => {
     test('should handle null session_id as stateless', () => {
       const messages = createTestMessages(1);
       mockReq.body = {
-        model: 'gpt-4',
+        model: 'sonnet',
         messages,
         session_id: null
       } as OpenAIRequest & { session_id: null };
@@ -124,7 +124,7 @@ describe('Session Middleware', () => {
     test('should handle undefined session_id as stateless', () => {
       const messages = createTestMessages(1);
       mockReq.body = {
-        model: 'gpt-4',
+        model: 'sonnet',
         messages
       } as OpenAIRequest;
 
@@ -138,7 +138,7 @@ describe('Session Middleware', () => {
     test('should handle empty string session_id as stateless', () => {
       const messages = createTestMessages(1);
       mockReq.body = {
-        model: 'gpt-4',
+        model: 'sonnet',
         messages,
         session_id: ''
       } as OpenAIRequest & { session_id: string };
@@ -152,7 +152,7 @@ describe('Session Middleware', () => {
 
     test('should handle request without messages', () => {
       mockReq.body = {
-        model: 'gpt-4',
+        model: 'sonnet',
         session_id: 'test-session'
       } as OpenAIRequest & { session_id: string };
 
@@ -171,7 +171,7 @@ describe('Session Middleware', () => {
       const actualSessionId = 'actual-session';
 
       mockReq.body = {
-        model: 'gpt-4',
+        model: 'sonnet',
         messages: originalMessages,
         session_id: originalSessionId
       } as OpenAIRequest & { session_id: string };
@@ -187,7 +187,7 @@ describe('Session Middleware', () => {
     test('should handle session manager errors gracefully', () => {
       const messages = createTestMessages(1);
       mockReq.body = {
-        model: 'gpt-4',
+        model: 'sonnet',
         messages,
         session_id: 'test-session'
       } as OpenAIRequest & { session_id: string };
@@ -213,7 +213,7 @@ describe('Session Middleware', () => {
     test('should handle non-Error exceptions', () => {
       const messages = createTestMessages(1);
       mockReq.body = {
-        model: 'gpt-4',
+        model: 'sonnet',
         messages,
         session_id: 'test-session'
       } as OpenAIRequest & { session_id: string };
@@ -428,7 +428,7 @@ describe('Session Middleware', () => {
       const testSessionId = 'test-session-789';
 
       mockReq.body = {
-        model: 'gpt-4',
+        model: 'sonnet',
         messages,
         session_id: testSessionId
       } as OpenAIRequest & { session_id: string };
@@ -450,7 +450,7 @@ describe('Session Middleware', () => {
 
     test('should handle session middleware errors', () => {
       mockReq.body = {
-        model: 'gpt-4',
+        model: 'sonnet',
         messages: createTestMessages(1),
         session_id: 'test-session'
       } as OpenAIRequest & { session_id: string };
@@ -468,7 +468,7 @@ describe('Session Middleware', () => {
     test('should pass through stateless requests', () => {
       const messages = createTestMessages(2);
       mockReq.body = {
-        model: 'gpt-4',
+        model: 'sonnet',
         messages
       } as OpenAIRequest;
 

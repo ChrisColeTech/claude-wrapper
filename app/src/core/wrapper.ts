@@ -9,6 +9,8 @@ import {
 } from '../types';
 import { ClaudeClient } from './claude-client';
 import { ResponseValidator } from './validator';
+import { ClaudeResolver } from './claude-resolver/index';
+import { TempFileManager } from '../utils/temp-file-manager';
 import { logger } from '../utils/logger';
 import { 
   API_CONSTANTS, 
@@ -30,12 +32,15 @@ export class CoreWrapper implements ICoreWrapper {
   private instanceId: string;
   private claudeClient: IClaudeClient;
   private validator: IResponseValidator;
+  private claudeResolver: ClaudeResolver;
   private claudeSessions: Map<string, ClaudeSessionState> = new Map();
+  private useSingleStageProcessing: boolean = true; // Default to new approach
 
-  constructor(claudeClient?: IClaudeClient, validator?: IResponseValidator) {
+  constructor(claudeClient?: IClaudeClient, validator?: IResponseValidator, claudeResolver?: ClaudeResolver) {
     this.instanceId = `wrapper-${++CoreWrapper.instanceCount}`;
     this.claudeClient = claudeClient || new ClaudeClient();
     this.validator = validator || new ResponseValidator();
+    this.claudeResolver = claudeResolver || ClaudeResolver.getInstance();
     
     logger.debug('CoreWrapper instance created', { 
       instanceId: this.instanceId,
@@ -48,27 +53,24 @@ export class CoreWrapper implements ICoreWrapper {
     logger.info('Processing chat completion request', {
       model: request.model,
       messageCount: request.messages.length,
-      stream: request.stream
+      stream: request.stream,
+      processingMode: this.useSingleStageProcessing ? 'single-stage' : 'two-stage'
     });
 
-    // Detect if we have a system prompt and check for existing session
-    const sessionInfo = this.detectSystemPromptSession(request.messages);
+    // Check if this request has system prompts
+    const systemPrompts = this.extractSystemPrompts(request.messages);
     
-    if (sessionInfo.isNewSession) {
-      // Create new Claude session or process normally
-      if (sessionInfo.systemPromptHash) {
-        return this.initializeSystemPromptSession(request, sessionInfo.systemPromptHash);
-      } else {
-        return this.processNormally(request);
-      }
+    if (systemPrompts.length === 0) {
+      // No system prompt - process normally
+      return this.processNormally(request);
+    }
+    
+    if (this.useSingleStageProcessing) {
+      // Single-stage: Use file-based approach
+      return this.processSingleStage(request);
     } else {
-      // Resume existing Claude session
-      if (sessionInfo.claudeSessionId && sessionInfo.sessionState) {
-        return this.processWithSession(request, sessionInfo.claudeSessionId);
-      } else {
-        // Fallback to normal processing if session data is incomplete
-        return this.processNormally(request);
-      }
+      // Two-stage: Use session optimization
+      return this.processTwoStage(request);
     }
   }
 
@@ -139,6 +141,64 @@ export class CoreWrapper implements ICoreWrapper {
       ...request,
       messages: nonSystemMessages
     };
+  }
+
+  private async processSingleStage(request: OpenAIRequest): Promise<OpenAIResponse> {
+    logger.info('Processing with single-stage file-based approach');
+    
+    // Create system prompt file
+    const systemPrompts = this.extractSystemPrompts(request.messages);
+    const systemPromptContent = systemPrompts.map(msg => msg.content).join('\n\n');
+    
+    let tempFilePath: string | null = null;
+    
+    try {
+      // Create temporary file with system prompt
+      tempFilePath = await TempFileManager.createTempFile(systemPromptContent);
+      
+      // Get user messages only
+      const userMessages = request.messages.filter(msg => msg.role !== 'system');
+      const prompt = this.claudeClient.messagesToPrompt(userMessages);
+      
+      // Execute with file-based system prompt
+      const rawResponse = await this.claudeResolver.executeCommandWithFile(
+        prompt,
+        request.model,
+        tempFilePath
+      );
+      
+      const claudeRequest = this.addFormatInstructions(request);
+      return this.validateAndCorrect(rawResponse, claudeRequest);
+    } finally {
+      // Clean up temporary file
+      if (tempFilePath) {
+        await TempFileManager.cleanupTempFile(tempFilePath);
+      }
+    }
+  }
+  
+  private async processTwoStage(request: OpenAIRequest): Promise<OpenAIResponse> {
+    logger.info('Processing with two-stage session optimization');
+    
+    // Detect if we have a system prompt and check for existing session
+    const sessionInfo = this.detectSystemPromptSession(request.messages);
+    
+    if (sessionInfo.isNewSession) {
+      // Create new Claude session or process normally
+      if (sessionInfo.systemPromptHash) {
+        return this.initializeSystemPromptSession(request, sessionInfo.systemPromptHash);
+      } else {
+        return this.processNormally(request);
+      }
+    } else {
+      // Resume existing Claude session
+      if (sessionInfo.claudeSessionId && sessionInfo.sessionState) {
+        return this.processWithSession(request, sessionInfo.claudeSessionId);
+      } else {
+        // Fallback to normal processing if session data is incomplete
+        return this.processNormally(request);
+      }
+    }
   }
 
   private async initializeSystemPromptSession(request: OpenAIRequest, systemPromptHash: string): Promise<OpenAIResponse> {
@@ -371,18 +431,125 @@ export class CoreWrapper implements ICoreWrapper {
    * Handle streaming chat completion (future enhancement)
    * Currently returns single response, but structured for future streaming support
    */
-  async handleStreamingChatCompletion(request: OpenAIRequest): Promise<OpenAIResponse> {
-    logger.info('Processing streaming chat completion (simulated)', {
+  async handleStreamingChatCompletion(request: OpenAIRequest): Promise<NodeJS.ReadableStream> {
+    logger.info('Processing streaming chat completion (real)', {
       model: request.model,
-      messageCount: request.messages.length
+      messageCount: request.messages.length,
+      processingMode: this.useSingleStageProcessing ? 'single-stage' : 'two-stage'
     });
 
-    // For now, delegate to regular completion
-    // Future: Implement true streaming with Claude CLI
-    return this.handleChatCompletion(request);
+    // Check if this request has system prompts
+    const systemPrompts = this.extractSystemPrompts(request.messages);
+    
+    if (systemPrompts.length === 0) {
+      // No system prompt - stream normally
+      const prompt = this.claudeClient.messagesToPrompt(request.messages);
+      return this.claudeResolver.executeCommandStreaming(prompt, request.model, null);
+    }
+    
+    if (this.useSingleStageProcessing) {
+      // Single-stage: Use file-based streaming
+      return this.streamSingleStage(request);
+    } else {
+      // Two-stage: Use session-based streaming
+      return this.streamTwoStage(request);
+    }
+  }
+  
+  private async streamSingleStage(request: OpenAIRequest): Promise<NodeJS.ReadableStream> {
+    logger.info('Streaming with single-stage file-based approach');
+    
+    // Create system prompt file
+    const systemPrompts = this.extractSystemPrompts(request.messages);
+    const systemPromptContent = systemPrompts.map(msg => msg.content).join('\n\n');
+    
+    const tempFilePath = await TempFileManager.createTempFile(systemPromptContent);
+    
+    try {
+      // Get user messages only
+      const userMessages = request.messages.filter(msg => msg.role !== 'system');
+      const prompt = this.claudeClient.messagesToPrompt(userMessages);
+      
+      // Execute streaming with file-based system prompt
+      return await this.claudeResolver.executeCommandStreamingWithFile(
+        prompt,
+        request.model,
+        tempFilePath
+      );
+    } catch (error) {
+      // Clean up on error
+      await TempFileManager.cleanupTempFile(tempFilePath);
+      throw error;
+    }
+    // Note: Cleanup will be handled by the resolver after streaming completes
+  }
+  
+  private async streamTwoStage(request: OpenAIRequest): Promise<NodeJS.ReadableStream> {
+    logger.info('Streaming with two-stage session optimization');
+    
+    // Use same session detection logic as non-streaming
+    const sessionInfo = this.detectSystemPromptSession(request.messages);
+    
+    let claudeSessionId: string | null = null;
+    
+    if (sessionInfo.isNewSession) {
+      // Create new Claude session or process normally
+      if (sessionInfo.systemPromptHash) {
+        // Need to initialize system prompt session for streaming
+        const systemPrompts = this.extractSystemPrompts(request.messages);
+        claudeSessionId = await this.createSystemPromptSession(systemPrompts);
+        
+        // Store the session mapping
+        const systemPromptContent = systemPrompts.map(msg => msg.content).join('\n\n');
+        this.claudeSessions.set(sessionInfo.systemPromptHash, {
+          claudeSessionId: claudeSessionId,
+          systemPromptHash: sessionInfo.systemPromptHash,
+          lastUsed: new Date(),
+          systemPromptContent
+        });
+      }
+    } else {
+      // Use existing Claude session
+      if (sessionInfo.claudeSessionId && sessionInfo.sessionState) {
+        claudeSessionId = sessionInfo.claudeSessionId;
+        sessionInfo.sessionState.lastUsed = new Date();
+      }
+    }
+    
+    // Strip system prompts if we have a Claude session
+    const finalRequest = claudeSessionId ? this.stripSystemPrompts(request) : request;
+    
+    // Convert to Claude CLI format
+    const prompt = this.claudeClient.messagesToPrompt(finalRequest.messages);
+    
+    // Execute with real streaming using Claude CLI session ID (not wrapper session ID)
+    const streamingResponse = await this.claudeResolver.executeCommandStreaming(
+      prompt,
+      finalRequest.model,
+      claudeSessionId
+    );
+    
+    return streamingResponse;
   }
 
   private generateRequestId(): string {
     return `${API_CONSTANTS.DEFAULT_REQUEST_ID_PREFIX}${Math.random().toString(36).substring(2, 15)}`;
+  }
+  
+  /**
+   * Configure whether to use single-stage or two-stage processing
+   */
+  setSingleStageProcessing(enabled: boolean): void {
+    this.useSingleStageProcessing = enabled;
+    logger.info('Processing mode changed', { 
+      mode: enabled ? 'single-stage' : 'two-stage' 
+    });
+  }
+  
+  /**
+   * Get current processing mode
+   */
+  isSingleStageProcessing(): boolean {
+    return this.useSingleStageProcessing;
   }
 }

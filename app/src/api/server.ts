@@ -14,6 +14,8 @@ import { logger } from '../utils/logger';
 import { EnvironmentManager } from '../config/env';
 import { createAuthMiddleware, getApiKey } from '../auth/middleware';
 import { swaggerSpec } from './swagger';
+import { TempFileManager } from '../utils/temp-file-manager';
+import { ClaudeResolver } from '../core/claude-resolver/claude-resolver';
 
 const app = express();
 
@@ -76,10 +78,23 @@ export function createServer() {
   return app;
 }
 
-export function startServer(): void {
+export async function startServer(): Promise<any> {
   const config = EnvironmentManager.getConfig();
   
-  app.listen(config.port, '0.0.0.0', () => {
+  // Cleanup temp files from previous runs
+  TempFileManager.cleanupOnStartup();
+  
+  // Initialize Claude CLI path synchronously at startup
+  logger.info('Initializing Claude CLI path...');
+  try {
+    await ClaudeResolver.getInstanceAsync();
+    logger.info('Claude CLI path cached successfully');
+  } catch (error) {
+    logger.error('Failed to initialize Claude CLI path at startup', error as Error);
+    process.exit(1);
+  }
+  
+  return app.listen(config.port, '0.0.0.0', () => {
     logger.info('Server started successfully', {
       port: config.port,
       environment: EnvironmentManager.isProduction() ? 'production' : 'development'

@@ -124,8 +124,8 @@ describe('StreamingHandler Core Functionality', () => {
         chunks.push(chunk);
       }
 
-      expect(testSetup.mockCoreWrapper.handleChatCompletionCalls.length).toBeGreaterThan(0);
-      const lastCall = testSetup.mockCoreWrapper.handleChatCompletionCalls[0];
+      expect(testSetup.mockCoreWrapper.handleStreamingChatCompletionCalls.length).toBeGreaterThan(0);
+      const lastCall = testSetup.mockCoreWrapper.handleStreamingChatCompletionCalls[0];
       expect(lastCall).toBeDefined();
       expect(lastCall?.stream).toBe(false);
     });

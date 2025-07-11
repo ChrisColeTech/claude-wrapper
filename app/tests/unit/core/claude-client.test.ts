@@ -3,9 +3,22 @@ import { ClaudeResolver } from '../../../src/core/claude-resolver';
 import { ClaudeCliError } from '../../../src/utils/errors';
 import { ClaudeRequest } from '../../../src/types';
 
+// Mock the logger
+jest.mock('../../../src/utils/logger', () => ({
+  logger: {
+    debug: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn()
+  }
+}));
+
 // Mock the ClaudeResolver
-jest.mock('../../../src/core/claude-resolver');
-const MockClaudeResolver = ClaudeResolver as jest.MockedClass<typeof ClaudeResolver>;
+jest.mock('../../../src/core/claude-resolver', () => ({
+  ClaudeResolver: {
+    getInstance: jest.fn()
+  }
+}));
 
 describe('ClaudeClient', () => {
   let claudeClient: ClaudeClient;
@@ -13,10 +26,18 @@ describe('ClaudeClient', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockResolver = new MockClaudeResolver() as jest.Mocked<ClaudeResolver>;
+    
+    // Create mock resolver with the correct methods
+    mockResolver = {
+      findClaudeCommand: jest.fn(),
+      executeCommand: jest.fn(),
+      executeCommandStreaming: jest.fn()
+    } as any;
+    
+    // Mock getInstance to return our mock resolver
+    (ClaudeResolver.getInstance as jest.Mock).mockReturnValue(mockResolver);
+    
     claudeClient = new ClaudeClient();
-    // Replace the internal resolver with our mock
-    (claudeClient as any).resolver = mockResolver;
   });
 
   describe('execute', () => {
@@ -29,12 +50,12 @@ describe('ClaudeClient', () => {
 
     it('should execute Claude command successfully', async () => {
       const mockResponse = 'Mock Claude response';
-      mockResolver.executeClaudeCommandWithSession.mockResolvedValue(mockResponse);
+      mockResolver.executeCommand.mockResolvedValue(mockResponse);
 
       const result = await claudeClient.execute(mockRequest);
 
       expect(result).toBe(mockResponse);
-      expect(mockResolver.executeClaudeCommandWithSession).toHaveBeenCalledWith(
+      expect(mockResolver.executeCommand).toHaveBeenCalledWith(
         expect.stringContaining('Hello, how are you?'),
         'claude-3-5-sonnet-20241022',
         null,
@@ -44,7 +65,7 @@ describe('ClaudeClient', () => {
 
     it('should convert messages to proper prompt format', async () => {
       const mockResponse = 'Mock response';
-      mockResolver.executeClaudeCommandWithSession.mockResolvedValue(mockResponse);
+      mockResolver.executeCommand.mockResolvedValue(mockResponse);
 
       const requestWithMultipleMessages: ClaudeRequest = {
         model: 'claude-3-5-sonnet-20241022',
@@ -58,7 +79,7 @@ describe('ClaudeClient', () => {
 
       await claudeClient.execute(requestWithMultipleMessages);
 
-      const capturedPrompt = mockResolver.executeClaudeCommandWithSession.mock.calls[0]![0]!
+      const capturedPrompt = mockResolver.executeCommand.mock.calls[0]![0]!
       
       expect(capturedPrompt).toContain('You are a helpful assistant.');
       expect(capturedPrompt).toContain('Hello!');
@@ -68,7 +89,7 @@ describe('ClaudeClient', () => {
 
     it('should handle ClaudeCliError and re-throw it', async () => {
       const originalError = new ClaudeCliError('Claude CLI failed');
-      mockResolver.executeClaudeCommandWithSession.mockRejectedValue(originalError);
+      mockResolver.executeCommand.mockRejectedValue(originalError);
 
       await expect(claudeClient.execute(mockRequest)).rejects.toThrow(ClaudeCliError);
       await expect(claudeClient.execute(mockRequest)).rejects.toThrow('Claude CLI failed');
@@ -76,14 +97,14 @@ describe('ClaudeClient', () => {
 
     it('should wrap other errors in ClaudeCliError', async () => {
       const originalError = new Error('Some other error');
-      mockResolver.executeClaudeCommandWithSession.mockRejectedValue(originalError);
+      mockResolver.executeCommand.mockRejectedValue(originalError);
 
       await expect(claudeClient.execute(mockRequest)).rejects.toThrow(ClaudeCliError);
       await expect(claudeClient.execute(mockRequest)).rejects.toThrow('Claude CLI execution failed: Some other error');
     });
 
     it('should handle messages with different roles correctly', async () => {
-      mockResolver.executeClaudeCommandWithSession.mockResolvedValue('response');
+      mockResolver.executeCommand.mockResolvedValue('response');
 
       const requestWithToolMessage: ClaudeRequest = {
         model: 'claude-3-5-sonnet-20241022',
@@ -95,7 +116,7 @@ describe('ClaudeClient', () => {
 
       await claudeClient.execute(requestWithToolMessage);
 
-      const capturedPrompt = mockResolver.executeClaudeCommandWithSession.mock.calls[0]![0]!
+      const capturedPrompt = mockResolver.executeCommand.mock.calls[0]![0]!
       
       // Tool messages should be ignored in the prompt conversion
       expect(capturedPrompt).toContain('Use this tool');
@@ -103,11 +124,11 @@ describe('ClaudeClient', () => {
     });
 
     it('should generate correct prompt structure', async () => {
-      mockResolver.executeClaudeCommandWithSession.mockResolvedValue('response');
+      mockResolver.executeCommand.mockResolvedValue('response');
 
       await claudeClient.execute(mockRequest);
 
-      const capturedPrompt = mockResolver.executeClaudeCommandWithSession.mock.calls[0]![0]!
+      const capturedPrompt = mockResolver.executeCommand.mock.calls[0]![0]!
       
       // Check that prompt has correct structure
       expect(capturedPrompt).toMatch(/Hello, how are you\?/);

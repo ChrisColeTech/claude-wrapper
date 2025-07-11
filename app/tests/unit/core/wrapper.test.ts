@@ -22,6 +22,9 @@ describe('CoreWrapper', () => {
     
     // Clear any sessions between tests
     (wrapper as any).claudeSessions.clear();
+    
+    // Set to two-stage processing for backward compatibility
+    wrapper.setSingleStageProcessing(false);
   });
 
   afterEach(() => {
@@ -29,6 +32,23 @@ describe('CoreWrapper', () => {
     ValidatorMock.reset();
   });
 
+  describe('Processing mode configuration', () => {
+    it('should start with single-stage processing by default', () => {
+      const newWrapper = new CoreWrapper(mockClaudeClient, mockValidator);
+      expect(newWrapper.isSingleStageProcessing()).toBe(true);
+    });
+    
+    it('should allow switching between processing modes', () => {
+      expect(wrapper.isSingleStageProcessing()).toBe(false);
+      
+      wrapper.setSingleStageProcessing(true);
+      expect(wrapper.isSingleStageProcessing()).toBe(true);
+      
+      wrapper.setSingleStageProcessing(false);
+      expect(wrapper.isSingleStageProcessing()).toBe(false);
+    });
+  });
+  
   describe('processNormally - no system prompt', () => {
     it('should process request without system prompt optimization', async () => {
       const request: OpenAIRequest = {
@@ -62,7 +82,7 @@ describe('CoreWrapper', () => {
     });
   });
 
-  describe('initializeSystemPromptSession - new system prompt', () => {
+  describe('two-stage processing - new system prompt', () => {
     it('should create new session for system prompt', async () => {
       const request: OpenAIRequest = {
         model: 'sonnet',
@@ -78,6 +98,9 @@ describe('CoreWrapper', () => {
 
       const result = await wrapper.handleChatCompletion(request);
 
+      // Should use two-stage processing (session setup + message processing)
+      expect(mockClaudeClient.executeWithSession).toHaveBeenCalledTimes(2);
+      
       // Verify session setup call
       expect(mockClaudeClient.executeWithSession).toHaveBeenNthCalledWith(
         1,
@@ -541,7 +564,7 @@ describe('CoreWrapper', () => {
   });
 
   describe('streaming support', () => {
-    it('should delegate streaming requests to regular completion', async () => {
+    it('should return a readable stream for streaming requests', async () => {
       const request: OpenAIRequest = {
         model: 'sonnet',
         messages: [{ role: 'user', content: 'Hello' }],
@@ -553,13 +576,10 @@ describe('CoreWrapper', () => {
 
       const result = await wrapper.handleStreamingChatCompletion(request);
 
-      expect(result).toEqual(expect.objectContaining({
-        choices: [expect.objectContaining({
-          message: expect.objectContaining({
-            content: 'Response'
-          })
-        })]
-      }));
+      // Should return a readable stream
+      expect(result).toBeDefined();
+      expect(typeof result.read).toBe('function');
+      expect(typeof result.on).toBe('function');
     });
   });
 
