@@ -73,14 +73,20 @@ npm install
 npm run build
 
 # Development commands
-npm run dev          # Development mode with ts-node
+npm run dev          # Run CLI directly with ts-node (not a server)
 npm run build        # Build TypeScript to JavaScript
+npm start            # Start server (requires build first)
 npm test            # Run tests
 npm run test:unit    # Run unit tests only
 npm run test:integration  # Run integration tests only
 
 # Install CLI globally for testing
 npm install -g .
+
+# To start the server in development:
+npm run build && npm start
+# Or use the CLI directly:
+npm run build && node dist/cli.js
 ```
 
 ## CLI Options
@@ -502,12 +508,18 @@ npm run test:debug        # Debug mode with open handles
 
 ```bash
 # Development commands
-npm run dev               # Development mode with hot reload
+npm run dev               # Run CLI directly with ts-node (not a server)
 npm run build            # Build TypeScript to JavaScript
+npm start                # Start server (requires build first)
 npm run typecheck        # TypeScript type checking
 npm run lint             # ESLint code quality
 npm run lint:fix         # Auto-fix linting issues
 npm run clean            # Clean build artifacts
+
+# To start the server in development:
+npm run build && npm start
+# Or use the CLI directly:
+npm run build && node dist/cli.js
 ```
 
 ### Code Quality Features
