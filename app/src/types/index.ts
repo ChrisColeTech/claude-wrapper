@@ -1,8 +1,18 @@
 // OpenAI API Types (from original POC)
+export interface OpenAIToolCall {
+  id: string;
+  type: 'function';
+  function: {
+    name: string;
+    arguments: string;
+  };
+}
+
 export interface OpenAIMessage {
   role: 'system' | 'user' | 'assistant' | 'tool';
-  content: string;
+  content: string | null;
   tool_call_id?: string;
+  tool_calls?: OpenAIToolCall[];
 }
 
 export interface OpenAIRequest {
