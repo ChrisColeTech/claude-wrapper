@@ -82,6 +82,9 @@ export class StreamingHandler implements IStreamingHandler {
       // Close connection
       this.manager.closeConnection(requestId);
       
+      // Explicitly end the response after streaming is complete
+      response.end();
+      
       const totalTime = Date.now() - startTime;
       logger.info('Streaming response completed', { 
         requestId, 
@@ -142,25 +145,69 @@ export class StreamingHandler implements IStreamingHandler {
       crlfDelay: Infinity
     });
     
-    for await (const line of rl) {
-      if (line.trim()) {
-        logger.info('Received streaming line', { line: line.trim() });
-        try {
-          // Parse streaming JSON chunk from Claude CLI
-          const chunk = JSON.parse(line);
-          logger.info('Parsed streaming chunk', { chunk });
-          
-          // Extract content from Claude's streaming format
-          const content = this.extractContentFromStreamChunk(chunk);
-          logger.info('Extracted content from chunk', { content });
-          
-          if (content) {
-            yield this.formatter.createContentChunk(requestId, model, content);
+    let isComplete = false;
+    
+    // Handle stream events for proper cleanup
+    const cleanup = () => {
+      if (!rl.closed) {
+        rl.close();
+      }
+    };
+    
+    // Set up event listeners
+    stream.on('end', () => {
+      logger.debug('Claude CLI stream ended', { requestId });
+      cleanup();
+    });
+    
+    stream.on('close', () => {
+      logger.debug('Claude CLI stream closed', { requestId });
+      cleanup();
+    });
+    
+    stream.on('error', (error) => {
+      logger.error('Claude CLI stream error', error, { requestId });
+      cleanup();
+    });
+    
+    // Add timeout safety net (30 seconds)
+    const timeout = setTimeout(() => {
+      logger.warn('Streaming timeout reached, closing connection', { requestId });
+      cleanup();
+    }, 30000);
+    
+    try {
+      for await (const line of rl) {
+        if (line.trim()) {
+          logger.info('Received streaming line', { line: line.trim() });
+          try {
+            // Parse streaming JSON chunk from Claude CLI
+            const chunk = JSON.parse(line);
+            logger.info('Parsed streaming chunk', { chunk });
+            
+            // Check if this is a completion signal from Claude CLI
+            if (chunk.type === 'result' && chunk.subtype === 'success') {
+              logger.info('Claude CLI completion detected', { requestId });
+              isComplete = true;
+              break;
+            }
+            
+            // Extract content from Claude's streaming format
+            const content = this.extractContentFromStreamChunk(chunk);
+            logger.info('Extracted content from chunk', { content });
+            
+            if (content) {
+              yield this.formatter.createContentChunk(requestId, model, content);
+            }
+          } catch (parseError) {
+            logger.warn('Failed to parse streaming chunk', { line, error: parseError });
           }
-        } catch (parseError) {
-          logger.warn('Failed to parse streaming chunk', { line, error: parseError });
         }
       }
+    } finally {
+      clearTimeout(timeout);
+      cleanup();
+      logger.debug('Streaming processing completed', { requestId, isComplete });
     }
   }
 
