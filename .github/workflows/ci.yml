@@ -27,7 +27,7 @@ jobs:
           app/package-lock.json
     
     - name: Install root dependencies
-      run: npm ci
+      run: npm install
     
     - name: Install app dependencies
       run: cd app && npm ci --include=dev
