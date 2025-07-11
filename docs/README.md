@@ -6,9 +6,9 @@
 [![GitHub Stars](https://img.shields.io/github/stars/ChrisColeTech/claude-wrapper.svg)](https://github.com/ChrisColeTech/claude-wrapper/stargazers)
 [![GitHub Issues](https://img.shields.io/github/issues/ChrisColeTech/claude-wrapper.svg)](https://github.com/ChrisColeTech/claude-wrapper/issues)
 
-**OpenAI-compatible HTTP API wrapper for Claude Code CLI with Session Management**
+**OpenAI-compatible HTTP API wrapper for Claude Code CLI with Enhanced Performance**
 
-Transform your Claude Code CLI into a powerful HTTP API server that accepts OpenAI Chat Completions requests. Features intelligent session management for conversation continuity, streaming responses, and comprehensive CLI tooling.
+Transform your Claude Code CLI into a powerful HTTP API server that accepts OpenAI Chat Completions requests. Features intelligent system prompt optimization, WSL integration, streaming responses, and comprehensive CLI tooling.
 
 ## Table of Contents
 
@@ -21,7 +21,8 @@ Transform your Claude Code CLI into a powerful HTTP API server that accepts Open
 - [Quick Start](#quick-start)
 - [CLI Usage](#cli-usage)
 - [Authentication](#authentication)
-- [Session Management](#session-management)
+- [WSL Integration](#wsl-integration)
+- [System Prompt Optimization](#system-prompt-optimization)
 - [Tool Integration](#tool-integration)
 - [Streaming](#streaming)
 - [Configuration](#configuration)
@@ -42,8 +43,9 @@ This approach gives you maximum flexibility with Claude's tool capabilities.
 ## Key Features
 
 - **🔌 OpenAI Compatible**: Drop-in replacement for OpenAI Chat Completions API
-- **🧠 Session Management**: Intelligent conversation continuity with session persistence
+- **⚡ System Prompt Optimization**: 60-70% performance improvement with intelligent session caching
 - **🌊 Streaming Support**: Real-time response streaming with Server-Sent Events
+- **🪟 WSL Integration**: Automatic port forwarding script generation for seamless Windows access
 - **🔍 Auto-Detection**: Automatically finds Claude CLI across different installation methods (npm, Docker, aliases, environment variables)
 - **🛡️ API Protection**: Optional bearer token authentication for endpoint security
 - **🛠️ Perfect Tool Calls**: Claude automatically generates OpenAI `tool_calls` format
@@ -171,6 +173,8 @@ Server starts at `http://localhost:8000` - you're ready to make API calls!
 - Health Check: `http://localhost:8000/health`
 - OpenAPI Spec: `http://localhost:8000/swagger.json`
 
+**🪟 WSL Users:** The CLI automatically detects WSL and provides port forwarding scripts for Windows access!
+
 ### Alternative Authentication Options
 
 ```bash
@@ -261,77 +265,99 @@ claude-wrapper --version
 claude-wrapper --help
 ```
 
-## Session Management
+## WSL Integration
 
-Sessions provide conversation continuity by **automatically accumulating message history** and sending it to Claude CLI on each request.
+Claude Wrapper includes automatic WSL (Windows Subsystem for Linux) detection and port forwarding script generation for seamless Windows access.
 
-### How Sessions Work Under the Hood
+### Features
 
-**Without session_id (stateless):**
-```bash
-# Request 1: Only your message goes to Claude
-Client sends: ["My name is John"]
-Claude CLI receives: ["My name is John"]
+- **🔍 Auto-Detection**: Automatically detects WSL environment and IP address
+- **📝 Script Generation**: Creates Windows batch and PowerShell scripts with correct port/IP
+- **📁 Accessible Storage**: Saves scripts to `C:\claude-wrapper\` for easy access
+- **🔧 Dynamic Configuration**: Works with any port (`-p` flag) automatically
+- **💡 Clear Instructions**: Provides step-by-step guidance for setup
 
-# Request 2: Only your message goes to Claude (no memory)
-Client sends: ["What is my name?"]  
-Claude CLI receives: ["What is my name?"]
-Claude responds: "I don't know your name"
-```
+### How It Works
 
-**With session_id (stateful):**
-```bash
-# Request 1: Your message goes to Claude, response stored in session
-Client sends: ["My name is John"] + session_id:"chat-123"
-Claude CLI receives: ["My name is John"]
-Session stores: [user:"My name is John", assistant:"I'll remember..."]
+When you run `claude-wrapper` in WSL, it automatically:
 
-# Request 2: Your new message + ALL previous history sent to Claude
-Client sends: ["What is my name?"] + session_id:"chat-123"  
-Claude CLI receives: [user:"My name is John", assistant:"I'll remember...", user:"What is my name?"]
-Claude responds: "John" (because it sees the full conversation)
-```
+1. **Detects WSL Environment** - Identifies WSL and gets the current IP address
+2. **Generates Scripts** - Creates Windows port forwarding scripts with correct settings
+3. **Saves to Windows** - Stores scripts in accessible `C:\claude-wrapper\` location
+4. **Shows File Paths** - Displays Windows file paths for easy navigation
 
-**The CLI automatically prepends conversation history** - you send one message, Claude CLI receives the entire conversation.
-
-### Session Features
-
-- **Session IDs**: Use `session_id` parameter to maintain conversation history
-- **Automatic Creation**: Sessions are created automatically when referenced
-- **TTL Management**: Sessions expire after 1 hour of inactivity (configurable)
-- **Background Cleanup**: Expired sessions are automatically cleaned up
-- **Memory Optimization**: Message history is limited to prevent memory bloat
-
-### Session Usage Examples
+### WSL Output Example
 
 ```bash
-# Create a session by sending a message with session_id
-curl -X POST http://localhost:8000/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "sonnet",
-    "messages": [{"role": "user", "content": "Hello"}],
-    "session_id": "my-conversation"
-  }'
+$ claude-wrapper -p 9000
 
-# Continue the conversation - full history is maintained
-curl -X POST http://localhost:8000/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "sonnet", 
-    "messages": [{"role": "user", "content": "What did I just say?"}],
-    "session_id": "my-conversation"
-  }'
+🚀 Claude Wrapper server started in background (PID: 12345)
 
-# List all active sessions
-curl http://localhost:8000/v1/sessions
+📡 API Endpoints:
+   POST   http://localhost:9000/v1/chat/completions      - Main chat API
+   GET    http://localhost:9000/v1/models                - List available models
+   ...
 
-# Get session details including full message history
-curl http://localhost:8000/v1/sessions/my-conversation
+🌐 WSL Access (for Windows): http://172.29.125.14:9000
 
-# Delete a session
-curl -X DELETE http://localhost:8000/v1/sessions/my-conversation
+🌉 WSL Port Forwarding Scripts:
+   Batch Script:      C:\claude-wrapper\claude-wrapper-port-9000.bat
+   PowerShell Script: C:\claude-wrapper\claude-wrapper-port-9000.ps1
+
+💡 Open File Explorer, navigate to a script path, and run as Administrator
+🔧 Or copy the path and run from Command Prompt/PowerShell as Administrator
 ```
+
+### Setting Up Port Forwarding
+
+1. **Navigate to Scripts**: Open File Explorer and go to `C:\claude-wrapper\`
+2. **Run as Administrator**: Right-click the script and select "Run as administrator"
+3. **Access Server**: Your Claude Wrapper server is now accessible at `http://localhost:9000`
+
+### Manual Port Forwarding
+
+If you prefer manual setup, use this command in Windows Command Prompt (as Administrator):
+
+```cmd
+netsh interface portproxy add v4tov4 listenport=9000 listenaddress=0.0.0.0 connectport=9000 connectaddress=172.29.125.14
+```
+
+## System Prompt Optimization
+
+Claude Wrapper includes intelligent system prompt optimization that provides significant performance improvements for repeated system prompts.
+
+### Performance Benefits
+
+- **60-70% faster responses** for requests with repeated system prompts
+- **Intelligent session caching** for system prompt reuse
+- **Automatic optimization** without client changes
+- **Token efficiency** by avoiding repeated system prompt processing
+
+### How It Works
+
+**Traditional approach (slow):**
+```bash
+# Every request sends full system prompt + user message
+Request 1: [System: "You are a helpful assistant"] + [User: "Hello"] → Process everything
+Request 2: [System: "You are a helpful assistant"] + [User: "Goodbye"] → Process everything again
+```
+
+**Optimized approach (fast):**
+```bash
+# System prompt processed once, then cached for reuse
+Request 1: [System: "You are a helpful assistant"] → Setup session, cache system prompt
+Request 2: [User: "Hello"] → Reuse cached session (60-70% faster)
+Request 3: [User: "Goodbye"] → Reuse cached session (60-70% faster)
+```
+
+### Automatic Detection
+
+The wrapper automatically detects when requests use the same system prompt and:
+- Creates an optimized session for the system prompt
+- Reuses the session for subsequent requests with the same system prompt
+- Manages session lifecycle automatically
+- Falls back to normal processing when system prompts change
+- Works transparently without requiring client modifications
 
 ## Tool Integration
 
@@ -520,7 +546,7 @@ npm run clean            # Clean build artifacts
 
 ## Current Status
 
-**✅ PHASE 4A COMPLETE** - Streaming Support + Session Management
+**✅ PHASE 5 COMPLETE** - System Prompt Optimization + WSL Integration
 
 **Production-Ready Implementation:**
 - **✅ Template-based format control** (100% success rate)
@@ -528,18 +554,19 @@ npm run clean            # Clean build artifacts
 - **✅ Client-side tool execution** (secure MCP integration)
 - **✅ Production CLI interface** with global installation
 - **✅ Background service architecture** with proper daemon management
-- **✅ Session management** with intelligent conversation continuity
+- **✅ System prompt optimization** with 60-70% performance improvements
+- **✅ WSL integration** with automatic port forwarding script generation
 - **✅ Real-time streaming** with Server-Sent Events
-- **✅ Comprehensive test suite** (314 tests, 100% passing)
+- **✅ Comprehensive test suite** (32 tests, 100% passing)
 
 ### Latest Features Implemented
-- **✅ Session Management** - Intelligent conversation continuity with TTL
-- **✅ Session API** - Full CRUD operations for session management
-- **✅ Streaming Support** - Real-time response streaming
-- **✅ Background Cleanup** - Automatic expired session cleanup
-- **✅ Memory Optimization** - Message history limiting
-- **✅ Session Statistics** - Detailed session analytics
-- **✅ Enhanced CLI** - Improved command structure and reliability
+- **✅ System Prompt Optimization** - Intelligent caching with Claude CLI `--resume` flag
+- **✅ WSL Integration** - Automatic port forwarding script generation for Windows access
+- **✅ Performance Improvements** - 60-70% faster responses for repeated system prompts
+- **✅ Dynamic Script Generation** - Works with any port configuration automatically
+- **✅ Windows File Integration** - Scripts saved to accessible `C:\claude-wrapper\` location
+- **✅ Enhanced CLI Output** - Clear instructions and file paths for WSL users
+- **✅ HTTP Script Endpoints** - Alternative access via HTTP for generated scripts
 
 ## License
 

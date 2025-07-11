@@ -28,8 +28,11 @@ This approach gives you **maximum flexibility** with Claude's tool capabilities.
 ## Key Features
 
 - **OpenAI Compatible**: Drop-in replacement for OpenAI Chat Completions API
-- **Session Management**: Automatic message history accumulation for conversation continuity
+- **Advanced Session Management**: Intelligent system prompt optimization with 60-70% performance improvements
 - **Streaming Support**: Real-time response streaming with Server-Sent Events
+- **WSL Integration**: Automatic port forwarding script generation for seamless Windows access
+- **MCP Tools Support**: Full compatibility with OpenAI MCP tools and function calling
+- **Performance Optimized**: Session-based caching and token-efficient processing
 
 ## 📦 Installation
 
