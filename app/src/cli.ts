@@ -11,6 +11,7 @@ import { logger } from './utils/logger';
 import { interactiveSetup } from './cli/interactive';
 import * as packageJson from '../package.json';
 import { processManager } from './process/manager';
+import { WSLHelper } from './utils/wsl-helper';
 
 
 /**
@@ -177,13 +178,7 @@ class CliRunner {
           ...(options.interactive !== undefined && { interactive: options.interactive })
         });
 
-        const { exec } = require('child_process');
-        const wslIp = await new Promise<string>((resolve) => {
-          exec('hostname -I', (error: any, stdout: string) => {
-            if (error) resolve('localhost');
-            else resolve(stdout.trim().split(' ')[0] || 'localhost');
-          });
-        });
+        const wslInfo = WSLHelper.getWSLInfo();
         
         console.log(`🚀 Claude Wrapper server started in background (PID: ${pid})`);
         console.log(`\n📡 API Endpoints:`);
@@ -201,8 +196,30 @@ class CliRunner {
         console.log(`   GET    http://localhost:${port}/swagger.json             - OpenAPI spec`);
         console.log(`   GET    http://localhost:${port}/logs                     - Server logs`);
         console.log(`   POST   http://localhost:${port}/logs/clear               - Clear logs`);
-        if (wslIp !== 'localhost') {
-          console.log(`\n🌐 WSL Access (for Windows): http://${wslIp}:${port}`);
+        
+        // WSL-specific information and port forwarding
+        if (wslInfo.isWSL && wslInfo.wslIP) {
+          console.log(`\n🌐 WSL Access (for Windows): http://${wslInfo.wslIP}:${port}`);
+          
+          try {
+            // Generate and save port forwarding scripts
+            const { batchFile, powershellFile } = WSLHelper.savePortForwardingScripts(parseInt(port), wslInfo.wslIP);
+            
+            // Convert WSL paths to Windows paths for display
+            const windowsBatchPath = batchFile.replace(/^\/mnt\/c/, 'C:').replace(/\//g, '\\');
+            const windowsPowershellPath = powershellFile.replace(/^\/mnt\/c/, 'C:').replace(/\//g, '\\');
+            
+            console.log(`\n🌉 WSL Port Forwarding Scripts:`);
+            console.log(`   Batch Script:      ${windowsBatchPath}`);
+            console.log(`   PowerShell Script: ${windowsPowershellPath}`);
+            console.log(`\n💡 Open File Explorer, navigate to a script path, and run as Administrator`);
+            console.log(`🔧 Or copy the path and run from Command Prompt/PowerShell as Administrator`);
+          } catch (error) {
+            logger.warn('Failed to generate WSL port forwarding scripts', error);
+          }
+        } else if (wslInfo.isWSL) {
+          console.log(`\n⚠️  WSL detected but could not determine IP address`);
+          console.log(`   Use: netsh interface portproxy add v4tov4 listenport=${port} listenaddress=0.0.0.0 connectport=${port} connectaddress=<WSL_IP>`);
         }
         
         process.exit(0);
@@ -232,13 +249,7 @@ class CliRunner {
     const app = await import('./api/server');
     const { signalHandler } = await import('./process/signals');
     
-    const { exec } = require('child_process');
-    const wslIp = await new Promise<string>((resolve) => {
-      exec('hostname -I', (error: any, stdout: string) => {
-        if (error) resolve('localhost');
-        else resolve(stdout.trim().split(' ')[0] || 'localhost');
-      });
-    });
+    const wslInfo = WSLHelper.getWSLInfo();
     
     console.log(`🚀 Claude Wrapper server starting in foreground (debug mode)`);
     console.log(`\n📡 API Endpoints:`);
@@ -256,9 +267,32 @@ class CliRunner {
     console.log(`   GET    http://localhost:${port}/swagger.json             - OpenAPI spec`);
     console.log(`   GET    http://localhost:${port}/logs                     - Server logs`);
     console.log(`   POST   http://localhost:${port}/logs/clear               - Clear logs`);
-    if (wslIp !== 'localhost') {
-      console.log(`\n🌐 WSL Access (for Windows): http://${wslIp}:${port}`);
+    
+    // WSL-specific information and port forwarding
+    if (wslInfo.isWSL && wslInfo.wslIP) {
+      console.log(`\n🌐 WSL Access (for Windows): http://${wslInfo.wslIP}:${port}`);
+      
+      try {
+        // Generate and save port forwarding scripts
+        const { batchFile, powershellFile } = WSLHelper.savePortForwardingScripts(parseInt(port), wslInfo.wslIP);
+        
+        // Convert WSL paths to Windows paths for display
+        const windowsBatchPath = batchFile.replace(/^\/mnt\/c/, 'C:').replace(/\//g, '\\');
+        const windowsPowershellPath = powershellFile.replace(/^\/mnt\/c/, 'C:').replace(/\//g, '\\');
+        
+        console.log(`\n🌉 WSL Port Forwarding Scripts:`);
+        console.log(`   Batch Script:      ${windowsBatchPath}`);
+        console.log(`   PowerShell Script: ${windowsPowershellPath}`);
+        console.log(`\n💡 Open File Explorer, navigate to a script path, and run as Administrator`);
+        console.log(`🔧 Or copy the path and run from Command Prompt/PowerShell as Administrator`);
+      } catch (error) {
+        logger.warn('Failed to generate WSL port forwarding scripts', error);
+      }
+    } else if (wslInfo.isWSL) {
+      console.log(`\n⚠️  WSL detected but could not determine IP address`);
+      console.log(`   Use: netsh interface portproxy add v4tov4 listenport=${port} listenaddress=0.0.0.0 connectport=${port} connectaddress=<WSL_IP>`);
     }
+    
     console.log(`\n🐛 Debug mode enabled - server will run in foreground`);
     console.log(`📝 Press Ctrl+C to stop the server`);
 
