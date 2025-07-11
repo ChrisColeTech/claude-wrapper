@@ -12,6 +12,10 @@ export class EnvironmentManager {
     return this.config;
   }
 
+  static resetConfig(): void {
+    this.config = null;
+  }
+
   private static loadConfig(): EnvironmentConfig {
     return {
       port: this.getNumberFromEnv('PORT', API_CONSTANTS.DEFAULT_PORT),

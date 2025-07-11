@@ -51,6 +51,8 @@ async function startDaemon(): Promise<void> {
   const options = parseDaemonArgs();
   
   // Set environment variables BEFORE importing server (critical for middleware configuration)
+  process.env['PORT'] = options.port.toString();
+  
   if (options.apiKey) {
     process.env['API_KEY'] = options.apiKey;
   }
@@ -63,6 +65,10 @@ async function startDaemon(): Promise<void> {
   if (options.mock) {
     process.env['MOCK_MODE'] = 'true';
   }
+
+  // Reset config cache to ensure environment variables are re-read
+  const { EnvironmentManager } = await import('./config/env');
+  EnvironmentManager.resetConfig();
 
   // Import server AFTER setting environment variables
   const { startServer } = await import('./api/server');

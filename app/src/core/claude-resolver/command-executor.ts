@@ -257,6 +257,14 @@ export class ClaudeCommandExecutor implements IClaudeCommandExecutor {
       flags
     });
     
+    // Check if this is a tool calling request by looking for OpenAI format tools in the prompt
+    const hasTools = this.detectToolsInPrompt(prompt);
+    
+    if (hasTools) {
+      // Return OpenAI format response with tool calls
+      return this.generateMockToolCallResponse(prompt);
+    }
+    
     // Generate realistic mock response matching Claude CLI JSON format
     const mockResponse = {
       type: 'result',
@@ -334,5 +342,162 @@ export class ClaudeCommandExecutor implements IClaudeCommandExecutor {
     });
     
     return Promise.resolve(mockStream);
+  }
+
+  /**
+   * Detect if the prompt contains OpenAI format tools
+   */
+  private detectToolsInPrompt(prompt: string): boolean {
+    // Check for common tool-related patterns in the prompt
+    const toolPatterns = [
+      /"tools":\s*\[/,
+      /"type":\s*"function"/,
+      /"function":\s*{/,
+      /Available tools:/,
+      /tool_calls/,
+      /function_call/
+    ];
+    
+    return toolPatterns.some(pattern => pattern.test(prompt));
+  }
+
+  /**
+   * Generate mock OpenAI format response with tool calls
+   */
+  private generateMockToolCallResponse(prompt: string): Promise<string> {
+    // Extract tool names from the prompt if possible
+    const toolNames = this.extractToolNames(prompt);
+    const timestamp = Math.floor(Date.now() / 1000);
+    const requestId = `chatcmpl-${Math.random().toString(36).substring(2, 15)}`;
+    
+    // Generate appropriate tool calls based on detected tools
+    const toolCalls = toolNames.map((toolName) => ({
+      id: `call_${Math.random().toString(36).substring(2, 15)}`,
+      type: "function",
+      function: {
+        name: toolName,
+        arguments: this.generateMockToolArguments(toolName)
+      }
+    }));
+
+    const mockResponse = {
+      id: requestId,
+      object: "chat.completion",
+      created: timestamp,
+      model: "claude-3-5-sonnet-20241022",
+      choices: [{
+        index: 0,
+        message: {
+          role: "assistant",
+          content: null,
+          tool_calls: toolCalls
+        },
+        finish_reason: "tool_calls"
+      }],
+      usage: {
+        prompt_tokens: Math.floor(prompt.length / 4),
+        completion_tokens: 20 + toolCalls.length * 5,
+        total_tokens: Math.floor(prompt.length / 4) + 20 + toolCalls.length * 5
+      }
+    };
+
+    logger.info('Mock tool call response generated', {
+      toolCount: toolCalls.length,
+      toolNames,
+      responseSize: JSON.stringify(mockResponse).length
+    });
+
+    // Return Claude CLI format with OpenAI response as the result
+    const claudeResponse = {
+      type: 'result',
+      subtype: 'success',
+      is_error: false,
+      duration_ms: Math.floor(Math.random() * 30) + 10, // 10-40ms for tool calls
+      duration_api_ms: Math.floor(Math.random() * 15) + 5, // 5-20ms
+      num_turns: 1,
+      result: JSON.stringify(mockResponse),
+      session_id: `mock-session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      total_cost_usd: 0.002,
+      usage: {
+        input_tokens: Math.floor(prompt.length / 4),
+        output_tokens: 20 + toolCalls.length * 5,
+        server_tool_use: { web_search_requests: 0 },
+        service_tier: 'standard'
+      }
+    };
+
+    return Promise.resolve(JSON.stringify(claudeResponse));
+  }
+
+  /**
+   * Extract tool names from the prompt
+   */
+  private extractToolNames(prompt: string): string[] {
+    const toolNames: string[] = [];
+    
+    // Try to extract function names from OpenAI format
+    const functionMatches = prompt.match(/"name":\s*"([^"]+)"/g);
+    if (functionMatches) {
+      functionMatches.forEach(match => {
+        const nameMatch = match.match(/"name":\s*"([^"]+)"/);
+        if (nameMatch && nameMatch[1]) {
+          toolNames.push(nameMatch[1]);
+        }
+      });
+    }
+    
+    // If no tools found, provide some common mock tools
+    if (toolNames.length === 0) {
+      // Check for common tool types in the prompt
+      if (prompt.includes('file') || prompt.includes('read') || prompt.includes('write')) {
+        toolNames.push('file_operations');
+      }
+      if (prompt.includes('search') || prompt.includes('find')) {
+        toolNames.push('search_files');
+      }
+      if (prompt.includes('bash') || prompt.includes('command') || prompt.includes('execute')) {
+        toolNames.push('bash_command');
+      }
+      if (prompt.includes('web') || prompt.includes('http') || prompt.includes('url')) {
+        toolNames.push('web_search');
+      }
+      
+      // Default fallback
+      if (toolNames.length === 0) {
+        toolNames.push('generic_tool');
+      }
+    }
+    
+    return toolNames.slice(0, 3); // Limit to 3 tools max
+  }
+
+  /**
+   * Generate mock arguments for a tool based on its name
+   */
+  private generateMockToolArguments(toolName: string): string {
+    const mockArgs: Record<string, any> = {};
+    
+    switch (toolName) {
+      case 'file_operations':
+        mockArgs['path'] = '/mock/file/path.txt';
+        mockArgs['operation'] = 'read';
+        break;
+      case 'search_files':
+        mockArgs['pattern'] = 'mock_pattern';
+        mockArgs['directory'] = '/mock/directory';
+        break;
+      case 'bash_command':
+        mockArgs['command'] = 'echo "Mock command execution"';
+        break;
+      case 'web_search':
+        mockArgs['query'] = 'mock search query';
+        break;
+      default:
+        mockArgs['action'] = 'mock_action';
+        mockArgs['parameter'] = 'mock_value';
+        break;
+    }
+    
+    return JSON.stringify(mockArgs);
   }
 }
