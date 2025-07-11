@@ -26,6 +26,7 @@ export interface CliOptions {
   status?: boolean;
   production?: boolean;
   healthMonitoring?: boolean;
+  mock?: boolean;
 }
 
 /**
@@ -54,6 +55,7 @@ class CliParser {
       .option('-n, --no-interactive', 'disable interactive API key setup')
       .option('-P, --production', 'enable production server management features')
       .option('-H, --health-monitoring', 'enable health monitoring system')
+      .option('-m, --mock', 'use mock Claude CLI for testing')
       .option('-s, --stop', 'stop background server')
       .option('-t, --status', 'check background server status')
       .helpOption('-h, --help', 'display help for command')
@@ -67,6 +69,7 @@ Examples:
   wrapper -d                Start in debug mode
   wrapper -k my-key         Start with API key protection
   wrapper -n                Skip interactive API key setup
+  wrapper -m                Start with mock Claude CLI
   wrapper -s                Stop background server
   wrapper -t                Check server status
   
@@ -175,7 +178,8 @@ class CliRunner {
           port,
           ...(options.apiKey && { apiKey: options.apiKey }),
           ...(options.debug !== undefined && { debug: options.debug }),
-          ...(options.interactive !== undefined && { interactive: options.interactive })
+          ...(options.interactive !== undefined && { interactive: options.interactive }),
+          ...(options.mock !== undefined && { mock: options.mock })
         });
 
         const wslInfo = WSLHelper.getWSLInfo();
@@ -244,6 +248,9 @@ class CliRunner {
     if (options.debug) {
       process.env['DEBUG_MODE'] = 'true';
     }
+    if (options.mock) {
+      process.env['MOCK_MODE'] = 'true';
+    }
 
     // Import and start server directly
     const { startServer } = await import('./api/server');
@@ -251,7 +258,11 @@ class CliRunner {
     
     const wslInfo = WSLHelper.getWSLInfo();
     
-    console.log(`🚀 Claude Wrapper server starting in foreground (debug mode)`);
+    const modeText = options.mock ? 'mock mode' : 'debug mode';
+    console.log(`🚀 Claude Wrapper server starting in foreground (${modeText})`);
+    if (options.mock) {
+      console.log(`🧪 Mock mode enabled - using instant mock responses`);
+    }
     console.log(`\n📡 API Endpoints:`);
     console.log(`   POST   http://localhost:${port}/v1/chat/completions      - Main chat API`);
     console.log(`   GET    http://localhost:${port}/v1/models                - List available models`);
@@ -293,10 +304,14 @@ class CliRunner {
       console.log(`   Use: netsh interface portproxy add v4tov4 listenport=${port} listenaddress=0.0.0.0 connectport=${port} connectaddress=<WSL_IP>`);
     }
     
-    console.log(`\n🐛 Debug mode enabled - server will run in foreground`);
+    console.log(`\n🐛 ${modeText} enabled - server will run in foreground`);
     console.log(`📝 Press Ctrl+C to stop the server`);
 
-    console.log(`\n🔍 Initializing Claude CLI...`);
+    if (options.mock) {
+      console.log(`\n🧪 Mock mode: Bypassing Claude CLI for instant responses`);
+    } else {
+      console.log(`\n🔍 Initializing Claude CLI...`);
+    }
     const server = await startServer();
     console.log(`✅ Server listening on port ${port}`);
 

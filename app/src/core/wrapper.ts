@@ -168,7 +168,11 @@ export class CoreWrapper implements ICoreWrapper {
       );
       
       const claudeRequest = this.addFormatInstructions(request);
-      return this.validateAndCorrect(rawResponse, claudeRequest);
+      
+      // Parse Claude CLI JSON response to extract result field if present
+      const processedResponse = this.parseClaudeResponse(rawResponse);
+      
+      return this.validateAndCorrect(processedResponse, claudeRequest);
     } finally {
       // Clean up temporary file
       if (tempFilePath) {
@@ -263,7 +267,10 @@ export class CoreWrapper implements ICoreWrapper {
       sessionState.lastUsed = new Date();
     }
     
-    return this.validateAndCorrect(rawResponse, claudeRequest);
+    // Parse Claude CLI JSON response to extract result field if present
+    const processedResponse = this.parseClaudeResponse(rawResponse);
+    
+    return this.validateAndCorrect(processedResponse, claudeRequest);
   }
 
   private async processNormally(request: OpenAIRequest): Promise<OpenAIResponse> {
@@ -272,7 +279,29 @@ export class CoreWrapper implements ICoreWrapper {
     const claudeRequest = this.addFormatInstructions(request);
     const rawResponse = await this.claudeClient.execute(claudeRequest);
     
-    return this.validateAndCorrect(rawResponse, claudeRequest);
+    // Parse Claude CLI JSON response to extract result field if present
+    const processedResponse = this.parseClaudeResponse(rawResponse);
+    
+    return this.validateAndCorrect(processedResponse, claudeRequest);
+  }
+
+  private parseClaudeResponse(rawResponse: string): string {
+    try {
+      const parsed = JSON.parse(rawResponse);
+      // If it's a Claude CLI JSON response with result field, extract it
+      if (parsed.result !== undefined) {
+        logger.debug('Extracted result from Claude CLI JSON response', {
+          hasSessionId: !!parsed.session_id,
+          resultLength: parsed.result.length
+        });
+        return parsed.result;
+      }
+      // Otherwise return the original response
+      return rawResponse;
+    } catch (error) {
+      // Not JSON, return as-is
+      return rawResponse;
+    }
   }
 
   private parseClaudeSessionResponse(jsonResponse: string): { sessionId: string | null; response: string } {

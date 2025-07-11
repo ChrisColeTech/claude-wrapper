@@ -20,6 +20,7 @@ export interface DaemonOptions {
   verbose?: boolean;
   debug?: boolean;
   scriptPath?: string;
+  mock?: boolean;
 }
 
 /**
@@ -216,6 +217,10 @@ export class DaemonManager implements IDaemonManager {
     
     if (options.debug) {
       args.push('--debug');
+    }
+    
+    if (options.mock) {
+      args.push('--mock');
     }
     
     return args;

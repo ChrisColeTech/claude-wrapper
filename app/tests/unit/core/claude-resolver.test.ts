@@ -20,7 +20,8 @@ jest.mock('../../../src/config/env', () => ({
       timeout: 30000,
       claudeCommand: undefined,
       logLevel: 'info'
-    }))
+    })),
+    isMockMode: jest.fn(() => false)
   }
 }));
 

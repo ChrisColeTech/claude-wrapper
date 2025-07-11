@@ -71,4 +71,8 @@ export class EnvironmentManager {
   static getRequiredApiKey(): boolean {
     return process.env[SECURITY_ENV_VARS.REQUIRE_API_KEY] === 'true';
   }
+
+  static isMockMode(): boolean {
+    return process.env['MOCK_MODE'] === 'true' || process.env['MOCK_MODE'] === '1';
+  }
 }

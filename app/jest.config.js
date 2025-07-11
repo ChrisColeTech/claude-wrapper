@@ -1,11 +1,4 @@
 module.exports = {
-  // Custom reporter with automatic log cleanup and organized results
-  reporters: [
-    "default",
-    ["<rootDir>/tests/scripts/custom-reporter.js", {}],
-    ["<rootDir>/tests/scripts/verbose-reporter.js", {}]
-  ],
-  
   // Projects setup for organized test types
   projects: [
     "<rootDir>/tests/jest.unit.config.js",
