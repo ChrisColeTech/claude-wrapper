@@ -4,6 +4,7 @@ module.exports = {
   testEnvironment: "node",
   rootDir: "../",
   reporters: [
+    "default",
     ["<rootDir>/tests/scripts/custom-reporter.js", {}],
     ["<rootDir>/tests/scripts/verbose-reporter.js", {}]
   ],

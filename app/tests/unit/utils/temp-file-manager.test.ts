@@ -100,7 +100,7 @@ describe('TempFileManager', () => {
       const filePath = await TempFileManager.createTempFile(systemPrompt);
       
       expect(filePath).toContain('prompt-');
-      expect(filePath).toEndWith('.txt');
+      expect(filePath).toMatch(/\.txt$/);
       
       const content = await fs.readFile(filePath, 'utf8');
       expect(content).toBe(systemPrompt);
