@@ -11,18 +11,32 @@ export class ClaudeClient implements IClaudeClient {
   }
 
   async execute(request: ClaudeRequest): Promise<string> {
+    return this.executeWithSession(request, null, false);
+  }
+
+  async executeWithSession(request: ClaudeRequest, sessionId: string | null, useJsonOutput: boolean): Promise<string> {
     try {
       const prompt = this.messagesToPrompt(request.messages, request.tools);
       logger.debug('Converting messages to prompt', { 
         messageCount: request.messages.length,
         model: request.model,
-        hasTools: !!request.tools 
+        hasTools: !!request.tools,
+        sessionId,
+        useJsonOutput
       });
       
-      const result = await this.resolver.executeClaudeCommand(prompt, request.model);
+      const result = await this.resolver.executeClaudeCommandWithSession(
+        prompt, 
+        request.model, 
+        sessionId, 
+        useJsonOutput
+      );
+      
       logger.info('Claude execution completed successfully', {
         model: request.model,
-        responseLength: result.length
+        responseLength: result.length,
+        sessionId,
+        useJsonOutput
       });
       
       return result;
@@ -30,7 +44,8 @@ export class ClaudeClient implements IClaudeClient {
     } catch (error) {
       logger.error('Claude CLI execution failed', error as Error, { 
         model: request.model,
-        messageCount: request.messages.length 
+        messageCount: request.messages.length,
+        sessionId 
       });
       
       if (error instanceof ClaudeCliError) {
@@ -52,16 +67,22 @@ export class ClaudeClient implements IClaudeClient {
     }
     
     for (const message of messages) {
+      // Ensure content is properly serialized to string
+      const content = typeof message.content === 'string' 
+        ? message.content 
+        : typeof message.content === 'object'
+        ? JSON.stringify(message.content)
+        : String(message.content);
+      
+      // Send raw content without prefixes to save tokens
       if (message.role === 'system') {
-        prompt += `System: ${message.content}\n\n`;
+        prompt += `${content}\n\n`;
       } else if (message.role === 'user') {
-        prompt += `Human: ${message.content}\n\n`;
+        prompt += `${content}\n\n`;
       } else if (message.role === 'assistant') {
-        prompt += `Assistant: ${message.content}\n\n`;
+        prompt += `${content}\n\n`;
       }
     }
-    
-    prompt += 'Assistant: ';
     
     logger.debug('Converted messages to prompt', { 
       promptLength: prompt.length,
