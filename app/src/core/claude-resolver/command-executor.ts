@@ -14,8 +14,17 @@ const execAsync = promisify(exec);
 
 export class ClaudeCommandExecutor implements IClaudeCommandExecutor {
   private readonly STDIN_THRESHOLD = 50 * 1024; // 50KB
+  private readonly mockMode: boolean;
+
+  constructor(mockMode: boolean = false) {
+    this.mockMode = mockMode;
+    logger.debug('ClaudeCommandExecutor initialized', { mockMode });
+  }
 
   async execute(command: string, args: string[]): Promise<string> {
+    if (this.mockMode) {
+      return this.mockExecute(command, args);
+    }
     const prompt = args[0] || '';
     const flags = args.slice(1).join(' ');
     
@@ -27,6 +36,10 @@ export class ClaudeCommandExecutor implements IClaudeCommandExecutor {
   }
 
   async executeStreaming(command: string, args: string[]): Promise<NodeJS.ReadableStream> {
+    if (this.mockMode) {
+      return this.mockExecuteStreaming(command, args);
+    }
+    
     const prompt = args[0] || '';
     const flags = args.slice(1).join(' ');
     
@@ -229,5 +242,262 @@ export class ClaudeCommandExecutor implements IClaudeCommandExecutor {
     }
     
     throw new ClaudeCliError(`Claude CLI execution failed: ${errorMessage}. stderr: ${stderr}. stdout: ${stdout}`);
+  }
+
+  /**
+   * Mock execution for testing - returns instant realistic response
+   */
+  private mockExecute(command: string, args: string[]): Promise<string> {
+    const prompt = args[0] || 'test';
+    const flags = args.slice(1).join(' ');
+    
+    logger.debug('Mock execution triggered', { 
+      commandLength: command.length,
+      promptLength: prompt.length,
+      flags
+    });
+    
+    // Check if this is a tool calling request by looking for OpenAI format tools in the prompt
+    const hasTools = this.detectToolsInPrompt(prompt);
+    
+    if (hasTools) {
+      // Return OpenAI format response with tool calls
+      return this.generateMockToolCallResponse(prompt);
+    }
+    
+    // Generate realistic mock response matching Claude CLI JSON format
+    const mockResponse = {
+      type: 'result',
+      subtype: 'success',
+      is_error: false,
+      duration_ms: Math.floor(Math.random() * 20) + 5, // 5-25ms
+      duration_api_ms: Math.floor(Math.random() * 10) + 2, // 2-12ms
+      num_turns: 1,
+      result: `Mock response to: ${prompt.substring(0, 50)}${prompt.length > 50 ? '...' : ''}`,
+      session_id: `mock-session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      total_cost_usd: 0.001,
+      usage: {
+        input_tokens: Math.floor(prompt.length / 4), // Rough token estimate
+        output_tokens: 15 + Math.floor(Math.random() * 10), // 15-25 tokens
+        server_tool_use: { web_search_requests: 0 },
+        service_tier: 'standard'
+      }
+    };
+    
+    logger.info('Mock response generated', {
+      responseSize: JSON.stringify(mockResponse).length,
+      inputTokens: mockResponse.usage.input_tokens,
+      outputTokens: mockResponse.usage.output_tokens
+    });
+    
+    return Promise.resolve(JSON.stringify(mockResponse));
+  }
+
+  /**
+   * Mock streaming execution for testing - returns instant realistic streaming response
+   */
+  private mockExecuteStreaming(command: string, args: string[]): Promise<NodeJS.ReadableStream> {
+    const prompt = args[0] || 'test';
+    const { Readable } = require('stream');
+    
+    logger.debug('Mock streaming execution triggered', { 
+      commandLength: command.length,
+      promptLength: prompt.length
+    });
+    
+    const mockStream = new Readable({
+      read() {
+        // Emit mock streaming JSON events instantly
+        const messageId = `mock-msg-${Date.now()}`;
+        
+        // Message start
+        this.push(`{"type":"message_start","message":{"id":"${messageId}","type":"message","role":"assistant","content":[],"model":"claude-3-5-sonnet-20241022","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":${Math.floor(prompt.length / 4)},"output_tokens":0}}}\n`);
+        
+        // Content block start
+        this.push('{"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}\n');
+        
+        // Content deltas
+        const mockWords = ['Mock', 'streaming', 'response', 'for', 'testing', 'purposes.'];
+        mockWords.forEach(word => {
+          this.push(`{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"${word} "}}\n`);
+        });
+        
+        // Content block stop
+        this.push('{"type":"content_block_stop","index":0}\n');
+        
+        // Message delta
+        this.push(`{"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":${mockWords.length + 2}}}\n`);
+        
+        // Message stop
+        this.push('{"type":"message_stop"}\n');
+        
+        // End stream
+        this.push(null);
+      }
+    });
+    
+    logger.info('Mock streaming response generated', {
+      streamType: 'mock',
+      inputTokens: Math.floor(prompt.length / 4)
+    });
+    
+    return Promise.resolve(mockStream);
+  }
+
+  /**
+   * Detect if the prompt contains OpenAI format tools
+   */
+  private detectToolsInPrompt(prompt: string): boolean {
+    // Check for common tool-related patterns in the prompt
+    const toolPatterns = [
+      /"tools":\s*\[/,
+      /"type":\s*"function"/,
+      /"function":\s*{/,
+      /Available tools:/,
+      /tool_calls/,
+      /function_call/
+    ];
+    
+    return toolPatterns.some(pattern => pattern.test(prompt));
+  }
+
+  /**
+   * Generate mock OpenAI format response with tool calls
+   */
+  private generateMockToolCallResponse(prompt: string): Promise<string> {
+    // Extract tool names from the prompt if possible
+    const toolNames = this.extractToolNames(prompt);
+    const timestamp = Math.floor(Date.now() / 1000);
+    const requestId = `chatcmpl-${Math.random().toString(36).substring(2, 15)}`;
+    
+    // Generate appropriate tool calls based on detected tools
+    const toolCalls = toolNames.map((toolName) => ({
+      id: `call_${Math.random().toString(36).substring(2, 15)}`,
+      type: "function",
+      function: {
+        name: toolName,
+        arguments: this.generateMockToolArguments(toolName)
+      }
+    }));
+
+    const mockResponse = {
+      id: requestId,
+      object: "chat.completion",
+      created: timestamp,
+      model: "claude-3-5-sonnet-20241022",
+      choices: [{
+        index: 0,
+        message: {
+          role: "assistant",
+          content: null,
+          tool_calls: toolCalls
+        },
+        finish_reason: "tool_calls"
+      }],
+      usage: {
+        prompt_tokens: Math.floor(prompt.length / 4),
+        completion_tokens: 20 + toolCalls.length * 5,
+        total_tokens: Math.floor(prompt.length / 4) + 20 + toolCalls.length * 5
+      }
+    };
+
+    logger.info('Mock tool call response generated', {
+      toolCount: toolCalls.length,
+      toolNames,
+      responseSize: JSON.stringify(mockResponse).length
+    });
+
+    // Return Claude CLI format with OpenAI response as the result
+    const claudeResponse = {
+      type: 'result',
+      subtype: 'success',
+      is_error: false,
+      duration_ms: Math.floor(Math.random() * 30) + 10, // 10-40ms for tool calls
+      duration_api_ms: Math.floor(Math.random() * 15) + 5, // 5-20ms
+      num_turns: 1,
+      result: JSON.stringify(mockResponse),
+      session_id: `mock-session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      total_cost_usd: 0.002,
+      usage: {
+        input_tokens: Math.floor(prompt.length / 4),
+        output_tokens: 20 + toolCalls.length * 5,
+        server_tool_use: { web_search_requests: 0 },
+        service_tier: 'standard'
+      }
+    };
+
+    return Promise.resolve(JSON.stringify(claudeResponse));
+  }
+
+  /**
+   * Extract tool names from the prompt
+   */
+  private extractToolNames(prompt: string): string[] {
+    const toolNames: string[] = [];
+    
+    // Try to extract function names from OpenAI format
+    const functionMatches = prompt.match(/"name":\s*"([^"]+)"/g);
+    if (functionMatches) {
+      functionMatches.forEach(match => {
+        const nameMatch = match.match(/"name":\s*"([^"]+)"/);
+        if (nameMatch && nameMatch[1]) {
+          toolNames.push(nameMatch[1]);
+        }
+      });
+    }
+    
+    // If no tools found, provide some common mock tools
+    if (toolNames.length === 0) {
+      // Check for common tool types in the prompt
+      if (prompt.includes('file') || prompt.includes('read') || prompt.includes('write')) {
+        toolNames.push('file_operations');
+      }
+      if (prompt.includes('search') || prompt.includes('find')) {
+        toolNames.push('search_files');
+      }
+      if (prompt.includes('bash') || prompt.includes('command') || prompt.includes('execute')) {
+        toolNames.push('bash_command');
+      }
+      if (prompt.includes('web') || prompt.includes('http') || prompt.includes('url')) {
+        toolNames.push('web_search');
+      }
+      
+      // Default fallback
+      if (toolNames.length === 0) {
+        toolNames.push('generic_tool');
+      }
+    }
+    
+    return toolNames.slice(0, 3); // Limit to 3 tools max
+  }
+
+  /**
+   * Generate mock arguments for a tool based on its name
+   */
+  private generateMockToolArguments(toolName: string): string {
+    const mockArgs: Record<string, any> = {};
+    
+    switch (toolName) {
+      case 'file_operations':
+        mockArgs['path'] = '/mock/file/path.txt';
+        mockArgs['operation'] = 'read';
+        break;
+      case 'search_files':
+        mockArgs['pattern'] = 'mock_pattern';
+        mockArgs['directory'] = '/mock/directory';
+        break;
+      case 'bash_command':
+        mockArgs['command'] = 'echo "Mock command execution"';
+        break;
+      case 'web_search':
+        mockArgs['query'] = 'mock search query';
+        break;
+      default:
+        mockArgs['action'] = 'mock_action';
+        mockArgs['parameter'] = 'mock_value';
+        break;
+    }
+    
+    return JSON.stringify(mockArgs);
   }
 }

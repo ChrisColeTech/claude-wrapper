@@ -85,13 +85,17 @@ export async function startServer(): Promise<any> {
   TempFileManager.cleanupOnStartup();
   
   // Initialize Claude CLI path synchronously at startup
-  logger.info('Initializing Claude CLI path...');
-  try {
-    await ClaudeResolver.getInstanceAsync();
-    logger.info('Claude CLI path cached successfully');
-  } catch (error) {
-    logger.error('Failed to initialize Claude CLI path at startup', error as Error);
-    process.exit(1);
+  if (EnvironmentManager.isMockMode()) {
+    logger.info('Mock mode enabled - skipping Claude CLI path initialization');
+  } else {
+    logger.info('Initializing Claude CLI path...');
+    try {
+      await ClaudeResolver.getInstanceAsync();
+      logger.info('Claude CLI path cached successfully');
+    } catch (error) {
+      logger.error('Failed to initialize Claude CLI path at startup', error as Error);
+      process.exit(1);
+    }
   }
   
   return app.listen(config.port, '0.0.0.0', () => {

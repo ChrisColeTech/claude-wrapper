@@ -84,6 +84,7 @@ Options:
   -H, --health-monitoring enable health monitoring system
   -s, --stop           stop background server
   -t, --status         check background server status
+  -m, --mock           enable mock mode for testing (instant responses)
   -h, --help           display help for command
 ```
 
@@ -100,6 +101,34 @@ wrapper -n                         # shorthand
 wrapper --api-key my-secure-key
 wrapper -k my-secure-key           # shorthand
 ```
+
+### Mock Mode for Testing
+
+**Mock mode provides instant responses for performance testing and development:**
+
+```bash
+# Enable mock mode for testing
+wrapper --mock
+wrapper -m                         # shorthand
+
+# Combine with other options
+wrapper --mock --debug             # mock mode with debug output
+wrapper --mock --port 9999         # mock mode on custom port
+```
+
+Mock mode returns realistic Claude CLI responses instantly without making actual API calls, perfect for:
+- Performance testing and load testing
+- Development and debugging
+- CI/CD pipeline testing
+- Offline development environments
+
+**Mock Mode Features:**
+- Instant response generation (no API delays)
+- Realistic Claude CLI JSON response format
+- Streaming support with word-by-word content deltas
+- Automatic token calculation based on prompt length
+- Unique session ID generation for each request
+- Compatible with all existing endpoints and authentication
 
 ## 📡 API Endpoints
 

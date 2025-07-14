@@ -70,13 +70,13 @@ export class ClaudePathDetector implements IClaudePathDetector {
 
   private async checkPathResolution(): Promise<string | null> {
     const pathCommands = [
-      // Interactive shells (handles aliases)
-      'bash -i -c "which claude"',
-      'zsh -i -c "which claude"',
-      
-      // Direct PATH lookups (handles npm global installs)
+      // Direct PATH lookups (handles npm global installs) - prioritized for reliability
       'command -v claude',
       'which claude',
+      
+      // Interactive shells (handles aliases) - moved to end due to hanging issues
+      'bash -i -c "which claude"',
+      'zsh -i -c "which claude"',
       
       // Docker detection
       'docker run --rm anthropic/claude --version',
@@ -94,7 +94,9 @@ export class ClaudePathDetector implements IClaudePathDetector {
     for (const pathCmd of pathCommands) {
       try {
         logger.debug('Trying PATH resolution', { command: pathCmd });
-        const { stdout } = await execAsync(pathCmd, { timeout: 2000 });
+        // Use shorter timeout for interactive shells to prevent hanging
+        const timeout = pathCmd.includes('-i -c') ? 1000 : 2000;
+        const { stdout } = await execAsync(pathCmd, { timeout });
         const claudePath = stdout.trim();
         
         if (claudePath && !claudePath.includes('not found')) {

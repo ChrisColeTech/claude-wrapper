@@ -8,6 +8,7 @@ import { ClaudePathCache } from './path-cache';
 import { ClaudePathDetector } from './path-detector';
 import { ClaudeCommandExecutor } from './command-executor';
 import { IClaudeResolver } from './interfaces';
+import { EnvironmentManager } from '../../config/env';
 
 export class ClaudeResolver implements IClaudeResolver {
   private static instance: ClaudeResolver | null = null;
@@ -18,9 +19,10 @@ export class ClaudeResolver implements IClaudeResolver {
   private constructor() {
     this.pathCache = ClaudePathCache.getInstance();
     this.pathDetector = new ClaudePathDetector();
-    this.commandExecutor = new ClaudeCommandExecutor();
+    this.commandExecutor = new ClaudeCommandExecutor(EnvironmentManager.isMockMode());
     
-    logger.info('ClaudeResolver initialized as singleton');
+    const modeText = EnvironmentManager.isMockMode() ? 'mock mode' : 'normal mode';
+    logger.info(`ClaudeResolver initialized as singleton (${modeText})`);
   }
 
   private async initializePath(): Promise<void> {

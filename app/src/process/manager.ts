@@ -30,6 +30,7 @@ export interface ProcessManagerOptions {
   verbose?: boolean;
   debug?: boolean;
   interactive?: boolean;
+  mock?: boolean;
 }
 
 /**
@@ -109,6 +110,7 @@ export class ProcessManager implements IProcessManager {
         ...(options.apiKey && { apiKey: options.apiKey }),
         ...(options.verbose && { verbose: options.verbose }),
         ...(options.debug && { debug: options.debug }),
+        ...(options.mock !== undefined && { mock: options.mock }),
       };
 
       // Start daemon

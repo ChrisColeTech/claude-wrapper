@@ -26,6 +26,7 @@ export interface CliOptions {
   status?: boolean;
   production?: boolean;
   healthMonitoring?: boolean;
+  mock?: boolean;
 }
 
 /**
@@ -54,6 +55,7 @@ class CliParser {
       .option('-n, --no-interactive', 'disable interactive API key setup')
       .option('-P, --production', 'enable production server management features')
       .option('-H, --health-monitoring', 'enable health monitoring system')
+      .option('-m, --mock', 'use mock Claude CLI for testing')
       .option('-s, --stop', 'stop background server')
       .option('-t, --status', 'check background server status')
       .helpOption('-h, --help', 'display help for command')
@@ -67,6 +69,7 @@ Examples:
   wrapper -d                Start with debug logging
   wrapper -k my-key         Start with API key protection
   wrapper -n                Skip interactive API key setup
+  wrapper -m                Start with mock Claude CLI
   wrapper -s                Stop background server
   wrapper -t                Check server status
   
@@ -171,16 +174,28 @@ class CliRunner {
         port,
         ...(options.apiKey && { apiKey: options.apiKey }),
         ...(options.debug !== undefined && { debug: options.debug }),
-        ...(options.interactive !== undefined && { interactive: options.interactive })
+        ...(options.interactive !== undefined && { interactive: options.interactive }),
+        ...(options.mock !== undefined && { mock: options.mock })
       });
 
       const wslInfo = WSLHelper.getWSLInfo();
       
-      const modeText = options.debug ? 'background with debug logging' : 'background';
+      let modeText = 'background';
+      if (options.debug && options.mock) {
+        modeText = 'background with debug logging and mock mode';
+      } else if (options.debug) {
+        modeText = 'background with debug logging';
+      } else if (options.mock) {
+        modeText = 'background with mock mode';
+      }
+      
       console.log(`🚀 Claude Wrapper server started in ${modeText} (PID: ${pid})`);
       
       if (options.debug) {
         console.log(`🐛 Debug mode enabled - enhanced logging active`);
+      }
+      if (options.mock) {
+        console.log(`🧪 Mock mode enabled - using instant mock responses`);
       }
       
       console.log(`\n📡 API Endpoints:`);
