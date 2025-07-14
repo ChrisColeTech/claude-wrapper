@@ -96,44 +96,21 @@ export interface ClaudeWrapperError {
   details?: any;
 }
 
-// Session Management Types (Phase 3A)
-export interface SessionInfo {
-  session_id: string;
-  messages: OpenAIMessage[];
+// Optimized Session Types
+export interface OptimizedSessionInfo {
+  system_prompt_hash: string;
+  claude_session_id: string;
+  system_prompt_content: string;
+  last_used: Date;
   created_at: Date;
-  last_accessed: Date;
-  expires_at: Date;
 }
 
-export interface SessionStorage {
-  store(session: SessionInfo): Promise<void>;
-  get(sessionId: string): Promise<SessionInfo | null>;
-  update(session: SessionInfo): Promise<void>;
-  delete(sessionId: string): Promise<void>;
-  list(): Promise<SessionInfo[]>;
-  cleanup(): Promise<number>;
-}
-
-export interface ISessionManager {
-  getOrCreateSession(sessionId: string): SessionInfo;
-  processMessages(messages: OpenAIMessage[], sessionId?: string | null): [OpenAIMessage[], string | null];
-  listSessions(): SessionInfo[];
-  deleteSession(sessionId: string): void;
-  getSessionCount(): number;
-}
-
-export interface ISessionCleanup {
-  startCleanupTask(): void;
-  shutdown(): void;
-  isRunning(): boolean;
-}
-
-export interface SessionStats {
+export interface OptimizedSessionStats {
   totalSessions: number;
   activeSessions: number;
-  expiredSessions: number;
-  averageMessageCount: number;
+  averageSystemPromptLength: number;
   oldestSessionAge: number;
+  sessionType: string;
 }
 
 // Streaming Types (Phase 4A)

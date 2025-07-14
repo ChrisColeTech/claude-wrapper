@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { CoreWrapper } from '../../core/wrapper';
+import { sharedCoreWrapper } from '../../core/shared-wrapper';
 import { StreamingHandler } from '../../streaming/handler';
 import { OpenAIRequest } from '../../types';
 import { InvalidRequestError } from '../../utils/errors';
@@ -9,7 +9,6 @@ import { modelValidationMiddleware } from '../middleware/model-validation';
 import { logger } from '../../utils/logger';
 
 const router = Router();
-const coreWrapper = new CoreWrapper();
 const streamingHandler = new StreamingHandler();
 
 // Apply validation and streaming middleware to chat completions
@@ -61,7 +60,7 @@ router.post('/v1/chat/completions',
       });
       
       // Handle non-streaming request
-      const response = await coreWrapper.handleChatCompletion(request);
+      const response = await sharedCoreWrapper.handleChatCompletion(request);
       
       logger.info('Chat completion request completed successfully', {
         requestId: response.id,

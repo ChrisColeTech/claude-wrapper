@@ -1,0 +1,155 @@
+{
+  "category": "tool-usage",
+  "description": "Tool and function calling responses",
+  "templates": [
+    {
+      "id": "tool-call-1",
+      "content": null,
+      "model": "sonnet",
+      "finishReason": "tool_calls",
+      "toolCalls": [
+        {
+          "id": "call_mock_weather_001",
+          "type": "function",
+          "function": {
+            "name": "get_weather",
+            "arguments": "{\"location\": \"San Francisco, CA\", \"unit\": \"fahrenheit\"}"
+          }
+        }
+      ],
+      "responseTime": 280,
+      "tokenUsage": {
+        "prompt_tokens": 65,
+        "completion_tokens": 25,
+        "total_tokens": 90
+      },
+      "triggers": ["weather", "temperature", "forecast", "climate"]
+    },
+    {
+      "id": "tool-call-2",
+      "content": null,
+      "model": "sonnet",
+      "finishReason": "tool_calls",
+      "toolCalls": [
+        {
+          "id": "call_mock_search_001",
+          "type": "function",
+          "function": {
+            "name": "web_search",
+            "arguments": "{\"query\": \"latest news technology\", \"num_results\": 5}"
+          }
+        }
+      ],
+      "responseTime": 320,
+      "tokenUsage": {
+        "prompt_tokens": 45,
+        "completion_tokens": 20,
+        "total_tokens": 65
+      },
+      "triggers": ["search", "find", "look up", "research"]
+    },
+    {
+      "id": "tool-call-3",
+      "content": null,
+      "model": "sonnet",
+      "finishReason": "tool_calls",
+      "toolCalls": [
+        {
+          "id": "call_mock_calc_001",
+          "type": "function",
+          "function": {
+            "name": "calculate",
+            "arguments": "{\"expression\": \"(125 + 75) * 0.08\", \"precision\": 2}"
+          }
+        }
+      ],
+      "responseTime": 200,
+      "tokenUsage": {
+        "prompt_tokens": 30,
+        "completion_tokens": 15,
+        "total_tokens": 45
+      },
+      "triggers": ["calculate", "math", "compute", "equation"]
+    },
+    {
+      "id": "tool-call-4",
+      "content": null,
+      "model": "sonnet",
+      "finishReason": "tool_calls",
+      "toolCalls": [
+        {
+          "id": "call_mock_file_001",
+          "type": "function",
+          "function": {
+            "name": "read_file",
+            "arguments": "{\"file_path\": \"/workspace/data.json\", \"encoding\": \"utf-8\"}"
+          }
+        }
+      ],
+      "responseTime": 240,
+      "tokenUsage": {
+        "prompt_tokens": 55,
+        "completion_tokens": 22,
+        "total_tokens": 77
+      },
+      "triggers": ["file", "read", "open", "load"]
+    },
+    {
+      "id": "tool-call-multi-1",
+      "content": null,
+      "model": "sonnet",
+      "finishReason": "tool_calls",
+      "toolCalls": [
+        {
+          "id": "call_mock_search_002",
+          "type": "function",
+          "function": {
+            "name": "web_search",
+            "arguments": "{\"query\": \"Python best practices 2024\", \"num_results\": 3}"
+          }
+        },
+        {
+          "id": "call_mock_file_002",
+          "type": "function",
+          "function": {
+            "name": "create_file",
+            "arguments": "{\"file_path\": \"/workspace/notes.md\", \"content\": \"# Python Best Practices Research\\n\\nStarting research on Python best practices for 2024...\"}"
+          }
+        }
+      ],
+      "responseTime": 380,
+      "tokenUsage": {
+        "prompt_tokens": 70,
+        "completion_tokens": 45,
+        "total_tokens": 115
+      },
+      "triggers": ["research and save", "lookup and create", "multi-step"]
+    },
+    {
+      "id": "tool-response-1",
+      "content": "Based on the weather data I retrieved, San Francisco is currently 68°F with partly cloudy skies. The forecast shows mild temperatures continuing through the week, with highs around 72°F and lows around 58°F. Perfect weather for outdoor activities!",
+      "model": "sonnet",
+      "finishReason": "stop",
+      "responseTime": 250,
+      "tokenUsage": {
+        "prompt_tokens": 45,
+        "completion_tokens": 42,
+        "total_tokens": 87
+      },
+      "triggers": ["weather response", "after tool call"]
+    },
+    {
+      "id": "tool-response-2",
+      "content": "I found several relevant articles about the latest technology trends. Here are the key highlights:\n\n1. **AI Integration**: Major advances in AI integration across industries\n2. **Quantum Computing**: Breakthrough in quantum error correction\n3. **Sustainable Tech**: New developments in green technology solutions\n4. **Cybersecurity**: Enhanced security protocols for remote work\n5. **Edge Computing**: Faster processing capabilities at the network edge\n\nWould you like me to dive deeper into any of these topics?",
+      "model": "sonnet",
+      "finishReason": "stop",
+      "responseTime": 320,
+      "tokenUsage": {
+        "prompt_tokens": 85,
+        "completion_tokens": 78,
+        "total_tokens": 163
+      },
+      "triggers": ["search response", "results summary"]
+    }
+  ]
+}

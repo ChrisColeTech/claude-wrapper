@@ -581,4 +581,27 @@ export class CoreWrapper implements ICoreWrapper {
   isSingleStageProcessing(): boolean {
     return this.useSingleStageProcessing;
   }
+  
+  /**
+   * Get optimized session information for API exposure
+   */
+  getOptimizedSessions(): Map<string, ClaudeSessionState> {
+    return new Map(this.claudeSessions);
+  }
+  
+  /**
+   * Clear all optimized sessions
+   */
+  clearOptimizedSessions(): number {
+    const count = this.claudeSessions.size;
+    this.claudeSessions.clear();
+    return count;
+  }
+  
+  /**
+   * Delete a specific optimized session by hash
+   */
+  deleteOptimizedSession(hash: string): boolean {
+    return this.claudeSessions.delete(hash);
+  }
 }
