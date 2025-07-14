@@ -49,7 +49,7 @@ class CliParser {
       .version(packageJson.version)
       .option('-p, --port <port>', 'port to run server on (default: 8000)')
       .option('-v, --version', 'output the version number')
-      .option('-d, --debug', 'enable debug mode (runs in foreground)')
+      .option('-d, --debug', 'enable debug mode (enhanced logging)')
       .option('-k, --api-key <key>', 'set API key for endpoint protection')
       .option('-n, --no-interactive', 'disable interactive API key setup')
       .option('-P, --production', 'enable production server management features')
@@ -64,7 +64,7 @@ Examples:
   wrapper 9999              Start server on port 9999
   wrapper -p 8080           Start server on port 8080
   wrapper -v                Show version number
-  wrapper -d                Start in debug mode
+  wrapper -d                Start with debug logging
   wrapper -k my-key         Start with API key protection
   wrapper -n                Skip interactive API key setup
   wrapper -s                Stop background server
@@ -167,63 +167,64 @@ class CliRunner {
 
 
     try {
-      // Run in foreground if debug mode is enabled
-      if (options.debug) {
-        await this.startForegroundServer(options, port);
-      } else {
-        const pid = await processManager.start({
-          port,
-          ...(options.apiKey && { apiKey: options.apiKey }),
-          ...(options.debug !== undefined && { debug: options.debug }),
-          ...(options.interactive !== undefined && { interactive: options.interactive })
-        });
+      const pid = await processManager.start({
+        port,
+        ...(options.apiKey && { apiKey: options.apiKey }),
+        ...(options.debug !== undefined && { debug: options.debug }),
+        ...(options.interactive !== undefined && { interactive: options.interactive })
+      });
 
-        const wslInfo = WSLHelper.getWSLInfo();
-        
-        console.log(`🚀 Claude Wrapper server started in background (PID: ${pid})`);
-        console.log(`\n📡 API Endpoints:`);
-        console.log(`   POST   http://localhost:${port}/v1/chat/completions      - Main chat API`);
-        console.log(`   GET    http://localhost:${port}/v1/models                - List available models`);
-        console.log(`   GET    http://localhost:${port}/v1/sessions              - List active sessions`);
-        console.log(`   GET    http://localhost:${port}/v1/sessions/stats        - Session statistics`);
-        console.log(`   GET    http://localhost:${port}/v1/sessions/:id          - Get session details`);
-        console.log(`   DELETE http://localhost:${port}/v1/sessions/:id          - Delete session`);
-        console.log(`   POST   http://localhost:${port}/v1/sessions/:id/messages - Add to session`);
-        console.log(`   GET    http://localhost:${port}/v1/auth/status            - Auth status`);
-        console.log(`\n🔧 System Endpoints:`);
-        console.log(`   GET    http://localhost:${port}/health                   - Health check`);
-        console.log(`   GET    http://localhost:${port}/docs                     - Swagger UI`);
-        console.log(`   GET    http://localhost:${port}/swagger.json             - OpenAPI spec`);
-        console.log(`   GET    http://localhost:${port}/logs                     - Server logs`);
-        console.log(`   POST   http://localhost:${port}/logs/clear               - Clear logs`);
-        
-        // WSL-specific information and port forwarding
-        if (wslInfo.isWSL && wslInfo.wslIP) {
-          console.log(`\n🌐 WSL Access (for Windows): http://${wslInfo.wslIP}:${port}`);
-          
-          try {
-            // Generate and save port forwarding scripts
-            const { batchFile, powershellFile } = WSLHelper.savePortForwardingScripts(parseInt(port), wslInfo.wslIP);
-            
-            // Convert WSL paths to Windows paths for display
-            const windowsBatchPath = batchFile.replace(/^\/mnt\/c/, 'C:').replace(/\//g, '\\');
-            const windowsPowershellPath = powershellFile.replace(/^\/mnt\/c/, 'C:').replace(/\//g, '\\');
-            
-            console.log(`\n🌉 WSL Port Forwarding Scripts:`);
-            console.log(`   Batch Script:      ${windowsBatchPath}`);
-            console.log(`   PowerShell Script: ${windowsPowershellPath}`);
-            console.log(`\n💡 Open File Explorer, navigate to a script path, and run as Administrator`);
-            console.log(`🔧 Or copy the path and run from Command Prompt/PowerShell as Administrator`);
-          } catch (error) {
-            logger.warn('Failed to generate WSL port forwarding scripts', error);
-          }
-        } else if (wslInfo.isWSL) {
-          console.log(`\n⚠️  WSL detected but could not determine IP address`);
-          console.log(`   Use: netsh interface portproxy add v4tov4 listenport=${port} listenaddress=0.0.0.0 connectport=${port} connectaddress=<WSL_IP>`);
-        }
-        
-        process.exit(0);
+      const wslInfo = WSLHelper.getWSLInfo();
+      
+      const modeText = options.debug ? 'background with debug logging' : 'background';
+      console.log(`🚀 Claude Wrapper server started in ${modeText} (PID: ${pid})`);
+      
+      if (options.debug) {
+        console.log(`🐛 Debug mode enabled - enhanced logging active`);
       }
+      
+      console.log(`\n📡 API Endpoints:`);
+      console.log(`   POST   http://localhost:${port}/v1/chat/completions      - Main chat API`);
+      console.log(`   GET    http://localhost:${port}/v1/models                - List available models`);
+      console.log(`   GET    http://localhost:${port}/v1/sessions              - List active sessions`);
+      console.log(`   GET    http://localhost:${port}/v1/sessions/stats        - Session statistics`);
+      console.log(`   GET    http://localhost:${port}/v1/sessions/:id          - Get session details`);
+      console.log(`   DELETE http://localhost:${port}/v1/sessions/:id          - Delete session`);
+      console.log(`   POST   http://localhost:${port}/v1/sessions/:id/messages - Add to session`);
+      console.log(`   GET    http://localhost:${port}/v1/auth/status            - Auth status`);
+      console.log(`\n🔧 System Endpoints:`);
+      console.log(`   GET    http://localhost:${port}/health                   - Health check`);
+      console.log(`   GET    http://localhost:${port}/docs                     - Swagger UI`);
+      console.log(`   GET    http://localhost:${port}/swagger.json             - OpenAPI spec`);
+      console.log(`   GET    http://localhost:${port}/logs                     - Server logs`);
+      console.log(`   POST   http://localhost:${port}/logs/clear               - Clear logs`);
+      
+      // WSL-specific information and port forwarding
+      if (wslInfo.isWSL && wslInfo.wslIP) {
+        console.log(`\n🌐 WSL Access (for Windows): http://${wslInfo.wslIP}:${port}`);
+        
+        try {
+          // Generate and save port forwarding scripts
+          const { batchFile, powershellFile } = WSLHelper.savePortForwardingScripts(parseInt(port), wslInfo.wslIP);
+          
+          // Convert WSL paths to Windows paths for display
+          const windowsBatchPath = batchFile.replace(/^\/mnt\/c/, 'C:').replace(/\//g, '\\');
+          const windowsPowershellPath = powershellFile.replace(/^\/mnt\/c/, 'C:').replace(/\//g, '\\');
+          
+          console.log(`\n🌉 WSL Port Forwarding Scripts:`);
+          console.log(`   Batch Script:      ${windowsBatchPath}`);
+          console.log(`   PowerShell Script: ${windowsPowershellPath}`);
+          console.log(`\n💡 Open File Explorer, navigate to a script path, and run as Administrator`);
+          console.log(`🔧 Or copy the path and run from Command Prompt/PowerShell as Administrator`);
+        } catch (error) {
+          logger.warn('Failed to generate WSL port forwarding scripts', error);
+        }
+      } else if (wslInfo.isWSL) {
+        console.log(`\n⚠️  WSL detected but could not determine IP address`);
+        console.log(`   Use: netsh interface portproxy add v4tov4 listenport=${port} listenaddress=0.0.0.0 connectport=${port} connectaddress=<WSL_IP>`);
+      }
+      
+      process.exit(0);
     } catch (error) {
       if (error instanceof Error && error.message.includes('already running')) {
         console.log(`⚠️  ${error.message}`);
@@ -233,81 +234,6 @@ class CliRunner {
     }
   }
 
-  /**
-   * Start server in foreground (for debug mode)
-   */
-  private async startForegroundServer(options: CliOptions, port: string): Promise<void> {
-    // Set environment variables
-    if (options.apiKey) {
-      process.env['API_KEY'] = options.apiKey;
-    }
-    if (options.debug) {
-      process.env['DEBUG_MODE'] = 'true';
-    }
-
-    // Import and start server directly
-    const { startServer } = await import('./api/server');
-    const { signalHandler } = await import('./process/signals');
-    
-    const wslInfo = WSLHelper.getWSLInfo();
-    
-    console.log(`🚀 Claude Wrapper server starting in foreground (debug mode)`);
-    console.log(`\n📡 API Endpoints:`);
-    console.log(`   POST   http://localhost:${port}/v1/chat/completions      - Main chat API`);
-    console.log(`   GET    http://localhost:${port}/v1/models                - List available models`);
-    console.log(`   GET    http://localhost:${port}/v1/sessions              - List active sessions`);
-    console.log(`   GET    http://localhost:${port}/v1/sessions/stats        - Session statistics`);
-    console.log(`   GET    http://localhost:${port}/v1/sessions/:id          - Get session details`);
-    console.log(`   DELETE http://localhost:${port}/v1/sessions/:id          - Delete session`);
-    console.log(`   POST   http://localhost:${port}/v1/sessions/:id/messages - Add to session`);
-    console.log(`   GET    http://localhost:${port}/v1/auth/status            - Auth status`);
-    console.log(`\n🔧 System Endpoints:`);
-    console.log(`   GET    http://localhost:${port}/health                   - Health check`);
-    console.log(`   GET    http://localhost:${port}/docs                     - Swagger UI`);
-    console.log(`   GET    http://localhost:${port}/swagger.json             - OpenAPI spec`);
-    console.log(`   GET    http://localhost:${port}/logs                     - Server logs`);
-    console.log(`   POST   http://localhost:${port}/logs/clear               - Clear logs`);
-    
-    // WSL-specific information and port forwarding
-    if (wslInfo.isWSL && wslInfo.wslIP) {
-      console.log(`\n🌐 WSL Access (for Windows): http://${wslInfo.wslIP}:${port}`);
-      
-      try {
-        // Generate and save port forwarding scripts
-        const { batchFile, powershellFile } = WSLHelper.savePortForwardingScripts(parseInt(port), wslInfo.wslIP);
-        
-        // Convert WSL paths to Windows paths for display
-        const windowsBatchPath = batchFile.replace(/^\/mnt\/c/, 'C:').replace(/\//g, '\\');
-        const windowsPowershellPath = powershellFile.replace(/^\/mnt\/c/, 'C:').replace(/\//g, '\\');
-        
-        console.log(`\n🌉 WSL Port Forwarding Scripts:`);
-        console.log(`   Batch Script:      ${windowsBatchPath}`);
-        console.log(`   PowerShell Script: ${windowsPowershellPath}`);
-        console.log(`\n💡 Open File Explorer, navigate to a script path, and run as Administrator`);
-        console.log(`🔧 Or copy the path and run from Command Prompt/PowerShell as Administrator`);
-      } catch (error) {
-        logger.warn('Failed to generate WSL port forwarding scripts', error);
-      }
-    } else if (wslInfo.isWSL) {
-      console.log(`\n⚠️  WSL detected but could not determine IP address`);
-      console.log(`   Use: netsh interface portproxy add v4tov4 listenport=${port} listenaddress=0.0.0.0 connectport=${port} connectaddress=<WSL_IP>`);
-    }
-    
-    console.log(`\n🐛 Debug mode enabled - server will run in foreground`);
-    console.log(`📝 Press Ctrl+C to stop the server`);
-
-    console.log(`\n🔍 Initializing Claude CLI...`);
-    const server = await startServer();
-    console.log(`✅ Server listening on port ${port}`);
-
-    // Setup graceful shutdown
-    signalHandler.setupGracefulShutdown(server);
-    
-    // Keep the process alive (don't exit)
-    return new Promise(() => {
-      // This promise never resolves, keeping the process running
-    });
-  }
 
   /**
    * Stop daemon server
