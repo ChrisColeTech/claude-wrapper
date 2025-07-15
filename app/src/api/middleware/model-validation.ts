@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { logger } from '../../utils/logger';
 
 // Valid Claude models - only confirmed models from CLI reference
-const VALID_CLAUDE_MODELS = ['sonnet', 'opus'];
+const VALID_CLAUDE_MODELS = ['sonnet', 'opus', 'haiku'];
 
 export class ModelValidationError extends Error {
   public readonly statusCode: number;

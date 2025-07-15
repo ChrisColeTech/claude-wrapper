@@ -9,6 +9,7 @@ import {
 import { StreamingFormatter } from './formatter';
 import { StreamingManager } from './manager';
 import { CoreWrapper } from '../core/wrapper';
+import { EnvironmentManager } from '../config/env';
 import { 
   SSE_CONFIG, 
   API_CONSTANTS
@@ -107,6 +108,13 @@ export class StreamingHandler implements IStreamingHandler {
     const requestId = this.generateRequestId();
     
     try {
+      // Check if we're in mock mode
+      if (EnvironmentManager.isMockMode()) {
+        logger.debug('Streaming: Using mock mode streaming', { requestId });
+        yield* this.createMockStreamingResponse(requestId, request);
+        return;
+      }
+      
       // Send initial chunk with role
       yield this.formatter.formatInitialChunk(requestId, request.model);
       
@@ -239,6 +247,32 @@ export class StreamingHandler implements IStreamingHandler {
       'Access-Control-Allow-Headers': SSE_CONFIG.ACCESS_CONTROL_ALLOW_HEADERS,
       'X-Accel-Buffering': 'no', // Disable nginx buffering
     });
+  }
+
+  /**
+   * Create mock streaming response for testing
+   */
+  private async* createMockStreamingResponse(requestId: string, request: OpenAIRequest): AsyncGenerator<string, void, unknown> {
+    // Send initial chunk with role
+    yield this.formatter.formatInitialChunk(requestId, request.model);
+    
+    // Create mock content
+    const promptText = request.messages.map(m => m.content).join(' ');
+    const mockContent = `Mock streaming response for: "${promptText.substring(0, 50)}${promptText.length > 50 ? '...' : ''}"`;
+    
+    // Break content into chunks for streaming effect
+    const chunkSize = 20;
+    for (let i = 0; i < mockContent.length; i += chunkSize) {
+      const chunk = mockContent.substring(i, i + chunkSize);
+      yield this.formatter.createContentChunk(requestId, request.model, chunk);
+      
+      // Small delay for realistic streaming feel
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+    
+    // Send final chunk
+    yield this.formatter.createFinalChunk(requestId, request.model);
+    yield this.formatter.formatDone();
   }
 
   /**

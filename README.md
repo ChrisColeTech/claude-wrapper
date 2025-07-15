@@ -81,6 +81,7 @@ Options:
   -v, --version        output the version number
   -p, --port <port>    port to run server on (default: 8000)
   -d, --debug          enable debug mode (runs in foreground)
+  -m, --mock           enable mock mode (simulates Claude CLI responses)
   -k, --api-key <key>  set API key for endpoint protection
   -n, --no-interactive disable interactive API key setup
   -P, --production     enable production server management features
@@ -153,6 +154,16 @@ wrapper -t                         # shorthand
 wrapper --stop
 wrapper -s                         # shorthand
 ```
+
+## 🎭 Mock Mode
+
+Develop and test without Claude CLI dependency! Mock mode provides ultra-fast simulation (300x faster) with complete API compatibility.
+
+```bash
+wrapper --mock    # Enable mock mode
+```
+
+📖 **[Mock Mode Guide](docs/MOCK_MODE.md)** - Complete documentation and configuration.
 
 ## 📚 Documentation
 

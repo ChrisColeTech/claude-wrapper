@@ -1,4 +1,5 @@
 {
+  "model": "sonnet",
   "messages": [
     {
       "role": "user",

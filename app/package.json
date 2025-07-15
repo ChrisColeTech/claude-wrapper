@@ -24,6 +24,8 @@
     "build": "tsc > build.log 2>&1",
     "prepublishOnly": "npm run build",
     "start": "node dist/cli.js",
+    "stop": "node dist/cli.js --stop",
+    "status": "node dist/cli.js --status",
     "dev": "ts-node src/cli.ts",
     "test": "jest",
     "test:unit": "jest --config tests/jest.unit.config.js",

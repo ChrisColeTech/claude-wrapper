@@ -1,0 +1,71 @@
+{
+  "category": "simple-qa",
+  "description": "Simple question and answer responses",
+  "templates": [
+    {
+      "id": "simple-qa-1",
+      "content": "I'm Claude, an AI assistant. I'm currently running in mock mode, so this is a simulated response to demonstrate the wrapper functionality. How can I help you today?",
+      "model": "sonnet",
+      "finishReason": "stop",
+      "responseTime": 200,
+      "tokenUsage": {
+        "prompt_tokens": 15,
+        "completion_tokens": 32,
+        "total_tokens": 47
+      },
+      "triggers": ["hello", "hi", "greeting", "introduction"]
+    },
+    {
+      "id": "simple-qa-2",
+      "content": "This is a mock response demonstrating how the Claude Wrapper handles basic questions. In production, I would provide detailed, accurate information based on my training data.",
+      "model": "sonnet",
+      "finishReason": "stop",
+      "responseTime": 180,
+      "tokenUsage": {
+        "prompt_tokens": 20,
+        "completion_tokens": 30,
+        "total_tokens": 50
+      },
+      "triggers": ["what", "how", "why", "question"]
+    },
+    {
+      "id": "simple-qa-3",
+      "content": "In mock mode, I can simulate various types of responses including explanations, summaries, and conversational replies. This helps test the wrapper's functionality without requiring actual Claude API calls.",
+      "model": "sonnet",
+      "finishReason": "stop",
+      "responseTime": 220,
+      "tokenUsage": {
+        "prompt_tokens": 25,
+        "completion_tokens": 35,
+        "total_tokens": 60
+      },
+      "triggers": ["explain", "describe", "tell me about"]
+    },
+    {
+      "id": "simple-qa-4",
+      "content": "I understand you're looking for information. While I'm operating in mock mode, I can demonstrate how responses would be formatted and delivered through the wrapper API.",
+      "model": "sonnet",
+      "finishReason": "stop",
+      "responseTime": 160,
+      "tokenUsage": {
+        "prompt_tokens": 18,
+        "completion_tokens": 28,
+        "total_tokens": 46
+      },
+      "triggers": ["information", "help", "assistance"]
+    },
+    {
+      "id": "simple-qa-5",
+      "content": "Thank you for your question! This mock response shows how the wrapper maintains conversation flow and provides contextually appropriate replies, even in simulation mode.",
+      "model": "sonnet",
+      "finishReason": "stop",
+      "responseTime": 190,
+      "tokenUsage": {
+        "prompt_tokens": 22,
+        "completion_tokens": 29,
+        "total_tokens": 51
+      },
+      "triggers": ["thanks", "thank you", "appreciate"]
+    }
+  ]
+}

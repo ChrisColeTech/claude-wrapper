@@ -143,7 +143,7 @@ describe('Signal Handler', () => {
         'Shutdown step registered',
         expect.objectContaining({
           step: 2,
-          name: 'Cleanup Sessions'
+          name: 'Cleanup Optimized Sessions'
         })
       );
       expect(mockLogger.debug).toHaveBeenCalledWith(

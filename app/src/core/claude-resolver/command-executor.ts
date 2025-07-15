@@ -9,13 +9,25 @@ import { EnvironmentManager } from '../../config/env';
 import { TempFileManager } from '../../utils/temp-file-manager';
 import { ClaudeCliError, TimeoutError } from '../../utils/errors';
 import { IClaudeCommandExecutor } from './interfaces';
+import { MockClaudeResolver } from '../../mocks/core/mock-claude-resolver';
 
 const execAsync = promisify(exec);
 
 export class ClaudeCommandExecutor implements IClaudeCommandExecutor {
   private readonly STDIN_THRESHOLD = 50 * 1024; // 50KB
+  private readonly mockMode: boolean;
+  private readonly mockResolver: MockClaudeResolver;
+
+  constructor(mockMode: boolean = false) {
+    this.mockMode = mockMode;
+    this.mockResolver = MockClaudeResolver.getInstance();
+    logger.debug('ClaudeCommandExecutor initialized', { mockMode });
+  }
 
   async execute(command: string, args: string[]): Promise<string> {
+    if (this.mockMode) {
+      return this.mockExecute(command, args);
+    }
     const prompt = args[0] || '';
     const flags = args.slice(1).join(' ');
     
@@ -27,6 +39,10 @@ export class ClaudeCommandExecutor implements IClaudeCommandExecutor {
   }
 
   async executeStreaming(command: string, args: string[]): Promise<NodeJS.ReadableStream> {
+    if (this.mockMode) {
+      return this.mockExecuteStreaming(command, args);
+    }
+    
     const prompt = args[0] || '';
     const flags = args.slice(1).join(' ');
     
@@ -229,5 +245,137 @@ export class ClaudeCommandExecutor implements IClaudeCommandExecutor {
     }
     
     throw new ClaudeCliError(`Claude CLI execution failed: ${errorMessage}. stderr: ${stderr}. stdout: ${stdout}`);
+  }
+
+  /**
+   * Mock execution for testing - uses enhanced response generator
+   */
+  private async mockExecute(command: string, args: string[]): Promise<string> {
+    const prompt = args[0] || 'test';
+    const flags = args.slice(1).join(' ');
+    
+    logger.debug('Enhanced mock execution triggered', { 
+      commandLength: command.length,
+      promptLength: prompt.length,
+      flags
+    });
+    
+    // Extract model and session ID from flags
+    const model = this.extractModelFromFlags(flags) || 'sonnet';
+    const sessionId = this.extractSessionIdFromFlags(flags);
+    
+    try {
+      // Use enhanced mock resolver
+      const response = await this.mockResolver.executeCommand(prompt, model, sessionId || undefined, false);
+      
+      // Check if this is an OpenAI request and wrap accordingly
+      if (this.isOpenAIRequest(prompt)) {
+        return this.wrapAsClaudeResponse(response);
+      }
+      
+      return response;
+    } catch (error) {
+      logger.error('Enhanced mock execution failed', error as Error);
+      return this.generateFallbackResponse(prompt);
+    }
+  }
+
+  /**
+   * Mock streaming execution for testing - uses enhanced response generator
+   */
+  private async mockExecuteStreaming(command: string, args: string[]): Promise<NodeJS.ReadableStream> {
+    const prompt = args[0] || 'test';
+    const flags = args.slice(1).join(' ');
+    
+    logger.debug('Enhanced mock streaming execution triggered', { 
+      commandLength: command.length,
+      promptLength: prompt.length,
+      flags
+    });
+    
+    // Extract model and session ID from flags
+    const model = this.extractModelFromFlags(flags) || 'sonnet';
+    const sessionId = this.extractSessionIdFromFlags(flags);
+    
+    try {
+      // Use enhanced mock resolver for streaming
+      const stream = await this.mockResolver.executeCommandStreaming(prompt, model, sessionId || undefined);
+      
+      logger.info('Enhanced mock streaming response generated', {
+        streamType: 'enhanced',
+        model,
+        sessionId,
+        inputTokens: Math.floor(prompt.length / 4)
+      });
+      
+      return stream;
+    } catch (error) {
+      logger.error('Enhanced mock streaming execution failed', error as Error);
+      return this.generateFallbackStreamingResponse(prompt);
+    }
+  }
+
+
+
+  /**
+   * Helper methods for enhanced mock execution
+   */
+  private extractModelFromFlags(flags: string): string | null {
+    const modelMatch = flags.match(/--model\s+(\S+)/);
+    return modelMatch ? modelMatch[1] || null : null;
+  }
+
+  private extractSessionIdFromFlags(flags: string): string | null {
+    const sessionMatch = flags.match(/--resume\s+(\S+)/);
+    return sessionMatch ? sessionMatch[1] || null : null;
+  }
+
+  private isOpenAIRequest(prompt: string): boolean {
+    return prompt.includes('"messages":') || prompt.includes('"model":') || prompt.includes('"tools":');
+  }
+
+  private wrapAsClaudeResponse(response: string): string {
+    // If response is already JSON, return as-is
+    try {
+      JSON.parse(response);
+      return response;
+    } catch {
+      // Wrap plain text response in Claude CLI format
+      return JSON.stringify({
+        type: 'result',
+        subtype: 'success',
+        is_error: false,
+        duration_ms: Math.floor(Math.random() * 20) + 5,
+        duration_api_ms: Math.floor(Math.random() * 10) + 2,
+        num_turns: 1,
+        result: response,
+        session_id: `mock-session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        total_cost_usd: 0.001,
+        usage: {
+          input_tokens: Math.floor(response.length * 0.25),
+          output_tokens: Math.floor(response.length / 4),
+          server_tool_use: { web_search_requests: 0 },
+          service_tier: 'standard'
+        }
+      });
+    }
+  }
+
+  private generateFallbackResponse(prompt: string): string {
+    const response = `Enhanced mock mode fallback response for: ${prompt.substring(0, 50)}${prompt.length > 50 ? '...' : ''}`;
+    return this.wrapAsClaudeResponse(response);
+  }
+
+  private generateFallbackStreamingResponse(prompt: string): NodeJS.ReadableStream {
+    const { Readable } = require('stream');
+    const fallbackContent = `Enhanced mock mode fallback streaming response for: ${prompt.substring(0, 50)}${prompt.length > 50 ? '...' : ''}`;
+    
+    return new Readable({
+      read() {
+        // Simple streaming fallback
+        this.push(fallbackContent);
+        this.push(null);
+      }
+    });
   }
 }

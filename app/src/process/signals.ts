@@ -186,25 +186,22 @@ export class SignalHandler implements ISignalHandler {
       timeout: 5000
     });
 
-    // Step 2: Cleanup sessions (if session manager is available)
+    // Step 2: Cleanup optimized sessions (if needed)
     this.registerShutdownStep({
       step: SIGNAL_CONFIG.SHUTDOWN_STEPS.CLEANUP_SESSIONS,
-      name: 'Cleanup Sessions',
+      name: 'Cleanup Optimized Sessions',
       action: async () => {
         try {
-          // Dynamic import to avoid circular dependencies
-          const { sessionManager } = await import('../session/manager');
-          if (sessionManager && typeof sessionManager.shutdown === 'function') {
-            await sessionManager.shutdown();
-            logger.debug('Session manager shutdown completed');
-          }
+          // Optimized sessions don't require explicit shutdown - they're memory-based
+          // This step is kept for consistency with shutdown process
+          logger.debug('Optimized session cleanup completed (no action required)');
         } catch (error) {
-          logger.debug('Session manager not available or shutdown failed', {
+          logger.debug('Session cleanup step failed', {
             error: error instanceof Error ? error.message : 'Unknown error'
           });
         }
       },
-      timeout: 2000
+      timeout: 1000
     });
 
     // Step 3: Remove PID file

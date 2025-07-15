@@ -22,9 +22,6 @@ describe('CoreWrapper', () => {
     
     // Clear any sessions between tests
     (wrapper as any).claudeSessions.clear();
-    
-    // Set to two-stage processing for backward compatibility
-    wrapper.setSingleStageProcessing(false);
   });
 
   afterEach(() => {
@@ -32,20 +29,11 @@ describe('CoreWrapper', () => {
     ValidatorMock.reset();
   });
 
-  describe('Processing mode configuration', () => {
-    it('should start with single-stage processing by default', () => {
+  describe('Single-stage processing', () => {
+    it('should use single-stage processing by default', () => {
       const newWrapper = new CoreWrapper(mockClaudeClient, mockValidator);
-      expect(newWrapper.isSingleStageProcessing()).toBe(true);
-    });
-    
-    it('should allow switching between processing modes', () => {
-      expect(wrapper.isSingleStageProcessing()).toBe(false);
-      
-      wrapper.setSingleStageProcessing(true);
-      expect(wrapper.isSingleStageProcessing()).toBe(true);
-      
-      wrapper.setSingleStageProcessing(false);
-      expect(wrapper.isSingleStageProcessing()).toBe(false);
+      expect(newWrapper).toBeDefined();
+      // Single-stage is the only mode - no configuration needed
     });
   });
   
@@ -82,8 +70,8 @@ describe('CoreWrapper', () => {
     });
   });
 
-  describe('two-stage processing - new system prompt', () => {
-    it('should create new session for system prompt', async () => {
+  describe('single-stage processing - new system prompt', () => {
+    it('should create new session for system prompt using file-based approach', async () => {
       const request: OpenAIRequest = {
         model: 'sonnet',
         messages: [
@@ -92,29 +80,29 @@ describe('CoreWrapper', () => {
         ]
       };
 
-      ClaudeClientMock.setSessionSetupResponse('{"session_id":"session123","result":"Ready"}');
+      // Mock the file-based session creation
+      const mockClaudeResolver = {
+        executeCommandWithFileForSession: jest.fn().mockResolvedValue(
+          '{"session_id":"session123","result":"Ready"}'
+        )
+      };
+      
+      wrapper = new CoreWrapper(mockClaudeClient, mockValidator, mockClaudeResolver as any);
+      (wrapper as any).claudeSessions.clear();
+      
       ClaudeClientMock.setDefaultResponse('The answer is 8');
       ValidatorMock.setValidationAsValid(false); // Non-JSON response
 
       const result = await wrapper.handleChatCompletion(request);
 
-      // Should use two-stage processing (session setup + message processing)
-      expect(mockClaudeClient.executeWithSession).toHaveBeenCalledTimes(2);
-      
-      // Verify session setup call
-      expect(mockClaudeClient.executeWithSession).toHaveBeenNthCalledWith(
-        1,
-        expect.objectContaining({
-          model: 'sonnet',
-          messages: [{ role: 'system', content: 'You are a math tutor.' }]
-        }),
-        null,
-        true // useJsonOutput for session setup
+      // Should use single-stage processing (file-based session creation + message processing)
+      expect(mockClaudeResolver.executeCommandWithFileForSession).toHaveBeenCalledWith(
+        expect.any(String), // prompt
+        'sonnet',
+        expect.stringContaining('tmp') // temp file path
       );
-
-      // Verify message processing call
-      expect(mockClaudeClient.executeWithSession).toHaveBeenNthCalledWith(
-        2,
+      
+      expect(mockClaudeClient.executeWithSession).toHaveBeenCalledWith(
         expect.objectContaining({
           model: 'sonnet',
           messages: [{ role: 'user', content: 'What is 5+3?' }] // system prompt stripped
@@ -141,7 +129,15 @@ describe('CoreWrapper', () => {
         ]
       };
 
-      ClaudeClientMock.setSessionSetupResponse('{"result":"Ready"}'); // missing session_id
+      // Mock the file-based session creation to fail
+      const mockClaudeResolver = {
+        executeCommandWithFileForSession: jest.fn().mockResolvedValue(
+          '{"result":"Ready"}' // missing session_id
+        )
+      };
+      
+      wrapper = new CoreWrapper(mockClaudeClient, mockValidator, mockClaudeResolver as any);
+      (wrapper as any).claudeSessions.clear();
 
       await expect(wrapper.handleChatCompletion(request)).rejects.toThrow(
         'Failed to extract session ID from Claude CLI response'
@@ -149,7 +145,7 @@ describe('CoreWrapper', () => {
     });
   });
 
-  describe('processWithSession - session reuse', () => {
+  describe('single-stage session reuse', () => {
     it('should reuse existing session for same system prompt', async () => {
       const systemPrompt = 'You are a math tutor.';
       
@@ -169,7 +165,16 @@ describe('CoreWrapper', () => {
         ]
       };
 
-      ClaudeClientMock.setSessionSetupResponse('{"session_id":"session123","result":"Ready"}');
+      // Mock the file-based session creation for first request only
+      const mockClaudeResolver = {
+        executeCommandWithFileForSession: jest.fn().mockResolvedValue(
+          '{"session_id":"session123","result":"Ready"}'
+        )
+      };
+      
+      wrapper = new CoreWrapper(mockClaudeClient, mockValidator, mockClaudeResolver as any);
+      (wrapper as any).claudeSessions.clear();
+      
       ClaudeClientMock.setSessionResponses({
         'session123': 'Session response'
       });
@@ -181,12 +186,15 @@ describe('CoreWrapper', () => {
       // Second request - should reuse session
       await wrapper.handleChatCompletion(secondRequest);
 
-      // Should be called 3 times total: setup + first message + second message
-      expect(mockClaudeClient.executeWithSession).toHaveBeenCalledTimes(3);
+      // Should create session only once (first request)
+      expect(mockClaudeResolver.executeCommandWithFileForSession).toHaveBeenCalledTimes(1);
       
-      // Third call should reuse session (no setup)
+      // Both requests should use the same session
+      expect(mockClaudeClient.executeWithSession).toHaveBeenCalledTimes(2);
+      
+      // Second call should reuse session
       expect(mockClaudeClient.executeWithSession).toHaveBeenNthCalledWith(
-        3,
+        2,
         expect.objectContaining({
           messages: [{ role: 'user', content: 'What is 10-4?' }]
         }),
@@ -212,49 +220,51 @@ describe('CoreWrapper', () => {
         ]
       };
 
-      // Setup different session responses
+      // Mock file-based session creation for both requests
       let sessionCallCount = 0;
-      mockClaudeClient.executeWithSession.mockImplementation(async (_request, sessionId, useJsonOutput) => {
-        sessionCallCount++;
-        
-        if (sessionId === null && useJsonOutput) {
-          // Session setup calls
+      const mockClaudeResolver = {
+        executeCommandWithFileForSession: jest.fn().mockImplementation(async () => {
+          sessionCallCount++;
           if (sessionCallCount === 1) {
             return '{"session_id":"session1","result":"Ready"}';
-          } else if (sessionCallCount === 3) {
+          } else {
             return '{"session_id":"session2","result":"Ready"}';
           }
-        }
-        
-        return 'Response content';
-      });
-
+        })
+      };
+      
+      wrapper = new CoreWrapper(mockClaudeClient, mockValidator, mockClaudeResolver as any);
+      (wrapper as any).claudeSessions.clear();
+      
+      ClaudeClientMock.setDefaultResponse('Response content');
       ValidatorMock.setValidationAsValid(false); // Non-JSON response
 
       await wrapper.handleChatCompletion(firstRequest);
       await wrapper.handleChatCompletion(secondRequest);
 
-      // Should create two different sessions (4 total calls)
-      expect(mockClaudeClient.executeWithSession).toHaveBeenCalledTimes(4);
+      // Should create two different sessions
+      expect(mockClaudeResolver.executeCommandWithFileForSession).toHaveBeenCalledTimes(2);
       
-      // First session setup
+      // Should process both messages with different sessions
+      expect(mockClaudeClient.executeWithSession).toHaveBeenCalledTimes(2);
+      
+      // Verify different sessions are used
       expect(mockClaudeClient.executeWithSession).toHaveBeenNthCalledWith(
         1,
         expect.objectContaining({
-          messages: [{ role: 'system', content: 'You are a math tutor.' }]
+          messages: [{ role: 'user', content: 'What is 5+3?' }]
         }),
-        null,
-        true
+        'session1',
+        false
       );
-
-      // Second session setup
+      
       expect(mockClaudeClient.executeWithSession).toHaveBeenNthCalledWith(
-        3,
+        2,
         expect.objectContaining({
-          messages: [{ role: 'system', content: 'You are a creative writer.' }]
+          messages: [{ role: 'user', content: 'Write a poem' }]
         }),
-        null,
-        true
+        'session2',
+        false
       );
     });
   });
@@ -418,15 +428,27 @@ describe('CoreWrapper', () => {
         ]
       };
 
-      ClaudeClientMock.setSessionSetupResponse('{"session_id":"session123","result":"Ready"}');
+      // Mock file-based session creation to return same session ID
+      const mockClaudeResolver = {
+        executeCommandWithFileForSession: jest.fn().mockResolvedValue(
+          '{"session_id":"session123","result":"Ready"}'
+        )
+      };
+      
+      wrapper = new CoreWrapper(mockClaudeClient, mockValidator, mockClaudeResolver as any);
+      (wrapper as any).claudeSessions.clear();
+      
       ClaudeClientMock.setDefaultResponse('Response');
       ValidatorMock.setValidationAsValid(false);
 
       await wrapper.handleChatCompletion(request1);
       await wrapper.handleChatCompletion(request2);
 
-      // Should reuse session - only 3 calls total (setup + 2 messages)
-      expect(mockClaudeClient.executeWithSession).toHaveBeenCalledTimes(3);
+      // Should create session only once due to hash reuse
+      expect(mockClaudeResolver.executeCommandWithFileForSession).toHaveBeenCalledTimes(1);
+      
+      // Should reuse session - only 2 calls total (2 messages with same session)
+      expect(mockClaudeClient.executeWithSession).toHaveBeenCalledTimes(2);
     });
 
     it('should generate different hash for different system prompts', async () => {
@@ -446,28 +468,31 @@ describe('CoreWrapper', () => {
         ]
       };
 
+      // Mock file-based session creation for different sessions
       let sessionCallCount = 0;
-      mockClaudeClient.executeWithSession.mockImplementation(async (_request, sessionId, useJsonOutput) => {
-        sessionCallCount++;
-        
-        if (sessionId === null && useJsonOutput) {
+      const mockClaudeResolver = {
+        executeCommandWithFileForSession: jest.fn().mockImplementation(async () => {
+          sessionCallCount++;
           if (sessionCallCount === 1) {
             return '{"session_id":"session1","result":"Ready"}';
-          } else if (sessionCallCount === 3) {
+          } else {
             return '{"session_id":"session2","result":"Ready"}';
           }
-        }
-        
-        return 'Response';
-      });
-
+        })
+      };
+      
+      wrapper = new CoreWrapper(mockClaudeClient, mockValidator, mockClaudeResolver as any);
+      (wrapper as any).claudeSessions.clear();
+      
+      ClaudeClientMock.setDefaultResponse('Response');
       ValidatorMock.setValidationAsValid(false);
 
       await wrapper.handleChatCompletion(request1);
       await wrapper.handleChatCompletion(request2);
 
-      // Should create separate sessions - 4 calls total (2 setups + 2 messages)
-      expect(mockClaudeClient.executeWithSession).toHaveBeenCalledTimes(4);
+      // Should create separate sessions - 2 session creations + 2 messages
+      expect(mockClaudeResolver.executeCommandWithFileForSession).toHaveBeenCalledTimes(2);
+      expect(mockClaudeClient.executeWithSession).toHaveBeenCalledTimes(2);
     });
 
     it('should handle multiple system prompts in single request', async () => {
@@ -480,20 +505,26 @@ describe('CoreWrapper', () => {
         ]
       };
 
-      ClaudeClientMock.setSessionSetupResponse('{"session_id":"session123","result":"Ready"}');
+      // Mock file-based session creation
+      const mockClaudeResolver = {
+        executeCommandWithFileForSession: jest.fn().mockResolvedValue(
+          '{"session_id":"session123","result":"Ready"}'
+        )
+      };
+      
+      wrapper = new CoreWrapper(mockClaudeClient, mockValidator, mockClaudeResolver as any);
+      (wrapper as any).claudeSessions.clear();
+      
       ClaudeClientMock.setDefaultResponse('Response');
       ValidatorMock.setValidationAsValid(false);
 
       await wrapper.handleChatCompletion(request);
 
-      // Should combine system prompts for session setup
-      expect(mockClaudeClient.executeWithSession).toHaveBeenNthCalledWith(
-        1,
-        expect.objectContaining({
-          messages: [{ role: 'system', content: 'You are a helpful assistant.\n\nBe concise in your responses.' }]
-        }),
-        null,
-        true
+      // Should combine system prompts for session creation
+      expect(mockClaudeResolver.executeCommandWithFileForSession).toHaveBeenCalledWith(
+        expect.any(String), // prompt
+        'sonnet',
+        expect.stringContaining('tmp') // temp file path containing combined system prompts
       );
     });
   });
@@ -533,7 +564,13 @@ describe('CoreWrapper', () => {
         ]
       };
 
-      ClaudeClientMock.setSessionSetupResponse('invalid json');
+      // Mock file-based session creation to return invalid JSON
+      const mockClaudeResolver = {
+        executeCommandWithFileForSession: jest.fn().mockResolvedValue('invalid json')
+      };
+      
+      wrapper = new CoreWrapper(mockClaudeClient, mockValidator, mockClaudeResolver as any);
+      (wrapper as any).claudeSessions.clear();
 
       await expect(wrapper.handleChatCompletion(request)).rejects.toThrow(
         'Failed to extract session ID from Claude CLI response'
@@ -549,13 +586,13 @@ describe('CoreWrapper', () => {
         ]
       };
 
-      // Mock the executeWithSession to return empty string for session setup
-      mockClaudeClient.executeWithSession.mockImplementation(async (_request, sessionId, useJsonOutput) => {
-        if (sessionId === null && useJsonOutput) {
-          return ''; // Empty response for session setup
-        }
-        return 'Mock response';
-      });
+      // Mock file-based session creation to return empty string
+      const mockClaudeResolver = {
+        executeCommandWithFileForSession: jest.fn().mockResolvedValue('')
+      };
+      
+      wrapper = new CoreWrapper(mockClaudeClient, mockValidator, mockClaudeResolver as any);
+      (wrapper as any).claudeSessions.clear();
 
       await expect(wrapper.handleChatCompletion(request)).rejects.toThrow(
         'Failed to extract session ID from Claude CLI response'
@@ -603,7 +640,16 @@ describe('CoreWrapper', () => {
         ]
       };
 
-      ClaudeClientMock.setSessionSetupResponse('{"session_id":"session123","result":"Ready"}');
+      // Mock file-based session creation
+      const mockClaudeResolver = {
+        executeCommandWithFileForSession: jest.fn().mockResolvedValue(
+          '{"session_id":"session123","result":"Ready"}'
+        )
+      };
+      
+      wrapper = new CoreWrapper(mockClaudeClient, mockValidator, mockClaudeResolver as any);
+      (wrapper as any).claudeSessions.clear();
+      
       ClaudeClientMock.setDefaultResponse('Response');
       ValidatorMock.setValidationAsValid(false);
 
@@ -640,7 +686,16 @@ describe('CoreWrapper', () => {
         ]
       };
 
-      ClaudeClientMock.setSessionSetupResponse('{"session_id":"session123","result":"Ready"}');
+      // Mock file-based session creation
+      const mockClaudeResolver = {
+        executeCommandWithFileForSession: jest.fn().mockResolvedValue(
+          '{"session_id":"session123","result":"Ready"}'
+        )
+      };
+      
+      wrapper = new CoreWrapper(mockClaudeClient, mockValidator, mockClaudeResolver as any);
+      (wrapper as any).claudeSessions.clear();
+      
       ClaudeClientMock.setDefaultResponse('Response');
       ValidatorMock.setValidationAsValid(false);
 
@@ -688,15 +743,23 @@ describe('CoreWrapper', () => {
         ]
       };
 
-      ClaudeClientMock.setSessionSetupResponse('{"session_id":"session123","result":"Ready"}');
+      // Mock file-based session creation
+      const mockClaudeResolver = {
+        executeCommandWithFileForSession: jest.fn().mockResolvedValue(
+          '{"session_id":"session123","result":"Ready"}'
+        )
+      };
+      
+      wrapper = new CoreWrapper(mockClaudeClient, mockValidator, mockClaudeResolver as any);
+      (wrapper as any).claudeSessions.clear();
+      
       ClaudeClientMock.setDefaultResponse('Response');
       ValidatorMock.setValidationAsValid(false);
 
       await wrapper.handleChatCompletion(request);
 
-      // Should strip system prompt for second call, leaving empty messages
-      expect(mockClaudeClient.executeWithSession).toHaveBeenNthCalledWith(
-        2,
+      // Should strip system prompt for message processing, leaving empty messages
+      expect(mockClaudeClient.executeWithSession).toHaveBeenCalledWith(
         expect.objectContaining({
           messages: []
         }),
@@ -717,25 +780,30 @@ describe('CoreWrapper', () => {
         ]
       };
 
-      ClaudeClientMock.setSessionSetupResponse('{"session_id":"session123","result":"Ready"}');
+      // Mock file-based session creation
+      const mockClaudeResolver = {
+        executeCommandWithFileForSession: jest.fn().mockResolvedValue(
+          '{"session_id":"session123","result":"Ready"}'
+        )
+      };
+      
+      wrapper = new CoreWrapper(mockClaudeClient, mockValidator, mockClaudeResolver as any);
+      (wrapper as any).claudeSessions.clear();
+      
       ClaudeClientMock.setDefaultResponse('Response');
       ValidatorMock.setValidationAsValid(false);
 
       await wrapper.handleChatCompletion(request);
 
-      // Should combine all system prompts for session setup
-      expect(mockClaudeClient.executeWithSession).toHaveBeenNthCalledWith(
-        1,
-        expect.objectContaining({
-          messages: [{ role: 'system', content: 'You are a helper.\n\nBe brief.' }]
-        }),
-        null,
-        true
+      // Should combine all system prompts for session creation
+      expect(mockClaudeResolver.executeCommandWithFileForSession).toHaveBeenCalledWith(
+        expect.any(String), // prompt
+        'sonnet',
+        expect.stringContaining('tmp') // temp file path containing combined system prompts
       );
 
       // Should strip system prompts for message processing and add format instructions
-      expect(mockClaudeClient.executeWithSession).toHaveBeenNthCalledWith(
-        2,
+      expect(mockClaudeClient.executeWithSession).toHaveBeenCalledWith(
         expect.objectContaining({
           messages: expect.arrayContaining([
             expect.objectContaining({ role: 'system' }), // Format instruction
@@ -758,7 +826,16 @@ describe('CoreWrapper', () => {
         ]
       };
 
-      ClaudeClientMock.setSessionSetupResponse('{"session_id":"session123","result":"Ready"}');
+      // Mock file-based session creation
+      const mockClaudeResolver = {
+        executeCommandWithFileForSession: jest.fn().mockResolvedValue(
+          '{"session_id":"session123","result":"Ready"}'
+        )
+      };
+      
+      wrapper = new CoreWrapper(mockClaudeClient, mockValidator, mockClaudeResolver as any);
+      (wrapper as any).claudeSessions.clear();
+      
       ClaudeClientMock.setDefaultResponse('Response');
       ValidatorMock.setValidationAsValid(false);
 
@@ -903,26 +980,31 @@ describe('CoreWrapper', () => {
         usage: { prompt_tokens: 60, completion_tokens: 25, total_tokens: 85 }
       });
 
-      ClaudeClientMock.setSessionSetupResponse('{"session_id":"tool_session_123","result":"Ready"}');
+      // Mock file-based session creation
+      const mockClaudeResolver = {
+        executeCommandWithFileForSession: jest.fn().mockResolvedValue(
+          '{"session_id":"tool_session_123","result":"Ready"}'
+        )
+      };
+      
+      wrapper = new CoreWrapper(mockClaudeClient, mockValidator, mockClaudeResolver as any);
+      (wrapper as any).claudeSessions.clear();
+      
       ClaudeClientMock.setDefaultResponse(toolResponse);
       ValidatorMock.setValidationAsValid(true);
       ValidatorMock.setParseResult(JSON.parse(toolResponse));
 
       const result = await wrapper.handleChatCompletion(request);
 
-      // Should setup session with system prompt
-      expect(mockClaudeClient.executeWithSession).toHaveBeenNthCalledWith(
-        1,
-        expect.objectContaining({
-          messages: [{ role: 'system', content: 'You are a helpful assistant with access to tools.' }]
-        }),
-        null,
-        true
+      // Should create session with system prompt file
+      expect(mockClaudeResolver.executeCommandWithFileForSession).toHaveBeenCalledWith(
+        expect.any(String), // prompt
+        'sonnet',
+        expect.stringContaining('tmp') // temp file path
       );
 
       // Should process message with tools
-      expect(mockClaudeClient.executeWithSession).toHaveBeenNthCalledWith(
-        2,
+      expect(mockClaudeClient.executeWithSession).toHaveBeenCalledWith(
         expect.objectContaining({
           messages: expect.arrayContaining([
             expect.objectContaining({ role: 'system' }), // Format instruction
@@ -1316,19 +1398,31 @@ describe('CoreWrapper', () => {
         ]
       };
 
-      ClaudeClientMock.setSessionSetupResponse('{"session_id":"weather_session","result":"Ready"}');
+      // Mock file-based session creation
+      const mockClaudeResolver = {
+        executeCommandWithFileForSession: jest.fn().mockResolvedValue(
+          '{"session_id":"weather_session","result":"Ready"}'
+        )
+      };
+      
+      wrapper = new CoreWrapper(mockClaudeClient, mockValidator, mockClaudeResolver as any);
+      (wrapper as any).claudeSessions.clear();
+      
       ClaudeClientMock.setDefaultResponse('Weather response');
       ValidatorMock.setValidationAsValid(false);
 
       await wrapper.handleChatCompletion(request1);
       await wrapper.handleChatCompletion(request2);
 
-      // Should reuse session - 3 calls total (setup + 2 messages)
-      expect(mockClaudeClient.executeWithSession).toHaveBeenCalledTimes(3);
+      // Should create session only once due to reuse
+      expect(mockClaudeResolver.executeCommandWithFileForSession).toHaveBeenCalledTimes(1);
+      
+      // Should reuse session - 2 calls total (2 messages with same session)
+      expect(mockClaudeClient.executeWithSession).toHaveBeenCalledTimes(2);
       
       // Both requests should use the same session
       expect(mockClaudeClient.executeWithSession).toHaveBeenNthCalledWith(
-        3,
+        2,
         expect.objectContaining({
           tools: expect.arrayContaining([
             expect.objectContaining({

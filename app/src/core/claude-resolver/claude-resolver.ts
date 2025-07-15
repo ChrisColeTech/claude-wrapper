@@ -8,6 +8,7 @@ import { ClaudePathCache } from './path-cache';
 import { ClaudePathDetector } from './path-detector';
 import { ClaudeCommandExecutor } from './command-executor';
 import { IClaudeResolver } from './interfaces';
+import { EnvironmentManager } from '../../config/env';
 
 export class ClaudeResolver implements IClaudeResolver {
   private static instance: ClaudeResolver | null = null;
@@ -18,9 +19,10 @@ export class ClaudeResolver implements IClaudeResolver {
   private constructor() {
     this.pathCache = ClaudePathCache.getInstance();
     this.pathDetector = new ClaudePathDetector();
-    this.commandExecutor = new ClaudeCommandExecutor();
+    this.commandExecutor = new ClaudeCommandExecutor(EnvironmentManager.isMockMode());
     
-    logger.info('ClaudeResolver initialized as singleton');
+    const modeText = EnvironmentManager.isMockMode() ? 'mock mode' : 'normal mode';
+    logger.info(`ClaudeResolver initialized as singleton (${modeText})`);
   }
 
   private async initializePath(): Promise<void> {
@@ -103,6 +105,26 @@ export class ClaudeResolver implements IClaudeResolver {
     const combinedCommand = `cat "${systemPromptFilePath}" | ${claudeCmd} ${flags} -p "${prompt.replace(/"/g, '\\"')}"`;
     
     logger.debug('Executing file-based Claude command', {
+      systemPromptFile: systemPromptFilePath,
+      promptLength: prompt.length,
+      model
+    });
+    
+    return this.commandExecutor.execute(combinedCommand, []);
+  }
+
+  async executeCommandWithFileForSession(
+    prompt: string,
+    model: string,
+    systemPromptFilePath: string
+  ): Promise<string> {
+    const claudeCmd = await this.findClaudeCommand();
+    const flags = this.buildCommandFlags(model, null, true, false); // JSON output enabled
+    
+    // Use cat to pipe file content and prompt together with JSON output for session ID
+    const combinedCommand = `cat "${systemPromptFilePath}" | ${claudeCmd} ${flags} -p "${prompt.replace(/"/g, '\\"')}"`;
+    
+    logger.debug('Executing file-based Claude command for session creation', {
       systemPromptFile: systemPromptFilePath,
       promptLength: prompt.length,
       model
