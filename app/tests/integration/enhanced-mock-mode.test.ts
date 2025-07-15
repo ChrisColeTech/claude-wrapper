@@ -54,7 +54,11 @@ describe('Enhanced Mock Mode Integration', () => {
   beforeAll(async () => {
     // Enable mock mode for testing
     process.env['MOCK_MODE'] = 'true';
+    process.env['NODE_ENV'] = 'test';
     MockConfigManager.resetConfig();
+    
+    // Wait a bit for environment setup
+    await new Promise(resolve => setTimeout(resolve, 100));
     
     app = createServer();
   });
