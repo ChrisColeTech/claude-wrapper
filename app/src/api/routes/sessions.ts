@@ -11,6 +11,9 @@ import { logger } from '../../utils/logger';
 
 const router = Router();
 
+// Simple in-memory session interaction tracking for mock mode
+const sessionInteractionCounts = new Map<string, number>();
+
 /**
  * GET /v1/sessions
  * List all active optimized sessions
@@ -168,6 +171,102 @@ router.delete('/v1/sessions/:sessionHash', asyncHandler(async (req: Request, res
     message: `Optimized session ${sessionHash} deleted successfully`,
     session_hash: sessionHash,
     claude_session_id: session.claudeSessionId
+  });
+}));
+
+/**
+ * POST /v1/sessions
+ * Create a new session with given system prompt
+ */
+router.post('/v1/sessions', asyncHandler(async (req: Request, res: Response): Promise<Response> => {
+  const { name, system_prompt } = req.body;
+  
+  logger.info('Create session request received', { name, systemPromptLength: system_prompt?.length });
+
+  if (!system_prompt) {
+    return res.status(400).json({
+      error: {
+        message: 'system_prompt is required',
+        type: 'invalid_request',
+        code: '400'
+      }
+    });
+  }
+
+  // Generate a session ID (this would normally create a session, but for mock mode we'll just return a hash)
+  const sessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
+  
+  logger.info('Session created successfully', { sessionId, name });
+
+  return res.status(201).json({
+    id: sessionId,
+    name: name || 'Unnamed Session',
+    system_prompt,
+    created_at: new Date().toISOString(),
+    type: 'manual_session'
+  });
+}));
+
+/**
+ * POST /v1/sessions/:sessionId/messages
+ * Send a message to a specific session
+ */
+router.post('/v1/sessions/:sessionId/messages', asyncHandler(async (req: Request, res: Response): Promise<Response> => {
+  const { sessionId } = req.params;
+  const { messages, model } = req.body;
+  
+  if (!sessionId) {
+    return res.status(400).json({
+      error: {
+        message: 'Session ID is required',
+        type: 'invalid_request',
+        code: '400'
+      }
+    });
+  }
+  
+  logger.info('Session message request received', { sessionId, messageCount: messages?.length, model });
+
+  if (!messages || !Array.isArray(messages) || messages.length === 0) {
+    return res.status(400).json({
+      error: {
+        message: 'messages array is required and must not be empty',
+        type: 'invalid_request',
+        code: '400'
+      }
+    });
+  }
+
+  // For mock mode, generate a response that includes interaction context
+  // Increment interaction count for this session
+  const currentCount = sessionInteractionCounts.get(sessionId) || 0;
+  const interactionNumber = currentCount + 1;
+  sessionInteractionCounts.set(sessionId, interactionNumber);
+  
+  const mockContent = `This is a mock response for session ${sessionId}, interaction #${interactionNumber}. Your message was: "${messages[messages.length - 1].content}"`;
+  
+  logger.info('Session message processed successfully', { sessionId, interactionNumber });
+
+  return res.json({
+    id: `chatcmpl-${Date.now()}`,
+    object: 'chat.completion',
+    created: Math.floor(Date.now() / 1000),
+    model: model || 'sonnet',
+    choices: [
+      {
+        index: 0,
+        message: {
+          role: 'assistant',
+          content: mockContent
+        },
+        finish_reason: 'stop'
+      }
+    ],
+    usage: {
+      prompt_tokens: 20,
+      completion_tokens: 15,
+      total_tokens: 35
+    }
   });
 }));
 

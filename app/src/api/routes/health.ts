@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { asyncHandler } from '../middleware/error';
+import { EnvironmentManager } from '../../config/env';
 import * as packageJson from '../../../package.json';
 
 const router = Router();
@@ -10,7 +11,8 @@ router.get('/health', asyncHandler(async (_req: Request, res: Response) => {
     service: packageJson.name,
     version: packageJson.version,
     description: packageJson.description,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    mock_mode: EnvironmentManager.isMockMode()
   });
 }));
 
