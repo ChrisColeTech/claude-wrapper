@@ -181,6 +181,80 @@ export class MockClaudeResolver {
   }
 
   /**
+   * Execute Claude command with file-based system prompt for session creation
+   * Used for single-stage session initialization
+   */
+  async executeCommandWithFileForSession(
+    prompt: string,
+    model: string,
+    systemPromptFilePath: string
+  ): Promise<string> {
+    logger.debug(`🎭 MockClaudeResolver: File-based session creation (mock) - File: ${systemPromptFilePath}`);
+
+    // In mock mode, we simulate reading the system prompt file
+    // and creating a session with it
+    const startTime = Date.now();
+    const delay = MockConfigManager.getRandomDelay();
+    await this.delay(delay);
+
+    // Create OpenAI-style request with system prompt simulation
+    const request: OpenAIRequest = {
+      messages: [
+        { role: 'system', content: `[Mock system prompt from ${systemPromptFilePath}]` },
+        { role: 'user', content: prompt }
+      ],
+      model: model || 'sonnet'
+    };
+
+    // Generate enhanced response
+    const template = await this.responseGenerator.generateResponse(request, undefined);
+    
+    const responseTime = Date.now() - startTime;
+    const content = template.content || this.createDefaultResponse(prompt);
+    const sessionId = `mock-session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+    // Format as Claude CLI JSON response with session ID
+    const claudeResponse = {
+      type: 'result',
+      subtype: 'success',
+      is_error: false,
+      duration_ms: responseTime,
+      duration_api_ms: Math.floor(responseTime * 0.6),
+      num_turns: 1,
+      result: content,
+      session_id: sessionId,
+      total_cost_usd: 0.001,
+      usage: template.tokenUsage ? {
+        input_tokens: template.tokenUsage.prompt_tokens,
+        output_tokens: template.tokenUsage.completion_tokens,
+        server_tool_use: { web_search_requests: 0 },
+        service_tier: 'standard'
+      } : {
+        input_tokens: Math.ceil(prompt.length / 4),
+        output_tokens: Math.ceil(content.length / 4),
+        server_tool_use: { web_search_requests: 0 },
+        service_tier: 'standard'
+      }
+    };
+
+    const response = JSON.stringify(claudeResponse);
+
+    // Add to execution history
+    this.executionHistory.push({
+      prompt,
+      model,
+      sessionId,
+      timestamp: new Date(),
+      response: content,
+      responseTime
+    });
+
+    logger.debug(`🎭 MockClaudeResolver: Created mock session ${sessionId} with file-based system prompt`);
+    
+    return response;
+  }
+
+  /**
    * Execute OpenAI-compatible request
    */
   async executeOpenAIRequest(request: OpenAIRequest, sessionId?: string): Promise<any> {

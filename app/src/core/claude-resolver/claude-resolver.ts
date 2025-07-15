@@ -113,6 +113,26 @@ export class ClaudeResolver implements IClaudeResolver {
     return this.commandExecutor.execute(combinedCommand, []);
   }
 
+  async executeCommandWithFileForSession(
+    prompt: string,
+    model: string,
+    systemPromptFilePath: string
+  ): Promise<string> {
+    const claudeCmd = await this.findClaudeCommand();
+    const flags = this.buildCommandFlags(model, null, true, false); // JSON output enabled
+    
+    // Use cat to pipe file content and prompt together with JSON output for session ID
+    const combinedCommand = `cat "${systemPromptFilePath}" | ${claudeCmd} ${flags} -p "${prompt.replace(/"/g, '\\"')}"`;
+    
+    logger.debug('Executing file-based Claude command for session creation', {
+      systemPromptFile: systemPromptFilePath,
+      promptLength: prompt.length,
+      model
+    });
+    
+    return this.commandExecutor.execute(combinedCommand, []);
+  }
+
   async executeCommandStreamingWithFile(
     prompt: string,
     model: string,

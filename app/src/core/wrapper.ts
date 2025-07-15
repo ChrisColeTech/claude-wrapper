@@ -34,7 +34,6 @@ export class CoreWrapper implements ICoreWrapper {
   private validator: IResponseValidator;
   private claudeResolver: ClaudeResolver;
   private claudeSessions: Map<string, ClaudeSessionState> = new Map();
-  private useSingleStageProcessing: boolean = true; // Default to new approach
 
   constructor(claudeClient?: IClaudeClient, validator?: IResponseValidator, claudeResolver?: ClaudeResolver) {
     this.instanceId = `wrapper-${++CoreWrapper.instanceCount}`;
@@ -54,7 +53,7 @@ export class CoreWrapper implements ICoreWrapper {
       model: request.model,
       messageCount: request.messages.length,
       stream: request.stream,
-      processingMode: this.useSingleStageProcessing ? 'single-stage' : 'two-stage'
+      processingMode: 'single-stage'
     });
 
     // Check if this request has system prompts
@@ -65,58 +64,10 @@ export class CoreWrapper implements ICoreWrapper {
       return this.processNormally(request);
     }
     
-    if (this.useSingleStageProcessing) {
-      // Single-stage: Use file-based approach
-      return this.processSingleStage(request);
-    } else {
-      // Two-stage: Use session optimization
-      return this.processTwoStage(request);
-    }
+    // Single-stage with session reuse
+    return this.processSingleStage(request);
   }
 
-  private detectSystemPromptSession(messages: OpenAIMessage[]): {
-    isNewSession: boolean;
-    systemPromptHash?: string;
-    claudeSessionId?: string;
-    sessionState?: ClaudeSessionState;
-  } {
-    // Extract system prompts from messages
-    const systemPrompts = this.extractSystemPrompts(messages);
-    
-    if (systemPrompts.length === 0) {
-      // No system prompt - no optimization needed
-      return { isNewSession: true };
-    }
-
-    // Create hash from system prompt content
-    const systemPromptHash = this.getSystemPromptHash(systemPrompts);
-    
-    // Check if we have an existing Claude session for this system prompt
-    const sessionState = this.claudeSessions.get(systemPromptHash);
-    
-    if (sessionState) {
-      logger.debug('Found existing Claude session for system prompt', {
-        systemPromptHash,
-        claudeSessionId: sessionState.claudeSessionId,
-        lastUsed: sessionState.lastUsed
-      });
-      
-      return {
-        isNewSession: false,
-        systemPromptHash,
-        claudeSessionId: sessionState.claudeSessionId,
-        sessionState
-      };
-    }
-
-    // System prompt exists but no Claude session found - need to create session
-    logger.debug('System prompt found but no Claude session exists', {
-      systemPromptHash,
-      systemPromptCount: systemPrompts.length
-    });
-    
-    return { isNewSession: true, systemPromptHash };
-  }
 
   private extractSystemPrompts(messages: OpenAIMessage[]): OpenAIMessage[] {
     return messages.filter(msg => msg.role === 'system');
@@ -144,12 +95,47 @@ export class CoreWrapper implements ICoreWrapper {
   }
 
   private async processSingleStage(request: OpenAIRequest): Promise<OpenAIResponse> {
-    logger.info('Processing with single-stage file-based approach');
+    logger.info('Processing with single-stage session reuse');
     
-    // Create system prompt file
+    // Extract system prompts and create hash
     const systemPrompts = this.extractSystemPrompts(request.messages);
-    const systemPromptContent = systemPrompts.map(msg => msg.content).join('\n\n');
+    const systemPromptHash = this.getSystemPromptHash(systemPrompts);
     
+    // Check for existing session
+    let sessionState = this.claudeSessions.get(systemPromptHash);
+    
+    if (!sessionState) {
+      // First request: Create session with system prompt file
+      const sessionId = await this.createSingleStageSession(systemPrompts, request);
+      
+      // Store session for reuse
+      const systemPromptContent = systemPrompts.map(msg => msg.content).join('\n\n');
+      this.claudeSessions.set(systemPromptHash, {
+        claudeSessionId: sessionId,
+        systemPromptHash,
+        lastUsed: new Date(),
+        systemPromptContent
+      });
+      
+      sessionState = this.claudeSessions.get(systemPromptHash);
+      
+      logger.info('Created new single-stage session', {
+        systemPromptHash,
+        sessionId
+      });
+    }
+    
+    // Update last used timestamp
+    sessionState!.lastUsed = new Date();
+    
+    // Process remaining messages with existing session
+    return this.processWithSession(request, sessionState!.claudeSessionId);
+  }
+
+  private async createSingleStageSession(systemPrompts: OpenAIMessage[], request: OpenAIRequest): Promise<string> {
+    logger.info('Creating single-stage session with system prompt file');
+    
+    const systemPromptContent = systemPrompts.map(msg => msg.content).join('\n\n');
     let tempFilePath: string | null = null;
     
     try {
@@ -160,19 +146,26 @@ export class CoreWrapper implements ICoreWrapper {
       const userMessages = request.messages.filter(msg => msg.role !== 'system');
       const prompt = this.claudeClient.messagesToPrompt(userMessages);
       
-      // Execute with file-based system prompt
-      const rawResponse = await this.claudeResolver.executeCommandWithFile(
+      // Execute with file-based system prompt and JSON output to get session ID
+      const rawResponse = await this.claudeResolver.executeCommandWithFileForSession(
         prompt,
         request.model,
         tempFilePath
       );
       
-      const claudeRequest = this.addFormatInstructions(request);
+      // Parse response to extract session ID
+      const { sessionId } = this.parseClaudeSessionResponse(rawResponse);
       
-      // Parse Claude CLI JSON response to extract result field if present
-      const processedResponse = this.parseClaudeResponse(rawResponse);
+      if (!sessionId) {
+        throw new Error('Failed to extract session ID from Claude CLI response');
+      }
       
-      return this.validateAndCorrect(processedResponse, claudeRequest);
+      logger.info('Single-stage session created successfully', {
+        sessionId,
+        systemPromptHash: this.getSystemPromptHash(systemPrompts)
+      });
+      
+      return sessionId;
     } finally {
       // Clean up temporary file
       if (tempFilePath) {
@@ -181,71 +174,8 @@ export class CoreWrapper implements ICoreWrapper {
     }
   }
   
-  private async processTwoStage(request: OpenAIRequest): Promise<OpenAIResponse> {
-    logger.info('Processing with two-stage session optimization');
-    
-    // Detect if we have a system prompt and check for existing session
-    const sessionInfo = this.detectSystemPromptSession(request.messages);
-    
-    if (sessionInfo.isNewSession) {
-      // Create new Claude session or process normally
-      if (sessionInfo.systemPromptHash) {
-        return this.initializeSystemPromptSession(request, sessionInfo.systemPromptHash);
-      } else {
-        return this.processNormally(request);
-      }
-    } else {
-      // Resume existing Claude session
-      if (sessionInfo.claudeSessionId && sessionInfo.sessionState) {
-        return this.processWithSession(request, sessionInfo.claudeSessionId);
-      } else {
-        // Fallback to normal processing if session data is incomplete
-        return this.processNormally(request);
-      }
-    }
-  }
 
-  private async initializeSystemPromptSession(request: OpenAIRequest, systemPromptHash: string): Promise<OpenAIResponse> {
-    logger.info('Initializing system prompt session', { systemPromptHash });
-    
-    // Stage 1: Setup system prompt session
-    const systemPrompts = this.extractSystemPrompts(request.messages);
-    const sessionId = await this.createSystemPromptSession(systemPrompts);
-    
-    // Store the session mapping
-    const systemPromptContent = systemPrompts.map(msg => msg.content).join('\n\n');
-    this.claudeSessions.set(systemPromptHash, {
-      claudeSessionId: sessionId,
-      systemPromptHash,
-      lastUsed: new Date(),
-      systemPromptContent
-    });
-    
-    logger.info('Created new Claude session for system prompt', {
-      systemPromptHash,
-      claudeSessionId: sessionId
-    });
-    
-    // Stage 2: Process remaining messages with session
-    return this.processWithSession(request, sessionId);
-  }
 
-  private async createSystemPromptSession(systemPrompts: OpenAIMessage[]): Promise<string> {
-    const systemContent = systemPrompts.map(msg => msg.content).join('\n\n');
-    const setupRequest: ClaudeRequest = {
-      model: 'sonnet',
-      messages: [{ role: 'system' as const, content: systemContent }]
-    };
-    
-    const response = await this.claudeClient.executeWithSession(setupRequest, null, true);
-    const { sessionId } = this.parseClaudeSessionResponse(response);
-    
-    if (!sessionId) {
-      throw new Error('Failed to extract session ID from Claude CLI response');
-    }
-    
-    return sessionId;
-  }
 
   private async processWithSession(request: OpenAIRequest, sessionId: string): Promise<OpenAIResponse> {
     logger.info('Processing with existing Claude session', { sessionId });
@@ -461,10 +391,10 @@ export class CoreWrapper implements ICoreWrapper {
    * Currently returns single response, but structured for future streaming support
    */
   async handleStreamingChatCompletion(request: OpenAIRequest): Promise<NodeJS.ReadableStream> {
-    logger.info('Processing streaming chat completion (real)', {
+    logger.info('Processing streaming chat completion with single-stage session reuse', {
       model: request.model,
       messageCount: request.messages.length,
-      processingMode: this.useSingleStageProcessing ? 'single-stage' : 'two-stage'
+      processingMode: 'single-stage'
     });
 
     // Check if this request has system prompts
@@ -476,86 +406,53 @@ export class CoreWrapper implements ICoreWrapper {
       return this.claudeResolver.executeCommandStreaming(prompt, request.model, null);
     }
     
-    if (this.useSingleStageProcessing) {
-      // Single-stage: Use file-based streaming
-      return this.streamSingleStage(request);
-    } else {
-      // Two-stage: Use session-based streaming
-      return this.streamTwoStage(request);
-    }
+    // Single-stage with session reuse
+    return this.streamWithSessionReuse(request);
   }
   
-  private async streamSingleStage(request: OpenAIRequest): Promise<NodeJS.ReadableStream> {
-    logger.info('Streaming with single-stage file-based approach');
+  private async streamWithSessionReuse(request: OpenAIRequest): Promise<NodeJS.ReadableStream> {
+    logger.info('Streaming with single-stage session reuse');
     
-    // Create system prompt file
+    // Extract system prompts and create hash
     const systemPrompts = this.extractSystemPrompts(request.messages);
-    const systemPromptContent = systemPrompts.map(msg => msg.content).join('\n\n');
+    const systemPromptHash = this.getSystemPromptHash(systemPrompts);
     
-    const tempFilePath = await TempFileManager.createTempFile(systemPromptContent);
+    // Check for existing session
+    let sessionState = this.claudeSessions.get(systemPromptHash);
     
-    try {
-      // Get user messages only
-      const userMessages = request.messages.filter(msg => msg.role !== 'system');
-      const prompt = this.claudeClient.messagesToPrompt(userMessages);
+    if (!sessionState) {
+      // First request: Create session with system prompt file
+      const sessionId = await this.createSingleStageSession(systemPrompts, request);
       
-      // Execute streaming with file-based system prompt
-      return await this.claudeResolver.executeCommandStreamingWithFile(
-        prompt,
-        request.model,
-        tempFilePath
-      );
-    } catch (error) {
-      // Clean up on error
-      await TempFileManager.cleanupTempFile(tempFilePath);
-      throw error;
-    }
-    // Note: Cleanup will be handled by the resolver after streaming completes
-  }
-  
-  private async streamTwoStage(request: OpenAIRequest): Promise<NodeJS.ReadableStream> {
-    logger.info('Streaming with two-stage session optimization');
-    
-    // Use same session detection logic as non-streaming
-    const sessionInfo = this.detectSystemPromptSession(request.messages);
-    
-    let claudeSessionId: string | null = null;
-    
-    if (sessionInfo.isNewSession) {
-      // Create new Claude session or process normally
-      if (sessionInfo.systemPromptHash) {
-        // Need to initialize system prompt session for streaming
-        const systemPrompts = this.extractSystemPrompts(request.messages);
-        claudeSessionId = await this.createSystemPromptSession(systemPrompts);
-        
-        // Store the session mapping
-        const systemPromptContent = systemPrompts.map(msg => msg.content).join('\n\n');
-        this.claudeSessions.set(sessionInfo.systemPromptHash, {
-          claudeSessionId: claudeSessionId,
-          systemPromptHash: sessionInfo.systemPromptHash,
-          lastUsed: new Date(),
-          systemPromptContent
-        });
-      }
-    } else {
-      // Use existing Claude session
-      if (sessionInfo.claudeSessionId && sessionInfo.sessionState) {
-        claudeSessionId = sessionInfo.claudeSessionId;
-        sessionInfo.sessionState.lastUsed = new Date();
-      }
+      // Store session for reuse
+      const systemPromptContent = systemPrompts.map(msg => msg.content).join('\n\n');
+      this.claudeSessions.set(systemPromptHash, {
+        claudeSessionId: sessionId,
+        systemPromptHash,
+        lastUsed: new Date(),
+        systemPromptContent
+      });
+      
+      sessionState = this.claudeSessions.get(systemPromptHash);
+      
+      logger.info('Created new single-stage session for streaming', {
+        systemPromptHash,
+        sessionId
+      });
     }
     
-    // Strip system prompts if we have a Claude session
-    const finalRequest = claudeSessionId ? this.stripSystemPrompts(request) : request;
+    // Update last used timestamp
+    sessionState!.lastUsed = new Date();
     
-    // Convert to Claude CLI format
+    // Strip system prompts and process remaining messages with existing session
+    const finalRequest = this.stripSystemPrompts(request);
     const prompt = this.claudeClient.messagesToPrompt(finalRequest.messages);
     
-    // Execute with real streaming using Claude CLI session ID (not wrapper session ID)
+    // Execute with real streaming using Claude CLI session ID
     const streamingResponse = await this.claudeResolver.executeCommandStreaming(
       prompt,
       finalRequest.model,
-      claudeSessionId
+      sessionState!.claudeSessionId
     );
     
     return streamingResponse;
@@ -565,22 +462,6 @@ export class CoreWrapper implements ICoreWrapper {
     return `${API_CONSTANTS.DEFAULT_REQUEST_ID_PREFIX}${Math.random().toString(36).substring(2, 15)}`;
   }
   
-  /**
-   * Configure whether to use single-stage or two-stage processing
-   */
-  setSingleStageProcessing(enabled: boolean): void {
-    this.useSingleStageProcessing = enabled;
-    logger.info('Processing mode changed', { 
-      mode: enabled ? 'single-stage' : 'two-stage' 
-    });
-  }
-  
-  /**
-   * Get current processing mode
-   */
-  isSingleStageProcessing(): boolean {
-    return this.useSingleStageProcessing;
-  }
   
   /**
    * Get optimized session information for API exposure
