@@ -58,7 +58,7 @@ export class ClaudePathDetector implements IClaudePathDetector {
 
   private async checkConfigFile(): Promise<string | null> {
     const config = EnvironmentManager.getConfig();
-    if (config.claudeCommand) {
+    if (config && config.claudeCommand) {
       logger.debug('Checking config file path', { command: config.claudeCommand });
       if (await this.testCommand(config.claudeCommand)) {
         logger.info('Found Claude via config file', { path: config.claudeCommand });

@@ -29,6 +29,18 @@ jest.mock('../../src/config/env', () => {
   };
 });
 
+// Mock the ClaudeResolver to always use mock mode
+jest.mock('../../src/core/claude-resolver/claude-resolver', () => {
+  const { MockClaudeResolver } = require('../../src/mocks/core/mock-claude-resolver');
+  return {
+    ClaudeResolver: {
+      getInstance: jest.fn(() => new MockClaudeResolver()),
+      getInstanceAsync: jest.fn(async () => new MockClaudeResolver()),
+      clearInstance: jest.fn()
+    }
+  };
+});
+
 // Mock logger
 jest.mock('../../src/utils/logger', () => ({
   logger: {

@@ -552,7 +552,7 @@ describe('CoreWrapper', () => {
 
       ClaudeClientMock.setSessionExecutionFailure(true);
 
-      await expect(wrapper.handleChatCompletion(request)).rejects.toThrow('Claude CLI not found');
+      await expect(wrapper.handleChatCompletion(request)).rejects.toThrow('Claude CLI session execution failed');
     });
 
     it('should handle invalid JSON in session setup response', async () => {
