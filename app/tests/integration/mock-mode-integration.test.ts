@@ -46,6 +46,17 @@ describe('Mock Mode Integration Tests', () => {
   let app: any;
 
   beforeAll(async () => {
+    // Enable mock mode for testing
+    process.env['MOCK_MODE'] = 'true';
+    process.env['NODE_ENV'] = 'test';
+    
+    // Clear any existing resolver instances
+    const ClaudeResolver = require('../../src/core/claude-resolver/claude-resolver').ClaudeResolver;
+    ClaudeResolver.clearInstance && ClaudeResolver.clearInstance();
+    
+    // Wait a bit for environment setup
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
     // Create server instance
     app = createServer();
   });

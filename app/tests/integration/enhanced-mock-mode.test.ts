@@ -57,6 +57,10 @@ describe('Enhanced Mock Mode Integration', () => {
     process.env['NODE_ENV'] = 'test';
     MockConfigManager.resetConfig();
     
+    // Clear any existing resolver instances
+    const ClaudeResolver = require('../../src/core/claude-resolver/claude-resolver').ClaudeResolver;
+    ClaudeResolver.clearInstance && ClaudeResolver.clearInstance();
+    
     // Wait a bit for environment setup
     await new Promise(resolve => setTimeout(resolve, 100));
     

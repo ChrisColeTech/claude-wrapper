@@ -618,7 +618,7 @@ describe('CoreWrapper', () => {
         expect(result).toBeDefined();
         expect(typeof result.read).toBe('function');
         expect(typeof result.on).toBe('function');
-      } catch (error) {
+      } catch (error: any) {
         // In CI environment, Claude CLI is not available, expect path detection error
         expect(error.message).toContain('Claude CLI not found');
       }

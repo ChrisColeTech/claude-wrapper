@@ -42,6 +42,10 @@ export class ClaudeResolver implements IClaudeResolver {
     return ClaudeResolver.instance;
   }
 
+  static clearInstance(): void {
+    ClaudeResolver.instance = null;
+  }
+
   static async getInstanceAsync(): Promise<ClaudeResolver> {
     if (!ClaudeResolver.instance) {
       ClaudeResolver.instance = new ClaudeResolver();
