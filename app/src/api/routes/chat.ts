@@ -37,7 +37,7 @@ router.post('/v1/chat/completions',
       if (!message.role || !['system', 'user', 'assistant', 'tool'].includes(message.role)) {
         throw new InvalidRequestError('Invalid message role. Must be one of: system, user, assistant, tool');
       }
-      if (message.content === undefined || message.content === null) {
+      if ((message.content === undefined || message.content === null) && message.role !== 'tool' && message.role !== 'assistant') {
         throw new InvalidRequestError('Message content is required');
       }
     }
