@@ -8,14 +8,13 @@
  * (re-exported or imported here) and leaves the slot name and `createServer`'s signature alone.
  */
 import { Clock } from '../utils/clock';
+import { Runner } from '../upstream/runner';
 import { Catalogue } from './catalogue';
 
 export type { Catalogue } from './catalogue';
 
-/** Placeholder until the upstream runner (ticket 27): `startRun(spec) → Run`. */
-export interface Runner {
-  startRun(spec: unknown): unknown;
-}
+/** The upstream runner: `startRun(spec) → Run` (the spawn runner in production, replay in tests). */
+export type { Runner };
 
 /** Placeholder until conversation state (ticket 31): `lookup`, `record`, `forget`; `parked` comes with it. */
 export interface Sessions {
