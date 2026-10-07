@@ -161,3 +161,22 @@ Spec sections refer to `.scratch/anthropic-compat-api/spec.md`.
 | `spike-runs/sdk-parallel.wire.ndjson` | wire | Two `tool_use` blocks in one message; upstream issues the MCP calls one at a time (the parallel-call park) | §7 | scrubbed |
 | `spike-runs/sdk-timeout.summary.json` | summary | Timings, ids and bridge trace of `sdk-timeout` | §7 | |
 | `spike-runs/sdk-timeout.wire.ndjson` | wire | MCP server timeout of 5 s: error `tool_result`, the model retries once and apologises | §7 | scrubbed |
+
+## Recording an observed failure
+
+Some upstream failures cannot be provoked on demand, so their rows in the spec's section 13 table rest on documented shapes until someone records them: e2e scenario 8, a live 429 (the subscription window exhausted) and an OAuth-expiry run, and e2e scenario 1 (a model call failing after it has streamed content). When one happens, record it while the condition still holds:
+
+1. Record a raw run with the surface's output flags, bounded because upstream's retry loop runs for minutes (a 401 or a 429 shows as `system/api_retry` frames, a rejected window as a `rate_limit_event` with `status: "rejected"`):
+
+   ```sh
+   mkdir -p app/tests/fixtures/upstream/observed
+   cd app/tests/fixtures/upstream/observed
+   timeout 180 claude -p --output-format stream-json --verbose --include-partial-messages \
+     --model claude-haiku-4-5-20251001 'Reply with the single word pong.' \
+     > 2026-10-07-live-429.jsonl 2> 2026-10-07-live-429.stderr.txt; echo "exit=$?" >> 2026-10-07-live-429.stderr.txt
+   ```
+
+   Name the files by date and by what was seen (`live-429`, `oauth-expired`). For scenario 1, run `tests/e2e/upstream/failure-after-content.test.ts` with `UPSTREAM_E2E_RECORD_DIR` set to the `observed` directory; it writes the frames and a summary naming the trigger that fired.
+2. Run `npm --prefix app run fixtures:scrub`. The unit and integration suites refuse to run while a recording still carries the account's email or names.
+3. Add one index row per file above (kind `frames+partial`, `stderr` or `summary`; spec `§13`), in the same commit.
+4. Replay it through the translator (a case in `tests/unit/anthropic/translate/translator-failures.test.ts`) so the mapped row is pinned. If the shape differs from what the spec expects (the category, `api_error_status`, the synthetic frame's text, or which trigger fired), fix the table or the triggers and note it in the spec's "Unverified mechanics".

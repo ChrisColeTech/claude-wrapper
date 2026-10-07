@@ -6,13 +6,20 @@ Spec: [spec.md](../spec.md), section 13, section 11 (failure after content, retr
 
 **Blocked by:** 29 (Plain turn end to end)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] An `api_retry` reader: the deterministic categories interrupt at first sight; the others start the 60 s cap (configurable); on firing, the last category maps
-- [ ] The synthetic-frame message extraction (the text after `API Error: <status> `); source precedence `api_error_status`, then category, then `result.subtype`, then process exit
-- [ ] Both mapping tables implemented as data with a test per row; `x-should-retry: false` on operator-side 500s; `retry-after` from the run's last `rate_limit_event` when it reported `rejected`; no `anthropic-ratelimit-*` headers
-- [ ] The billing-gate 400 relayed verbatim, never retried, logged at warn with the client's `system` length
-- [ ] The post-commit triggers (i) to (iv) produce the `error` event with the mapped type, then interrupt, teardown and forget; a plain `api_retry` after content is not a trigger
-- [ ] Timer firings map to 504 `timeout_error` pre-commit and the SSE error post-commit; a process exit without `result` maps to 500 with the exit code
-- [ ] Integration through the SDK against the replay runner: the error class the SDK raises for each row; the SSE error raising the SDK's error with the mapped type
-- [ ] E2E (flag): scenario 1, a model call failing after it has streamed content (record the real shape when first seen; the test documents which trigger fired). Scenario 8 (a live 429 and an OAuth-expiry run) is observe-when-it-happens: a recording procedure is documented, not a test
+- [x] An `api_retry` reader: the deterministic categories interrupt at first sight; the others start the 60 s cap (configurable); on firing, the last category maps
+- [x] The synthetic-frame message extraction (the text after `API Error: <status> `); source precedence `api_error_status`, then category, then `result.subtype`, then process exit
+- [x] Both mapping tables implemented as data with a test per row; `x-should-retry: false` on operator-side 500s; `retry-after` from the run's last `rate_limit_event` when it reported `rejected`; no `anthropic-ratelimit-*` headers
+- [x] The billing-gate 400 relayed verbatim, never retried, logged at warn with the client's `system` length
+- [x] The post-commit triggers (i) to (iv) produce the `error` event with the mapped type, then interrupt, teardown and forget; a plain `api_retry` after content is not a trigger
+- [x] Timer firings map to 504 `timeout_error` pre-commit and the SSE error post-commit; a process exit without `result` maps to 500 with the exit code
+- [x] Integration through the SDK against the replay runner: the error class the SDK raises for each row; the SSE error raising the SDK's error with the mapped type
+- [x] E2E (flag): scenario 1, a model call failing after it has streamed content (record the real shape when first seen; the test documents which trigger fired). Scenario 8 (a live 429 and an OAuth-expiry run) is observe-when-it-happens: a recording procedure is documented, not a test
+
+## Comments
+
+- Resolved by merge cfdcbf8 on anthropic-compat-api.
+- The surface table's 529 run-cap and 429 admission rows are deferred to ticket 42, which owns the scheduler that produces them.
+- The E2E criterion is ticked on scenario 1 being written (`app/tests/e2e/upstream/failure-after-content.test.ts`); its run against the real CLI is still pending.
+- Merging after ticket 31: the conductor keeps 31's `TurnSession` for forgetting the session on a failed turn, in place of this branch's `forgetSession`; 31's error-turn test now expects an upstream 400 as `BadRequestError` (5c65d75).

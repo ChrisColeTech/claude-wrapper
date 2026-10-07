@@ -21,12 +21,15 @@ export interface SurfaceErrorOptions {
    * set `false` explicitly for the non-retryable 500s (operator-side failures, for instance).
    */
   retryable?: boolean;
+  /** Seconds the client should wait before retrying: rendered as `retry-after` (spec section 13). */
+  retryAfter?: number;
 }
 
 export class SurfaceError extends Error {
   readonly status: number;
   readonly type: SurfaceErrorType;
   readonly retryable: boolean;
+  readonly retryAfter: number | undefined;
 
   constructor(status: number, type: SurfaceErrorType, message: string, options: SurfaceErrorOptions = {}) {
     super(message);
@@ -34,6 +37,7 @@ export class SurfaceError extends Error {
     this.status = status;
     this.type = type;
     this.retryable = options.retryable ?? (status === 429 || status >= 500);
+    this.retryAfter = options.retryAfter;
   }
 
   /** 400 `invalid_request_error`: the client must fix the request. */

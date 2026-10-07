@@ -68,15 +68,15 @@ describe('Anthropic surface: a plain turn that fails', () => {
       streamEvent(textDelta('Hel')), resultFrame({ subtype: 'error_during_execution', is_error: true, result: undefined,
         errors: ['upstream broke'] }));
 
-    it('before commit is an HTTP 500 api_error with upstream text, streaming or not', async () => {
+    it("before commit is the mapped HTTP error with the API's own message, streaming or not", async () => {
       const client = await replaying(preCommit(), preCommit());
 
       const created = await rejectionOf(client.messages.create(request()));
       const streamed = await rejectionOf(client.messages.stream(request()).finalMessage());
 
       for (const error of [created, streamed]) {
-        expect(error).toBeInstanceOf(Anthropic.InternalServerError);
-        expect(envelopeOf(error)).toEqual({ type: 'error', error: { type: 'api_error', message: 'API Error: 400 bad block' },
+        expect(error).toBeInstanceOf(Anthropic.BadRequestError);
+        expect(envelopeOf(error)).toEqual({ type: 'error', error: { type: 'invalid_request_error', message: 'bad block' },
           request_id: expect.stringMatching(REQUEST_ID) });
       }
     });

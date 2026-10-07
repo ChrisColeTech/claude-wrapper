@@ -2,8 +2,8 @@
  * How each content block kind reads inside a replayed turn's `<conversation_history>` (spec
  * section 5). A block renders to parts: text, which joins the history's text, or a real content
  * block placed inline (media the turn carried). A kind with no entry is a 400 naming it, never
- * dropped. The tickets that bring a kind add its entry here: images and documents (real blocks),
- * `server_tool_use` and the web tool results, `mcp_tool_use` and `mcp_tool_result`.
+ * dropped. The tickets that bring a kind add its entry here: `server_tool_use` and the web tool
+ * results, `mcp_tool_use` and `mcp_tool_result`.
  */
 import { SurfaceError } from '../http/surface-error';
 import { ContentBlock } from './turn-plan';
@@ -44,7 +44,11 @@ const HISTORY_BLOCKS: ReadonlyMap<string, HistoryBlock> = new Map<string, Histor
   ['thinking', () => []],
   ['redacted_thinking', () => []],
   ['tool_use', toolUse],
-  ['tool_result', toolResult]
+  ['tool_result', toolResult],
+  // Media stay real blocks, every field as sent (a document's `title`, `context`, `citations`), so
+  // the model reads them as it would have on the turn that carried them.
+  ['image', block => [block]],
+  ['document', block => [block]]
 ]);
 
 /** The parts `block` renders to in the history; throws the 400 for a kind with no rendering. */

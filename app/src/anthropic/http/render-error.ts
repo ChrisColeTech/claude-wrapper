@@ -39,6 +39,9 @@ export function renderAnthropicError(error: unknown, req: Request, res: Response
   if (!surfaceError.retryable) {
     res.setHeader('x-should-retry', 'false');
   }
+  if (surfaceError.retryAfter !== undefined) {
+    res.setHeader('retry-after', String(surfaceError.retryAfter));
+  }
   res.status(surfaceError.status).json({
     type: 'error',
     error: { type: surfaceError.type, message: surfaceError.message },

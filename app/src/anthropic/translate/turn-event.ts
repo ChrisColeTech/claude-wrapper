@@ -3,6 +3,7 @@
  * signals inline in the same ordered stream. Both sinks consume it.
  */
 import { Frame, StreamEvent } from '../../upstream/frames';
+import { FailureReader } from '../failure';
 import { SurfaceError } from '../http/surface-error';
 
 /** One Messages API streaming event; the SSE sink writes it as the SSE event of the same name. */
@@ -47,6 +48,11 @@ export interface TranslatorLogger {
 export interface TranslatorConfig {
   /** Dropped fields and frames are logged here at debug; defaults to the wrapper's logger. */
   logger?: TranslatorLogger;
+  /**
+   * The run's failure reader: the translator feeds it every frame and fails the turn with its
+   * errors. Defaults to one of its own, without the retry cap or the client's model.
+   */
+  failures?: FailureReader;
   /**
    * The armed strings (spec section 6): each is replaced with `[redacted]` in text and tool-input
    * deltas. Not run-bound, so every turn gets the surface's list; none redacts nothing.
