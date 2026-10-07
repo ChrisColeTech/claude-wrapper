@@ -79,3 +79,6 @@ test.sh
 
 # Yarn Integrity file
 .yarn-integrity
+# Claude Code local state
+.claude/worktrees/
+.claude/settings.local.json

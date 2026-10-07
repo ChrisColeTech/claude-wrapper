@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tool bridge demo</title>
+<style>
+  :root { --bg:#fbfaf7; --fg:#1f1f1c; --muted:#6b6a64; --line:#e4e1d8; --panel:#ffffff; --accent:#b4531b; --accent-soft:#f6e5db; --ok:#2f7a4a; --warn:#9a6b00; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#171716; --fg:#ebe9e3; --muted:#a19e95; --line:#2e2d2a; --panel:#1f1f1d; --accent:#e4885a; --accent-soft:#3a271d; --ok:#79c48f; --warn:#e0b14a; } }
+  :root[data-theme="dark"] { --bg:#171716; --fg:#ebe9e3; --muted:#a19e95; --line:#2e2d2a; --panel:#1f1f1d; --accent:#e4885a; --accent-soft:#3a271d; --ok:#79c48f; --warn:#e0b14a; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width:960px; margin:0 auto; padding:32px 16px 64px; }
+  h1 { font-size:26px; margin:0 0 6px; letter-spacing:-0.01em; }
+  h2 { font-size:17px; margin:28px 0 10px; }
+  p.lead { color:var(--muted); margin:0 0 20px; max-width:70ch; }
+  .tag { display:inline-block; font-size:12px; padding:2px 8px; border:1px solid var(--line); border-radius:999px; color:var(--muted); margin-bottom:12px; }
+  .grid { display:grid; grid-template-columns: 1fr; gap:16px; }
+  @media (min-width: 760px) { .grid { grid-template-columns: 1.1fr 1fr; } }
+  .panel { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:16px; }
+  .phase { font-size:22px; font-weight:600; }
+  .phase[data-phase="parked"] { color:var(--accent); }
+  .phase[data-phase="running"] { color:var(--ok); }
+  .phase[data-phase="abandoned"] { color:var(--warn); }
+  dl { display:grid; grid-template-columns: max-content 1fr; gap:6px 14px; margin:12px 0 0; }
+  dt { color:var(--muted); }
+  dd { margin:0; font-variant-numeric: tabular-nums; }
+  code { font: 13px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; background:var(--accent-soft); padding:1px 5px; border-radius:4px; }
+  .buttons { display:flex; flex-wrap:wrap; gap:8px; }
+  button { font:inherit; font-size:14px; padding:8px 12px; border-radius:8px; border:1px solid var(--line); background:var(--panel); color:var(--fg); cursor:pointer; text-align:left; }
+  button:hover { border-color:var(--accent); }
+  button.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+  button:disabled { opacity:.45; cursor:default; }
+  .log { max-height:280px; overflow:auto; font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; border-top:1px solid var(--line); margin-top:12px; padding-top:8px; }
+  .log div { padding:2px 0; border-bottom:1px dashed var(--line); }
+  .log .k { color:var(--accent); }
+  .tabs { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }
+  .tabs button[aria-selected="true"] { background:var(--accent-soft); border-color:var(--accent); }
+  .steps { display:flex; flex-direction:column; gap:8px; }
+  .steps button { display:flex; gap:10px; align-items:baseline; }
+  .steps button .n { color:var(--muted); min-width:1.6em; }
+  .steps button.done { opacity:.55; }
+  .steps button.next { border-color:var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+  .note { font-size:14px; color:var(--muted); }
+  .changed { background:var(--accent-soft); border-radius:4px; padding:0 4px; }
+</style>
+</head>
+<body>
+<main>
+  <span class="tag">PROTOTYPE, THROWAWAY. Wayfinder ticket 06, claude-wrapper</span>
+  <h1>Tool bridge: when may the surface end the turn?</h1>
+  <p class="lead">A client defines a tool on the Anthropic surface. Upstream (the Claude Code run) decides to call it. The surface must hand the call to the client as <code>stop_reason: tool_use</code> while the run stays alive, blocked inside the wrapper's MCP tool handler, and must feed the client's answer back on the next turn. This page lets you drive that state machine by hand. The logic is the same module the live spike ran against the real CLI; the buttons are the events the spike saw.</p>
+
+  <div class="grid">
+    <section class="panel" aria-live="polite">
+      <h2 style="margin-top:0">Current state</h2>
+      <div class="phase" id="phase" data-phase="idle">idle</div>
+      <dl>
+        <dt>Assistant message complete</dt><dd id="done">no</dd>
+        <dt>Client calls announced by upstream</dt><dd id="announced">none</dd>
+        <dt>Handlers waiting on the client</dt><dd id="waiting">none</dd>
+        <dt>Answers held for calls upstream has not asked for yet</dt><dd id="pre">none</dd>
+        <dt>Answered this park</dt><dd id="delivered">none</dd>
+        <dt>Handlers that have returned to upstream</dt><dd id="returned">none</dd>
+      </dl>
+      <p class="note" id="explain">Press a button, or pick a walkthrough.</p>
+      <div class="log" id="log"></div>
+    </section>
+
+    <section>
+      <div class="panel">
+        <h2 style="margin-top:0">Free play</h2>
+        <div class="buttons" id="free"></div>
+      </div>
+      <div class="panel" style="margin-top:16px">
+        <h2 style="margin-top:0">Guided walkthroughs</h2>
+        <div class="tabs" id="tabs" role="tablist"></div>
+        <p class="note" id="scenario-text"></p>
+        <div class="steps" id="steps"></div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<script>
+// ---- the pure module, verbatim from bridge.mjs (no DOM in here) ----
+// PROTOTYPE, THROWAWAY. Wayfinder ticket 06 (spike: client tool round trip).
+//
+// The one piece of this spike worth lifting later: a pure tool-bridge state
+// machine. No I/O, no process, no DOM. The harness (spike.mjs) feeds it the
+// frames it sees from upstream and the results it gets from the simulated
+// client; the machine decides when the surface may end the turn with
+// `stop_reason: tool_use` ("park") and when the run may continue.
+//
+// Vocabulary (GLOSSARY.md): upstream = the Claude Code CLI run; client tool =
+// a tool the HTTP client defines and executes; tool bridge = how a client tool
+// call inside the run reaches the client and its result comes back.
+//
+// Two facts from the live runs shape this machine:
+//  1. Upstream executes the tool_use blocks of one assistant message ONE AT A
+//     TIME: the MCP tools/call for block 2 is not issued until block 1's
+//     handler returns. So the surface must park as soon as the assistant
+//     message is complete (message_delta stop_reason=tool_use), not wait for
+//     every handler to register, and it must keep results the client delivers
+//     for calls upstream has not asked for yet ("pre-delivered").
+//  2. The tools/call can in principle arrive before the assistant frame that
+//     names its tool_use id (claudegate's race), so a handler may register for
+//     an id that is not announced yet; it is simply held until the client
+//     answers.
+
+function createBridge({ prefix, now = () => Date.now() } = {}) {
+  if (!prefix) throw new Error('prefix required, e.g. "mcp__spike__"');
+
+  const state = {
+    phase: 'idle',            // idle | running | parked | abandoned | done
+    assistantMessageDone: false,
+    announced: new Map(),     // tool_use id -> { name, input, at }        (from assistant frames)
+    pending: new Map(),       // tool_use id -> { name, args, at, settle } (handler waiting on the client)
+    predelivered: new Map(),  // tool_use id -> { content, isError }      (client answered before upstream asked)
+    delivered: new Set(),     // ids the client has answered this park
+    history: [],              // { id, at, latencyFromParkMs }
+    events: [],               // ordered trace for display
+  };
+
+  const trace = (kind, detail = {}) => state.events.push({ at: now(), kind, ...detail });
+  const isClientTool = (upstreamName) => upstreamName.startsWith(prefix);
+  const clientName = (upstreamName) => upstreamName.slice(prefix.length);
+  const lastParkAt = () => state.events.findLast((e) => e.kind === 'park')?.at;
+
+  // Park when upstream has finished the assistant message and it announced at
+  // least one client tool_use. Built-in tools (WebSearch, ...) never register
+  // here, so they never cause a park: the run just continues through them.
+  function maybePark() {
+    if (state.phase !== 'running' || !state.assistantMessageDone || state.announced.size === 0) return null;
+    state.phase = 'parked';
+    const toolUses = [...state.announced.entries()].map(([id, a]) => ({ id, name: a.name, input: a.input }));
+    trace('park', { toolUses });
+    return toolUses;
+  }
+
+  // Resume once every announced call has a client answer (delivered to a
+  // waiting handler or parked as pre-delivered for a handler still to come).
+  function maybeResume() {
+    if (state.phase !== 'parked') return null;
+    for (const id of state.announced.keys()) if (!state.delivered.has(id)) return null;
+    state.phase = 'running';
+    state.assistantMessageDone = false;
+    state.announced.clear();
+    state.delivered.clear();
+    trace('resumed');
+    return 'resumed';
+  }
+
+  return {
+    state,
+    isClientTool,
+    clientName,
+
+    turnStarted() { state.phase = 'running'; state.assistantMessageDone = false; trace('turn_started'); },
+
+    // An `assistant` frame carried a tool_use block.
+    assistantToolUse({ id, name, input }) {
+      if (!isClientTool(name)) { trace('builtin_tool_use', { id, name }); return { kind: 'builtin' }; }
+      state.announced.set(id, { name: clientName(name), input, at: now() });
+      trace('client_tool_use_announced', { id, name: clientName(name) });
+      return { kind: 'client', park: maybePark() };
+    },
+
+    // message_delta with stop_reason tool_use (or message_stop) for the
+    // assistant message that holds the tool_use blocks.
+    assistantMessageComplete({ stopReason } = {}) {
+      state.assistantMessageDone = true;
+      trace('assistant_message_complete', { stopReason });
+      return { park: maybePark() };
+    },
+
+    // Upstream invoked the MCP handler for a client tool. Returns a promise the
+    // handler must await. Settles at once if the client already answered.
+    mcpCall({ toolUseId, name, args }) {
+      const early = !state.announced.has(toolUseId) && !state.predelivered.has(toolUseId);
+      const pre = state.predelivered.get(toolUseId);
+      if (pre) {
+        state.predelivered.delete(toolUseId);
+        trace('mcp_call_served_from_predelivered', { toolUseId, name });
+        return { promise: Promise.resolve(pre), early: false, servedFromPredelivered: true, park: null };
+      }
+      let settle;
+      const promise = new Promise((resolve, reject) => { settle = { resolve, reject }; });
+      state.pending.set(toolUseId, { name, args, at: now(), settle });
+      trace('mcp_call_registered', { toolUseId, name, early });
+      return { promise, early, servedFromPredelivered: false, park: maybePark() };
+    },
+
+    // The client's next turn carried a tool_result for this id.
+    clientResult({ toolUseId, content, isError = false }) {
+      const result = { content, isError };
+      const p = state.pending.get(toolUseId);
+      if (p) {
+        state.pending.delete(toolUseId);
+        p.settle.resolve(result);
+        trace('client_result_delivered_to_waiting_handler', { toolUseId, isError });
+      } else if (state.announced.has(toolUseId)) {
+        state.predelivered.set(toolUseId, result);
+        trace('client_result_predelivered', { toolUseId, isError });
+      } else {
+        trace('client_result_unknown', { toolUseId });
+        return { status: 'unknown_tool_use_id' };
+      }
+      state.delivered.add(toolUseId);
+      state.history.push({ id: toolUseId, at: now(), latencyFromParkMs: now() - (lastParkAt() ?? now()) });
+      const resumed = maybeResume();
+      return resumed ? { status: 'resumed' } : { status: 'partial', stillMissing: [...state.announced.keys()].filter((id) => !state.delivered.has(id)) };
+    },
+
+    // The client never answered (TTL, disconnect). Caller must interrupt the
+    // run BEFORE calling this, or upstream answers the rejection with another
+    // model call (prior-art lesson, confirmed by the sdk-timeout run).
+    abandon(reason) {
+      state.phase = 'abandoned';
+      for (const [id, p] of state.pending) { p.settle.reject(new Error(`abandoned: ${reason}`)); trace('pending_rejected', { toolUseId: id }); }
+      state.pending.clear(); state.predelivered.clear(); state.announced.clear(); state.delivered.clear();
+      trace('abandoned', { reason });
+    },
+
+    turnEnded() { state.phase = 'done'; trace('turn_ended'); },
+
+    snapshot() {
+      return {
+        phase: state.phase,
+        assistantMessageDone: state.assistantMessageDone,
+        announced: [...state.announced.keys()],
+        waitingHandlers: [...state.pending.keys()],
+        predelivered: [...state.predelivered.keys()],
+        delivered: [...state.delivered],
+      };
+    },
+  };
+}
+</script>
+
+<script>
+// ---- throwaway page shell ----
+let bridge, counter, asked, returned, logEl = document.getElementById('log');
+const $ = (id) => document.getElementById(id);
+const PREFIX = 'mcp__spike__';
+const CITIES = ['Paris', 'Tokyo', 'Lima', 'Oslo'];
+
+function reset() {
+  bridge = createBridge({ prefix: PREFIX, now: () => Math.round(performance.now()) });
+  bridge.turnStarted();
+  counter = 0; asked = new Set(); returned = [];
+  logEl.innerHTML = '';
+  render('Fresh run. Upstream is thinking.');
+}
+
+function say(text) { const d = document.createElement('div'); d.innerHTML = text; logEl.prepend(d); }
+function fmt(ids) { return ids.length ? ids.map((i) => '<code>' + i + '</code>').join(' ') : 'none'; }
+
+function render(explain) {
+  const s = bridge.snapshot();
+  $('phase').textContent = s.phase; $('phase').dataset.phase = s.phase;
+  $('done').textContent = s.assistantMessageDone ? 'yes' : 'no';
+  $('announced').innerHTML = fmt(s.announced);
+  $('waiting').innerHTML = fmt(s.waitingHandlers);
+  $('pre').innerHTML = fmt(s.predelivered);
+  $('delivered').innerHTML = fmt(s.delivered);
+  $('returned').innerHTML = fmt(returned);
+  if (explain) $('explain').innerHTML = explain;
+}
+
+// ---- actions, in domain language ----
+const actions = {
+  announceClient: {
+    label: 'Upstream announces a client tool call',
+    run() { const id = 'toolu_' + (++counter); const city = CITIES[(counter - 1) % CITIES.length]; const r = bridge.assistantToolUse({ id, name: PREFIX + 'get_weather', input: { city } }); say('<span class="k">assistant frame</span> tool_use ' + id + ' get_weather(' + city + ')'); render(r.park ? parkText(r.park) : 'Announced. The surface cannot answer yet: the assistant message is not complete.'); },
+  },
+  announceBuiltin: {
+    label: 'Upstream announces a built-in tool call (WebSearch)',
+    run() { const id = 'toolu_ws' + (++counter); bridge.assistantToolUse({ id, name: 'WebSearch', input: { query: 'weather' } }); say('<span class="k">assistant frame</span> tool_use ' + id + ' WebSearch'); render('A built-in tool. Upstream runs it itself; the bridge ignores it and the run continues.'); },
+  },
+  finishMessage: {
+    label: 'Upstream finishes the assistant message (stop_reason: tool_use)',
+    run() { const r = bridge.assistantMessageComplete({ stopReason: 'tool_use' }); say('<span class="k">stream</span> message_delta stop_reason=tool_use, message_stop'); render(r.park ? parkText(r.park) : 'Message complete, but no client tool was announced, so nothing to hand to the client. The run just continues.'); },
+  },
+  upstreamAsks: {
+    label: 'Upstream asks the wrapper to run the next client tool (MCP tools/call)',
+    run() {
+      const s = bridge.snapshot();
+      const next = [...s.announced, ...s.predelivered].find((id) => !asked.has(id));
+      if (!next) { render('Upstream has nothing more to ask: every announced call already has a handler or an answer.'); return; }
+      asked.add(next);
+      const r = bridge.mcpCall({ toolUseId: next, name: PREFIX + 'get_weather', args: {} });
+      r.promise.then(() => { returned.push(next); say('<span class="k">handler</span> ' + next + ' returned its result to upstream'); render('Handler ' + next + ' returned. Upstream now writes the tool_result into the run and either asks for the next call or calls the model again.'); }).catch((e) => { say('<span class="k">handler</span> ' + next + ' rejected: ' + e.message); render(); });
+      say('<span class="k">mcp</span> tools/call for ' + next + (r.servedFromPredelivered ? ' (answered at once from a held result)' : ' (handler now blocks)'));
+      render(r.servedFromPredelivered ? 'The client had already answered this call, so the handler returns immediately. Upstream never waited.' : (r.park ? parkText(r.park) : (r.early ? 'The handler registered before the assistant frame announced this id (the race). It waits.' : 'The handler blocks. Note the phase: ' + bridge.snapshot().phase + '. Upstream runs the calls of one message one at a time, so a second announced call will not be asked for until this handler returns.')));
+    },
+  },
+  clientAnswersOne: {
+    label: 'Client answers the first unanswered call',
+    run() { const s = bridge.snapshot(); const id = s.announced.find((i) => !s.delivered.includes(i)) ?? s.waitingHandlers[0]; if (!id) { render('Nothing to answer.'); return; } const r = bridge.clientResult({ toolUseId: id, content: '{"temp_c":18}' }); say('<span class="k">client</span> tool_result for ' + id + ' → ' + r.status); render(r.status === 'resumed' ? 'Every announced call is answered: the run resumes.' : r.status === 'partial' ? 'Partial: still missing ' + r.stillMissing.join(', ') + '. The surface should not resume until all are in (or re-return the missing calls).' : 'Unknown tool_use id: the client answered a call upstream never made. The surface should 400.'); },
+  },
+  clientAnswersAll: {
+    label: 'Client answers every outstanding call in one message',
+    run() { const s = bridge.snapshot(); const ids = s.announced.filter((i) => !s.delivered.includes(i)); if (!ids.length) { render('Nothing to answer.'); return; } let last; for (const id of ids) { last = bridge.clientResult({ toolUseId: id, content: '{"temp_c":18}' }); say('<span class="k">client</span> tool_result for ' + id + ' → ' + last.status); } render(last.status === 'resumed' ? 'All answered. Calls upstream has not asked for yet are held and served the moment it asks.' : ''); },
+  },
+  clientUnknown: {
+    label: 'Client answers with an id upstream never issued',
+    run() { const r = bridge.clientResult({ toolUseId: 'toolu_bogus', content: 'x' }); say('<span class="k">client</span> tool_result for toolu_bogus → ' + r.status); render('Rejected as <code>' + r.status + '</code>. The surface should answer 400 and keep the run parked.'); },
+  },
+  abandon: {
+    label: 'Client never answers: interrupt the run, then reject the handlers',
+    run() { say('<span class="k">wrapper</span> control_request interrupt (upstream cancels the MCP call, writes a rejection tool_result, ends the run with no model call)'); bridge.abandon('client never answered'); render('Abandoned in the safe order: interrupt first, reject second. The live runs showed the other orders cost a model call: an MCP timeout made the model retry the tool, and closing stdin while parked made upstream start another model call.'); },
+  },
+  reset: { label: 'Reset', run: reset },
+};
+function parkText(toolUses) { return '<strong>Parked.</strong> The surface now ends the HTTP turn with <code>stop_reason: tool_use</code> and returns ' + toolUses.length + ' tool_use block' + (toolUses.length > 1 ? 's' : '') + ' (' + toolUses.map((t) => t.id).join(', ') + '). The run stays alive, blocked in the handler.'; }
+
+for (const [key, a] of Object.entries(actions)) { const b = document.createElement('button'); b.textContent = a.label; if (key === 'reset') b.className = 'primary'; b.onclick = () => a.run(); $('free').appendChild(b); }
+
+// ---- walkthroughs ----
+const scenarios = [
+  { title: 'Happy path', text: 'One client tool call. Watch the phase flip to parked only after the message is complete AND upstream has asked; then the client answers and the run resumes.', steps: ['announceClient', 'finishMessage', 'upstreamAsks', 'clientAnswersOne'] },
+  { title: 'Two calls, run one at a time', text: 'The model emits two tool_use blocks in one message. Upstream asks for the first and will not ask for the second until the first handler returns. The surface must return BOTH calls to the client at the first park, and hold the second answer until upstream asks. (The first live attempt waited for both handlers and deadlocked for 240 s.)', steps: ['announceClient', 'announceClient', 'finishMessage', 'upstreamAsks', 'clientAnswersAll', 'upstreamAsks'] },
+  { title: 'Fast client', text: 'The client answers before upstream has even asked. The answer is held and served the instant the handler is invoked.', steps: ['announceClient', 'finishMessage', 'clientAnswersOne', 'upstreamAsks'] },
+  { title: 'Built-in tool does not park', text: 'A WebSearch call is upstream\'s business. The bridge ignores it, nothing is handed to the client, the run continues.', steps: ['announceBuiltin', 'finishMessage', 'upstreamAsks'] },
+  { title: 'Client never answers', text: 'The run is parked and the client goes away. Interrupt the run first, then reject the handlers. Try the free-play button for a bogus id as well.', steps: ['announceClient', 'finishMessage', 'upstreamAsks', 'abandon'] },
+];
+let current = 0, stepIndex = 0;
+function showScenario(i) {
+  current = i; stepIndex = 0; reset();
+  const sc = scenarios[i];
+  $('scenario-text').textContent = sc.text;
+  [...$('tabs').children].forEach((b, j) => b.setAttribute('aria-selected', j === i));
+  renderSteps();
+}
+function renderSteps() {
+  const sc = scenarios[current]; const el = $('steps'); el.innerHTML = '';
+  sc.steps.forEach((key, j) => { const b = document.createElement('button'); b.className = j < stepIndex ? 'done' : j === stepIndex ? 'next' : ''; b.innerHTML = '<span class="n">' + (j + 1) + '.</span><span>' + actions[key].label + '</span>'; b.disabled = j !== stepIndex; b.onclick = () => { actions[key].run(); stepIndex++; renderSteps(); }; el.appendChild(b); });
+  if (stepIndex >= sc.steps.length) { const p = document.createElement('p'); p.className = 'note'; p.textContent = 'Walkthrough finished. Keep poking with free play, or pick another tab.'; el.appendChild(p); }
+}
+scenarios.forEach((sc, i) => { const b = document.createElement('button'); b.setAttribute('role', 'tab'); b.textContent = sc.title; b.onclick = () => showScenario(i); $('tabs').appendChild(b); });
+showScenario(0);
+</script>
+</body>
+</html>

@@ -1,0 +1,18 @@
+# 40: Upstream failure mapping
+
+Spec: [spec.md](../spec.md), section 13, section 11 (failure after content, retry cap), ADR 0005
+
+**What to build:** Every upstream failure reaches the client as the spec's tables say: by what the client should do, with the API's own message where there is one, operator-side failures as a 500 that names the upstream login, fail-fast on deterministic retry categories, the billing gate relayed verbatim, `retry-after` when known, and post-commit failures as one SSE `error` event.
+
+**Blocked by:** 29 (Plain turn end to end)
+
+**Status:** ready-for-agent
+
+- [ ] An `api_retry` reader: the deterministic categories interrupt at first sight; the others start the 60 s cap (configurable); on firing, the last category maps
+- [ ] The synthetic-frame message extraction (the text after `API Error: <status> `); source precedence `api_error_status`, then category, then `result.subtype`, then process exit
+- [ ] Both mapping tables implemented as data with a test per row; `x-should-retry: false` on operator-side 500s; `retry-after` from the run's last `rate_limit_event` when it reported `rejected`; no `anthropic-ratelimit-*` headers
+- [ ] The billing-gate 400 relayed verbatim, never retried, logged at warn with the client's `system` length
+- [ ] The post-commit triggers (i) to (iv) produce the `error` event with the mapped type, then interrupt, teardown and forget; a plain `api_retry` after content is not a trigger
+- [ ] Timer firings map to 504 `timeout_error` pre-commit and the SSE error post-commit; a process exit without `result` maps to 500 with the exit code
+- [ ] Integration through the SDK against the replay runner: the error class the SDK raises for each row; the SSE error raising the SDK's error with the mapped type
+- [ ] E2E (flag): scenario 1, a model call failing after it has streamed content (record the real shape when first seen; the test documents which trigger fired). Scenario 8 (a live 429 and an OAuth-expiry run) is observe-when-it-happens: a recording procedure is documented, not a test
