@@ -4,7 +4,7 @@
  * `rate_limit_event`: after `rejected`, every request until `resetsAt` gets 429
  * `rate_limit_error` with `retry-after`, before any run starts.
  */
-import { SurfaceError } from '../../../../src/anthropic/http/surface-error';
+import { SurfaceError } from '../../../../src/anthropic/surface-error';
 import { Lease } from '../../../../src/anthropic/scheduler';
 import { initFrame, rateLimitEvent } from '../../../mocks/anthropic/turn-frames';
 import {

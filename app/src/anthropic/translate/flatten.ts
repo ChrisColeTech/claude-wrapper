@@ -24,7 +24,7 @@ import { isConnectorTool } from '../../upstream/connector-tools';
 import { ApiRetryFrame, Frame, ResultFrame, StreamEvent, UserFrame } from '../../upstream/frames';
 import { isWebTool } from '../../upstream/hook-policy';
 import { FailureReader } from '../failure';
-import { SurfaceError } from '../http/surface-error';
+import { SurfaceError } from '../surface-error';
 import { MixedMessageHold } from './mixed-message';
 import { Pass } from './pass';
 import { BlockOffsets, serverToolResults } from './surface-blocks';

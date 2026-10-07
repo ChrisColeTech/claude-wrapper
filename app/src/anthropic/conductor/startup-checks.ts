@@ -9,11 +9,11 @@
  */
 import { connectorToolPrefix } from '../../upstream/connector-tools';
 import { SystemInitFrame } from '../../upstream/frames';
-import { SurfaceError } from '../http/surface-error';
+import { SurfaceError } from '../surface-error';
 import { StartupChecks } from '../request';
 
 const operatorSide = (message: string): SurfaceError =>
-  new SurfaceError(500, 'api_error', message, { retryable: false });
+  SurfaceError.of('api_error', message, { retryable: false });
 
 const listed = (names: string[]): string => (names.length > 0 ? names.join(', ') : 'none');
 

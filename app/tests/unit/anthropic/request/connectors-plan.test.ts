@@ -7,7 +7,7 @@
  * `connected`. `defer_loading` is ignored; `enabled: false` is honoured as far as allow rules can
  * express it. The token never reaches argv or the environment.
  */
-import { SurfaceError } from '../../../../src/anthropic/http/surface-error';
+import { SurfaceError } from '../../../../src/anthropic/surface-error';
 import { planCountTokens, planTurn, RunContext, TurnPlan } from '../../../../src/anthropic/request';
 import { ANTHROPIC_SETTING_DEFAULTS } from '../../../../src/config/anthropic-settings';
 import { connectorRequest, MCP_BETA } from '../../../mocks/anthropic/connector-recordings';

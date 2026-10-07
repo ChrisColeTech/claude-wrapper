@@ -8,7 +8,7 @@ import { ClientTool, CLIENT_TOOL_PREFIX } from '../../upstream/bridge';
 import { WEB_TOOLS, WebTool } from '../../upstream/hook-policy';
 import { STRUCTURED_OUTPUT_TOOL } from '../../upstream/structured-output';
 import { Catalogue } from '../catalogue';
-import { SurfaceError } from '../http/surface-error';
+import { SurfaceError } from '../surface-error';
 import { Sessions } from '../sessions';
 import { clientTools } from './client-tools';
 import { connectors } from './connectors';

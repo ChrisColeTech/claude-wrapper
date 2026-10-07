@@ -11,7 +11,7 @@
  */
 import { AnthropicSettings, ANTHROPIC_SETTING_ENV } from '../../config/anthropic-settings';
 import { connectorServerEntry, McpHttpServerEntry } from '../../upstream/mcp-config';
-import { SurfaceError } from '../http/surface-error';
+import { SurfaceError } from '../surface-error';
 import { DeclaredServer, declaredServers } from './connector-servers';
 import { allowRules, pairedToolsets } from './connector-toolsets';
 import { Body, isObject } from './field-errors';

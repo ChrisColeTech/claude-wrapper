@@ -7,7 +7,7 @@
 import { createHash, timingSafeEqual } from 'crypto';
 import { NextFunction, Request, Response } from 'express';
 import { AuthMiddlewareOptions } from '../../auth/middleware';
-import { SurfaceError } from './surface-error';
+import { SurfaceError } from '../surface-error';
 
 const MISSING = 'Missing API key: send it in the x-api-key header or as Authorization: Bearer <key>.';
 const INVALID = 'Invalid API key.';
@@ -36,11 +36,11 @@ export function createAnthropicAuth(
     }
     const presented = presentedCredentials(req);
     if (presented.length === 0) {
-      next(new SurfaceError(401, 'authentication_error', MISSING));
+      next(SurfaceError.of('authentication_error', MISSING));
       return;
     }
     if (!presented.some((credential) => matches(credential, apiKey))) {
-      next(new SurfaceError(401, 'authentication_error', INVALID));
+      next(SurfaceError.of('authentication_error', INVALID));
       return;
     }
     next();

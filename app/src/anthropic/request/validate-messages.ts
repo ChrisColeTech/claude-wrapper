@@ -4,7 +4,7 @@
  * Paths name the client's own indices, before any merging. What each block kind may carry beyond
  * its `type` is other concerns' (a text block's `text` is checked here).
  */
-import { SurfaceError } from '../http/surface-error';
+import { SurfaceError } from '../surface-error';
 import { Body, fieldInvalid, fieldRequired, isObject } from './field-errors';
 import { ContentBlock } from './turn-plan';
 

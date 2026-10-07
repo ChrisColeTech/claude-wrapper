@@ -4,7 +4,7 @@
  * application/json` `{input_tokens}`; nothing is written before it, so a failure before it is a
  * pre-commit HTTP error; everything after it is ignored.
  */
-import { SurfaceError } from '../../../../src/anthropic/http/surface-error';
+import { SurfaceError } from '../../../../src/anthropic/surface-error';
 import { createCountSink, TurnSink } from '../../../../src/anthropic/respond';
 import { ApiEvent, TurnEvent } from '../../../../src/anthropic/translate';
 import { BLOCK_STOP, MESSAGE_START, MESSAGE_STOP, TEXT_START, textDelta } from '../../../mocks/anthropic/turn-frames';

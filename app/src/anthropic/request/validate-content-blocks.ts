@@ -7,7 +7,7 @@
  * sources (no Files API), `search_result`, `mcp_tool_listing`, the tool-change blocks and every
  * other type are rejected. What a served block carries beyond this is its feature ticket's.
  */
-import { SurfaceError } from '../http/surface-error';
+import { SurfaceError } from '../surface-error';
 import { Body, fieldInvalid, fieldRequired, isObject } from './field-errors';
 import { ClientMessage } from './validate-messages';
 

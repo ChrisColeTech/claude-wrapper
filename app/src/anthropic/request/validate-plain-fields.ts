@@ -4,7 +4,7 @@
  * session key), `service_tier` (its enum validated; the response relays upstream's tier),
  * `inference_geo`, `diagnostics` and a top-level `cache_control`. `null` reads as absent.
  */
-import { SurfaceError } from '../http/surface-error';
+import { SurfaceError } from '../surface-error';
 import { Body, fieldInvalid, isObject } from './field-errors';
 import { extraInputs } from './validate-extra-fields';
 

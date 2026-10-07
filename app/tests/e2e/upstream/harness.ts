@@ -17,7 +17,7 @@ import { randomUUID } from 'crypto';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { SurfaceError } from '../../../src/anthropic/http/surface-error';
+import { SurfaceError } from '../../../src/anthropic/surface-error';
 import { planTurn, TurnPlan } from '../../../src/anthropic/request';
 import { EnvironmentManager } from '../../../src/config/env';
 import { Frame } from '../../../src/upstream/frames';

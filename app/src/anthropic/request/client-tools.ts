@@ -9,7 +9,7 @@
  */
 import { JsonObject } from '../../upstream/frames';
 import { ClientTool } from '../../upstream/bridge';
-import { SurfaceError } from '../http/surface-error';
+import { SurfaceError } from '../surface-error';
 import { Body, fieldInvalid, fieldRequired, isObject } from './field-errors';
 
 /** The real API's limit and pattern; the surface's own ceiling is 115 (128 less the prefix). */

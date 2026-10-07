@@ -5,7 +5,7 @@
  * dropped. The tickets that bring a kind add its entry here: the web tools' blocks
  * (`history-web-blocks.ts`) and the connectors' (`history-connector-blocks.ts`).
  */
-import { SurfaceError } from '../http/surface-error';
+import { SurfaceError } from '../surface-error';
 import { CONNECTOR_HISTORY_BLOCKS } from './history-connector-blocks';
 import { attribute } from './history-markup';
 import { WEB_HISTORY_BLOCKS } from './history-web-blocks';

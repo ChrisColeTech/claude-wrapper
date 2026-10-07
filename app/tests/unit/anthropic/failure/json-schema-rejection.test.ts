@@ -8,7 +8,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { createFailureReader } from '../../../../src/anthropic/failure';
-import { SurfaceError } from '../../../../src/anthropic/http/surface-error';
+import { SurfaceError } from '../../../../src/anthropic/surface-error';
 import { UPSTREAM_FIXTURES } from '../../../mocks/upstream/recordings';
 
 const exitWith = (stderr: string, code: number | null = 1): SurfaceError =>

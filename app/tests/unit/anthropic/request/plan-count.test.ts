@@ -3,7 +3,7 @@
  * be (the same validation, system prompt, rendered history and mounted tools), and its run
  * measures it: capped at one output token, persisting no session.
  */
-import { SurfaceError } from '../../../../src/anthropic/http/surface-error';
+import { SurfaceError } from '../../../../src/anthropic/surface-error';
 import { planCountTokens, TurnPlan } from '../../../../src/anthropic/request';
 import { invalidRequest, runContext, shippedCatalogue } from '../../../mocks/anthropic/plan-context';
 

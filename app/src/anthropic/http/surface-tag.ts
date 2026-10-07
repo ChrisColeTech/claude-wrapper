@@ -50,6 +50,11 @@ export function anthropicRequestId(req: Request): string | undefined {
   return requestIds.get(req);
 }
 
+/** The id an Anthropic answer to `req` carries: its tag's, or one minted now for an untagged request. */
+export function requestIdOf(req: Request): string {
+  return anthropicRequestId(req) ?? mintRequestId();
+}
+
 export function isAnthropicRequest(req: Request): boolean {
   return requestIds.has(req);
 }

@@ -3,7 +3,7 @@
  * or its text blocks joined with a blank line, and the empty string when absent (or `null`).
  * It travels as one argument, so it cannot carry a NUL character.
  */
-import { SurfaceError } from '../http/surface-error';
+import { SurfaceError } from '../surface-error';
 import { fieldInvalid, fieldRequired, isObject } from './field-errors';
 
 function blockText(block: unknown, index: number): string {

@@ -8,7 +8,7 @@
  * `tool_choice: none` disables them, though they are validated all the same.
  */
 import { HookPolicySpec, WebTool, WebToolLimits } from '../../upstream/hook-policy';
-import { SurfaceError } from '../http/surface-error';
+import { SurfaceError } from '../surface-error';
 import { Body, fieldInvalid, fieldRequired, isObject } from './field-errors';
 
 const KINDS: readonly { prefix: string; name: string; tool: WebTool }[] = [

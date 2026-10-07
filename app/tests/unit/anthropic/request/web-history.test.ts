@@ -6,7 +6,7 @@
  * taken exactly as sent: `encrypted_content` is never read, missing fields never fail the turn.
  * The expected messages are written out by hand from the spec's description.
  */
-import { SurfaceError } from '../../../../src/anthropic/http/surface-error';
+import { SurfaceError } from '../../../../src/anthropic/surface-error';
 import { NormalisedMessage, TurnPlan } from '../../../../src/anthropic/request';
 import { renderReplay } from '../../../../src/anthropic/request/render-replay';
 import { planDefault } from '../../../mocks/anthropic/plan-context';

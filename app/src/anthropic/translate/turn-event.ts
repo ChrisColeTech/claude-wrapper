@@ -5,7 +5,7 @@
 import { Frame, JsonObject, StreamEvent } from '../../upstream/frames';
 import { DenialCode, WebTool } from '../../upstream/hook-policy';
 import { FailureReader } from '../failure';
-import { SurfaceError } from '../http/surface-error';
+import { SurfaceError } from '../surface-error';
 
 /** One Messages API streaming event; the SSE sink writes it as the SSE event of the same name. */
 export type ApiEvent = StreamEvent;

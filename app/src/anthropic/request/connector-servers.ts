@@ -7,7 +7,7 @@
  * back by splitting on `__` (renaming it would change `server_name` in the response).
  */
 import { BRIDGE_SERVER_NAME } from '../../upstream/bridge';
-import { SurfaceError } from '../http/surface-error';
+import { SurfaceError } from '../surface-error';
 import { fieldInvalid, fieldRequired, isObject } from './field-errors';
 
 export interface DeclaredServer {

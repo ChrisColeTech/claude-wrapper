@@ -6,7 +6,7 @@
  * back from upstream's frames.
  */
 import { EffortCapability, ModelInfo } from '../catalogue';
-import { SurfaceError } from '../http/surface-error';
+import { SurfaceError } from '../surface-error';
 import { fieldInvalid, isObject } from './field-errors';
 
 const LEVELS = ['low', 'medium', 'high', 'xhigh', 'max'] as const;

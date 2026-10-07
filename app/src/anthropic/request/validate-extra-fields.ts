@@ -7,7 +7,7 @@
  * `stream`, `stop_sequences`, the sampling and plain fields, `container`) are extra inputs there.
  * `mcp_servers` is known to both: beta-only, its gate is the connectors' (`connectors.ts`).
  */
-import { SurfaceError } from '../http/surface-error';
+import { SurfaceError } from '../surface-error';
 import { Body, fieldInvalid, isObject } from './field-errors';
 import { Endpoint } from './turn-plan';
 

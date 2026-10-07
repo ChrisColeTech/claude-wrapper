@@ -5,7 +5,7 @@
  * field and the accepted value. Stricter than the real API on Haiku 4.5, deliberately: accepting
  * `temperature: 0` there would misreport what ran. `null` reads as absent.
  */
-import { SurfaceError } from '../http/surface-error';
+import { SurfaceError } from '../surface-error';
 import { Body, fieldInvalid } from './field-errors';
 
 const present = (value: unknown): boolean => value !== undefined && value !== null;

@@ -8,7 +8,7 @@
  * surface never emits) is a 400.
  */
 import { connectorRule } from '../../upstream/connector-tools';
-import { SurfaceError } from '../http/surface-error';
+import { SurfaceError } from '../surface-error';
 import { DeclaredServer, optionalBoolean } from './connector-servers';
 import { Body, fieldInvalid, fieldRequired, isObject } from './field-errors';
 

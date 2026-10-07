@@ -20,9 +20,8 @@ import { StateDirectory } from '../../upstream/state-directory';
 import { Clock } from '../../utils/clock';
 import { logger as defaultLogger } from '../../utils/logger';
 import { Catalogue } from '../catalogue';
-import { anthropicBetas, anthropicRequestId } from '../http/surface-tag';
-import { mintRequestId } from '../http/request-id';
-import { SurfaceError } from '../http/surface-error';
+import { anthropicBetas, requestIdOf } from '../http';
+import { SurfaceError } from '../surface-error';
 import { changedRunBound, ParkedContinuation, planTurn, resumedSession, TurnPlan } from '../request';
 import { createJsonSink, createSseSink, TurnSink } from '../respond';
 import { Scheduler } from '../scheduler';
@@ -74,7 +73,7 @@ class SurfaceConductor implements Conductor {
   }
 
   async handleMessages(req: Request, res: Response): Promise<void> {
-    const exchange = { req, res, requestId: anthropicRequestId(req) ?? mintRequestId() };
+    const exchange = { req, res, requestId: requestIdOf(req) };
     const runId = randomUUID();
     const turn = this.plan(req, runId);
     const { continuation } = turn;
@@ -83,7 +82,7 @@ class SurfaceConductor implements Conductor {
   }
 
   handleCountTokens(req: Request, res: Response): Promise<void> {
-    const requestId = anthropicRequestId(req) ?? mintRequestId();
+    const requestId = requestIdOf(req);
     const runId = randomUUID();
     return countTokens(this.deps, { req, res, requestId, runId }, withContext(this.logger, { requestId, runId }));
   }

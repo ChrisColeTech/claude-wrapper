@@ -2,7 +2,7 @@
  * The 400s every validation concern shares, worded as the real API words a schema failure:
  * `<path>: <reason>`, the path dotted with indices (`messages.0.content`).
  */
-import { SurfaceError } from '../http/surface-error';
+import { SurfaceError } from '../surface-error';
 
 export type Body = Record<string, unknown>;
 

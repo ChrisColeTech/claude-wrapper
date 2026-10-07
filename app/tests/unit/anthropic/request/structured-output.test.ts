@@ -4,7 +4,7 @@
  * expects upstream to report its `StructuredOutput` tool on `system/init`, and its translator
  * renders that tool's call as the JSON text block. `null` reads as absent.
  */
-import { SurfaceError } from '../../../../src/anthropic/http/surface-error';
+import { SurfaceError } from '../../../../src/anthropic/surface-error';
 import { planCountTokens, TurnPlan } from '../../../../src/anthropic/request';
 import { invalidRequest, planDefault, rejectionOf, runContext, shippedCatalogue } from '../../../mocks/anthropic/plan-context';
 

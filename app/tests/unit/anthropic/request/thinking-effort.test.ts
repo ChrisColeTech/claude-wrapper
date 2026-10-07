@@ -8,7 +8,7 @@
  * The rejections carry the real API's messages where it documents them.
  */
 import { createCatalogue, CatalogueEntry, ModelInfo } from '../../../../src/anthropic/catalogue';
-import { SurfaceError } from '../../../../src/anthropic/http/surface-error';
+import { SurfaceError } from '../../../../src/anthropic/surface-error';
 import { planTurn, TurnPlan } from '../../../../src/anthropic/request';
 import {
   invalidRequest, NO_SESSIONS, planDefault, rejectionOf, runContext, shippedCatalogue

@@ -11,7 +11,7 @@
 import { ToolResultBlock } from '../../upstream/bridge';
 import { Frame } from '../../upstream/frames';
 import { logger as defaultLogger } from '../../utils/logger';
-import { SurfaceError } from '../http/surface-error';
+import { SurfaceError } from '../surface-error';
 import { resumedSession, TurnPlan } from '../request';
 import { ParkedRun } from '../sessions';
 import { createParking, Delivery, HeldOpen, Parking } from './parking';
@@ -26,7 +26,7 @@ import { within } from './wait';
 /** What a turn in flight is failed with at shutdown, and why each run goes down the ladder. */
 export const SHUTTING_DOWN = 'server shutting down';
 
-const overloaded = (message: string) => new SurfaceError(529, 'overloaded_error', message);
+const overloaded = (message: string) => SurfaceError.of('overloaded_error', message);
 
 class RunScheduler<R extends HeldOpen> implements Scheduler<R>, SlotHost {
   private readonly slots = new Set<Slot>();
@@ -143,7 +143,7 @@ class RunScheduler<R extends HeldOpen> implements Scheduler<R>, SlotHost {
 
   /** A turn in flight gets the SSE `error` (or, before commit, its HTTP error); the run goes down the ladder. */
   private endForShutdown(run: ScheduledRun): void {
-    run.fail(new SurfaceError(500, 'api_error', SHUTTING_DOWN));
+    run.fail(SurfaceError.of('api_error', SHUTTING_DOWN));
     run.stop(SHUTTING_DOWN);
   }
 }

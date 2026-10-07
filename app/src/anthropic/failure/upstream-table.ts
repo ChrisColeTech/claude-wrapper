@@ -3,7 +3,7 @@
  * client should do through the HTTP status, `error.type`, the message and `x-should-retry`. Two
  * lookups pick a row: by `api_error_status`, and by the failure category.
  */
-import { SurfaceErrorType } from '../http/surface-error';
+import { SurfaceErrorType } from '../surface-error';
 import { UpstreamCategory } from './upstream-signal';
 
 /** Where a row's message comes from. */

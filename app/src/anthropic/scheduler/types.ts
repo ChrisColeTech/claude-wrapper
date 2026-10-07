@@ -7,7 +7,7 @@
 import { ToolResultBlock } from '../../upstream/bridge';
 import { Frame } from '../../upstream/frames';
 import { Clock } from '../../utils/clock';
-import { SurfaceError } from '../http/surface-error';
+import { SurfaceError } from '../surface-error';
 import { TurnPlan } from '../request';
 import { ParkedRun, ParkedRuns } from '../sessions';
 import { Delivery, HeldOpen } from './parking';

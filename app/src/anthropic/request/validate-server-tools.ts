@@ -6,7 +6,7 @@
  * a 400 naming the type at the client's index. A web tool with both domain lists is a 400, as on
  * the real API. An `mcp_toolset` is served too: its gate and rules are the connectors' (`connectors.ts`).
  */
-import { SurfaceError } from '../http/surface-error';
+import { SurfaceError } from '../surface-error';
 import { Body, fieldInvalid, isObject } from './field-errors';
 
 const WEB_TOOL_TYPES: ReadonlySet<unknown> = new Set([

@@ -14,7 +14,7 @@ import { Frame, ResultFrame, SystemInitFrame } from '../../upstream/frames';
 import { Run, RunFailure, UserMessage } from '../../upstream/runner';
 import { Clock } from '../../utils/clock';
 import { FailureReader } from '../failure';
-import { SurfaceError } from '../http/surface-error';
+import { SurfaceError } from '../surface-error';
 import { StartupChecks } from '../request';
 import { TurnSink } from '../respond';
 import { createTeardown, Teardown } from '../scheduler';
@@ -186,7 +186,7 @@ class Pump implements RunPump {
   /** A fault in the wrapper itself: fail the turn and stop the run. */
   private abandon(error: unknown): void {
     this.options.logger.warn('Turn abandoned on an internal error', { error: String(error) });
-    this.fail(new SurfaceError(500, 'api_error', 'Internal server error'));
+    this.fail(SurfaceError.of('api_error', 'Internal server error'));
     this.stop();
   }
 }

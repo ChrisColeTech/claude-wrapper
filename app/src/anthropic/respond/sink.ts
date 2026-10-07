@@ -3,7 +3,7 @@
  * response ended, so the conductor knows whether the run must be interrupted.
  */
 import { ServerResponse } from 'http';
-import { SurfaceError } from '../http/surface-error';
+import { SurfaceError } from '../surface-error';
 import { TurnEvent } from '../translate';
 
 export type SinkOutcome =

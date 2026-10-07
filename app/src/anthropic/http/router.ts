@@ -8,7 +8,7 @@
 import { NextFunction, Request, Response, Router } from 'express';
 import { Catalogue } from '../catalogue';
 import { createModelsRouter } from './models';
-import { SurfaceError } from './surface-error';
+import { SurfaceError } from '../surface-error';
 import { requireAnthropicVersion } from './version';
 
 const NOT_FOUND = 'The requested resource could not be found.';
@@ -25,7 +25,7 @@ export interface AnthropicRoutes {
 }
 
 function notFound(_req: Request, _res: Response, next: NextFunction): void {
-  next(new SurfaceError(404, 'not_found_error', NOT_FOUND));
+  next(SurfaceError.of('not_found_error', NOT_FOUND));
 }
 
 const route = (handler: SurfaceHandler) => (req: Request, res: Response, next: NextFunction): void => {

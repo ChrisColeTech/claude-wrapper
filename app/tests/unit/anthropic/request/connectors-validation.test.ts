@@ -5,7 +5,7 @@
  * surface's own (no server named `client`; a name upstream can address). Each is a 400
  * `invalid_request_error` stating the rule; nothing is spawned.
  */
-import { SurfaceError } from '../../../../src/anthropic/http/surface-error';
+import { SurfaceError } from '../../../../src/anthropic/surface-error';
 import { planCountTokens, planTurn, RunContext } from '../../../../src/anthropic/request';
 import { ANTHROPIC_SETTING_DEFAULTS } from '../../../../src/config/anthropic-settings';
 import { connectorRequest, MCP_BETA } from '../../../mocks/anthropic/connector-recordings';

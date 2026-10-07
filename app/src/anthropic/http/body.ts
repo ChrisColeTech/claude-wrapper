@@ -6,7 +6,7 @@
  */
 import express, { NextFunction, Request, Response } from 'express';
 import { hideConnectorTokens } from './connector-tokens';
-import { SurfaceError } from './surface-error';
+import { SurfaceError } from '../surface-error';
 import { isAnthropicRequest } from './surface-tag';
 
 const parseJson = express.json({ limit: '32mb' });
@@ -14,7 +14,7 @@ const parseJson = express.json({ limit: '32mb' });
 function asSurfaceError(error: unknown): SurfaceError {
   const parserType = (error as { type?: unknown }).type;
   if (parserType === 'entity.too.large') {
-    return new SurfaceError(413, 'request_too_large', 'Request exceeds the maximum size of 32 MB.');
+    return SurfaceError.of('request_too_large', 'Request exceeds the maximum size of 32 MB.');
   }
   if (parserType === 'entity.parse.failed') {
     return SurfaceError.invalidRequest('Request body is not valid JSON.');

@@ -3,13 +3,13 @@
  * real API's message, before anything is spawned.
  */
 import { Catalogue, ModelInfo } from '../catalogue';
-import { SurfaceError } from '../http/surface-error';
+import { SurfaceError } from '../surface-error';
 import { fieldInvalid, fieldRequired } from './field-errors';
 
 export function resolveModel(model: unknown, catalogue: Catalogue): ModelInfo {
   if (model === undefined) throw fieldRequired('model');
   if (typeof model !== 'string') throw fieldInvalid('model', 'a valid string');
   const entry = catalogue.resolve(model);
-  if (!entry) throw new SurfaceError(404, 'not_found_error', `model: ${model}`);
+  if (!entry) throw SurfaceError.of('not_found_error', `model: ${model}`);
   return entry;
 }

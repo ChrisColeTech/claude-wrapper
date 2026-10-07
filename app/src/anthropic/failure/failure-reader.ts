@@ -8,7 +8,7 @@
 import { ApiRetryFrame, Frame, ResultFrame } from '../../upstream/frames';
 import { RunExit, RunFailureReason } from '../../upstream/runner';
 import { Clock, systemClock, TimerHandle } from '../../utils/clock';
-import { SurfaceError } from '../http/surface-error';
+import { SurfaceError } from '../surface-error';
 import { FailureEvidence } from './failure-evidence';
 import { jsonSchemaRejection } from './json-schema-rejection';
 import { isBillingGate, mapUpstreamFailure } from './map-upstream-failure';

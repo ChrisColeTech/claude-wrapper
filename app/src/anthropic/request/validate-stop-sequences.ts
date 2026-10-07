@@ -3,7 +3,7 @@
  * worded as the real API's schema errors. Returns the list for the translator's stop-sequence
  * scan (the output-limits ticket's); `null` reads as absent.
  */
-import { SurfaceError } from '../http/surface-error';
+import { SurfaceError } from '../surface-error';
 import { fieldInvalid } from './field-errors';
 
 function validateSequence(sequence: unknown, index: number): string {

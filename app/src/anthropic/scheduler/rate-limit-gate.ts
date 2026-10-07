@@ -7,7 +7,7 @@
 import { RateLimitFrame } from '../../upstream/frames';
 import { Clock } from '../../utils/clock';
 import { mapUpstreamFailure, retryAfterSeconds } from '../failure';
-import { SurfaceError } from '../http/surface-error';
+import { SurfaceError } from '../surface-error';
 import { SchedulerCounts, SchedulerLogger } from './types';
 
 type RateLimitInfo = RateLimitFrame['rate_limit_info'];

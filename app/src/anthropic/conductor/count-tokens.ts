@@ -10,8 +10,8 @@
 import { Request, Response } from 'express';
 import { StateDirectory } from '../../upstream/state-directory';
 import { Catalogue } from '../catalogue';
-import { SurfaceError } from '../http/surface-error';
-import { anthropicBetas } from '../http/surface-tag';
+import { SurfaceError } from '../surface-error';
+import { anthropicBetas } from '../http';
 import { planCountTokens } from '../request';
 import { createCountSink } from '../respond';
 import { createTranslator } from '../translate';

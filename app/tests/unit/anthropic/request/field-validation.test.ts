@@ -3,7 +3,7 @@
  * the exact status, type and message `planTurn` answers before anything is spawned.
  */
 import { createCatalogue } from '../../../../src/anthropic/catalogue';
-import { SurfaceError } from '../../../../src/anthropic/http/surface-error';
+import { SurfaceError } from '../../../../src/anthropic/surface-error';
 import { planTurn } from '../../../../src/anthropic/request';
 import {
   invalidRequest, NO_SESSIONS, planDefault, rejectionOf, runContext

@@ -6,7 +6,7 @@
  * real block inside), or `<web_fetch_error code="…"/>`. The blocks are taken exactly as the client
  * sent them: `encrypted_content` is never read, and a missing field renders empty.
  */
-import { SurfaceError } from '../http/surface-error';
+import { SurfaceError } from '../surface-error';
 import { attribute } from './history-markup';
 import { ContentBlock } from './turn-plan';
 

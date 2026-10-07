@@ -3,7 +3,7 @@
  * that start a fresh run or continue a session, and hand-driven runs and parked runs whose ends
  * the test decides.
  */
-import { SurfaceError } from '../../../src/anthropic/http/surface-error';
+import { SurfaceError } from '../../../src/anthropic/surface-error';
 import { TurnPlan } from '../../../src/anthropic/request';
 import {
   createScheduler, HeldOpen, ScheduledRun, Scheduler, SchedulerSettings

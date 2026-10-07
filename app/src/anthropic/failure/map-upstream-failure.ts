@@ -4,7 +4,7 @@
  * exit) and words its message. The API's own message is the text after `API Error: <status> `.
  */
 import { constants } from 'os';
-import { SurfaceError } from '../http/surface-error';
+import { SurfaceError } from '../surface-error';
 import {
   FailureRow, MessageRule, rowForCategory, rowForStatus, UPSTREAM_FAILURE_ROWS, UpstreamRowName
 } from './upstream-table';

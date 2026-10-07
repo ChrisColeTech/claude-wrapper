@@ -8,7 +8,7 @@
  */
 import { ServerResponse } from 'http';
 import { JsonObject } from '../../upstream/frames';
-import { SurfaceError } from '../http/surface-error';
+import { SurfaceError } from '../surface-error';
 import { TurnEvent } from '../translate';
 import { Settlement, TurnSink } from './sink';
 
@@ -45,7 +45,7 @@ class CountSink implements TurnSink {
     if (event.type !== 'message_delta') return;
     const count = inputCount(event.usage) ?? inputCount(this.started);
     if (count === null) {
-      const error = new SurfaceError(500, 'api_error', 'Upstream reported no input token count');
+      const error = SurfaceError.of('api_error', 'Upstream reported no input token count');
       return this.settlement.settle({ kind: 'rejected', error });
     }
     this.settlement.settle({ kind: 'completed' });

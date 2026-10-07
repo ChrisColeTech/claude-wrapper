@@ -3,7 +3,7 @@
  * deprecated `2023-01-01`. On `/v1/models*` its presence only selects the surface.
  */
 import { NextFunction, Request, Response } from 'express';
-import { SurfaceError } from './surface-error';
+import { SurfaceError } from '../surface-error';
 
 const ACCEPTED_VERSIONS: readonly string[] = ['2023-06-01', '2023-01-01'];
 
