@@ -61,7 +61,7 @@ export interface PumpOptions {
 export interface RunPump {
   /** Gives the run's frames to `turn` from now on, those that arrived while no turn was attached first. */
   attach(turn: TurnFeed): void;
-  /** Fails the attached turn; ignored when none is attached, or its sink has settled. */
+  /** Fails the attached turn (ignored once its sink has settled), else the next one attached. */
   fail(error: SurfaceError): void;
   /** The run ends early: interrupt unless `result` is in; stdin closes at `result`, or after the wait. */
   stop(reason?: string): void;
@@ -84,6 +84,8 @@ class Pump implements RunPump {
   private turn: TurnFeed | undefined;
   /** Frames that arrived while no turn was attached (the run parked), for the turn that resumes it. */
   private readonly held: Frame[] = [];
+  /** A failure while no turn was attached, for the next one (a run that failed while parked has none). */
+  private failure: SurfaceError | undefined;
 
   constructor(private readonly run: Run, message: UserMessage, private readonly options: PumpOptions) {
     run.send(message).catch((error: Error) =>
@@ -101,11 +103,14 @@ class Pump implements RunPump {
 
   attach(turn: TurnFeed): void {
     this.turn = turn;
+    if (this.failure) turn.sink.push({ type: 'fail', error: this.failure });
+    this.failure = undefined;
     this.held.splice(0).forEach(frame => this.toTurn(frame));
   }
 
   fail(error: SurfaceError): void {
-    this.turn?.sink.push({ type: 'fail', error });
+    if (this.turn) this.turn.sink.push({ type: 'fail', error });
+    else this.failure ??= error;
   }
 
   stop(reason = 'the turn ended early'): void {
