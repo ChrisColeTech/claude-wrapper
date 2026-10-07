@@ -25,6 +25,8 @@ export interface RunInputs {
   jsonSchema?: string;
   /** A continued turn's upstream session, resumed with `--resume`. */
   resume?: string;
+  /** A `count_tokens` run (spec section 12): upstream writes no transcript. */
+  noSessionPersistence?: boolean;
 }
 
 export function buildRunSpec(inputs: RunInputs, context: RunContext): RunSpec {
@@ -40,7 +42,8 @@ export function buildRunSpec(inputs: RunInputs, context: RunContext): RunSpec {
       ...(bridged ? { mcpConfig: path.join(runDir, MCP_CONFIG_FILE_NAME) } : {}),
       ...(inputs.effort === undefined ? {} : { effort: inputs.effort }),
       ...(inputs.jsonSchema === undefined ? {} : { jsonSchema: inputs.jsonSchema }),
-      ...(inputs.resume === undefined ? {} : { resume: inputs.resume })
+      ...(inputs.resume === undefined ? {} : { resume: inputs.resume }),
+      ...(inputs.noSessionPersistence ? { noSessionPersistence: true } : {})
     }),
     env: childEnvironment({ maxOutputTokens: inputs.maxTokens, thinking: inputs.thinking, settings, environment }),
     cwd: state.cwd,

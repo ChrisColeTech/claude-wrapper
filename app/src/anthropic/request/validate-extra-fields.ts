@@ -2,17 +2,25 @@
  * Fields the surface does not know (spec section 4.1). An unknown or beta-only top-level field,
  * or an `output_config` field other than `effort` and `format` (`task_budget` is beta-only), is a
  * 400 with the real API's "Extra inputs are not permitted" wording; `container` has its own
- * message. Checked before anything else in the body, as the real API's schema is.
+ * message. Checked before anything else in the body, as the real API's schema is. A
+ * `count_tokens` body (spec section 12) takes fewer fields: the Messages-only ones (`max_tokens`,
+ * `stream`, `stop_sequences`, the sampling and plain fields, `container`) are extra inputs there.
  *
- * `mcp_servers` is beta-only and not in the list: the connectors ticket adds it with its gate.
+ * `mcp_servers` is beta-only and in neither list: the connectors ticket adds it to both, with its
+ * gate.
  */
 import { SurfaceError } from '../http/surface-error';
 import { Body, fieldInvalid, isObject } from './field-errors';
+import { Endpoint } from './turn-plan';
 
 const KNOWN_FIELDS = new Set([
   'model', 'messages', 'max_tokens', 'system', 'stream', 'tools', 'tool_choice', 'temperature', 'top_p', 'top_k',
   'stop_sequences', 'metadata', 'thinking', 'output_config', 'service_tier', 'cache_control', 'container',
   'inference_geo', 'diagnostics'
+]);
+
+const COUNT_TOKENS_FIELDS = new Set([
+  'model', 'messages', 'system', 'tools', 'tool_choice', 'thinking', 'output_config', 'cache_control'
 ]);
 
 const KNOWN_OUTPUT_CONFIG_FIELDS = new Set(['effort', 'format']);
@@ -32,8 +40,8 @@ function checkOutputConfig(outputConfig: unknown): void {
   rejectUnknown(outputConfig, KNOWN_OUTPUT_CONFIG_FIELDS, 'output_config.');
 }
 
-export function rejectExtraFields(body: Body): void {
-  rejectUnknown(body, KNOWN_FIELDS, '');
+export function rejectExtraFields(body: Body, endpoint: Endpoint): void {
+  rejectUnknown(body, endpoint === 'messages' ? KNOWN_FIELDS : COUNT_TOKENS_FIELDS, '');
   checkOutputConfig(body['output_config']);
   if (body['container'] !== undefined && body['container'] !== null) {
     throw SurfaceError.invalidRequest('container: containers are not supported on this surface');

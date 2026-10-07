@@ -11,6 +11,9 @@ import { ModelInfo } from '../catalogue';
 import { ParkedRun } from '../sessions';
 import { RunBound } from './run-bound';
 
+/** The endpoint a request body was sent to: a turn, or a measurement of one (spec section 12). */
+export type Endpoint = 'messages' | 'count_tokens';
+
 /** A content block as the client sent it; `type` is all this module reads of most kinds. */
 export type ContentBlock = JsonObject & { type: string };
 

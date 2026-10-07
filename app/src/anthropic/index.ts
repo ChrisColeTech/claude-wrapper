@@ -65,5 +65,11 @@ export function createAnthropicSurface(deps: SurfaceDeps = {}): AnthropicSurface
     // Listens from the first turn that mounts a bridge server; closing it is the shutdown's.
     controlServer: deps.controlServer ?? createControlServer()
   });
-  return { router: createAnthropicRouter({ catalogue, messages: (req, res) => conductor.handleMessages(req, res) }) };
+  return {
+    router: createAnthropicRouter({
+      catalogue,
+      messages: (req, res) => conductor.handleMessages(req, res),
+      countTokens: (req, res) => conductor.handleCountTokens(req, res)
+    })
+  };
 }
