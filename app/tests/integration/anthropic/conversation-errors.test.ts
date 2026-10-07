@@ -87,7 +87,7 @@ describe('Anthropic surface: an error turn forgets its upstream session', () => 
 
     run.process.frames(init(), resultFrame({ is_error: true, api_error_status: 400, result: 'API Error: 400 bad block' }));
 
-    expect(await response).toBeInstanceOf(Anthropic.InternalServerError);
+    expect(await response).toBeInstanceOf(Anthropic.BadRequestError);
     await waitFor(() => state.forgotten.includes(SESSION));
     run.process.exit(1);
     await waitFor(() => state.deleted.length === 2);
