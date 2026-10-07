@@ -1,0 +1,227 @@
+[
+  {
+    "type": "message_start",
+    "message": {
+      "model": "claude-fable-5-1",
+      "id": "msg_011CfhQuqmoXxQFSbjKzPLWs",
+      "type": "message",
+      "role": "assistant",
+      "content": [],
+      "container": null,
+      "stop_reason": null,
+      "stop_sequence": null,
+      "stop_details": null,
+      "usage": {
+        "input_tokens": 493,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 2,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "diagnostics": null
+    }
+  },
+  {
+    "type": "content_block_start",
+    "index": 0,
+    "content_block": {
+      "type": "thinking",
+      "thinking": "",
+      "signature": ""
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 0,
+    "delta": {
+      "type": "thinking_delta",
+      "thinking": ""
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 0,
+    "delta": {
+      "type": "thinking_delta",
+      "thinking": ""
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 0,
+    "delta": {
+      "type": "signature_delta",
+      "signature": "CAQS7wYKEAgSGAI4AUIIdGhpbmtpbmcSDLC4AZDiccr0gcgMZRoMzigFa8NgK4+N3AuwIjADC3ZKgONFnVEeoqAna+2qRvhl+wv9ptOSihqdg3Qf16WncLKpGKX3Ro22j71aYVQqjAaDOICuyMSZTV29qPjZLbCsYJkxzE90tEr57bu0EcJwXJXyg9a6dc2+DlhhuaM02UtnAY68PrerdkPE6zfM3CyXlZ0GnovgJJqhe/0k8CuOe9U6fE62Yg4FoRxBgWc4u3GrOnyWvEBiX/YlSBPG0BUKtbd0KFGamMrzUAc8b+N/bqR0kfwQeqYdfmX4zwAabUn3/zMtDVvEysrE5eYanpadaJVicLfdBoLP+RXsr130UHroSPQZmJSpBO5Hjg0lq1x+WyWd3Z/v2ByC+jLHFz0HOlDohBh6W5r63SR5NFmOM3hQECzKYhJP3oEZagW4B9B0vDMWXINRKuzxs9LTdwLm0HiKAEmeMAEDlqYhDKXK5k2dsJN1EoZbDUJZ4UzLziYe77NRH5QZun/izk161PX7V6bb9fbsAtjHoGzdtdyXbuLCMQl2HjEaOvRHArjiN25KZzxMwD/WvXVWbdNUmvsAVNfFBWSQ1QFsAtijYw8jKEW7Hu/YBZSqmJz9JV/J45Zu+KbWfDOHuekSrM5BnOwEwqdmErlyLuUSHtjaaSrxrCv3rNCnnz5V3ee2u07Fne40UISpW7XStlkgdJiRdm6sXUbqbdP73yCKSO/baUezM9PCRbDRNiBLRdGByxrJdiY/kQQca4fk+uXKb5e8jn94csHsAJZUrl7XSX1old8KOZ51vzj4ORhkMRmdtsEJP5RZVLsoqNYTniMdeVC9aEif1I+Dfyi2Eu7ti/bfAE0KGf6kfFksHC55EG4vVWYoEC2HTPOfFrx1khmVb/nJxk3g187J7KXf7v4tiX15sg03R9gF3PR4Vxao0Zv3SVgfakvnoDiz+c6acQ72icJcl5Iht5hf4N7+/+u7bRkfsNAXEdxZ0l7oGgXL/tf+Z0QFZVSJKQDE5fFqRtFT4hhey2sQ2VgNElFf97pBDW6+4TDgIt5Y/xqk9oJcWG9YBhoCbFQYD4UP4UUemUEz1KqBHpEALO49q4T1dVgpwQiPHVD0UnKdyPOw/pdZtR3G/zCmE/Eg+so9qFXwrbzfQ5QYAQ=="
+    }
+  },
+  {
+    "type": "content_block_stop",
+    "index": 0
+  },
+  {
+    "type": "content_block_start",
+    "index": 1,
+    "content_block": {
+      "type": "text",
+      "text": ""
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": "I'm"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": " Claude, an"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": " AI agent built"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": " by"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": " Anthropic on the"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": " Claude Agent SD"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": "K (running as the"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": " model Fable 5.1"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": "), and in"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": " this particular session"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": " no"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": " tools have been made"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": " available to me—"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": "I can only read"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": " and resp"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": "ond with text."
+    }
+  },
+  {
+    "type": "content_block_stop",
+    "index": 1
+  },
+  {
+    "type": "message_delta",
+    "delta": {
+      "stop_reason": "end_turn",
+      "stop_sequence": null,
+      "stop_details": null,
+      "container": null
+    },
+    "usage": {
+      "input_tokens": 493,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "output_tokens": 148,
+      "output_tokens_details": {
+        "thinking_tokens": 77
+      }
+    }
+  },
+  {
+    "type": "message_stop"
+  }
+]

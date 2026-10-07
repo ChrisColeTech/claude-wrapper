@@ -1,0 +1,267 @@
+[
+  {
+    "type": "message_start",
+    "message": {
+      "model": "claude-fable-5-1",
+      "id": "msg_011CfhSx8gLNH7J8UqycML1w",
+      "type": "message",
+      "role": "assistant",
+      "content": [],
+      "container": null,
+      "stop_reason": null,
+      "stop_sequence": null,
+      "stop_details": null,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 514,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 514
+        },
+        "output_tokens": 2,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "diagnostics": null
+    }
+  },
+  {
+    "type": "content_block_start",
+    "index": 0,
+    "content_block": {
+      "type": "thinking",
+      "thinking": "",
+      "signature": ""
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 0,
+    "delta": {
+      "type": "thinking_delta",
+      "thinking": ""
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 0,
+    "delta": {
+      "type": "signature_delta",
+      "signature": "CAQS7QUKEAgSGAI4AUIIdGhpbmtpbmcSDH5M6NSsg9EK/g5MLRoMLjRkMe6zrxJUK/cqIjBgeaBIJ+ZC1YsdC6wYOw74VRBQ/OteeZGj0LJYaLnnGgnKGUTv6ko6GDeJ5zjx2fkqigUCc1BSqBvstz5n2CBAKwYZpAfDeFlGbJCsr/l2IDZGqNP8ubmub5tYkclMMN864nrKgPc1O7LFp/yqERnSuzCM/+aFKzMJ8IaCvWmpPqpH4ZQYxTYwz6DVCQ1BXjpG8WY82YVzwPcLIuHavWuKmvViZXx5w7aUmYv8LzzuL6w+ck5/gM/WuWgyuofpD/0TC287jt2BmGYPn3+536zQ0guTwah2w0xmrqQIgEZG7XAIWbK/897/Ip2FIeXfjoR1bT+jiiZi5fw4y9yvBeDUghj+RHlM+Glgcb/d82I8zD7vZNFu8YknI8bG7GwtMF80zI4xbj5+nALj3eSlikL5JPTUBErbwJUNBd9KYC/CVHS+Pcs+1Xm7Kjr2Y918mkKPAfauHrtx+Ts64UQO4w/zFA6WQoHr5FqZtOnAjEcdChh7kAV/SOwrfSed08rQ2MjTQvstG5GlGFD3yyvB7JJqb/2s9UJrGT9ixHO7cHXYc9atuXk9aR34UoCM1indWyxfezxrVFD9TCW3RF6tXOea8YlxrdoO46q8o8cIfzxscJeusMSXeZdAbwfHVbx30n2Kewmpr6HVAa90PVrWBPIh9CFOi3rfnjRGjagb0gAPda5NfkSJh9CoE9e8D7ROGE3GbLc5Vq63VAeiwKhmaAPbU7BSmvaYRn06xxCgiq6Gu95PlOgZuq2u2q/Fg9hipDqu5rQKYALmRtoSOtbWJsR6WxquJBhFY0i8e2r9jb9E1skZm3z50R8hE/EelYCEw+iSsg91+T9l4yEZSLVnDrO4SQSpbC/OOoqFdru5yFyOpuCkSeQHyEG/TrKSHuUGjru+tDFShZI/DhFc1knA+Sd0L3bFTVcS3xNQVT57IRgB"
+    }
+  },
+  {
+    "type": "content_block_stop",
+    "index": 0
+  },
+  {
+    "type": "content_block_start",
+    "index": 1,
+    "content_block": {
+      "type": "text",
+      "text": ""
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": "I can't"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": " share that. Account"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": " details like"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": " email"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": " addresses from"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": " my"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": " context aren't something I dis"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": "close, even on"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": " direct request."
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": "\n\nIf you need"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": " to check which"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": " account"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": " you're"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": " signed in with"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": ", your"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": " account settings or the CLI"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": "'s status/"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": "login comm"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": "ands will"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": " show it"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": " directly. Happ"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": "y to help with anything else."
+    }
+  },
+  {
+    "type": "content_block_stop",
+    "index": 1
+  },
+  {
+    "type": "message_delta",
+    "delta": {
+      "stop_reason": "end_turn",
+      "stop_sequence": null,
+      "stop_details": null,
+      "container": null
+    },
+    "usage": {
+      "input_tokens": 2,
+      "cache_creation_input_tokens": 514,
+      "cache_read_input_tokens": 0,
+      "output_tokens": 115,
+      "output_tokens_details": {
+        "thinking_tokens": 35
+      }
+    }
+  },
+  {
+    "type": "message_stop"
+  }
+]

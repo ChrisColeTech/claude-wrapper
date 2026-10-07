@@ -1,0 +1,163 @@
+[
+  {
+    "type": "message_start",
+    "message": {
+      "model": "claude-fable-5-1",
+      "id": "msg_011CfhSuQYV156gDuwZeb9fK",
+      "type": "message",
+      "role": "assistant",
+      "content": [],
+      "container": null,
+      "stop_reason": null,
+      "stop_sequence": null,
+      "stop_details": null,
+      "usage": {
+        "input_tokens": 489,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 2,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "diagnostics": null
+    }
+  },
+  {
+    "type": "content_block_start",
+    "index": 0,
+    "content_block": {
+      "type": "thinking",
+      "thinking": "",
+      "signature": ""
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 0,
+    "delta": {
+      "type": "thinking_delta",
+      "thinking": ""
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 0,
+    "delta": {
+      "type": "thinking_delta",
+      "thinking": ""
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 0,
+    "delta": {
+      "type": "signature_delta",
+      "signature": "CAQSzQYKEAgSGAI4AUIIdGhpbmtpbmcSDJ9yIih8Kbz0rBp9UxoMpuhy+b1KWQcKTqbXIjCAKkMM9aqp9GwxLaYzfXK6QcL7t+o8G//JueNbTGoj0er8lSjLcQCDXQYhsaLgvKUq6gXB4b8aw7W7rY9zYFxeLbG7GCrZwbXyjyShgof1LpgKC1+uI0xIN05opZIQvLrMNo9AcEHU61LFaZd/hVIccJkZkPHqNs8IO0wEtudt0S177r2BhgXGXB18gDgp03etmTYS1n9PGY7zPe9/ecOtyE00FuH48jW9zwzPE6dekgnb1ecYggGpZRQ7E/IgHTCHpx5bRkfCsxYJLBcGHmABtfLUV+TS61Tn96TS3I8I095Lc/xP+2mx/SrdNnUUGAswWxGSeknPKNDoJBLZdrDrFGuA7xUxLJrPApDvRxbOQSFr2etuu04rU1ngQ8nux8LSpF1I6bF708zYuE7hZdEO0Df5Enue4gvgOIFPFoMXNoqhy7suKUL8aPLXPPw8ZbIT2ojURr1QyhDfXyitFUOkz6tWfP/3gYqyYcjxaJKUtVicD4UzE+QnF2P3v9VzbSuCD7WOSxjA9OPWQzxwHTqwhtNgvAEL00lALkZTLNCr5yIXhd/J0s9PDizVyF7bFgNCWGjERDef+2G/IwAQtkCwD4CvCTME0hueHSCpgVmxBCULJBY2UpJDYG1j4L37ZnbrTZgDsbhwKogIe04hz8UKht/qdG2FPpolVM+kvBMleXKhwSmD+GYHKdJVQeiZd03NSQqYxJcdzVQNehBDbDZ+s5dh9j0DoZxr/UFES/jGcBvoaudArH9clYAU56nMUiv1UPY03l3fJvq31Nfz/Ramwt9taDEmnF2Kxpb92ol2rWSt7vHmB1FuSpdAoLvZXyJZNMexpVatSlYk2oulbJHJBtndukOYw6tAgIBbYoVam72BHlxmQxJ7kz4Vbttm+c/4BD1VNYXi7SdyLehyQ/tkSnWBO9wDX+lxaliF6n4tQkcARloekaw16ZFOOpucfE82vBggg8f0rAurOwLcUwVK026KrZtrCUxhik29KkTolD1lhOyHZYdb7buAui16pTikqgIGllOkmd8eDzRaNshltlNiapI3YU2+0YbgiRgB"
+    }
+  },
+  {
+    "type": "content_block_stop",
+    "index": 0
+  },
+  {
+    "type": "content_block_start",
+    "index": 1,
+    "content_block": {
+      "type": "text",
+      "text": ""
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": "The email address in my"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": " context is:"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": " **user@example.invalid"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": ""
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": ""
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": ""
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": ""
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": "**"
+    }
+  },
+  {
+    "type": "content_block_stop",
+    "index": 1
+  },
+  {
+    "type": "message_delta",
+    "delta": {
+      "stop_reason": "end_turn",
+      "stop_sequence": null,
+      "stop_details": null,
+      "container": null
+    },
+    "usage": {
+      "input_tokens": 489,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "output_tokens": 92,
+      "output_tokens_details": {
+        "thinking_tokens": 66
+      }
+    }
+  },
+  {
+    "type": "message_stop"
+  }
+]
