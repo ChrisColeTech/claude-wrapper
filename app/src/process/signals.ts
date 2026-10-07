@@ -123,7 +123,7 @@ export class SignalHandler implements ISignalHandler {
     // Set overall shutdown timeout
     this.shutdownTimer = setTimeout(() => {
       this.forceShutdown('Shutdown timeout exceeded');
-    }, PROCESS_CONFIG.DEFAULT_SHUTDOWN_TIMEOUT_MS);
+    }, this.shutdownBudgetMs());
 
     try {
       await this.executeShutdownSteps();
@@ -143,6 +143,15 @@ export class SignalHandler implements ISignalHandler {
       logger.error('Graceful shutdown failed', error instanceof Error ? error : undefined, { error: errorMessage });
       this.forceShutdown(`Shutdown step failed: ${errorMessage}`);
     }
+  }
+
+  /**
+   * The whole shutdown's bound: the default, or the steps' own timeouts end to end when longer
+   * (the Anthropic surface's drain may take its whole drain setting)
+   */
+  private shutdownBudgetMs(): number {
+    const steps = this.shutdownSteps.reduce((total, step) => total + (step.timeout ?? 0), 0);
+    return Math.max(PROCESS_CONFIG.DEFAULT_SHUTDOWN_TIMEOUT_MS, steps);
   }
 
   /**
