@@ -8,4 +8,4 @@ export type { Message } from './accumulate';
 export { createSseSink } from './sse-sink';
 export type { SseSinkOptions } from './sse-sink';
 export { createJsonSink } from './json-sink';
-export type { SinkEvent, SinkOutcome, TurnSink } from './sink';
+export type { SinkOutcome, TurnSink } from './sink';

@@ -7,7 +7,7 @@
  * a new turn stream with its own `message_start`. The recorded spike runs are the oracle.
  */
 import { accumulate } from '../../../../src/anthropic/respond';
-import { ApiEvent, TurnEvent } from '../../../../src/anthropic/translate';
+import { ApiEvent, createTranslator, TurnEvent } from '../../../../src/anthropic/translate';
 import { Frame } from '../../../../src/upstream/frames';
 import {
   clientToolFrames, PARALLEL_CALLS, recordedAnswer, recordedToolUses, SINGLE_CALL, untilFirstStop
@@ -85,5 +85,19 @@ describe('translator: a client tool call parks the turn', () => {
       type: 'content_block_start', content_block: { type: 'tool_use', id: 'toolu_1', name: 'mcp__client__x', input: {} }
     }));
     expect(events[events.length - 1]).toEqual({ type: 'park', toolUseIds: ['toolu_1'] });
+  });
+
+  it('never parks a turn a stop sequence cut before its tool call', () => {
+    const translator = createTranslator({ logger: { debug: jest.fn() }, stopSequences: ['weather'] });
+
+    const events = clientToolFrames(SINGLE_CALL).flatMap(frame => translator.push(frame));
+
+    expect(events.slice(-3)).toEqual([
+      expect.objectContaining({ type: 'message_delta', delta: expect.objectContaining({ stop_reason: 'stop_sequence' }) }),
+      { type: 'message_stop' },
+      { type: 'cut', reason: 'stop_sequence' }
+    ]);
+    expect(events.some(event => event.type === 'park' || (event.type === 'content_block_start'
+      && event.content_block['type'] === 'tool_use'))).toBe(false);
   });
 });

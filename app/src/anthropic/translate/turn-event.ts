@@ -24,13 +24,31 @@ export interface ParkSignal {
   toolUseIds: string[];
 }
 
-/** A control signal, inline in the turn stream. The output-limit ticket adds `cut`. */
-export type ControlSignal = FailSignal | ParkSignal;
+/** Why the surface cut the turn (spec section 12, ADR 0004). */
+export type CutReason = 'max_tokens' | 'stop_sequence';
+
+/**
+ * The surface ended the turn itself at an output limit: the turn's `message_stop` has been
+ * emitted just before it, and nothing follows. The conductor interrupts the run, so upstream does
+ * not go on generating, and forgets its upstream session.
+ */
+export interface CutSignal {
+  type: 'cut';
+  reason: CutReason;
+}
+
+/** The control signals carried inline in the turn stream. */
+export type ControlSignal = FailSignal | ParkSignal | CutSignal;
 
 /** An API event or a control signal. */
 export type TurnEvent = ApiEvent | ControlSignal;
 
-export const isControlSignal = (event: TurnEvent): event is ControlSignal => event.type === 'fail' || event.type === 'park';
+const CONTROL_SIGNALS: ReadonlySet<string> = new Set<ControlSignal['type']>(['fail', 'park', 'cut']);
+
+/** A control signal, which no sink writes as an event. */
+export function isControlSignal(event: TurnEvent): event is ControlSignal {
+  return CONTROL_SIGNALS.has(event.type);
+}
 
 export interface TranslatorLogger {
   debug(message: string, context?: unknown): void;
@@ -49,6 +67,11 @@ export interface TranslatorConfig {
    * deltas. Not run-bound, so every turn gets the surface's list; none redacts nothing.
    */
   redact?: readonly string[];
+  /**
+   * The request's `stop_sequences` (spec section 12): the turn is cut at the first one the text
+   * completes. Not run-bound, so each turn brings its own; none scans nothing.
+   */
+  stopSequences?: readonly string[];
 }
 
 export interface Translator {

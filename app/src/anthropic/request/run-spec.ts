@@ -17,6 +17,10 @@ export interface RunInputs {
   maxTokens: number;
   /** The client tools the bridge server mounts; none: no bridge server. */
   clientToolNames: readonly string[];
+  /** The thinking variables the request asks for (`CLAUDE_CODE_DISABLE_THINKING` or `MAX_THINKING_TOKENS`). */
+  thinking: Readonly<Record<string, string>>;
+  /** `output_config.effort`, passed as `--effort`. */
+  effort?: string;
   /** A continued turn's upstream session, resumed with `--resume`. */
   resume?: string;
 }
@@ -32,9 +36,10 @@ export function buildRunSpec(inputs: RunInputs, context: RunContext): RunSpec {
       allowedTools: inputs.clientToolNames.map(name => `${CLIENT_TOOL_PREFIX}${name}`),
       // The conductor writes the file into the run's directory once the control server has its token.
       ...(bridged ? { mcpConfig: path.join(runDir, MCP_CONFIG_FILE_NAME) } : {}),
+      ...(inputs.effort === undefined ? {} : { effort: inputs.effort }),
       ...(inputs.resume === undefined ? {} : { resume: inputs.resume })
     }),
-    env: childEnvironment({ maxOutputTokens: inputs.maxTokens, settings, environment }),
+    env: childEnvironment({ maxOutputTokens: inputs.maxTokens, thinking: inputs.thinking, settings, environment }),
     cwd: state.cwd,
     runDir: { path: runDir, files: {} },
     timers: { startup: timers.startupMs, stall: timers.stallMs, lifetime: timers.lifetimeMs }

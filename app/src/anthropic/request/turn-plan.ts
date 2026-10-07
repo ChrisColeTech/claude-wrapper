@@ -57,6 +57,12 @@ export interface StartupChecks {
   tools: string[];
 }
 
+/** What the turn's translator applies beside the run (spec section 12): not run-bound, so per turn. */
+export interface TurnTranslation {
+  /** The request's `stop_sequences`; empty when it has none. */
+  stopSequences: readonly string[];
+}
+
 export interface TurnPlan {
   /** The catalogue entry the request's `model` resolved to. */
   model: ModelInfo;
@@ -66,6 +72,7 @@ export interface TurnPlan {
   /** The whole spawn contract: argument list, child environment, working and per-run directories, timers. */
   runSpec: RunSpec;
   continuation: Continuation;
+  translatorConfig: TurnTranslation;
   startupChecks: StartupChecks;
   /** The client tools the bridge server serves this turn's run; none (or `tool_choice: none`): not mounted. */
   bridgeTools: ClientTool[];

@@ -7,8 +7,8 @@
  * given them first. The frames are read to the end after the response has ended, so `result` and
  * the exit are logged without the client waiting for them. A run that ends before the turn did
  * fails the turn, mapped by the run's failure reader: at once when the runner ended the run (a
- * timer, an oversized line), else once upstream has exited. This is the run's only reader of its
- * frames.
+ * timer, an oversized line), else once upstream has exited. A turn the translator cut at an
+ * output limit stops the run. This is the run's only reader of its frames.
  */
 import { Frame, ResultFrame, SystemInitFrame } from '../../upstream/frames';
 import { Run, RunFailure, UserMessage } from '../../upstream/runner';
@@ -154,15 +154,19 @@ class Pump implements RunPump {
     this.relay(turn, turn.translator.push(frame));
   }
 
-  /** The turn's events into its sink; at `park` (always its last) the turn is detached and told. */
+  /**
+   * The turn's events into its sink. At `park` (always its last) the turn is detached and told; a
+   * `cut` ends the turn at once, so the run is interrupted before upstream calls the model again.
+   */
   private relay(turn: TurnFeed, events: TurnEvent[]): void {
     for (const event of events) {
-      if (event.type !== 'park') {
-        turn.sink.push(event);
+      if (event.type === 'park') {
+        this.turn = undefined;
+        turn.onPark?.(event.toolUseIds);
         continue;
       }
-      this.turn = undefined;
-      turn.onPark?.(event.toolUseIds);
+      turn.sink.push(event);
+      if (event.type === 'cut') this.stop('the turn was cut');
     }
   }
 

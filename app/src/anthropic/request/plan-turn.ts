@@ -18,6 +18,7 @@ import { buildRunSpec } from './run-spec';
 import { systemPrompt } from './system-prompt';
 import { Continuation, RunContext, TurnPlan } from './turn-plan';
 import { validateContentBlocks } from './validate-content-blocks';
+import { validateEffort } from './validate-effort';
 import { rejectExtraFields } from './validate-extra-fields';
 import { validateMaxTokens } from './validate-max-tokens';
 import { validateMessages } from './validate-messages';
@@ -26,6 +27,7 @@ import { validatePlainFields } from './validate-plain-fields';
 import { validateSampling } from './validate-sampling';
 import { validateServerTools } from './validate-server-tools';
 import { validateStopSequences } from './validate-stop-sequences';
+import { thinkingEnvironment } from './validate-thinking';
 import { validateToolChoice } from './validate-tool-choice';
 import { validateTurnOrder } from './validate-turn-order';
 
@@ -35,10 +37,6 @@ function validateParameters(request: Body): void {
   validateSampling(request);
   validateToolChoice(request['tool_choice']);
   validateServerTools(request['tools']);
-  if (validateStopSequences(request['stop_sequences'])) {
-    // The output-limits ticket's scan honours them; until it lands, an honest 400.
-    throw SurfaceError.invalidRequest('stop_sequences: not supported on this surface yet');
-  }
 }
 
 /** The client tools the turn exposes: none under `tool_choice: none`, though they are validated all the same. */
@@ -60,19 +58,25 @@ function plan(request: unknown, catalogue: Catalogue, sessions: Sessions, contex
   const system = systemPrompt(request['system']);
   validateParameters(request);
   const tools = bridgeTools(request);
+  const stopSequences = validateStopSequences(request['stop_sequences']) ?? [];
+  const thinking = thinkingEnvironment(request['thinking'], model, maxTokens);
+  const effort = validateEffort(request['output_config'], model);
   // A parked run's answer continues that run; anything else starts one, continued or replayed.
   const answer = parkedAnswer(messages, clientMessages, sessions.parked);
   const continuation: Continuation = answer && 'parked' in answer ? answer : chooseContinuation(messages, sessions);
   const resume = resumedSession(continuation);
   const clientToolNames = tools.map(tool => tool.name);
+  const runInputs = {
+    modelId: model.id, system, maxTokens, thinking, clientToolNames,
+    ...(effort === undefined ? {} : { effort }), ...(resume === undefined ? {} : { resume })
+  };
   return {
     model,
     messages,
     system,
-    runSpec: buildRunSpec(
-      { modelId: model.id, system, maxTokens, clientToolNames, ...(resume === undefined ? {} : { resume }) }, context
-    ),
+    runSpec: buildRunSpec(runInputs, context),
     continuation,
+    translatorConfig: { stopSequences },
     // Upstream reports exactly the mounted tools: the bridge server's, prefixed.
     startupChecks: { model: model.id, tools: clientToolNames.map(name => `${CLIENT_TOOL_PREFIX}${name}`) },
     bridgeTools: tools,

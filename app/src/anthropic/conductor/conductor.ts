@@ -130,7 +130,7 @@ class SurfaceConductor implements Conductor {
     // The session records the answer as the client got it, redacted: that is what it echoes back.
     const sink = session.relay(this.sinkFor(exchange));
     const run = await launchRun(this.deps, exchange.req.body, runId, turn, log);
-    await this.serveTurn(run, session, sink, log);
+    await this.serveTurn(run, turn, session, sink, log);
   }
 
   /** Hands the results to the parked run and serves its next turn; a park that will not take them is lost. */
@@ -150,16 +150,19 @@ class SurfaceConductor implements Conductor {
     if (ignored.length > 0) log.debug('Run-bound parameters ignored on a resuming turn', { parameters: ignored });
     log.info('Parked run resumed', { sessionId: held.sessionId, toolUseIds: held.toolUseIds });
     const session = this.session(turn, log, held.sessionId);
-    await this.serveTurn(held.conducted, session, session.relay(this.sinkFor(exchange)), log);
+    await this.serveTurn(held.conducted, turn, session, session.relay(this.sinkFor(exchange)), log);
   }
 
-  /** Serves one turn of `run` to its sink and acts on how it ended: done, parked, or ended early. */
-  private async serveTurn(run: ConductedRun, session: TurnSession, sink: TurnSink, log: PumpLogger): Promise<void> {
+  /**
+   * Serves one turn of `run` to its sink and acts on how it ended: done, parked, or ended early.
+   * The turn's own request sets what is not run-bound (its stop sequences).
+   */
+  private async serveTurn(
+    run: ConductedRun, turn: TurnPlan, session: TurnSession, sink: TurnSink, log: PumpLogger
+  ): Promise<void> {
     const parked: { on?: string[] } = {};
-    run.pump.attach({
-      translator: createTranslator({ logger: log, failures: run.failures, redact: this.deps.redact }), sink,
-      observers: [session], onPark: toolUseIds => { parked.on = toolUseIds; }
-    });
+    const translator = createTranslator({ logger: log, failures: run.failures, redact: this.deps.redact, ...turn.translatorConfig });
+    run.pump.attach({ translator, sink, observers: [session], onPark: toolUseIds => { parked.on = toolUseIds; } });
     void run.pump.done.catch(() => undefined).then(() => session.exited());
     const outcome = await sink.outcome;
     const held = outcome.kind === 'completed' ? this.park(run, parked.on, log) : undefined;

@@ -26,6 +26,8 @@ const WEB_SEARCHES_PER_SESSION = 200;
 export interface EnvironmentInputs {
   /** `CLAUDE_CODE_MAX_OUTPUT_TOKENS`: the request's `max_tokens`. */
   maxOutputTokens: number;
+  /** The request's thinking variables, set after the always-set ones and before `upstream.env`. */
+  thinking?: Readonly<Record<string, string>>;
   settings: AnthropicSettings;
   /** The wrapper's own environment. */
   environment: Readonly<Record<string, string | undefined>>;
@@ -61,6 +63,7 @@ export function childEnvironment(inputs: EnvironmentInputs): Record<string, stri
     MCP_TOOL_TIMEOUT: mcpTimeout,
     MCP_CONNECT_TIMEOUT_MS: String(MCP_CONNECT_TIMEOUT_MS),
     CLAUDE_CODE_MAX_WEB_SEARCHES_PER_SESSION: String(WEB_SEARCHES_PER_SESSION),
+    ...inputs.thinking,
     ...settings.upstreamEnv
   };
 }

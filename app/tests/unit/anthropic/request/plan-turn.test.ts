@@ -10,8 +10,12 @@ import { NO_SESSIONS, planDefault as plan, runContext, shippedCatalogue } from '
 
 const HELLO = [{ type: 'text', text: 'Hello' }];
 
-/** The plan for `{model, max_tokens: 1024, messages: [{role: 'user', content: 'Hello'}]}`. */
+/**
+ * The plan for `{model, max_tokens: 1024, messages: [{role: 'user', content: 'Hello'}]}`. Haiku
+ * 4.5 thinks by default upstream where the real API does not, so its run switches thinking off.
+ */
 function goldenPlan(canonicalId: string): TurnPlan {
+  const thinking = canonicalId === 'claude-haiku-4-5-20251001' ? { CLAUDE_CODE_DISABLE_THINKING: '1' } : {};
   return {
     model: expect.objectContaining({ id: canonicalId, type: 'model' }),
     messages: [{ role: 'user', content: HELLO }],
@@ -37,13 +41,15 @@ function goldenPlan(canonicalId: string): TurnPlan {
         CLAUDE_CODE_MCP_TOOL_IDLE_TIMEOUT: '660000',
         MCP_TOOL_TIMEOUT: '660000',
         MCP_CONNECT_TIMEOUT_MS: '5000',
-        CLAUDE_CODE_MAX_WEB_SEARCHES_PER_SESSION: '200'
+        CLAUDE_CODE_MAX_WEB_SEARCHES_PER_SESSION: '200',
+        ...thinking
       },
       cwd: '/var/lib/claude-wrapper/cwd',
       runDir: { path: '/var/lib/claude-wrapper/runs/run-0001', files: {} },
       timers: { startup: 20_000, stall: 90_000, lifetime: 1_800_000 }
     },
     continuation: { replay: { role: 'user', content: HELLO } },
+    translatorConfig: { stopSequences: [] },
     startupChecks: { model: canonicalId, tools: [] },
     bridgeTools: [],
     runBound: {
