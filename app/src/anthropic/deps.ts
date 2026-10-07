@@ -12,18 +12,15 @@ import { ControlServer } from '../upstream/control-server';
 import { Runner } from '../upstream/runner';
 import { StateDirectory } from '../upstream/state-directory';
 import { Catalogue } from './catalogue';
+import { Sessions } from './sessions';
 
 export type { Catalogue } from './catalogue';
 
 /** The upstream runner: `startRun(spec) → Run` (the spawn runner in production, replay in tests). */
 export type { Runner };
 
-/** Placeholder until conversation state (ticket 31): `lookup`, `record`, `forget`; `parked` comes with it. */
-export interface Sessions {
-  lookup(fingerprint: string): unknown;
-  record(entry: unknown): unknown;
-  forget(sessionId: string): unknown;
-}
+/** The fingerprint map (`lookup`, `record`, `forget`) and the parked-run registry (`parked`). */
+export type { Sessions };
 
 /** The loopback control server each run registers its bridge server and hook endpoint with. */
 export type { ControlServer };
@@ -33,6 +30,10 @@ export interface SurfaceDeps {
   runner?: Runner;
   /** Defaults to the catalogue file the operator's settings name, else the shipped one. */
   catalogue?: Catalogue;
+  /**
+   * Defaults to an empty in-memory map with the operator's capacity and expiry, deleting upstream
+   * transcripts under the state directory's project.
+   */
   sessions?: Sessions;
   /** Not defaulted yet: its first reader (the conductor) defaults it and awaits `start()` first. */
   controlServer?: ControlServer;

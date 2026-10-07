@@ -4,12 +4,12 @@
  * throws its `SurfaceError`; the first one is the answer.
  */
 import { Catalogue } from '../catalogue';
-import { Sessions } from '../deps';
 import { SurfaceError } from '../http/surface-error';
+import { Sessions } from '../sessions';
+import { chooseContinuation, resumedSession } from './continuation';
 import { Body, isObject } from './field-errors';
 import { withoutIgnoredContent } from './ignored-content';
 import { normaliseMessages } from './normalise';
-import { renderReplay } from './render-replay';
 import { buildRunSpec } from './run-spec';
 import { systemPrompt } from './system-prompt';
 import { RunContext, TurnPlan } from './turn-plan';
@@ -37,7 +37,7 @@ function validateParameters(request: Body): void {
   }
 }
 
-function plan(request: unknown, catalogue: Catalogue, context: RunContext): TurnPlan {
+function plan(request: unknown, catalogue: Catalogue, sessions: Sessions, context: RunContext): TurnPlan {
   if (!isObject(request)) throw SurfaceError.invalidRequest('The request body must be a JSON object');
   rejectExtraFields(request);
   const model = resolveModel(request['model'], catalogue);
@@ -48,26 +48,25 @@ function plan(request: unknown, catalogue: Catalogue, context: RunContext): Turn
   validateTurnOrder(messages);
   const system = systemPrompt(request['system']);
   validateParameters(request);
-  const replay = renderReplay(messages);
+  const continuation = chooseContinuation(messages, sessions);
+  const resume = resumedSession(continuation);
   return {
     model,
     messages,
     system,
-    runSpec: buildRunSpec({ modelId: model.id, system, maxTokens }, context),
-    continuation: { replay },
+    runSpec: buildRunSpec({ modelId: model.id, system, maxTokens, ...(resume === undefined ? {} : { resume }) }, context),
+    continuation,
     // A text turn mounts no tools, so upstream reports none.
     startupChecks: { model: model.id, tools: [] }
   };
 }
 
-/**
- * `sessions` is not consulted yet: every turn is a replayed turn until conversation state lands.
- */
+/** `sessions` is only looked up: whether the request continues an upstream session. */
 export function planTurn(
-  request: unknown, catalogue: Catalogue, _sessions: Sessions, context: RunContext
+  request: unknown, catalogue: Catalogue, sessions: Sessions, context: RunContext
 ): TurnPlan | SurfaceError {
   try {
-    return plan(request, catalogue, context);
+    return plan(request, catalogue, sessions, context);
   } catch (error) {
     if (error instanceof SurfaceError) return error;
     throw error;

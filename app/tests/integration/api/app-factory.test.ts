@@ -10,7 +10,8 @@ function stubDeps(): Required<SurfaceDeps> {
   return {
     runner: { startRun: jest.fn() },
     catalogue: { resolve: jest.fn(), list: jest.fn() },
-    sessions: { lookup: jest.fn(), record: jest.fn(), forget: jest.fn() },
+    sessions: { lookup: jest.fn(), record: jest.fn(), forget: jest.fn(),
+      parked: { get: jest.fn(), put: jest.fn(), remove: jest.fn() } },
     controlServer: { start: jest.fn(), registerRun: jest.fn(), releaseRun: jest.fn(), close: jest.fn() },
     clock: createFakeClock(),
     stateDirectory: { cwd: '/state/cwd', runs: '/state/runs' },

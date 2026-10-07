@@ -7,7 +7,7 @@
  * Code: `CLAUDE_COMMAND` names the shim, the wrapper's `PATH` (copied into the child's) holds
  * only the shim's directory, where it is also called `claude`, and every turn first checks the
  * shim is in force. The stand-in reports `model: "fake-model"`, which the startup check turns
- * into a 500.
+ * into a 500, and `session_id: "fake-session"`, which that error turn then forgets.
  */
 import Anthropic from '@anthropic-ai/sdk';
 import * as fs from 'fs';
@@ -20,7 +20,10 @@ import { waitFor } from '../../mocks/shared/wait-for';
 
 const FAKE_CLI = path.resolve(__dirname, '..', '..', 'mocks', 'upstream', 'fake-cli.js');
 const request = { model: 'fable', max_tokens: 64, messages: [{ role: 'user' as const, content: 'hi' }] };
-const saved = { PATH: process.env['PATH'], XDG_STATE_HOME: process.env['XDG_STATE_HOME'] };
+const UPSTREAM_ENV = 'CLAUDE_WRAPPER_UPSTREAM_ENV';
+const saved = {
+  PATH: process.env['PATH'], XDG_STATE_HOME: process.env['XDG_STATE_HOME'], [UPSTREAM_ENV]: process.env[UPSTREAM_ENV]
+};
 
 function restoreEnv(name: keyof typeof saved): void {
   const value = saved[name];
@@ -51,6 +54,7 @@ describe('Anthropic surface: production defaults', () => {
     await Promise.all(surfaces.map(surface => surface.close()));
     restoreEnv('PATH');
     restoreEnv('XDG_STATE_HOME');
+    restoreEnv(UPSTREAM_ENV);
     fs.rmSync(temp, { recursive: true, force: true });
   });
 
@@ -86,5 +90,21 @@ describe('Anthropic surface: production defaults', () => {
     await turnOnNewApp();
 
     expect(fs.existsSync(marker)).toBe(true);
+  });
+
+  it("deletes a failed turn's upstream transcript where the child keeps it, and nothing else", async () => {
+    const configDir = path.join(temp, 'config');
+    process.env[UPSTREAM_ENV] = JSON.stringify({ CLAUDE_CONFIG_DIR: configDir });
+    // Claude Code's project directory: the working directory's real path, every non-alphanumeric as '-'.
+    const cwd = path.join(fs.realpathSync(temp), 'state', 'claude-wrapper', 'cwd');
+    const project = path.join(configDir, 'projects', cwd.replace(/[^a-zA-Z0-9]/g, '-'));
+    fs.mkdirSync(path.join(project, 'fake-session'), { recursive: true });
+    fs.writeFileSync(path.join(project, 'fake-session.jsonl'), '{}\n');
+    fs.writeFileSync(path.join(project, 'another-session.jsonl'), '{}\n');
+
+    await turnOnNewApp();
+
+    await waitFor(() => !fs.existsSync(path.join(project, 'fake-session.jsonl')));
+    expect(fs.readdirSync(project)).toEqual(['another-session.jsonl']);
   });
 });

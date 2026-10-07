@@ -28,11 +28,12 @@ export interface RunContext {
   runId: string;
 }
 
-/** How the turn reaches upstream. Until conversation state lands, every turn is a replayed turn. */
-export interface Continuation {
-  /** The one stream-json user message a fresh run receives. */
-  replay: UserMessage;
-}
+/** How the turn reaches upstream (spec section 5). */
+export type Continuation =
+  /** A replayed turn: a fresh run receives this one message, any history rendered into it. */
+  | { replay: UserMessage }
+  /** A continued turn: the run resumes upstream session `resume` and receives only the new message. */
+  | { resume: string; message: UserMessage };
 
 /** What the conductor checks on `system/init` before relaying anything; a mismatch fails the turn. */
 export interface StartupChecks {
