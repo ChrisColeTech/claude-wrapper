@@ -4,7 +4,7 @@
  * rules (names, mounting, hook policy) belong to the tools tickets. Every other type, the server
  * tools upstream cannot run (`code_execution_*`, `bash_*`, `computer_*`, ...) and unknown ones, is
  * a 400 naming the type at the client's index. A web tool with both domain lists is a 400, as on
- * the real API. `mcp_toolset` waits for the connectors ticket, which adds it here.
+ * the real API. An `mcp_toolset` is served too: its gate and rules are the connectors' (`connectors.ts`).
  */
 import { SurfaceError } from '../http/surface-error';
 import { Body, fieldInvalid, isObject } from './field-errors';
@@ -26,7 +26,7 @@ function validateTool(tool: unknown, index: number): void {
   const path = `tools.${index}`;
   if (!isObject(tool)) throw fieldInvalid(path, 'a valid dictionary');
   const type = tool['type'];
-  if (!present(type) || type === 'custom') return;
+  if (!present(type) || type === 'custom' || type === 'mcp_toolset') return;
   if (typeof type !== 'string') throw fieldInvalid(`${path}.type`, 'a valid string');
   if (!WEB_TOOL_TYPES.has(type)) {
     throw SurfaceError.invalidRequest(`${path}: tool type "${type}" is not supported on this surface`);

@@ -77,7 +77,10 @@ const CONTENT_BLOCK = {
     // The server tool blocks are the surface's own (the server-tool pass); `caller` is dropped as on tool_use.
     server_tool_use: { type: KEEP, id: KEEP, name: KEEP, input: KEEP },
     web_search_tool_result: { type: KEEP, tool_use_id: KEEP, content: KEEP },
-    web_fetch_tool_result: { type: KEEP, tool_use_id: KEEP, content: KEEP }
+    web_fetch_tool_result: { type: KEEP, tool_use_id: KEEP, content: KEEP },
+    // The beta API's connector blocks, the connector pass's own (spec section 9).
+    mcp_tool_use: { type: KEEP, id: KEEP, name: KEEP, server_name: KEEP, input: KEEP },
+    mcp_tool_result: { type: KEEP, tool_use_id: KEEP, is_error: KEEP, content: KEEP }
   }
 };
 

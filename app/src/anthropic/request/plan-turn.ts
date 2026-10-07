@@ -11,6 +11,7 @@ import { Catalogue } from '../catalogue';
 import { SurfaceError } from '../http/surface-error';
 import { Sessions } from '../sessions';
 import { clientTools } from './client-tools';
+import { connectors } from './connectors';
 import { chooseContinuation, resumedSession } from './continuation';
 import { measuringRun, NOTHING_TO_CONTINUE } from './count-run';
 import { Body, isObject } from './field-errors';
@@ -79,6 +80,7 @@ function plan(
   const system = systemPrompt(request['system']);
   validateParameters(request);
   const tools = bridgeTools(request);
+  const connected = connectors(request, context.settings, context.betas ?? []);
   const hookPolicy = webTools(request['tools'], request['tool_choice']);
   const enabled = WEB_TOOLS.filter(tool => hookPolicy?.[tool] !== undefined);
   const stopSequences = validateStopSequences(request['stop_sequences']) ?? [];
@@ -91,7 +93,8 @@ function plan(
   const resume = resumedSession(continuation);
   const clientToolNames = tools.map(tool => tool.name);
   const runInputs = {
-    modelId: model.id, system, thinking, clientToolNames, webTools: enabled, ...(effort === undefined ? {} : { effort }),
+    modelId: model.id, system, thinking, clientToolNames, webTools: enabled, connectorRules: connected.allowRules,
+    ...(effort === undefined ? {} : { effort }),
     ...(schema === undefined ? {} : { jsonSchema: JSON.stringify(schema) }), ...(resume === undefined ? {} : { resume })
   };
   return {
@@ -101,8 +104,11 @@ function plan(
     runSpec: buildRunSpec(maxTokens === undefined ? measuringRun(runInputs) : { ...runInputs, maxTokens }, context),
     continuation,
     translatorConfig: { stopSequences, structuredOutput: schema !== undefined },
-    startupChecks: { model: model.id, tools: expectedTools(enabled, clientToolNames, schema !== undefined) },
+    startupChecks: {
+      model: model.id, tools: expectedTools(enabled, clientToolNames, schema !== undefined), connectors: connected.names
+    },
     bridgeTools: tools,
+    connectors: connected.entries,
     ...(hookPolicy ? { hookPolicy } : {}),
     runBound: runBoundParameters(request, model.id, system),
     ...(answer && 'lostPark' in answer ? { lostPark: answer.lostPark } : {})

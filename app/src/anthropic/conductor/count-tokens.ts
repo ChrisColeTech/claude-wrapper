@@ -11,6 +11,7 @@ import { Request, Response } from 'express';
 import { StateDirectory } from '../../upstream/state-directory';
 import { Catalogue } from '../catalogue';
 import { SurfaceError } from '../http/surface-error';
+import { anthropicBetas } from '../http/surface-tag';
 import { planCountTokens } from '../request';
 import { createCountSink } from '../respond';
 import { createTranslator } from '../translate';
@@ -31,7 +32,7 @@ export interface CountExchange {
 }
 
 function plan(deps: CountDeps, { req, runId }: CountExchange): StartingPlan {
-  const context = { settings: deps.settings, environment: process.env, state: deps.stateDirectory(), runId };
+  const context = { settings: deps.settings, environment: process.env, state: deps.stateDirectory(), runId, betas: anthropicBetas(req) };
   const planned = planCountTokens(req.body, deps.catalogue, context);
   if (planned instanceof SurfaceError) throw planned;
   const { continuation } = planned;

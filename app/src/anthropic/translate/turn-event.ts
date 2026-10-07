@@ -57,13 +57,20 @@ export interface UsageSignal {
 }
 
 /**
- * Internal to the translator: upstream's result for a built-in web tool call of the run, its
- * surface block at `index`. The server-tool pass turns it into the API's result block.
+ * A call upstream runs itself and the model continues after: one of its built-in web tools, or a
+ * connector's tool (`mcp__<server>__<tool>`, spec section 9).
+ */
+export type UpstreamCall = WebTool | 'connector';
+
+/**
+ * Internal to the translator: upstream's result for a call it ran itself (a built-in web tool, a
+ * connector), its surface block at `index`. The server-tool pass turns a web tool's into the API's
+ * result block, the connector pass a connector's.
  */
 export interface ServerToolResultSignal {
   type: 'server_tool_result';
   index: number;
-  tool: WebTool;
+  tool: UpstreamCall;
   /** Upstream's `tool_use` id, as the call's `tool_use` block named it. */
   toolUseId: string;
   /** Upstream's `tool_result` block: what the model received. */
@@ -126,21 +133,21 @@ export interface TranslatorConfig {
    */
   structuredOutput?: boolean;
   /**
-   * The run's built-in web tool calls, across its turns: a parked run's next turn may get the
-   * result of a call the turn before it made, and the hook's denials are read here. Defaults to
-   * the translator's own, which knows only this turn's calls and no denial.
+   * The calls the run's upstream ran itself (web tools, connectors), across its turns: a parked
+   * run's next turn may get the result of a call the turn before it made, and the hook's denials
+   * are read here. Defaults to the translator's own, which knows only this turn's calls and no denial.
    */
   serverTools?: ServerToolCalls;
   /** The wrapper's time, for a fetch result's `retrieved_at`; defaults to the system clock. */
   now?: () => number;
 }
 
-/** A run's built-in web tool calls (spec section 8), shared by the translators of its turns. */
+/** The calls a run's upstream runs itself (spec sections 8 and 9), shared by the translators of its turns. */
 export interface ServerToolCalls {
   /** Upstream announced a call of `tool` under `toolUseId`. */
-  note(toolUseId: string, tool: WebTool): void;
-  /** The built-in a call ran, if the run announced it. */
-  toolOf(toolUseId: string): WebTool | undefined;
+  note(toolUseId: string, tool: UpstreamCall): void;
+  /** What a call ran, if the run announced it. */
+  toolOf(toolUseId: string): UpstreamCall | undefined;
   /** The code the wrapper's hook denied the call with, if it did. */
   denialOf(toolUseId: string): DenialCode | undefined;
 }

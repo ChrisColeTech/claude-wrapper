@@ -7,7 +7,8 @@
  * from the flattener and is emitted whole, in one `content_block_start` and its stop: the search's
  * results across its backend searches, or the fetch's document as upstream's model received it.
  * A call the wrapper's hook denied carries the hook's code; any other failure is `unavailable`
- * (search) or `url_not_accessible` (fetch). Each result adds its request count to the usage.
+ * (search) or `url_not_accessible` (fetch). Each result adds its request count to the usage. A
+ * connector call's result passes on to the connector pass.
  */
 import { JsonObject } from '../../upstream/frames';
 import { isWebTool, WebTool } from '../../upstream/hook-policy';
@@ -96,6 +97,7 @@ class ServerToolPass implements Pass<TurnEvent, TurnEvent> {
   }
 
   private onResult(result: ServerToolResultSignal): TurnEvent[] {
+    if (!isWebTool(result.tool)) return [result];
     const denial = this.calls.denialOf(result.toolUseId);
     const content = result.tool === 'WebSearch'
       ? searchContent(result, denial)

@@ -32,7 +32,7 @@ describe('planTurn validates tool types (spec sections 4.4, 8)', () => {
   it.each([
     ['code_execution_20250825'], ['code_execution_20260521'], ['text_editor_20250728'], ['bash_20250124'],
     ['computer_20251124'], ['computer_toolset_20260801'], ['memory_20250818'], ['tool_search_tool_regex_20251119'],
-    ['tool_search_tool_bm25'], ['browser_toolset_20260801'], ['advisor_20260301'], ['mcp_toolset'],
+    ['tool_search_tool_bm25'], ['browser_toolset_20260801'], ['advisor_20260301'],
     ['web_search_20240101'], ['web_search'], ['function']
   ])('rejects the server tool type %s, naming it at the client’s index', (type) => {
     expect(rejectionOf(withTools([CLIENT_TOOL, { type, name: 'x' }]))).toEqual(unsupported(1, type));

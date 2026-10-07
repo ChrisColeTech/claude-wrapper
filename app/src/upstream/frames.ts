@@ -22,6 +22,7 @@ export interface SystemInitFrame extends FrameBase {
   model: string;
   tools: string[];
   mcp_servers: { name: string; status: string; source?: string }[];
+  mcp_server_errors?: { name: string; type: string; message: string }[];
   apiKeySource: string;
   permissionMode: string;
   claude_code_version: string;

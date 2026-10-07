@@ -6,6 +6,7 @@ import { AnthropicSettings } from '../../config/anthropic-settings';
 import { ClientTool, ToolResultBlock } from '../../upstream/bridge';
 import { JsonObject } from '../../upstream/frames';
 import { HookPolicySpec } from '../../upstream/hook-policy';
+import { McpHttpServerEntry } from '../../upstream/mcp-config';
 import { RunSpec, UserMessage } from '../../upstream/runner';
 import { StateDirectory } from '../../upstream/state-directory';
 import { ModelInfo } from '../catalogue';
@@ -24,7 +25,7 @@ export interface NormalisedMessage {
   content: ContentBlock[];
 }
 
-/** What a run needs from the wrapper beside the request. Read only; the planner performs no I/O. */
+/** What a run needs from the wrapper beside the request body. Read only; the planner performs no I/O. */
 export interface RunContext {
   /** Timers, park TTL, `--max-turns` and `upstream.env` come from here. */
   settings: AnthropicSettings;
@@ -33,6 +34,8 @@ export interface RunContext {
   state: StateDirectory;
   /** Names this run's private directory, `<state.runs>/<runId>`. */
   runId: string;
+  /** The request's `anthropic-beta` values; `mcp-client-2025-11-20` unlocks connectors (spec section 9). None: no beta. */
+  betas?: readonly string[];
 }
 
 /** How a turn that starts a run reaches upstream (spec section 5). */
@@ -57,8 +60,13 @@ export type Continuation = RunContinuation | ParkedContinuation;
 export interface StartupChecks {
   /** `init.model` must equal it: the canonical id. */
   model: string;
-  /** `init.tools` must equal it. */
+  /**
+   * `init.tools` must equal it, but for the connectors' tools, which only their servers know:
+   * any tool named under a connector's `mcp__<name>__` is expected.
+   */
   tools: string[];
+  /** The connectors mounted: `init.mcp_servers` must report each `connected` (spec section 9). */
+  connectors: string[];
 }
 
 /** What the turn's translator applies beside the run (spec section 12): not run-bound, so per turn. */
@@ -82,6 +90,11 @@ export interface TurnPlan {
   startupChecks: StartupChecks;
   /** The client tools the bridge server serves this turn's run; none (or `tool_choice: none`): not mounted. */
   bridgeTools: ClientTool[];
+  /**
+   * The connectors' entries in the run's MCP config file, by name (spec section 9), written beside
+   * the bridge server's when the run is mounted. They carry the clients' tokens: never log a plan.
+   */
+  connectors: Record<string, McpHttpServerEntry>;
   /**
    * The built-in web tools the run enables and the limits its `PreToolUse` hook enforces; absent
    * when it enables none (no web tool declared, or `tool_choice: none`): no hook, no settings file.

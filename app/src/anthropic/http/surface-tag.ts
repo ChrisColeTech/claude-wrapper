@@ -18,11 +18,17 @@ function belongsToAnthropicSurface(req: Request): boolean {
 }
 
 /**
- * `anthropic-beta` is accepted, every value, and only logged (spec section 2): a comma-separated
- * list, or the header repeated (which Node joins with commas).
+ * The request's `anthropic-beta` values: a comma-separated list, or the header repeated (which
+ * Node joins with commas). Every value is accepted (spec section 2); only `mcp-client-2025-11-20`
+ * changes anything (connectors, spec section 9).
  */
+export function anthropicBetas(req: Request): string[] {
+  return (req.get('anthropic-beta') ?? '').split(',').map((beta) => beta.trim()).filter(Boolean);
+}
+
+/** `anthropic-beta` is accepted, every value, and logged. */
 function logBetas(req: Request, requestId: string): void {
-  const betas = (req.get('anthropic-beta') ?? '').split(',').map((beta) => beta.trim()).filter(Boolean);
+  const betas = anthropicBetas(req);
   if (betas.length > 0) {
     logger.debug('anthropic-beta accepted', { requestId, betas });
   }

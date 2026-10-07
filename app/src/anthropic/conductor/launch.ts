@@ -74,7 +74,8 @@ async function startRun(deps: LaunchDeps, { body, runId }: Launch, lease: Lease,
   const turn = startingPlan(lease);
   const bridge = turn.bridgeTools.length > 0 ? createBridge(turn.bridgeTools, { clock, logger: log }) : undefined;
   const policy = turn.hookPolicy && createHookPolicy(turn.hookPolicy, { context: { runId } });
-  const mounted = await mountRun(deps.controlServer, runId, { bridge, policy }, turn.runSpec, settings.parkTtlMs);
+  const mounts = { bridge, policy, connectors: turn.connectors };
+  const mounted = await mountRun(deps.controlServer, runId, mounts, turn.runSpec, settings.parkTtlMs);
   const observers: FrameObserver[] = [...(bridge ? [bridge] : []), ...(policy ? [policy] : []), lease];
   let pump: RunPump | undefined;
   // The retry cap's give-up fails whichever turn is attached then.

@@ -3,9 +3,10 @@
  * section 5). A block renders to parts: text, which joins the history's text, or a real content
  * block placed inline (media the turn carried). A kind with no entry is a 400 naming it, never
  * dropped. The tickets that bring a kind add its entry here: the web tools' blocks
- * (`history-web-blocks.ts`), `mcp_tool_use` and `mcp_tool_result`.
+ * (`history-web-blocks.ts`) and the connectors' (`history-connector-blocks.ts`).
  */
 import { SurfaceError } from '../http/surface-error';
+import { CONNECTOR_HISTORY_BLOCKS } from './history-connector-blocks';
 import { attribute } from './history-markup';
 import { WEB_HISTORY_BLOCKS } from './history-web-blocks';
 import { ContentBlock } from './turn-plan';
@@ -47,7 +48,8 @@ const HISTORY_BLOCKS: ReadonlyMap<string, HistoryBlock> = new Map<string, Histor
   // the model reads them as it would have on the turn that carried them.
   ['image', block => [block]],
   ['document', block => [block]],
-  ...WEB_HISTORY_BLOCKS
+  ...WEB_HISTORY_BLOCKS,
+  ...CONNECTOR_HISTORY_BLOCKS
 ]);
 
 /** The parts `block` renders to in the history; throws the 400 for a kind with no rendering. */
