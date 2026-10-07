@@ -7,6 +7,7 @@
  */
 import { Clock } from '../utils/clock';
 import { ControlServer } from '../upstream/control-server';
+import { ResolveHost } from '../upstream/hook-policy';
 import { Runner } from '../upstream/runner';
 import { StateDirectory } from '../upstream/state-directory';
 import { Catalogue } from './catalogue';
@@ -51,4 +52,10 @@ export interface SurfaceDeps {
    * CLI reads (`.claude.json` under `upstream.env`'s `CLAUDE_CONFIG_DIR`, else the home directory).
    */
   accountFile?: string;
+  /**
+   * Resolves a WebFetch URL's host name as its call is decided, so that a fetch reaches only public
+   * addresses (unless the operator turned that off). Defaults to the system resolver; tests inject
+   * a table (`tests/mocks/anthropic/surface-harness.ts` gives one that resolves nothing).
+   */
+  resolveHost?: ResolveHost;
 }

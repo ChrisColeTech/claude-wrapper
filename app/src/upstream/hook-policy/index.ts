@@ -5,4 +5,6 @@
 export { createHookPolicy } from './hook-policy';
 export type { HookPolicy, HookPolicyOptions, HookReply } from './hook-policy';
 export { isWebTool, WEB_TOOLS } from './types';
+export { resolveWithSystem } from './public-host';
+export type { ResolveHost, WebFetchReach } from './public-host';
 export type { DenialCode, HookPolicySpec, WebTool, WebToolLimits } from './types';

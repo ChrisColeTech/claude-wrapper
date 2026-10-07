@@ -17,7 +17,9 @@ const SPEC_DEFAULTS = {
   shutdownDrainMs: 15_000,
   maxTurns: 25,
   upstreamEnv: {},
-  redact: []
+  redact: [],
+  // Not in the spec's table: an operator decision after it. Web fetch reaches public hosts only.
+  webFetchPublicOnly: true
 };
 
 describe('Anthropic surface settings', () => {
@@ -86,6 +88,18 @@ describe('Anthropic surface settings', () => {
 
     expect(settings.connectorHosts).toEqual(['mcp.example.com', 'tools.example.org']);
     expect(settings.redact).toEqual(['operator', 'Operator Name']);
+  });
+
+  it.each([['false', false], ['FALSE', false], ['0', false], ['true', true], ['1', true], [' false ', false]])(
+    'reads CLAUDE_WRAPPER_WEB_FETCH_PUBLIC_ONLY=%p as %p', (value, publicOnly) => {
+      expect(loadAnthropicSettings({ CLAUDE_WRAPPER_WEB_FETCH_PUBLIC_ONLY: value }).webFetchPublicOnly).toBe(publicOnly);
+    }
+  );
+
+  it.each(['off', 'yes', 'allow'])('keeps web fetch public-only, with a warning, for %p', (value) => {
+    expect(loadAnthropicSettings({ CLAUDE_WRAPPER_WEB_FETCH_PUBLIC_ONLY: value }).webFetchPublicOnly).toBe(true);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('CLAUDE_WRAPPER_WEB_FETCH_PUBLIC_ONLY'));
+    expect(warn.mock.calls.flat().join(' ')).not.toContain(value);
   });
 
   it('reads upstream.env as a JSON object of strings', () => {

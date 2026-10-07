@@ -2,7 +2,8 @@
  * The client credential gate on Anthropic-tagged requests (spec section 2). With the wrapper's
  * `API_KEY` configured, `x-api-key: <key>` or `Authorization: Bearer <key>` is accepted,
  * compared in constant time; without it the surface is open. The credential is a gate only:
- * it never reaches upstream.
+ * it never reaches upstream. It is checked before the body parser, so a request without the key
+ * gets its 401 before its body (up to 32 MB) is read.
  */
 import { createHash, timingSafeEqual } from 'crypto';
 import { NextFunction, Request, Response } from 'express';

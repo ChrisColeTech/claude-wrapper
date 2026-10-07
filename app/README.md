@@ -230,7 +230,14 @@ Each armed string is replaced with `[redacted]`, ignoring case and matching whol
 
 **Connectors are off until you list hosts.** For `mcp_servers`, Claude Code connects to the client's server from your machine. Unrestricted, any client could make your machine open connections inside your network. The real API's connectors connect from Anthropic and never can. So a request with `mcp_servers` is a 400 naming `CLAUDE_WRAPPER_CONNECTOR_HOSTS` until you list the hosts clients may use, such as `CLAUDE_WRAPPER_CONNECTOR_HOSTS=mcp.example.com,tools.example.com:8443`. `*` allows every host. A client's `authorization_token` is written only to the run's private config file, kept out of every log, and removed when the run ends.
 
-**Web fetch also runs from your machine.** A client that declares a `web_fetch` tool makes Claude Code fetch the URL from the machine the wrapper runs on. The only domain limits are the ones the client sends; the wrapper has no operator setting for web fetch.
+**Web fetch also runs from your machine, so it is kept off your network.** A client that declares a `web_fetch` tool makes Claude Code fetch the URL from the machine the wrapper runs on. So the wrapper's hook denies a fetch whose URL host is not a public address, and the client gets the API's `url_not_allowed` error result. That covers loopback, private, link-local (the cloud metadata address included), unique-local, unspecified and the other special ranges, in IPv4, IPv6 and IPv4-mapped form; `localhost` and every name under it; and a name that resolves to any such address, or does not resolve at all. Names are resolved with the wrapper machine's resolver. `CLAUDE_WRAPPER_WEB_FETCH_PUBLIC_ONLY=false` turns the block off, for instance to let clients fetch intranet pages. Beyond it, the only domain limits are the ones the client sends.
+
+The block is a check, not a network boundary. It has two limits:
+
+- Claude Code follows some redirects itself (those that stay on the same host; it reports a redirect to another host to the model, whose next fetch the hook checks). The hook never sees a redirect Claude Code follows, so it does not check where one lands.
+- The hook resolves the name when it decides the call, and Claude Code resolves it again when it fetches. A name whose DNS answer changes in between (DNS rebinding) can still reach an internal address.
+
+To keep fetches off an internal network for certain, run the wrapper where that network is unreachable, or behind a firewall.
 
 **Which login Claude Code runs on is your choice.** Every request runs on the Claude Code login of the machine. All clients share its usage limits and its account identity. The wrapper passes none of its own `CLAUDE*` or `ANTHROPIC*` environment variables to Claude Code, so a stale token in its environment cannot silently replace that login. To run on a specific credential, put it in `CLAUDE_WRAPPER_UPSTREAM_ENV`, for example `{"ANTHROPIC_API_KEY": "<key>"}` or `{"CLAUDE_CODE_OAUTH_TOKEN": "<token>"}`. The [runbook](docs/ANTHROPIC_SURFACE_RUNBOOK.md#claude_wrapper_upstream_env) covers the details.
 
@@ -240,11 +247,14 @@ Anthropic's [legal and compliance page](https://code.claude.com/docs/en/legal-an
 
 **Other things that are visible to anyone who can reach the port:**
 
-- `/health` lists the run counts and the session ids of conversations with queued turns.
+- `/health` shows the run counts: runs active and parked, turns queued and the last rate-limit state. It shows no session ids.
 - `/docs` and `/docs/anthropic-openapi.json` are public.
-- The body is parsed before the key is checked, so a client without a key can still make the wrapper parse up to 32 MB.
 
 ### Known deviations from the real API
+
+Models:
+
+- **`GET /v1/models` lists only the catalogue**: the four models above, or the operator's own catalogue, not every model the API serves. `limit`, `after_id` and `before_id` page over it, and `has_more` is computed as on the real API: `false` at the default `limit` of 20, `true` when a smaller `limit` leaves models out, so the SDKs' auto-pagination walks the whole list.
 
 Context, output and usage:
 

@@ -38,6 +38,8 @@ export interface AnthropicSettings {
   upstreamEnv: Readonly<Record<string, string>>;
   /** `redact`: extra strings redacted from output, beside the account file's (section 6). */
   redact: readonly string[];
+  /** Web fetch reaches public hosts only, never the operator's own network (section 8); `false` turns that off. */
+  webFetchPublicOnly: boolean;
 }
 
 /** The environment variable behind each setting (name them in messages that point at a setting). */
@@ -58,7 +60,8 @@ export const ANTHROPIC_SETTING_ENV = {
   shutdownDrainMs: 'CLAUDE_WRAPPER_SHUTDOWN_DRAIN_MS',
   maxTurns: 'CLAUDE_WRAPPER_MAX_TURNS',
   upstreamEnv: 'CLAUDE_WRAPPER_UPSTREAM_ENV',
-  redact: 'CLAUDE_WRAPPER_REDACT'
+  redact: 'CLAUDE_WRAPPER_REDACT',
+  webFetchPublicOnly: 'CLAUDE_WRAPPER_WEB_FETCH_PUBLIC_ONLY'
 } as const;
 
 const SECOND = 1000;
@@ -80,7 +83,8 @@ export const ANTHROPIC_SETTING_DEFAULTS: AnthropicSettings = {
   shutdownDrainMs: 15 * SECOND,
   maxTurns: 25,
   upstreamEnv: {},
-  redact: []
+  redact: [],
+  webFetchPublicOnly: true
 };
 
 type Env = Readonly<Record<string, string | undefined>>;
@@ -92,6 +96,15 @@ function positiveInteger(env: Env, name: string, fallback: number): number {
     return Number(value);
   }
   console.warn(`Invalid ${name} environment variable: expected a positive integer, using default: ${fallback}`);
+  return fallback;
+}
+
+function flag(env: Env, name: string, fallback: boolean): boolean {
+  const value = (env[name] ?? '').trim().toLowerCase();
+  if (value === '') return fallback;
+  if (value === 'true' || value === '1') return true;
+  if (value === 'false' || value === '0') return false;
+  console.warn(`Invalid ${name} environment variable: expected true or false, using default: ${fallback}`);
   return fallback;
 }
 
@@ -140,6 +153,7 @@ export function loadAnthropicSettings(env: Env): AnthropicSettings {
     shutdownDrainMs: number('shutdownDrainMs', defaults.shutdownDrainMs),
     maxTurns: number('maxTurns', defaults.maxTurns),
     upstreamEnv: stringMap(env, names.upstreamEnv),
-    redact: commaList(env, names.redact)
+    redact: commaList(env, names.redact),
+    webFetchPublicOnly: flag(env, names.webFetchPublicOnly, defaults.webFetchPublicOnly)
   };
 }

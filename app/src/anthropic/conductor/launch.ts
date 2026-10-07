@@ -10,7 +10,7 @@
 import { AnthropicSettings } from '../../config/anthropic-settings';
 import { createBridge } from '../../upstream/bridge';
 import { ControlServer } from '../../upstream/control-server';
-import { createHookPolicy } from '../../upstream/hook-policy';
+import { createHookPolicy, ResolveHost, WebFetchReach } from '../../upstream/hook-policy';
 import { Run, Runner } from '../../upstream/runner';
 import { Clock } from '../../utils/clock';
 import { createFailureReader } from '../failure';
@@ -31,6 +31,8 @@ export interface LaunchDeps {
   clock: Clock;
   settings: AnthropicSettings;
   scheduler: Pick<Scheduler, 'admit'>;
+  /** Resolves a WebFetch URL's host name, for the hook policy's public-only check. */
+  resolveHost: ResolveHost;
 }
 
 /** The `model` the client sent (validated by the plan), for the 404 row's message. */
@@ -38,6 +40,10 @@ const requestedModel = (body: unknown, turn: TurnPlan): string => {
   const model = (body as { model?: unknown }).model;
   return typeof model === 'string' ? model : turn.model.id;
 };
+
+/** Where the run's web fetches may go: public hosts only, unless the operator turned that off. */
+const webFetchReach = ({ settings, resolveHost }: LaunchDeps): WebFetchReach =>
+  (settings.webFetchPublicOnly ? { publicOnly: true, resolveHost } : { publicOnly: false });
 
 /** `plan` as a plan that starts a run; one that answers a parked run is the caller's fault. */
 export function startingPlan(plan: TurnPlan): StartingPlan {
@@ -67,7 +73,7 @@ async function startRun(deps: LaunchDeps, body: unknown, runId: string, lease: L
   const { clock, settings } = deps;
   const turn = startingPlan(lease.plan);
   const bridge = turn.bridgeTools.length > 0 ? createBridge(turn.bridgeTools, { clock, logger: log }) : undefined;
-  const policy = turn.hookPolicy && createHookPolicy(turn.hookPolicy, { context: { runId } });
+  const policy = turn.hookPolicy && createHookPolicy(turn.hookPolicy, { context: { runId }, webFetchReach: webFetchReach(deps) });
   const mounts = { bridge, policy, connectors: turn.connectors };
   const mounted = await mountRun(deps.controlServer, runId, mounts, turn.runSpec, settings.parkTtlMs);
   const observers: FrameObserver[] = [...(bridge ? [bridge] : []), ...(policy ? [policy] : []), lease];

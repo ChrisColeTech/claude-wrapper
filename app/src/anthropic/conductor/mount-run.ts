@@ -39,7 +39,7 @@ export interface MountedRun {
 function handlersFor({ bridge, policy }: RunMounts): RunHandlers {
   return {
     ...(bridge ? { mcpHandler: bridge.mcpHandler } : {}),
-    ...(policy ? { hookHandler: async (input: unknown) => policy.decide(input) } : {})
+    ...(policy ? { hookHandler: (input: unknown) => policy.decide(input) } : {})
   };
 }
 

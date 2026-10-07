@@ -108,6 +108,13 @@ describe('OpenAI surface unchanged by the Anthropic surface', () => {
     it('accepts the right Bearer token', async () => {
       await request(createServer()).get('/v1/models').set('Authorization', `Bearer ${KEY}`).expect(200);
     });
+
+    it('still parses the body before the key check: invalid JSON without a key is the parse error', async () => {
+      const response = await request(createServer()).post('/v1/chat/completions')
+        .set('Content-Type', 'application/json').send('{"model": ').expect(400);
+
+      expect(response.text).toBe('{"error":{"message":"Invalid JSON format","type":"invalid_request_error","code":"parse_error"}}');
+    });
   });
 
   describe('/v1/models without anthropic-version', () => {

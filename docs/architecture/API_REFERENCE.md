@@ -230,7 +230,7 @@ Service health status.
 }
 ```
 
-The response also has an `anthropic` key with the Anthropic surface's run counts: `{active, parked, maxRuns, queued, rateLimit}`. `queued` maps an upstream session id to the turns waiting on it.
+The response also has an `anthropic` key with the Anthropic surface's run counts: `{active, parked, maxRuns, queued, rateLimit}`. `queued` is the number of turns waiting on their conversation's previous run, over every conversation. The counts are aggregates: no upstream session id appears.
 
 
 ## Anthropic Surface
