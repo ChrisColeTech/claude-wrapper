@@ -14,7 +14,7 @@ import { isObject } from '../../utils/json-object';
 import { withContext } from '../../utils/log-context';
 import { logger as wrapperLogger, Logger } from '../../utils/logger';
 import { Frame } from '../frames';
-import { auditFrame, AuditState } from './audit';
+import { HookAudit } from './audit';
 import { onDomainList, parseUrl } from './domains';
 import { nonPublicHost, resolveWithSystem, WebFetchReach } from './public-host';
 import { DenialCode, HookPolicySpec, isWebTool, WebTool, WebToolLimits } from './types';
@@ -38,7 +38,10 @@ export interface HookPolicy {
   denialOf(toolUseId: string): DenialCode | undefined;
   /** A new turn of the run (a parked run resumed): `max_uses` counts afresh, as per request. */
   startTurn(): void;
-  /** Sees every frame of the run: logs denials it did not issue, and web calls that bypassed it. */
+  /**
+   * Sees every frame of the run: logs denials it did not issue, web calls that bypassed it, and
+   * calls upstream ran although it denied them.
+   */
   onFrame(frame: Frame): void;
 }
 
@@ -66,24 +69,26 @@ const INVALID_URL: Refusal = ['invalid_tool_input', deny('invalid_tool_input', '
 
 class RunHookPolicy implements HookPolicy {
   private readonly uses = new Map<WebTool, number>();
-  private readonly audit: AuditState = { decided: new Map(), webCalls: new Set() };
+  private readonly audit: HookAudit;
 
   constructor(
     private readonly spec: HookPolicySpec, private readonly reach: WebFetchReach, private readonly logger: Pick<Logger, 'debug' | 'error'>
-  ) {}
+  ) {
+    this.audit = new HookAudit(logger);
+  }
 
   async decide(input: unknown): Promise<HookReply> {
     const call = callOf(input);
     if (!call) return deny('invalid_tool_input', 'the hook input is not a tool call');
     const limits = isWebTool(call.tool) ? this.spec[call.tool] : undefined;
     const [code, reply] = limits ? await this.judge(call, limits) : this.refuse(call);
-    this.audit.decided.set(call.id, code);
+    this.audit.decided(call.id, call.tool, code);
     this.logger.debug('Web tool call decided by the hook', { tool: call.tool, toolUseId: call.id, denied: code ?? false });
     return reply;
   }
 
   denialOf(toolUseId: string): DenialCode | undefined {
-    return this.audit.decided.get(toolUseId) ?? undefined;
+    return this.audit.denialOf(toolUseId);
   }
 
   startTurn(): void {
@@ -91,7 +96,7 @@ class RunHookPolicy implements HookPolicy {
   }
 
   onFrame(frame: Frame): void {
-    auditFrame(frame, this.audit, this.logger);
+    this.audit.onFrame(frame);
   }
 
   private refuse(call: ToolCall): Refusal {
