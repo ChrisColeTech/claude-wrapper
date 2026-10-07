@@ -13,6 +13,7 @@
  * first, then the internal `call_start` the flattener keeps for each later call.
  */
 import { JsonObject } from '../../upstream/frames';
+import { BlockScanners } from './block-scanners';
 import { identity, Pass } from './pass';
 import { createStopScanner, StopScanner } from './stop-scanner';
 import { ApiEvent, CutSignal, TurnEvent } from './turn-event';
@@ -32,7 +33,7 @@ const textDelta = (index: number, text: string): DeltaEvent =>
 const characters = (text: string): number => Array.from(text).length;
 
 class StopSequenceScan implements Pass<TurnEvent, TurnEvent> {
-  private readonly scanners = new Map<number, StopScanner>();
+  private readonly scanners = new BlockScanners<StopScanner>();
   private readonly open = new Set<number>();
   private callUsage: JsonObject = {};
   private relayedCharacters = 0;
@@ -64,7 +65,7 @@ class StopSequenceScan implements Pass<TurnEvent, TurnEvent> {
 
   end(): TurnEvent[] {
     if (this.cut) return [];
-    return [...this.scanners.keys()].flatMap(index => this.release(index));
+    return this.scanners.indices.flatMap(index => this.release(index));
   }
 
   /** A model call starts (the turn's first, or a later one the flattener suppressed). */
@@ -91,25 +92,17 @@ class StopSequenceScan implements Pass<TurnEvent, TurnEvent> {
   }
 
   private scannerFor(index: number): StopScanner {
-    let scanner = this.scanners.get(index);
-    if (!scanner) {
-      scanner = createStopScanner(this.sequences);
-      this.scanners.set(index, scanner);
-    }
-    return scanner;
+    return this.scanners.at(index, () => createStopScanner(this.sequences));
   }
 
   private release(index: number): TurnEvent[] {
-    const scanner = this.scanners.get(index);
-    if (!scanner) return [];
-    this.scanners.delete(index);
-    const rest = scanner.flush();
+    const rest = this.scanners.release(index)?.rest ?? '';
     return rest === '' ? [] : this.relayed([textDelta(index, rest)], rest);
   }
 
   /** The text before the match, every open block closed, then the turn's end. */
   private cutAt(index: number, before: string, sequence: string): TurnEvent[] {
-    this.scanners.delete(index);
+    this.scanners.drop(index);
     const events: TurnEvent[] = before === '' ? [] : this.relayed([textDelta(index, before)], before);
     for (const open of [...this.open].sort((a, b) => a - b)) {
       events.push(...this.release(open), { type: 'content_block_stop', index: open });
