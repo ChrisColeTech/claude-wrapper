@@ -26,6 +26,7 @@ export interface CountDeps extends LaunchDeps {
 export interface CountExchange {
   req: Request;
   res: Response;
+  requestId: string;
   runId: string;
 }
 
@@ -38,14 +39,20 @@ function plan(deps: CountDeps, { req, runId }: CountExchange): StartingPlan {
   return { ...planned, continuation };
 }
 
-/** Answers `exchange` with its count; rejects with the error to render when it fails before. */
+/**
+ * Answers `exchange` with its count; rejects with the error to render when it fails before. The
+ * count's run is admitted like any run (the run cap, rate-limit admission, the shutdown) but, on
+ * no session, never waits on one.
+ */
 export async function countTokens(deps: CountDeps, exchange: CountExchange, log: PumpLogger): Promise<void> {
   const turn = plan(deps, exchange);
-  const run = await launchRun(deps, exchange.req.body, exchange.runId, turn, log);
+  const { req, requestId, runId } = exchange;
+  const run = await launchRun(deps, { body: req.body, requestId, runId }, { plan: turn, replan: () => turn }, log);
   const sink = createCountSink(exchange.res);
   run.pump.attach({ translator: createTranslator({ logger: log, failures: run.failures }), sink });
   const outcome = await sink.outcome;
   run.pump.stop(`the count ended: ${outcome.kind}`);
+  run.lease.release();
   log.info('Anthropic count ended', 'error' in outcome
     ? { outcome: outcome.kind, errorType: outcome.error.type }
     : { outcome: outcome.kind });

@@ -1,15 +1,19 @@
 /**
- * Starting a turn's run (spec sections 7, 10 and 14): the bridge server mounted on the control
- * server when the turn exposes client tools, the run started, its failure reader, and its pump
- * sending the turn's message. The run is released from the control server once it has exited.
+ * Starting a run (spec sections 7, 10 and 14), the one way both endpoints start one. The
+ * scheduler admits the turn first (a refusal rejects before anything is spawned; a continued turn
+ * waits on its session and may come back re-planned). Then the bridge server is mounted on the
+ * control server when the turn exposes client tools, the run is started with its failure reader,
+ * and its pump sends the turn's message. The run holds its slot until it has exited and every turn
+ * of it has settled its session; it is released from the control server then too.
  */
 import { AnthropicSettings } from '../../config/anthropic-settings';
 import { createBridge } from '../../upstream/bridge';
 import { ControlServer } from '../../upstream/control-server';
-import { Runner } from '../../upstream/runner';
+import { Run, Runner } from '../../upstream/runner';
 import { Clock } from '../../utils/clock';
 import { createFailureReader } from '../failure';
 import { messageToSend, RunContinuation, TurnPlan } from '../request';
+import { Admission, Lease, Scheduler } from '../scheduler';
 import { ConductedRun } from './held-run';
 import { mountBridge } from './mount-bridge';
 import { PumpLogger, pumpRun, RunPump } from './run-pump';
@@ -22,6 +26,16 @@ export interface LaunchDeps {
   controlServer: ControlServer;
   clock: Clock;
   settings: AnthropicSettings;
+  scheduler: Pick<Scheduler, 'admit'>;
+}
+
+/** The request a run is started for. */
+export interface Launch {
+  /** Its body, as the client sent it. */
+  body: unknown;
+  requestId: string;
+  /** Names the run (its directory, its control-server routes). */
+  runId: string;
 }
 
 /** The `model` the client sent (validated by the plan), for the 404 row's message. */
@@ -30,11 +44,31 @@ const requestedModel = (body: unknown, turn: TurnPlan): string => {
   return typeof model === 'string' ? model : turn.model.id;
 };
 
-/** Starts the run of `turn`, whose request body is `body`; no turn is attached to its pump yet. */
+function startingPlan(lease: Lease): StartingPlan {
+  const { continuation } = lease.plan;
+  if ('parked' in continuation) throw new Error('a run was to start for a turn that answers a parked run');
+  return { ...lease.plan, continuation };
+}
+
+/**
+ * Admits `admission` and starts its run; no turn is attached to its pump yet. Rejects with the
+ * scheduler's refusal, or with what kept the run from starting (its slot then given back).
+ */
 export async function launchRun(
-  deps: LaunchDeps, body: unknown, runId: string, turn: StartingPlan, log: PumpLogger
+  deps: LaunchDeps, launch: Launch, admission: Omit<Admission, 'requestId'>, log: PumpLogger
 ): Promise<ConductedRun> {
+  const lease = await deps.scheduler.admit({ requestId: launch.requestId, ...admission });
+  try {
+    return await startRun(deps, launch, lease, log);
+  } catch (error) {
+    lease.release();
+    throw error;
+  }
+}
+
+async function startRun(deps: LaunchDeps, { body, runId }: Launch, lease: Lease, log: PumpLogger): Promise<ConductedRun> {
   const { clock, settings } = deps;
+  const turn = startingPlan(lease);
   const bridge = turn.bridgeTools.length > 0 ? createBridge(turn.bridgeTools, { clock, logger: log }) : undefined;
   const mounted = bridge && await mountBridge(deps.controlServer, runId, bridge, turn.runSpec, settings.parkTtlMs);
   let pump: RunPump | undefined;
@@ -46,15 +80,46 @@ export async function launchRun(
   try {
     const run = deps.runner.startRun(mounted ? mounted.spec : turn.runSpec);
     pump = pumpRun(run, messageToSend(turn.continuation), {
-      failures, checks: turn.startupChecks, clock, logger: log,
+      failures, checks: turn.startupChecks, clock, logger: log, observers: bridge ? [bridge, lease] : [lease],
       // A bridged run is interrupted through its bridge, which then rejects the calls waiting on it.
-      ...(bridge ? { observers: [bridge], interrupt: (reason: string) => bridge.abandon(run, reason) } : {})
+      ...(bridge ? { interrupt: (reason: string) => bridge.abandon(run, reason) } : {})
     });
-    void pump.done.catch(error => log.warn('Upstream run pump failed', { error: String(error) }))
-      .then(() => mounted?.release());
-    return { runId, run, pump, failures, bridge, runBound: turn.runBound };
+    const atExit = schedule({ run, pump, runId, lease, log, unmount: () => mounted?.release() });
+    return { runId, run, pump, failures, bridge, runBound: turn.runBound, plan: turn, lease, atExit };
   } catch (error) {
     mounted?.release();
     throw error;
   }
+}
+
+/**
+ * Hands the started run to its lease. Once upstream has exited the run is unmounted and every
+ * turn's exit hook runs (its session bookkeeping); only then is the run over for the scheduler.
+ */
+interface Started {
+  run: Run;
+  pump: RunPump;
+  runId: string;
+  lease: Lease;
+  log: PumpLogger;
+  /** Releases the run from the control server. */
+  unmount(): void;
+}
+
+function schedule({ run, pump, runId, lease, log, unmount }: Started): (hook: () => void) => void {
+  const hooks: (() => void)[] = [];
+  let over = false;
+  const ended = pump.done.catch(error => log.warn('Upstream run pump failed', { error: String(error) })).then(() => {
+    unmount();
+    over = true;
+    hooks.splice(0).forEach(hook => hook());
+  });
+  lease.started({
+    runId, ended,
+    get sessionId() { return pump.sessionId; },
+    fail: error => pump.fail(error),
+    stop: reason => pump.stop(reason),
+    kill: () => void run.kill()
+  });
+  return hook => (over ? hook() : void hooks.push(hook));
 }
