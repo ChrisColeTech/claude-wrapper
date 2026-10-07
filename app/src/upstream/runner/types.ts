@@ -19,6 +19,19 @@ export interface RunEndpoint {
   token: string;
 }
 
+/**
+ * A run's private directory for its `0600` files (the MCP config, the hook settings). The spawn
+ * runner creates it owner-only (`0700`) with every file before spawning, and removes it with
+ * everything in it once the process has exited, before `exited` settles. The replay runner only
+ * records it.
+ */
+export interface RunDirectory {
+  /** Absolute; must not exist yet (its parent is created when missing). */
+  path: string;
+  /** File name (one path segment) to its content; each is written with mode `0600`. */
+  files: Readonly<Record<string, string>>;
+}
+
 export interface RunSpec {
   /** The argument list after the binary, passed verbatim (no shell). */
   flags: string[];
@@ -29,6 +42,8 @@ export interface RunSpec {
   /** The child's whole environment; nothing is inherited. */
   env: Record<string, string>;
   cwd: string;
+  /** The run's private directory; absent: none. */
+  runDir?: RunDirectory;
   timers: RunTimers;
 }
 

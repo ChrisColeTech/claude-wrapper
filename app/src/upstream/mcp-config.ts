@@ -45,11 +45,21 @@ export function bridgeServerEntry(endpoint: RunEndpoint, parkTtlMs: number): Mcp
 }
 
 /**
+ * The file's content, `{mcpServers}`. A planned run takes it as
+ * `withRunFile(spec, MCP_CONFIG_FILE_NAME, mcpConfigContent(servers))`: the spawn runner writes it
+ * `0600` into the run's directory before spawn and removes it with the directory at exit.
+ */
+export function mcpConfigContent(servers: Record<string, McpHttpServerEntry>): string {
+  return JSON.stringify({ mcpServers: servers });
+}
+
+/**
  * Writes `{mcpServers}` to `<runDir>/mcp-config.json`, mode `0600`, refusing to write through
- * anything already at that path. The run directory is the caller's (the planner's layout).
+ * anything already at that path, for a directory the caller owns (a planned run uses
+ * `mcpConfigContent` with `withRunFile` instead).
  */
 export async function writeMcpConfigFile(runDir: string, servers: Record<string, McpHttpServerEntry>): Promise<McpConfigFile> {
   const file = path.join(runDir, MCP_CONFIG_FILE_NAME);
-  await fs.writeFile(file, JSON.stringify({ mcpServers: servers }), { mode: 0o600, flag: 'wx' });
+  await fs.writeFile(file, mcpConfigContent(servers), { mode: 0o600, flag: 'wx' });
   return { path: file, remove: () => fs.rm(file, { force: true }) };
 }

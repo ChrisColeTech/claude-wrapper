@@ -7,7 +7,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { BRIDGE_SERVER_NAME } from '../../../src/upstream/bridge';
-import { bridgeServerEntry, writeMcpConfigFile } from '../../../src/upstream/mcp-config';
+import { bridgeServerEntry, mcpConfigContent, writeMcpConfigFile } from '../../../src/upstream/mcp-config';
 
 const ENDPOINT = { url: 'http://127.0.0.1:43210/runs/run-1/mcp', token: 'tok_3f9a' };
 
@@ -29,6 +29,22 @@ describe('per-run MCP config file', () => {
       headers: { Authorization: 'Bearer tok_3f9a' },
       alwaysLoad: true,
       timeout: 660_000
+    });
+  });
+
+  it('renders the servers as the file content the run directory takes through withRunFile', () => {
+    const servers = { [BRIDGE_SERVER_NAME]: bridgeServerEntry(ENDPOINT, 600_000) };
+
+    expect(JSON.parse(mcpConfigContent(servers))).toEqual({
+      mcpServers: {
+        client: {
+          type: 'http',
+          url: 'http://127.0.0.1:43210/runs/run-1/mcp',
+          headers: { Authorization: 'Bearer tok_3f9a' },
+          alwaysLoad: true,
+          timeout: 660_000
+        }
+      }
     });
   });
 
