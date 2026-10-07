@@ -18,7 +18,9 @@ import { swaggerSpec } from './swagger';
 import { lazyApp } from './lazy-app';
 import { SurfaceDeps } from '../anthropic/deps';
 import { AnthropicSurface, createAnthropicSurface } from '../anthropic';
-import { createAnthropicAuth, isAnthropicRequest, parseAnthropicBody, tagSurface } from '../anthropic/http';
+import {
+  ANTHROPIC_OPENAPI_PATH, createAnthropicAuth, isAnthropicRequest, parseAnthropicBody, serveAnthropicOpenApi, tagSurface
+} from '../anthropic/http';
 
 function mountMiddleware(app: Express): void {
   app.use(tagSurface); // first: every later middleware renders by the surface tag
@@ -60,9 +62,15 @@ function mountDocs(app: Express): void {
     res.setHeader('Content-Type', 'application/json');
     res.send(swaggerSpec);
   });
+  app.get(ANTHROPIC_OPENAPI_PATH, serveAnthropicOpenApi); // before /docs, whose UI answers every path under it
 
-  app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
-    customCss: '.swagger-ui .topbar { display: none }',
+  // The top bar holds the definition picker (one definition per surface); only its logo is hidden
+  app.use('/docs', swaggerUi.serve, swaggerUi.setup(undefined, {
+    explorer: true,
+    swaggerOptions: {
+      urls: [{ url: '/swagger.json', name: 'OpenAI surface' }, { url: ANTHROPIC_OPENAPI_PATH, name: 'Anthropic surface' }]
+    },
+    customCss: '.swagger-ui .topbar .link { display: none }',
     customSiteTitle: 'Claude Wrapper API Documentation'
   }));
 }
