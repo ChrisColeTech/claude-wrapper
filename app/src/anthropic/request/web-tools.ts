@@ -10,14 +10,11 @@
 import { HookPolicySpec, WebTool, WebToolLimits } from '../../upstream/hook-policy';
 import { JsonObject, isObject } from '../../utils/json-object';
 import { SurfaceError } from '../surface-error';
-import { fieldInvalid, fieldRequired } from './field-errors';
+import { WEB_TOOL_NAMES } from '../web-tools';
+import { fieldInvalid, fieldRequired, present } from './field-errors';
 
-const KINDS: readonly { prefix: string; name: string; tool: WebTool }[] = [
-  { prefix: 'web_search_', name: 'web_search', tool: 'WebSearch' },
-  { prefix: 'web_fetch_', name: 'web_fetch', tool: 'WebFetch' }
-];
+const KINDS = Object.values(WEB_TOOL_NAMES);
 
-const present = (value: unknown): boolean => value !== undefined && value !== null;
 
 function validateName(value: unknown, name: string, path: string): void {
   if (value === undefined) throw fieldRequired(`${path}.name`);
@@ -57,7 +54,7 @@ export function webTools(tools: unknown, toolChoice: unknown): HookPolicySpec | 
   const policy: { [tool in WebTool]?: WebToolLimits } = {};
   tools.forEach((tool: unknown, index) => {
     const type = isObject(tool) ? tool['type'] : undefined;
-    const kind = typeof type === 'string' ? KINDS.find(candidate => type.startsWith(candidate.prefix)) : undefined;
+    const kind = typeof type === 'string' ? KINDS.find(candidate => type.startsWith(candidate.typePrefix)) : undefined;
     if (!kind || !isObject(tool)) return;
     const path = `tools.${index}.${String(type)}`;
     validateName(tool['name'], kind.name, path);

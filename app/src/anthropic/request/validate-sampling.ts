@@ -7,9 +7,8 @@
  */
 import { JsonObject } from '../../utils/json-object';
 import { SurfaceError } from '../surface-error';
-import { fieldInvalid } from './field-errors';
+import { fieldInvalid, present } from './field-errors';
 
-const present = (value: unknown): boolean => value !== undefined && value !== null;
 
 function numberField(body: JsonObject, field: string): number | undefined {
   const value = body[field];

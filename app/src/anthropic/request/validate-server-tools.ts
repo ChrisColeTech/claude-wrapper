@@ -8,14 +8,13 @@
  */
 import { JsonObject, isObject } from '../../utils/json-object';
 import { SurfaceError } from '../surface-error';
-import { fieldInvalid } from './field-errors';
+import { fieldInvalid, present } from './field-errors';
 
 const WEB_TOOL_TYPES: ReadonlySet<unknown> = new Set([
   'web_search_20250305', 'web_search_20260209', 'web_search_20260318',
   'web_fetch_20250910', 'web_fetch_20260209', 'web_fetch_20260309', 'web_fetch_20260318'
 ]);
 
-const present = (value: unknown): boolean => value !== undefined && value !== null;
 
 function validateWebTool(tool: JsonObject, path: string): void {
   if (present(tool['allowed_domains']) && present(tool['blocked_domains'])) {

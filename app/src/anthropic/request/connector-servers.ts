@@ -9,7 +9,7 @@
 import { BRIDGE_SERVER_NAME } from '../../upstream/bridge';
 import { isObject } from '../../utils/json-object';
 import { SurfaceError } from '../surface-error';
-import { fieldInvalid, fieldRequired } from './field-errors';
+import { fieldInvalid, fieldRequired, present } from './field-errors';
 
 export interface DeclaredServer {
   /** The client's index in `mcp_servers`. */
@@ -29,10 +29,9 @@ export interface DeclaredServer {
 
 const NAME = /^[a-zA-Z0-9_-]+$/;
 
-const absent = (value: unknown): boolean => value === undefined || value === null;
 
 function requiredString(value: unknown, path: string): string {
-  if (absent(value)) throw fieldRequired(path);
+  if (!present(value)) throw fieldRequired(path);
   if (typeof value !== 'string') throw fieldInvalid(path, 'a valid string');
   return value;
 }
@@ -66,13 +65,13 @@ function validateUrl(value: unknown, path: string): Pick<DeclaredServer, 'url' |
 }
 
 export function optionalBoolean(value: unknown, path: string): boolean | undefined {
-  if (absent(value)) return undefined;
+  if (!present(value)) return undefined;
   if (typeof value !== 'boolean') throw fieldInvalid(path, 'a valid boolean');
   return value;
 }
 
 function stringList(value: unknown, path: string): string[] | null {
-  if (absent(value)) return null;
+  if (!present(value)) return null;
   if (!Array.isArray(value)) throw fieldInvalid(path, 'a valid list');
   value.forEach((entry, index) => {
     if (typeof entry !== 'string') throw fieldInvalid(`${path}.${index}`, 'a valid string');
@@ -81,7 +80,7 @@ function stringList(value: unknown, path: string): string[] | null {
 }
 
 function toolConfiguration(value: unknown, path: string): Pick<DeclaredServer, 'enabled' | 'allowedTools'> {
-  if (absent(value)) return { enabled: true, allowedTools: null };
+  if (!present(value)) return { enabled: true, allowedTools: null };
   if (!isObject(value)) throw fieldInvalid(path, 'a valid dictionary');
   return {
     enabled: optionalBoolean(value['enabled'], `${path}.enabled`) ?? true,
@@ -92,12 +91,12 @@ function toolConfiguration(value: unknown, path: string): Pick<DeclaredServer, '
 function declaredServer(server: unknown, index: number): DeclaredServer {
   const path = `mcp_servers.${index}`;
   if (!isObject(server)) throw fieldInvalid(path, 'a valid dictionary');
-  if (absent(server['type'])) throw fieldRequired(`${path}.type`);
+  if (!present(server['type'])) throw fieldRequired(`${path}.type`);
   if (server['type'] !== 'url') throw fieldInvalid(`${path}.type`, "'url'");
   const address = validateUrl(server['url'], `${path}.url`);
   const name = validateName(server['name'], `${path}.name`);
   const token = server['authorization_token'];
-  if (!absent(token) && typeof token !== 'string') throw fieldInvalid(`${path}.authorization_token`, 'a valid string');
+  if (present(token) && typeof token !== 'string') throw fieldInvalid(`${path}.authorization_token`, 'a valid string');
   const configuration = toolConfiguration(server['tool_configuration'], `${path}.tool_configuration`);
   return { index, name, ...address, ...(typeof token === 'string' ? { token } : {}), ...configuration };
 }

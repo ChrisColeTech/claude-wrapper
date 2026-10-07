@@ -11,7 +11,8 @@ import { extraInputs } from './validate-extra-fields';
 
 const SERVICE_TIERS: readonly unknown[] = ['auto', 'standard_only'];
 
-function present(body: JsonObject, field: string): unknown {
+/** The field's value, `null` read as absent. */
+function fieldValue(body: JsonObject, field: string): unknown {
   const value = body[field];
   return value === null ? undefined : value;
 }
@@ -28,19 +29,19 @@ function checkMetadata(metadata: unknown): void {
 }
 
 function checkObject(body: JsonObject, field: string): void {
-  const value = present(body, field);
+  const value = fieldValue(body, field);
   if (value !== undefined && !isObject(value)) throw fieldInvalid(field, 'a valid dictionary');
 }
 
 export function validatePlainFields(body: JsonObject): void {
-  const stream = present(body, 'stream');
+  const stream = fieldValue(body, 'stream');
   if (stream !== undefined && typeof stream !== 'boolean') throw fieldInvalid('stream', 'a valid boolean');
-  checkMetadata(present(body, 'metadata'));
-  const tier = present(body, 'service_tier');
+  checkMetadata(fieldValue(body, 'metadata'));
+  const tier = fieldValue(body, 'service_tier');
   if (tier !== undefined && !SERVICE_TIERS.includes(tier)) {
     throw SurfaceError.invalidRequest("service_tier: Input should be 'auto' or 'standard_only'");
   }
-  const geo = present(body, 'inference_geo');
+  const geo = fieldValue(body, 'inference_geo');
   if (geo !== undefined && typeof geo !== 'string') throw fieldInvalid('inference_geo', 'a valid string');
   checkObject(body, 'diagnostics');
   checkObject(body, 'cache_control');

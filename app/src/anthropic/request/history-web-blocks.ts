@@ -8,17 +8,16 @@
  * sent them: `encrypted_content` is never read, and a missing field renders empty.
  */
 import { isObject } from '../../utils/json-object';
+import { webToolNamed } from '../web-tools';
 import { attribute, callTag } from './history-markup';
 import { ContentBlock } from './turn-plan';
 
 type HistoryPart = string | ContentBlock;
 
-const INPUT_FIELDS: Readonly<Record<string, string>> = { web_search: 'query', web_fetch: 'url' };
-
 /** A web tool's call by its one input field; any other server tool's generically, as sent. */
 function serverToolUse(block: ContentBlock): HistoryPart[] {
   const name = String(block['name']);
-  const field = Object.hasOwn(INPUT_FIELDS, name) ? INPUT_FIELDS[name] : undefined;
+  const field = webToolNamed(name)?.inputField;
   if (!field) return [callTag('server_tool_use', block)];
   const input = isObject(block['input']) ? block['input'] : {};
   return [`<${name} ${field}="${attribute(input[field])}"/>`];
