@@ -1,0 +1,21 @@
+[  0.00s] -> {"type": "user", "message": {"role": "user", "content": [{"type": "text", "text": "Reply with the single word pong"}]}}
+[  1.22s] <- type=system subtype=init 
+[  4.67s] <- type=user subtype=None content=[{"type": "text", "text": "Reply with the single word pong"}]
+[  4.69s] <- type=assistant subtype=None content=[{"type": "text", "text": "pong"}]
+[  4.70s] <- type=rate_limit_event subtype=None 
+[  4.71s] <- type=result subtype=success subtype=success result='pong' num_turns=1 is_error=False errors=None
+[  4.80s] stdin still open; sending second message with an image block
+[  4.81s] -> {"type": "user", "message": {"role": "user", "content": [{"type": "image", "source": {"type": "base64", "media_type": "image/png", "data": "
+[  4.82s] <- type=system subtype=init 
+[  8.20s] <- type=user subtype=None content=[{"type": "image", "source": {"type": "base64", "media_type": "image/png", "data": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLv
+[  8.20s] <- type=assistant subtype=None content=[{"type": "text", "text": "Orange"}]
+[  8.21s] <- type=result subtype=success subtype=success result='Orange' num_turns=1 is_error=False errors=None
+[  8.41s] sending third message: a bare tool_result block for an unknown tool_use_id
+[  8.41s] -> {"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "toolu_01FakeFakeFakeFakeFakeFa", "content":
+[  8.42s] <- type=system subtype=init 
+[ 11.58s] <- type=assistant subtype=None content=[{"type": "thinking", "thinking": "", "signature": "CAQSqwYKEAgSGAI4AUIIdGhpbmtpbmcSDIGaXfT3+cChajHzAxoMPbLawgkcfCgq0PSUIjDiNaCnmYaV6yqEVBIpHFasHakrArKfL1M+SCkZ
+[ 12.62s] <- type=assistant subtype=None content=[{"type": "text", "text": "Your last message came through empty. Let me know what you'd like me to do next."}]
+[ 12.64s] <- type=result subtype=success subtype=success result="Your last message came through empty. Let me know what you'd like me to do next." num_turns=1 is_error=False errors=None
+[ 12.81s] closing stdin
+[ 13.68s] process exit rc=0 (13.68s after start)
+[ 13.68s] stderr: ''
