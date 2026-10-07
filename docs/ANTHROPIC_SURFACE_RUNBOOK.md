@@ -78,7 +78,7 @@ The conversation map lives in memory: after a restart, every conversation's next
 
 The scenarios under `app/tests/e2e/upstream/` drive the operator's real Claude Code: the CLI, a login, and network access. They are behind one flag, `UPSTREAM_E2E=1`. Without the flag every scenario is skipped, which is the default and always the case in CI.
 
-**None of them has been run yet.** They were written with their tickets and never run against the real CLI. Expect the first run to find problems, and see "Unproven on the real CLI" below.
+**Every file has run against the real CLI**, on 2026-10-07 with Claude Code 2.1.291 on a subscription login (Haiku 4.5 unless a file names another model). Two files failed on that run and one hung, and each is fixed since: `failure-after-content` found a call shape the surface relayed as a truncated success (see "Settled by the first run" below); `web-tools` scenario 7 paired search results with hook calls by position, though Haiku made both searches in one message; and `count-tokens` passed but left the surface's control server open, so Jest never exited. An earlier run that day failed `conversation`, whose test expected cache reads that a two-turn chat is too short for. The `web-tools` private-host test was written after that run.
 
 **Every scenario spends subscription quota** (or API credit, with an API key in `CLAUDE_WRAPPER_UPSTREAM_ENV`), because each one makes real model calls through Anthropic's API.
 
@@ -104,7 +104,7 @@ UPSTREAM_E2E=1 npm --prefix app run test:e2e -- tests/e2e/upstream        # all 
 | `max-tokens-cut.test.ts` | **4**: the interrupt racing upstream's auto-continuation after a `max_tokens` cut | 2 capped at 48 tokens, plus at most 1 more each | |
 | `count-tokens.test.ts` | **5**: `count_tokens` end to end | 7 one-token counts + 1 short turn | |
 | `structured-output.test.ts` | `parse()`, streaming, a refused schema (no model call), a continued turn without a format | 4 | |
-| `web-tools.test.ts` | search with `allowed_domains`, a fetch; **7**: the hook client round trip (`-t 'scenario 7'`) | 3 turns, plus upstream's side call per search or fetch | the web, through search; `https://example.com/`, fetched from this machine |
+| `web-tools.test.ts` | search with `allowed_domains`, a fetch; **7**: the hook client round trip (`-t 'scenario 7'`); the private-host block, a fetch of a URL on a loopback server the test starts, which must see no connection (`-t 'private-host'`) | 4 turns, plus upstream's side call per search or fetch | the web, through search; `https://example.com/`, fetched from this machine; a loopback server on this machine |
 | `connectors.test.ts` | **9**: a connector round trip, and the not-connected path | 1 to 2, plus the start of 1 | `https://mcp.deepwiki.com/mcp` (DeepWiki's public MCP server, no token), from this machine; the not-connected path tries `https://127.0.0.1:9/mcp` |
 | `redaction.test.ts` | **10**: a direct ask for the account email with redaction armed (needs an OAuth login) | 2 | |
 | `failure-after-content.test.ts` | **1**: a model call failing after it streamed content | 2 | a loopback proxy, set as upstream's `ANTHROPIC_BASE_URL`, that forwards to `https://api.anthropic.com` and breaks the first streamed response |
@@ -120,20 +120,24 @@ Optional variables:
 | `UPSTREAM_E2E_MODEL` | `claude-haiku-4-5-20251001` | every file but `thinking`; `redaction` suggests `claude-fable-5-1`, the model its fixture was recorded on |
 | `UPSTREAM_E2E_5X_MODEL` | `claude-sonnet-5-5` | `thinking` (scenario 3), `count-tokens` |
 | `UPSTREAM_E2E_PARK_MS` | `330000` (5.5 min) | `client-tools` (scenario 6) |
-| `UPSTREAM_E2E_RECORD_DIR` | unset (`failure-after-content`: a temp directory) | `thinking`, `connectors`, `failure-after-content`: writes each run's frames there |
+| `UPSTREAM_E2E_RECORD_DIR` | unset (`failure-after-content`: a temp directory) | `thinking`, `connectors`, `web-tools` (scenario 7 and the private-host test), `failure-after-content`: writes each run's frames there |
 | `UPSTREAM_E2E_FAULT` | an SSE `overloaded_error` | `failure-after-content`: `cut` drops the connection instead |
 | `UPSTREAM_E2E_CONNECTOR_URL`, `_NAME`, `_TOKEN`, `_PROMPT` | DeepWiki, `deepwiki`, none, a DeepWiki question | `connectors` |
 | `UPSTREAM_E2E_DEAD_CONNECTOR_URL` | `https://127.0.0.1:9/mcp` | `connectors` (not-connected path) |
 
 Each scenario runs in a temporary state directory, and the harness removes it and the transcripts upstream wrote for it.
 
-**Unproven on the real CLI**, and so the first places to look when a scenario fails:
+**Settled by the first run** (2026-10-07, Claude Code 2.1.291):
 
-- An empty `--allowedTools` (`plain-run`).
-- A comma-joined `--allowedTools` with `WebFetch(domain:*)`, `--settings` given a file path, and the quoted hook command (`web-tools`).
-- A whole-server `--allowedTools mcp__<server>` rule, and whether a dead connector shows as not connected within the 20 s startup timer or turns into a 504 (`connectors`).
-- Whether Claude Code honours `ANTHROPIC_BASE_URL` on a subscription login. If not, scenario 1 reports that the proxy saw no request; put an API key in `CLAUDE_WRAPPER_UPSTREAM_ENV`.
-- That the schema the test uses is one the CLI refuses at startup, and whether a format turn's session can continue without a format (`structured-output`).
+- The run's flags work: an empty `--allowedTools`, a comma-joined `--allowedTools` with `WebFetch(domain:*)`, `--settings` given a file path, the quoted hook command, and a whole-server `--allowedTools mcp__<server>` rule. Claude Code honours a `PreToolUse` deny.
+- Claude Code refuses the schema `{type: "nonsense"}` at startup, and the surface answers 400. A structured-output turn's session continues without a format on `--resume`.
+- A one-token count works under adaptive thinking on `claude-sonnet-5-5`.
+- `MAX_THINKING_TOKENS` binds on Haiku 4.5: 686 thinking tokens at a budget of 1,024, against 11,068 at 12,000. `CLAUDE_CODE_DISABLE_THINKING` has no effect on `claude-sonnet-5-5`.
+- No further model call starts after a `max_tokens` cut.
+- A dead connector is reported `failed` within about 2.7 s, inside the 20 s startup timer, so the turn gets the not-connected 400, not a 504.
+- A park of 5.5 minutes completes on delivery.
+- Claude Code honours `ANTHROPIC_BASE_URL` on a subscription login, so scenario 1's proxy needs no API key.
+- Scenario 1: after the proxy's mid-stream `overloaded_error`, Claude Code closed the call with `content_block_stop` and `message_stop` but no `message_delta`, retried it with no `api_retry` and no stream event, and reported `success`; the answer reached only its `assistant` frame. The surface now fails such a call as a broken call: it cannot see the cause, so the turn gets the upstream table's unknown-cause row, 500 `api_error` for a request without `stream` and one SSE `error` event for a stream; the run is interrupted and its session forgotten. The recording is the fixture `e2e-runs/scenario-1-failure-after-content-error_event.jsonl`; `UPSTREAM_E2E_FAULT=cut` has not been run.
 
 ## Re-scrubbing fixtures
 

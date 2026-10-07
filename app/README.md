@@ -291,7 +291,7 @@ Tools, web search and connectors:
 - **Some connector settings are ignored or restricted.** `defer_loading` is ignored. `enabled: false` is honoured, but disabling one tool in `configs`, while the toolset enables tools by default, needs that server's `tool_configuration.allowed_tools`; otherwise it is a 400.
 - **Connector names are restricted.** They may hold only letters, digits, `_` and `-`, never `__`, and `client` is reserved. A pinned `tools` listing in an `mcp_toolset` is a 400.
 - **Connector results keep only text items.** Other item types are dropped.
-- **A connector that cannot connect may give a 504.** Both of Claude Code's connect waits (`MCP_CONNECT_TIMEOUT_MS`, `MCP_TIMEOUT`) are pinned at 5 s, inside the 20 s startup timer, so it should report the server as not connected and the turn get the 400 that names it; that is unverified, and a 504 from the startup timer remains possible.
+- **A connector that cannot connect is a 400 that names it.** Claude Code 2.1.291 reported an unreachable server `failed` within about 2.7 s (measured on 2026-10-07), inside the 20 s startup timer, so the turn gets that 400, not a 504.
 
 Conversations:
 
@@ -302,6 +302,7 @@ Conversations:
 Errors and headers:
 
 - **Login and billing failures of the operator are a 500**, never a 401 or 402.
+- **A model call that breaks mid-stream fails the turn with `api_error`**, whatever broke it. Claude Code 2.1.291 hides a mid-stream API error such as `overloaded_error` (observed on 2026-10-07): it closes the call without its `message_delta` and retries it where the surface cannot see it. The surface does not relay the cut-off text as a whole message. A request without `stream` gets a 500 `api_error`; a stream ends with one SSE `error` event of that type. Either can be retried.
 - **No `anthropic-ratelimit-*` headers.**
 
 ## 🚀 CLI Usage
