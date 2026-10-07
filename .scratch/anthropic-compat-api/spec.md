@@ -325,7 +325,7 @@ Settled in [Conversation state and system prompt](issues/10-conversation-state-a
 | Argument | Rule |
 | - | - |
 | `-p --input-format stream-json --output-format stream-json --verbose --include-partial-messages` | every run |
-| `--system-prompt <text>` | exactly the client's `system`, or the empty string |
+| `--system-prompt <text>` | exactly the client's `system`, or the empty string. The implementation passes it as `--system-prompt-file <run dir>/system-prompt.txt` (`0600`); see [ticket 28's Comments](issues/28-turn-planning-and-run-spec.md#comments) |
 | `--system-prompt-snapshot off` | every run |
 | `--setting-sources=` (empty) and `--strict-mcp-config` | every run |
 | `--model <canonical id>` | every run, including `--resume` |
