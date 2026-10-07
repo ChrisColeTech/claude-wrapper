@@ -1,11 +1,13 @@
 /**
  * The run's audit of its hook (spec section 8): `result.permission_denials` may hold only the
- * denials the wrapper's hook issued, matched by `tool_use_id`; any other entry means upstream's
- * permissions are not the wrapper's (a misconfiguration). And a web tool call whose result arrives
+ * denials the wrapper's hook issued, matched by `tool_use_id`, and those of connector tools the
+ * request did not allow (spec section 9: `--allowedTools` leaves them out, so upstream denies
+ * them); any other entry means upstream's permissions are not the wrapper's (a misconfiguration). And a web tool call whose result arrives
  * with no decision from the hook ran unenforced (upstream lets a call through when a command hook
  * fails to start or times out). Both are logged at error by name and id, never with the input:
  * the response has closed by `result`, so neither fails the turn.
  */
+import { isConnectorTool } from '../connector-tools';
 import { Frame, JsonObject } from '../frames';
 import { DenialCode, isWebTool } from './types';
 
@@ -40,7 +42,7 @@ function onResults(content: unknown, state: AuditState, logger: AuditLogger): vo
 function onDenials(denials: unknown, state: AuditState, logger: AuditLogger): void {
   for (const denial of blocksOf(denials)) {
     const id = String(denial['tool_use_id']);
-    if (state.decided.get(id)) continue;
+    if (state.decided.get(id) || isConnectorTool(denial['tool_name'])) continue;
     logger.error("Upstream denied a tool call the wrapper's hook did not: the run is misconfigured",
       { toolName: denial['tool_name'], toolUseId: id });
   }

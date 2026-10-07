@@ -156,6 +156,15 @@ describe('hook policy: auditing the run (spec section 8)', () => {
     expect(JSON.stringify(logger.error.mock.calls)).not.toContain('version number');
   });
 
+  it("does not log the denial of a connector tool the request did not allow (spec section 9's own permission rule)", () => {
+    const logger = quietLogger();
+    const policy = policyFor({ WebSearch: {} }, logger);
+
+    policy.onFrame(resultFrame({ permission_denials: [{ tool_name: 'mcp__docs__delete_page', tool_use_id: 'toolu_x', tool_input: {} }] }));
+
+    expect(logger.error).not.toHaveBeenCalled();
+  });
+
   it("logs a web tool call whose result arrived without the hook's decision", () => {
     const logger = quietLogger();
     const policy = policyFor({ WebSearch: {} }, logger);
