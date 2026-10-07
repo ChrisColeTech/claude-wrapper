@@ -5,7 +5,7 @@
  */
 import { ControlResponse, describeFrame, Frame, parseFrame } from '../frames';
 import { Clock } from '../../utils/clock';
-import { logger as defaultLogger } from '../../utils/logger';
+import { logger as defaultLogger, Logger } from '../../utils/logger';
 import { createControlChannel } from './control-channel';
 import { createFrameQueue } from './frame-queue';
 import { createLineFramer } from './line-framer';
@@ -23,14 +23,10 @@ export const RESULT_WAIT_MS = 5_000;
 export const CLOSE_GRACE_MS = 2_000;
 export const TERM_GRACE_MS = 5_000;
 
-export interface RunLogger {
-  debug(message: string, context?: unknown): void;
-}
-
 export interface RunOptions {
   timers: RunTimers;
   clock: Clock;
-  logger?: RunLogger;
+  logger?: Pick<Logger, 'debug'>;
 }
 
 class RunCore {
@@ -40,7 +36,7 @@ class RunCore {
   private readonly stderr = createStderrRing(STDERR_RING_BYTES);
   private readonly control = createControlChannel();
   private readonly escalation: unknown[] = [];
-  private readonly log: RunLogger;
+  private readonly log: Pick<Logger, 'debug'>;
   private readonly timers: RunTimerSet;
   private upstream: UpstreamProcess | undefined;
   private failure: RunFailureReason | undefined;

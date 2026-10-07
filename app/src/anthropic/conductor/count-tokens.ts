@@ -7,55 +7,33 @@
  * Messages would answer. The count looks up, records and forgets no session: it continues
  * nothing, and its run writes no transcript.
  */
-import { Request, Response } from 'express';
-import { StateDirectory } from '../../upstream/state-directory';
 import { Catalogue } from '../catalogue';
-import { SurfaceError } from '../surface-error';
-import { anthropicBetas } from '../http';
 import { planCountTokens } from '../request';
 import { createCountSink } from '../respond';
+import { SurfaceError } from '../surface-error';
 import { createTranslator } from '../translate';
-import { launchRun, LaunchDeps, StartingPlan } from './launch';
-import { PumpLogger } from './run-pump';
+import { ConductorLogger, Exchange, outcomeContext, planContext, PlanningDeps } from './context';
+import { launchRun, LaunchDeps, startingPlan } from './launch';
 
-export interface CountDeps extends LaunchDeps {
+export interface CountDeps extends LaunchDeps, PlanningDeps {
   catalogue: Catalogue;
-  stateDirectory: () => StateDirectory;
-}
-
-/** One `count_tokens` request: `runId` names its run. */
-export interface CountExchange {
-  req: Request;
-  res: Response;
-  requestId: string;
-  runId: string;
-}
-
-function plan(deps: CountDeps, { req, runId }: CountExchange): StartingPlan {
-  const context = { settings: deps.settings, environment: process.env, state: deps.stateDirectory(), runId, betas: anthropicBetas(req) };
-  const planned = planCountTokens(req.body, deps.catalogue, context);
-  if (planned instanceof SurfaceError) throw planned;
-  const { continuation } = planned;
-  if ('parked' in continuation) throw new Error('a count resumed a parked run');
-  return { ...planned, continuation };
 }
 
 /**
- * Answers `exchange` with its count; rejects with the error to render when it fails before. The
- * count's run is admitted like any run (the run cap, rate-limit admission, the shutdown) but, on
- * no session, never waits on one.
+ * Answers `exchange` with its count, measured by the run `runId`; rejects with the error to render
+ * when it fails before. The count's run is admitted like any run (the run cap, rate-limit
+ * admission, the shutdown) but, on no session, never waits on one.
  */
-export async function countTokens(deps: CountDeps, exchange: CountExchange, log: PumpLogger): Promise<void> {
-  const turn = plan(deps, exchange);
-  const { req, requestId, runId } = exchange;
-  const run = await launchRun(deps, { body: req.body, requestId, runId }, { plan: turn, replan: () => turn }, log);
+export async function countTokens(deps: CountDeps, exchange: Exchange, runId: string, log: ConductorLogger): Promise<void> {
+  const planned = planCountTokens(exchange.req.body, deps.catalogue, planContext(deps, exchange.req, runId));
+  if (planned instanceof SurfaceError) throw planned;
+  const turn = startingPlan(planned);
+  const run = await launchRun(deps, exchange, runId, { plan: turn, replan: () => turn }, log);
   const sink = createCountSink(exchange.res);
   run.pump.attach({ translator: createTranslator({ logger: log, failures: run.failures }), sink });
   const outcome = await sink.outcome;
   run.pump.stop(`the count ended: ${outcome.kind}`);
   run.lease.release();
-  log.info('Anthropic count ended', 'error' in outcome
-    ? { outcome: outcome.kind, errorType: outcome.error.type }
-    : { outcome: outcome.kind });
+  log.info('Anthropic count ended', outcomeContext(outcome));
   if (outcome.kind === 'rejected') throw outcome.error;
 }

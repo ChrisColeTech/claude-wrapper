@@ -12,7 +12,7 @@
  */
 import { ToolResultBlock } from '../../upstream/bridge';
 import { Frame } from '../../upstream/frames';
-import { logger as defaultLogger } from '../../utils/logger';
+import { logger as defaultLogger, Logger } from '../../utils/logger';
 import { SurfaceError } from '../surface-error';
 import { resumedSession, TurnPlan } from '../request';
 import { ParkedRun } from '../sessions';
@@ -21,7 +21,7 @@ import { RateLimitGate } from './rate-limit-gate';
 import { SessionLocks } from './session-locks';
 import { parkedRunLease, Slot, SlotHost } from './slot';
 import {
-  Admission, Lease, ScheduledRun, Scheduler, SchedulerCounts, SchedulerLogger, SchedulerOptions
+  Admission, Lease, ScheduledRun, Scheduler, SchedulerCounts, SchedulerOptions
 } from './types';
 import { within } from './wait';
 
@@ -35,7 +35,7 @@ class RunScheduler<R extends HeldOpen> implements Scheduler<R>, SlotHost {
   private readonly parking: Parking<R>;
   private readonly locks: SessionLocks;
   private readonly rateLimit: RateLimitGate;
-  private readonly logger: SchedulerLogger;
+  private readonly logger: Pick<Logger, 'info' | 'warn'>;
   private draining: Promise<void> | undefined;
 
   constructor(private readonly options: SchedulerOptions) {

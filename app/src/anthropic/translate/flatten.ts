@@ -21,7 +21,7 @@
  * no open block is retried as one more suppressed `message_start`.
  */
 import { isConnectorTool } from '../../upstream/connector-tools';
-import { ApiRetryFrame, Frame, ResultFrame, StreamEvent, UserFrame } from '../../upstream/frames';
+import { ApiRetryFrame, Frame, isCleanResult, ResultFrame, StreamEvent, UserFrame } from '../../upstream/frames';
 import { isWebTool } from '../../upstream/hook-policy';
 import { FailureReader } from '../failure';
 import { SurfaceError } from '../surface-error';
@@ -33,8 +33,6 @@ import { ServerToolCalls, TurnEvent } from './turn-event';
 /** A call upstream runs itself, the model then called again: a built-in web tool or a connector's tool. */
 const runsUpstream = (name: unknown): boolean => isWebTool(name) || isConnectorTool(name);
 
-/** `is_error: true` or a subtype other than `success`. */
-const isFailedResult = (result: ResultFrame): boolean => result.is_error || result.subtype !== 'success';
 
 class Flattener implements Pass<Frame, TurnEvent> {
   private started = false;
@@ -139,7 +137,7 @@ class Flattener implements Pass<Frame, TurnEvent> {
   }
 
   private onResult(result: ResultFrame): TurnEvent[] {
-    return isFailedResult(result) ? this.fail(this.failures.errorFor({ kind: 'result', result })) : [];
+    return isCleanResult(result) ? [] : this.fail(this.failures.errorFor({ kind: 'result', result }));
   }
 
   private fail(error: SurfaceError): TurnEvent[] {

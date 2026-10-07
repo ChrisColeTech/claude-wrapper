@@ -12,6 +12,7 @@
  */
 import { DeliverOutcome, ToolResultBlock } from '../../upstream/bridge';
 import { Clock, TimerHandle } from '../../utils/clock';
+import { Logger } from '../../utils/logger';
 import { ParkedRun, ParkedRuns } from '../sessions';
 
 /** What parking needs of a held-open run beside the registry's view of it. */
@@ -38,17 +39,13 @@ export interface Parking<R extends HeldOpen = HeldOpen> {
   readonly count: number;
 }
 
-export interface ParkingLogger {
-  info(message: string, context?: unknown): void;
-}
-
 export interface ParkingOptions {
   /** The sessions' parked-run registry, which the planner reads. */
   registry: ParkedRuns;
   clock: Clock;
   /** The park TTL (setting `parkTtlMs`). */
   ttlMs: number;
-  logger: ParkingLogger;
+  logger: Pick<Logger, 'info'>;
 }
 
 class ParkingLot<R extends HeldOpen> implements Parking<R> {

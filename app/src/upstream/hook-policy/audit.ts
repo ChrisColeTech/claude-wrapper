@@ -8,6 +8,7 @@
  * the response has closed by `result`, so neither fails the turn.
  */
 import { isObject } from '../../utils/json-object';
+import { Logger } from '../../utils/logger';
 import { isConnectorTool } from '../connector-tools';
 import { Frame, JsonObject } from '../frames';
 import { DenialCode, isWebTool } from './types';
@@ -19,10 +20,6 @@ export interface AuditState {
   webCalls: Set<string>;
 }
 
-export interface AuditLogger {
-  error(message: string, context?: unknown): void;
-}
-
 const blocksOf = (content: unknown): JsonObject[] =>
   (Array.isArray(content) ? content.filter(isObject) : []);
 
@@ -32,24 +29,24 @@ function onAnnounced(content: unknown, state: AuditState): void {
   }
 }
 
-function onResults(content: unknown, state: AuditState, logger: AuditLogger): void {
+function onResults(content: unknown, state: AuditState, logger: Pick<Logger, 'error'>): void {
   for (const block of blocksOf(content)) {
     const id = String(block['tool_use_id']);
     if (block['type'] !== 'tool_result' || !state.webCalls.has(id) || state.decided.has(id)) continue;
-    logger.error("A web tool call ran without the wrapper's hook: its limits were not enforced", { toolUseId: id });
+    logger.error("A web tool call ran without the wrapper's hook: its limits were not enforced", undefined, { toolUseId: id });
   }
 }
 
-function onDenials(denials: unknown, state: AuditState, logger: AuditLogger): void {
+function onDenials(denials: unknown, state: AuditState, logger: Pick<Logger, 'error'>): void {
   for (const denial of blocksOf(denials)) {
     const id = String(denial['tool_use_id']);
     if (state.decided.get(id) || isConnectorTool(denial['tool_name'])) continue;
-    logger.error("Upstream denied a tool call the wrapper's hook did not: the run is misconfigured",
+    logger.error("Upstream denied a tool call the wrapper's hook did not: the run is misconfigured", undefined,
       { toolName: denial['tool_name'], toolUseId: id });
   }
 }
 
-export function auditFrame(frame: Frame, state: AuditState, logger: AuditLogger): void {
+export function auditFrame(frame: Frame, state: AuditState, logger: Pick<Logger, 'error'>): void {
   if (frame.type === 'assistant' && frame.parent_tool_use_id == null) onAnnounced(frame.message.content, state);
   if (frame.type === 'user' && frame.parent_tool_use_id == null) onResults(frame.message.content, state, logger);
   if (frame.type === 'result') onDenials(frame.permission_denials, state, logger);

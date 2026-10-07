@@ -6,8 +6,8 @@
  * `system/status`, hook and unknown frames (`system/thinking_tokens` among them) are not inputs.
  */
 import { Frame } from '../../upstream/frames';
+import { Logger } from '../../utils/logger';
 import { Pass } from './pass';
-import { TranslatorLogger } from './turn-event';
 
 const SYNTHETIC_MODEL = '<synthetic>';
 
@@ -24,7 +24,7 @@ function isInput(frame: Frame): boolean {
   }
 }
 
-export function createSyntheticDrop(logger: TranslatorLogger): Pass<Frame, Frame> {
+export function createSyntheticDrop(logger: Pick<Logger, 'debug'>): Pass<Frame, Frame> {
   return {
     push(frame) {
       if (frame.type === 'assistant' && frame.message.model === SYNTHETIC_MODEL) {

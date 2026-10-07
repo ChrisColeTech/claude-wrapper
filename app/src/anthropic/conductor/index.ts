@@ -5,4 +5,4 @@
 export { createConductor } from './conductor';
 export type { Conductor, ConductorDeps } from './conductor';
 export type { HeldRun } from './held-run';
-export type { PumpLogger } from './run-pump';
+export type { ConductorLogger } from './context';

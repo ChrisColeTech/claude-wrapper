@@ -4,7 +4,7 @@
  * way its turn can fail; `mapUpstreamFailure` is the upstream failure table itself.
  */
 export { createFailureReader } from './failure-reader';
-export type { FailureReader, FailureReaderLogger, FailureReaderOptions, FailureTrigger } from './failure-reader';
+export type { FailureReader, FailureReaderOptions, FailureTrigger } from './failure-reader';
 export { isBillingGate, mapUpstreamFailure } from './map-upstream-failure';
 export { retryAfterSeconds } from './retry-after';
 export { runFailureError } from './run-failure-error';

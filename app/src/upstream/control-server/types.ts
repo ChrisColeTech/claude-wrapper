@@ -44,7 +44,3 @@ export interface ControlServer {
   close(): Promise<void>;
 }
 
-export interface ControlServerLogger {
-  debug(message: string, context?: unknown): void;
-  warn(message: string, context?: unknown): void;
-}

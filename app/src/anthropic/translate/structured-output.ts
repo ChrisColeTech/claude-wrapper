@@ -20,10 +20,10 @@
  * strip): the `tool_result` arrives as a `user` frame, and the flattener must already see the
  * call's end as success or failure. Frames of other threads (`parent_tool_use_id`) pass as they came.
  */
-import { Frame, JsonObject, ResultFrame, StreamEvent, StreamEventFrame, UserFrame } from '../../upstream/frames';
+import { Frame, isCleanResult, JsonObject, ResultFrame, StreamEvent, StreamEventFrame, UserFrame } from '../../upstream/frames';
 import { STRUCTURED_OUTPUT_TOOL } from '../../upstream/structured-output';
+import { Logger } from '../../utils/logger';
 import { Pass } from './pass';
-import { TranslatorLogger } from './turn-event';
 
 interface Buffered {
   /** The `tool_use` id its `tool_result` names. */
@@ -44,7 +44,6 @@ function toolResults(frame: UserFrame): JsonObject[] {
   return Array.isArray(content) ? content.filter(block => block['type'] === 'tool_result') : [];
 }
 
-const isClean = (result: ResultFrame): boolean => result.subtype === 'success' && !result.is_error;
 
 class StructuredOutputBuffer implements Pass<Frame, Frame> {
   /** Upstream's index of each block of the current call that is relayed, to the index it gets. */
@@ -58,7 +57,7 @@ class StructuredOutputBuffer implements Pass<Frame, Frame> {
   /** The call's end, held while its buffered block waits for its `tool_result`. */
   private held: StreamEventFrame[] = [];
 
-  constructor(private readonly logger: TranslatorLogger) {}
+  constructor(private readonly logger: Pick<Logger, 'debug'>) {}
 
   push(frame: Frame): Frame[] {
     if (frame.type === 'user' && frame.parent_tool_use_id == null) return [...this.onUser(frame), frame];
@@ -154,7 +153,7 @@ class StructuredOutputBuffer implements Pass<Frame, Frame> {
   /** Upstream ended the run with the block still waiting: a clean `result` means it was accepted. */
   private onResult(result: ResultFrame): Frame[] {
     if (!this.buffered) return [];
-    return isClean(result) ? this.succeed() : this.fail();
+    return isCleanResult(result) ? this.succeed() : this.fail();
   }
 
   private succeed(): Frame[] {
@@ -187,6 +186,6 @@ class StructuredOutputBuffer implements Pass<Frame, Frame> {
   }
 }
 
-export function createStructuredOutputBuffer(logger: TranslatorLogger): Pass<Frame, Frame> {
+export function createStructuredOutputBuffer(logger: Pick<Logger, 'debug'>): Pass<Frame, Frame> {
   return new StructuredOutputBuffer(logger);
 }

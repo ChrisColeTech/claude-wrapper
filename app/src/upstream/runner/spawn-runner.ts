@@ -5,12 +5,13 @@
  * child's pipes have closed. The spec's run directory is created before the spawn and removed
  * before the exit is reported; a start that fails on either is a `spawn_failed` run.
  */
+import { Logger } from '../../utils/logger';
 import { ChildProcess, spawn as nodeSpawn, SpawnOptions } from 'child_process';
 import { Writable } from 'stream';
 import { EnvironmentManager } from '../../config/env';
 import { Clock, systemClock } from '../../utils/clock';
 import { ProcessSink, ProcessStarter, UpstreamProcess } from './process';
-import { createRun, RunLogger } from './run';
+import { createRun } from './run';
 import { createRunDirectory, removeRunDirectory } from './run-directory';
 import { Runner, RunSpec } from './types';
 
@@ -20,7 +21,7 @@ export interface SpawnRunnerOptions {
   /** The Claude Code binary; defaults to `CLAUDE_COMMAND`, else `claude` on the child's PATH. */
   command?: string;
   clock?: Clock;
-  logger?: RunLogger;
+  logger?: Pick<Logger, 'debug'>;
   /** Replaces `child_process.spawn` (tests). */
   spawn?: SpawnFunction;
 }

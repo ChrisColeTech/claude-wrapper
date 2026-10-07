@@ -4,6 +4,7 @@
  */
 import { TranscriptStore } from '../../upstream/transcripts';
 import { Clock } from '../../utils/clock';
+import { Logger } from '../../utils/logger';
 
 /**
  * A held-open run waiting for the client's tool results (spec section 7). The registry and the
@@ -49,10 +50,6 @@ export interface Sessions {
   readonly parked: ParkedRuns;
 }
 
-export interface SessionsLogger {
-  info(message: string, context?: unknown): void;
-}
-
 export interface SessionsOptions {
   /** Idle time is measured on it. */
   clock: Clock;
@@ -62,5 +59,5 @@ export interface SessionsOptions {
   expiryMs: number;
   /** Where forgetting a session deletes its transcript. */
   transcripts: TranscriptStore;
-  logger?: SessionsLogger;
+  logger?: Pick<Logger, 'info'>;
 }

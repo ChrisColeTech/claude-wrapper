@@ -11,7 +11,8 @@ import { FailureReader } from '../failure';
 import { RunBound, RunContinuation, TurnPlan } from '../request';
 import { HeldOpen, Lease } from '../scheduler';
 import { ServerToolCalls } from '../translate';
-import { PumpLogger, RunPump } from './run-pump';
+import { ConductorLogger } from './context';
+import { RunPump } from './run-pump';
 
 /** One run the conductor drives, across the turns of a tool loop. */
 export interface ConductedRun {
@@ -41,7 +42,7 @@ export interface ConductedRun {
 export interface HeldRunOptions {
   /** Forgets an upstream session (the sessions' `forget`). */
   forget(sessionId: string): void;
-  logger: PumpLogger;
+  logger: ConductorLogger;
 }
 
 export class HeldRun implements HeldOpen {

@@ -5,9 +5,10 @@
  */
 import { JsonObject } from '../../upstream/frames';
 import { isObject } from '../../utils/json-object';
+import { Logger } from '../../utils/logger';
 import { ALLOWED_EVENT_FIELDS, FieldFilter, FieldRule, Fields } from './allowed-fields';
 import { eachEvent, Pass } from './pass';
-import { ApiEvent, isControlSignal, TranslatorLogger, TurnEvent } from './turn-event';
+import { ApiEvent, isControlSignal, TurnEvent } from './turn-event';
 
 type Drop = (path: string) => void;
 
@@ -36,7 +37,7 @@ function filterValue(value: unknown, rule: FieldRule, path: string, drop: Drop):
   return filterObject(value, fieldsFor(rule, value), path, drop);
 }
 
-export function createAllowlist(logger: TranslatorLogger): Pass<TurnEvent, TurnEvent> {
+export function createAllowlist(logger: Pick<Logger, 'debug'>): Pass<TurnEvent, TurnEvent> {
   const logged = new Set<string>();
   const drop: Drop = path => {
     if (logged.has(path)) return;

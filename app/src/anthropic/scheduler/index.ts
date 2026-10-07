@@ -6,7 +6,7 @@
  */
 export { createScheduler, SHUTTING_DOWN } from './scheduler';
 export type {
-  Admission, Lease, ScheduledRun, Scheduler, SchedulerCounts, SchedulerLogger, SchedulerOptions, SchedulerSettings
+  Admission, Lease, ScheduledRun, Scheduler, SchedulerCounts, SchedulerOptions, SchedulerSettings
 } from './types';
 export type { Delivery, HeldOpen } from './parking';
 export { createTeardown, RESULT_WAIT_MS } from './teardown';

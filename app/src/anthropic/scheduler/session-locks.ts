@@ -9,9 +9,9 @@
  * duplicate becomes a replayed turn rather than a resume onto a transcript that has moved on.
  */
 import { Clock } from '../../utils/clock';
+import { Logger } from '../../utils/logger';
 import { resumedSession, TurnPlan } from '../request';
 import { Slot } from './slot';
-import { SchedulerLogger } from './types';
 import { deferred, Deferred, within } from './wait';
 
 interface Waiter {
@@ -24,7 +24,7 @@ export interface SessionLockOptions {
   clock: Clock;
   /** The continued-turn wait for the previous run's exit. */
   waitMs: number;
-  logger: SchedulerLogger;
+  logger: Pick<Logger, 'info' | 'warn'>;
   /** Ends a previous run that outlived the wait: its park abandoned if it is parked, then SIGKILL. */
   evict(previous: Slot): void;
 }

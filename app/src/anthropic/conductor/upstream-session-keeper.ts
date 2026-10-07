@@ -11,25 +11,24 @@
  * upstream writes its transcript up to its exit. A turn that parks hands its run on and decides
  * nothing.
  */
-import { Frame, ResultFrame } from '../../upstream/frames';
+import { Frame, isCleanResult, ResultFrame } from '../../upstream/frames';
 import { fingerprint, NormalisedMessage } from '../request';
 import { accumulate, SinkOutcome, TurnSink } from '../respond';
 import { Sessions } from '../sessions';
 import { ApiEvent, isControlSignal, TurnEvent } from '../translate';
-import { FrameObserver, PumpLogger } from './run-pump';
+import { ConductorLogger } from './context';
+import { FrameObserver } from './run-pump';
 
-export interface TurnSessionOptions {
+export interface UpstreamSessionKeeperOptions {
   sessions: Sessions;
   /** The request's normalised messages: the transcript before the answer. */
   transcript: readonly NormalisedMessage[];
   /** The session a continued turn resumes. */
   resumed?: string;
-  logger: PumpLogger;
+  logger: ConductorLogger;
 }
 
-const isClean = (result: ResultFrame) => result.subtype === 'success' && result.is_error === false;
-
-export class TurnSession implements FrameObserver {
+export class UpstreamSessionKeeper implements FrameObserver {
   private readonly events: ApiEvent[] = [];
   private sessionId: string | undefined;
   private outcome: SinkOutcome | undefined;
@@ -37,7 +36,7 @@ export class TurnSession implements FrameObserver {
   private result: ResultFrame | null | undefined;
   private decision: 'record' | 'forget' | 'parked' | undefined;
 
-  constructor(private readonly options: TurnSessionOptions) {}
+  constructor(private readonly options: UpstreamSessionKeeperOptions) {}
 
   /** `sink`, with every event it is given also kept here: the answer the client got. */
   relay(sink: TurnSink): TurnSink {
@@ -87,7 +86,7 @@ export class TurnSession implements FrameObserver {
     const { outcome, result } = this;
     if (outcome && outcome.kind !== 'completed') return this.errorTurn(outcome.kind);
     if (result === null) return this.errorTurn('no result');
-    if (result && !isClean(result)) return this.errorTurn('error result');
+    if (result && !isCleanResult(result)) return this.errorTurn('error result');
     if (outcome && this.decision === undefined) this.record();
   }
 

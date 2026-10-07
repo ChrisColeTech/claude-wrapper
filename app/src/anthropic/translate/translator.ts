@@ -5,7 +5,7 @@
  * with what upstream said before the frame that triggered it.
  */
 import { Frame } from '../../upstream/frames';
-import { logger as defaultLogger } from '../../utils/logger';
+import { logger as defaultLogger, Logger } from '../../utils/logger';
 import { createFailureReader } from '../failure';
 import { createAllowlist } from './allowlist';
 import { createConnectorPass } from './connector-pass';
@@ -20,11 +20,11 @@ import { createStopSequenceScan } from './stop-sequences';
 import { createBridgePrefixStrip } from './strip-bridge-prefix';
 import { createStructuredOutputBuffer } from './structured-output';
 import { createSyntheticDrop } from './synthetic-drop';
-import { Translator, TranslatorConfig, TranslatorLogger } from './turn-event';
+import { Translator, TranslatorConfig } from './turn-event';
 import { createUsageSum } from './usage-sum';
 
 /** Pass 6 on a `--json-schema` run; it reads frames, so it sits before the flattener. */
-function structuredOutput(config: TranslatorConfig, logger: TranslatorLogger): Pass<Frame, Frame> {
+function structuredOutput(config: TranslatorConfig, logger: Pick<Logger, 'debug'>): Pass<Frame, Frame> {
   return config.structuredOutput ? createStructuredOutputBuffer(logger) : { push: frame => [frame], end: () => [] };
 }
 

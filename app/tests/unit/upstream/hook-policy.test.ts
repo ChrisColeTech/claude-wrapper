@@ -150,7 +150,7 @@ describe('hook policy: auditing the run (spec section 8)', () => {
     policy.onFrame(resultFrame({ permission_denials: [denial] }));
 
     expect(logger.error).toHaveBeenCalledWith(
-      "Upstream denied a tool call the wrapper's hook did not: the run is misconfigured",
+      "Upstream denied a tool call the wrapper's hook did not: the run is misconfigured", undefined,
       { toolName: 'WebSearch', toolUseId: deniedId }
     );
     expect(JSON.stringify(logger.error.mock.calls)).not.toContain('version number');
@@ -176,7 +176,7 @@ describe('hook policy: auditing the run (spec section 8)', () => {
       message: { role: 'user', content: [{ type: 'tool_result', tool_use_id: 'toolu_unhooked', content: 'results' }] } }));
 
     expect(logger.error).toHaveBeenCalledWith(
-      "A web tool call ran without the wrapper's hook: its limits were not enforced", { toolUseId: 'toolu_unhooked' }
+      "A web tool call ran without the wrapper's hook: its limits were not enforced", undefined, { toolUseId: 'toolu_unhooked' }
     );
   });
 });

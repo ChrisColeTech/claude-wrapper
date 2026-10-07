@@ -11,8 +11,9 @@
 import { isConnectorTool, splitConnectorTool } from '../../upstream/connector-tools';
 import { JsonObject } from '../../upstream/frames';
 import { isObject } from '../../utils/json-object';
+import { Logger } from '../../utils/logger';
 import { eachEvent, Pass } from './pass';
-import { ApiEvent, ServerToolResultSignal, TranslatorLogger, TurnEvent } from './turn-event';
+import { ApiEvent, ServerToolResultSignal, TurnEvent } from './turn-event';
 
 type BlockStart = Extract<ApiEvent, { type: 'content_block_start' }>;
 
@@ -25,7 +26,7 @@ function useBlock(event: BlockStart): TurnEvent {
 }
 
 /** What upstream's model received, as the API's text blocks. */
-function textBlocks(content: unknown, logger: TranslatorLogger): JsonObject[] {
+function textBlocks(content: unknown, logger: Pick<Logger, 'debug'>): JsonObject[] {
   if (typeof content === 'string') return [{ type: 'text', text: content }];
   if (!Array.isArray(content)) return [];
   return content.filter(isObject).flatMap(item => {
@@ -35,7 +36,7 @@ function textBlocks(content: unknown, logger: TranslatorLogger): JsonObject[] {
   });
 }
 
-function resultBlocks(result: ServerToolResultSignal, logger: TranslatorLogger): TurnEvent[] {
+function resultBlocks(result: ServerToolResultSignal, logger: Pick<Logger, 'debug'>): TurnEvent[] {
   const content_block = {
     type: 'mcp_tool_result', tool_use_id: result.toolUseId, is_error: result.block['is_error'] === true,
     content: textBlocks(result.block['content'], logger)
@@ -43,7 +44,7 @@ function resultBlocks(result: ServerToolResultSignal, logger: TranslatorLogger):
   return [{ type: 'content_block_start', index: result.index, content_block }, { type: 'content_block_stop', index: result.index }];
 }
 
-export function createConnectorPass(logger: TranslatorLogger): Pass<TurnEvent, TurnEvent> {
+export function createConnectorPass(logger: Pick<Logger, 'debug'>): Pass<TurnEvent, TurnEvent> {
   return eachEvent(event => {
     if (event.type === 'content_block_start') return [useBlock(event)];
     if (event.type === 'server_tool_result' && event.tool === 'connector') return resultBlocks(event, logger);

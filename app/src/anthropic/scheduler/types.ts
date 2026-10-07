@@ -7,6 +7,7 @@
 import { ToolResultBlock } from '../../upstream/bridge';
 import { Frame } from '../../upstream/frames';
 import { Clock } from '../../utils/clock';
+import { Logger } from '../../utils/logger';
 import { SurfaceError } from '../surface-error';
 import { TurnPlan } from '../request';
 import { ParkedRun, ParkedRuns } from '../sessions';
@@ -23,17 +24,12 @@ export interface SchedulerSettings {
   parkTtlMs: number;
 }
 
-export interface SchedulerLogger {
-  info(message: string, context?: unknown): void;
-  warn(message: string, context?: unknown): void;
-}
-
 export interface SchedulerOptions {
   settings: SchedulerSettings;
   clock: Clock;
   /** The sessions' parked-run registry, which the planner reads. */
   registry: ParkedRuns;
-  logger?: SchedulerLogger;
+  logger?: Pick<Logger, 'info' | 'warn'>;
 }
 
 /** One request asking to be served. */

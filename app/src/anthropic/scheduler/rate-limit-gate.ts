@@ -6,9 +6,10 @@
  */
 import { RateLimitFrame } from '../../upstream/frames';
 import { Clock } from '../../utils/clock';
+import { Logger } from '../../utils/logger';
 import { mapUpstreamFailure, retryAfterSeconds } from '../failure';
 import { SurfaceError } from '../surface-error';
-import { SchedulerCounts, SchedulerLogger } from './types';
+import { SchedulerCounts } from './types';
 
 type RateLimitInfo = RateLimitFrame['rate_limit_info'];
 
@@ -21,7 +22,7 @@ export interface RateLimitSource {
 export class RateLimitGate {
   private last: RateLimitInfo | undefined;
 
-  constructor(private readonly clock: Clock, private readonly logger: SchedulerLogger) {}
+  constructor(private readonly clock: Clock, private readonly logger: Pick<Logger, 'info' | 'warn'>) {}
 
   observe(info: RateLimitInfo, source: RateLimitSource): void {
     this.last = info;

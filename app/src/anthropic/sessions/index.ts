@@ -4,4 +4,4 @@
  * forget deleting the upstream transcript) and the parked-run registry (`parked`).
  */
 export { createSessions } from './sessions';
-export type { ParkedRun, ParkedRuns, Sessions, SessionsLogger, SessionsOptions } from './types';
+export type { ParkedRun, ParkedRuns, Sessions, SessionsOptions } from './types';

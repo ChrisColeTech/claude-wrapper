@@ -9,20 +9,16 @@
  * by `tool_use_id`, for the translator's result blocks and the run's audit.
  */
 import { isObject } from '../../utils/json-object';
-import { logger as wrapperLogger } from '../../utils/logger';
+import { withContext } from '../../utils/log-context';
+import { logger as wrapperLogger, Logger } from '../../utils/logger';
 import { Frame } from '../frames';
 import { auditFrame, AuditState } from './audit';
 import { onDomainList, parseUrl } from './domains';
 import { DenialCode, HookPolicySpec, isWebTool, WebTool, WebToolLimits } from './types';
 
-export interface HookPolicyLogger {
-  debug(message: string, context?: unknown): void;
-  error(message: string, context?: unknown): void;
-}
-
 export interface HookPolicyOptions {
   /** Defaults to the wrapper's logger; never given a call's input. */
-  logger?: HookPolicyLogger;
+  logger?: Pick<Logger, 'debug' | 'error'>;
   /** Added to every line it logs (the run's id). */
   context?: object;
 }
@@ -57,16 +53,11 @@ const deny = (code: DenialCode, detail: string): HookReply => ({
   hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'deny', permissionDecisionReason: `${code}: ${detail}` }
 });
 
-const DEFAULT_LOGGER: HookPolicyLogger = {
-  debug: (message, context) => wrapperLogger.debug(message, context),
-  error: (message, context) => wrapperLogger.error(message, undefined, context)
-};
-
 class RunHookPolicy implements HookPolicy {
   private readonly uses = new Map<WebTool, number>();
   private readonly audit: AuditState = { decided: new Map(), webCalls: new Set() };
 
-  constructor(private readonly spec: HookPolicySpec, private readonly logger: HookPolicyLogger) {}
+  constructor(private readonly spec: HookPolicySpec, private readonly logger: Pick<Logger, 'debug' | 'error'>) {}
 
   decide(input: unknown): HookReply {
     const call = callOf(input);
@@ -128,9 +119,6 @@ function withDomainList(call: ToolCall, { allowedDomains, blockedDomains }: WebT
 }
 
 export function createHookPolicy(spec: HookPolicySpec, options: HookPolicyOptions = {}): HookPolicy {
-  const { logger = DEFAULT_LOGGER, context = {} } = options;
-  return new RunHookPolicy(spec, {
-    debug: (message, extra) => logger.debug(message, { ...context, ...(extra as object) }),
-    error: (message, extra) => logger.error(message, { ...context, ...(extra as object) })
-  });
+  const { logger = wrapperLogger, context = {} } = options;
+  return new RunHookPolicy(spec, withContext(logger, context));
 }

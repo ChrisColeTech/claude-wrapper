@@ -54,7 +54,7 @@ export function createAnthropicSurface(deps: SurfaceDeps = {}): AnthropicSurface
   const controlServer = deps.controlServer ?? createControlServer();
   const conductor = createConductor({
     runner: deps.runner ?? createSpawnRunner({ clock }),
-    catalogue, sessions, clock, settings, stateDirectory, redact, controlServer, scheduler
+    catalogue, sessions, clock, settings, environment, stateDirectory, redact, controlServer, scheduler
   });
   return {
     router: createAnthropicRouter({

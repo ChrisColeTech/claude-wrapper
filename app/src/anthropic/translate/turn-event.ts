@@ -4,6 +4,7 @@
  */
 import { Frame, JsonObject, StreamEvent } from '../../upstream/frames';
 import { DenialCode, WebTool } from '../../upstream/hook-policy';
+import { Logger } from '../../utils/logger';
 import { FailureReader } from '../failure';
 import { SurfaceError } from '../surface-error';
 
@@ -104,13 +105,9 @@ export function isControlSignal(event: TurnEvent): event is ControlSignal {
   return CONTROL_SIGNALS.has(event.type);
 }
 
-export interface TranslatorLogger {
-  debug(message: string, context?: unknown): void;
-}
-
 export interface TranslatorConfig {
   /** Dropped fields and frames are logged here at debug; defaults to the wrapper's logger. */
-  logger?: TranslatorLogger;
+  logger?: Pick<Logger, 'debug'>;
   /**
    * The run's failure reader: the translator feeds it every frame and fails the turn with its
    * errors. Defaults to one of its own, without the retry cap or the client's model.

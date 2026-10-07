@@ -182,6 +182,9 @@ export function parseFrame(line: string): Frame {
   return { type: 'unknown', raw: value };
 }
 
+/** A `result` that reports success: subtype `success` and not `is_error`. */
+export const isCleanResult = (result: ResultFrame): boolean => result.subtype === 'success' && !result.is_error;
+
 /** `type` or `type/subtype` of what upstream sent, for logs; never the frame's content. */
 export function describeFrame(frame: Frame): string {
   if (frame.type !== 'unknown') {
