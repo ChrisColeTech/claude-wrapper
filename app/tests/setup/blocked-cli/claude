@@ -1,0 +1,5 @@
+#!/bin/sh
+# Stands in for Claude Code in the unit and integration tests (see ../real-cli-guard.ts). A test
+# that reaches the real CLI spends the operator's subscription quota, so it fails here instead.
+echo "real CLI blocked in tests: a test tried to run Claude Code. Inject a replay or scripted runner (startSurface does), or run the real-CLI e2e with UPSTREAM_E2E=1." >&2
+exit 97
