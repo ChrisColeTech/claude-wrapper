@@ -9,7 +9,7 @@ import Anthropic, { ClientOptions } from '@anthropic-ai/sdk';
 import { once } from 'events';
 import { Express } from 'express';
 import { AddressInfo } from 'net';
-import { createServer } from '../../../src/api/server';
+import { createServer, shutdownAnthropicSurface } from '../../../src/api/server';
 import { SurfaceDeps } from '../../../src/anthropic/deps';
 import { createControlServer } from '../../../src/upstream/control-server';
 import { Runner } from '../../../src/upstream/runner';
@@ -19,6 +19,8 @@ export interface SurfaceHarness {
   baseURL: string;
   /** An SDK client with `apiKey: 'test-key'` and `maxRetries: 0`; `options` override both. */
   client(options?: ClientOptions): Anthropic;
+  /** The app's Anthropic surface shuts down (the wrapper's shutdown, short of closing the HTTP server). */
+  shutdown(deadlineMs?: number): Promise<void>;
   close(): Promise<void>;
 }
 
@@ -47,6 +49,7 @@ export async function serveApp(app: Express, onClose: () => Promise<void> = asyn
   return {
     baseURL,
     client: (options = {}) => new Anthropic({ baseURL, apiKey: 'test-key', maxRetries: 0, ...options }),
+    shutdown: deadlineMs => shutdownAnthropicSurface(app, deadlineMs),
     close: () => new Promise<void>((resolve, reject) => {
       server.closeAllConnections();
       server.close((error) => (error ? reject(error) : resolve()));

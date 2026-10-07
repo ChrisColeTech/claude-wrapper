@@ -300,8 +300,11 @@ class CliRunner {
       console.log(`✅ Server listening on port ${port}`);
     });
 
-    // Setup graceful shutdown
+    // Setup graceful shutdown: the Anthropic surface's upstream runs drain first
     signalHandler.setupGracefulShutdown(server);
+    const { registerSurfaceDrain } = await import('./process/surface-drain');
+    registerSurfaceDrain(signalHandler, () => app.shutdownAnthropicSurface(app.default),
+      EnvironmentManager.getAnthropicSettings().shutdownDrainMs);
     
     // Keep the process alive (don't exit)
     return new Promise(() => {

@@ -13,10 +13,20 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { logger as defaultLogger } from '../utils/logger';
+import { SESSION_ID, sweepTranscripts } from './transcript-sweep';
 
 export interface TranscriptStore {
   /** Deletes the session's transcript and side directory, if there; never rejects. */
   delete(sessionId: string): Promise<void>;
+}
+
+/** The store of every transcript the wrapper's runs leave, which can also be swept (spec section 14). */
+export interface TranscriptDirectory extends TranscriptStore {
+  /**
+   * Deletes every session last written before `before` (epoch ms), or every one without it;
+   * returns how many went. Never throws: a failure is logged and counts nothing.
+   */
+  sweep(before?: number): number;
 }
 
 export interface TranscriptLogger {
@@ -41,14 +51,19 @@ export function upstreamProjectDirectory(cwd: string, env: ChildEnvironment): st
   return path.join(path.resolve(cwd, configDir), 'projects', project);
 }
 
-/** Upstream's session ids are UUIDs; anything that is not one plain path segment is never a path. */
-const SESSION_ID = /^[A-Za-z0-9][A-Za-z0-9_-]*$/;
-
-/** `directory` is asked at each deletion: the state directory behind it opens at the first turn. */
+/** `directory` is asked at each deletion and sweep: the state directory behind it opens at the first turn. */
 export function createTranscriptStore(
   directory: () => string, logger: TranscriptLogger = defaultLogger
-): TranscriptStore {
+): TranscriptDirectory {
   return {
+    sweep(before) {
+      try {
+        return sweepTranscripts(directory(), before);
+      } catch (error) {
+        logger.warn('Upstream transcripts could not be swept', { error: String(error) });
+        return 0;
+      }
+    },
     async delete(sessionId) {
       if (!SESSION_ID.test(sessionId)) {
         logger.warn('Upstream transcript not deleted: the session id is not one path segment');

@@ -1,12 +1,15 @@
 /**
- * What a turn does to its upstream session (spec section 5, ADR 0002). A turn that ends cleanly
- * (the whole message reached the client, and upstream's `result` is a success, which is when
- * upstream has written its transcript) records the session under the fingerprint of the
- * transcript exchanged: the request's messages plus the message the client got. Any other end
- * (a rejection, a post-commit failure, a disconnect, a cut, an error `result`, a run that ended
- * before its `result`) is an error turn: the session is forgotten at once, so the client's retry
- * is a replayed turn, and forgotten again once the run has exited, since upstream writes its
- * transcript up to its exit. A turn that parks hands its run on and decides nothing.
+ * What a turn does to its upstream session (spec sections 5 and 14, ADR 0002). A turn whose whole
+ * message reached the client records the session at once under the fingerprint of the transcript
+ * exchanged (the request's messages plus the message the client got), before upstream's `result`,
+ * so a client's next turn finds it however fast it comes. Until the run has exited the record is
+ * pending: the scheduler holds a continued turn on the session until then (upstream has written
+ * its transcript by its `result`) and re-plans it after. A turn is an error turn on any other end
+ * (a rejection, a post-commit failure, a disconnect, a cut) and when its pending record is undone
+ * by an error `result` or a run that ended before its `result`: the session is forgotten at once,
+ * so the client's retry is a replayed turn, and forgotten again once the run has exited, since
+ * upstream writes its transcript up to its exit. A turn that parks hands its run on and decides
+ * nothing.
  */
 import { Frame, ResultFrame } from '../../upstream/frames';
 import { fingerprint, NormalisedMessage } from '../request';
@@ -78,13 +81,14 @@ export class TurnSession implements FrameObserver {
     if (forgotBefore) this.forget();
   }
 
+  /** A recorded turn stays open to an error `result` or a missing one, which undo its record. */
   private decide(): void {
-    if (this.decision !== undefined) return;
+    if (this.decision === 'forget' || this.decision === 'parked') return;
     const { outcome, result } = this;
     if (outcome && outcome.kind !== 'completed') return this.errorTurn(outcome.kind);
     if (result === null) return this.errorTurn('no result');
     if (result && !isClean(result)) return this.errorTurn('error result');
-    if (outcome && result) this.record();
+    if (outcome && this.decision === undefined) this.record();
   }
 
   /**
@@ -97,7 +101,8 @@ export class TurnSession implements FrameObserver {
 
   private record(): void {
     this.decision = 'record';
-    const { sessionId } = this;
+    // A turn that resumes a parked run saw the run's `system/init` go by in the turn before it.
+    const sessionId = this.sessionId ?? this.options.resumed;
     if (sessionId === undefined) return this.errorTurn('no session id');
     let answer: NormalisedMessage;
     try {
@@ -106,7 +111,8 @@ export class TurnSession implements FrameObserver {
       return this.errorTurn('unreadable answer');
     }
     this.options.sessions.record(sessionId, fingerprint([...this.options.transcript, answer]));
-    this.options.logger.debug('Upstream session recorded', { sessionId, continued: this.options.resumed !== undefined });
+    this.options.logger.debug('Upstream session recorded',
+      { sessionId, continued: this.options.resumed !== undefined, pending: this.result === undefined });
   }
 
   private errorTurn(reason: string): void {

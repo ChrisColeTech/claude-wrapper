@@ -5,7 +5,7 @@
  * interrupted before its waiting calls are rejected), or until the run ends on its own. A partial
  * answer leaves it parked, its TTL still running.
  */
-import { createParking, HeldOpen, Parking } from '../../../../src/anthropic/conductor/parking';
+import { createParking, HeldOpen, Parking } from '../../../../src/anthropic/scheduler/parking';
 import { ParkedRuns } from '../../../../src/anthropic/sessions';
 import { DeliverOutcome, ToolResultBlock } from '../../../../src/upstream/bridge';
 import { memorySessions } from '../../../mocks/anthropic/sessions';

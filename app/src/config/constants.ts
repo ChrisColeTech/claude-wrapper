@@ -114,6 +114,7 @@ export const SIGNAL_CONFIG = {
   FORCE_KILL_SIGNAL: 'SIGKILL' as const,
   PROCESS_CHECK_SIGNAL: 0 as const, // Signal 0 for existence check
   SHUTDOWN_STEPS: {
+    DRAIN_ANTHROPIC_SURFACE: 0,
     CLOSE_SERVER: 1,
     CLEANUP_SESSIONS: 2,
     REMOVE_PID_FILE: 3,

@@ -12,11 +12,12 @@
  */
 import { Frame, ResultFrame, SystemInitFrame } from '../../upstream/frames';
 import { Run, RunFailure, UserMessage } from '../../upstream/runner';
-import { Clock, TimerHandle } from '../../utils/clock';
+import { Clock } from '../../utils/clock';
 import { FailureReader } from '../failure';
 import { SurfaceError } from '../http/surface-error';
 import { StartupChecks } from '../request';
 import { TurnSink } from '../respond';
+import { createTeardown, Teardown } from '../scheduler';
 import { Translator, TurnEvent } from '../translate';
 import { startupError } from './startup-checks';
 
@@ -63,7 +64,7 @@ export interface RunPump {
   attach(turn: TurnFeed): void;
   /** Fails the attached turn (ignored once its sink has settled), else the next one attached. */
   fail(error: SurfaceError): void;
-  /** The run ends early: interrupt unless `result` is in; stdin closes at `result`, or after the wait. */
+  /** The run ends early: down the teardown ladder (interrupt unless `result` is in, stdin closed, signals). */
   stop(reason?: string): void;
   /** Settles once upstream has exited and the exit is logged. */
   readonly done: Promise<void>;
@@ -71,16 +72,11 @@ export interface RunPump {
   readonly sessionId: string | undefined;
 }
 
-/** How long a stopped run gets to write its `result` before its stdin is closed (spec section 14). */
-export const RESULT_WAIT_MS = 5_000;
-
 class Pump implements RunPump {
   readonly done: Promise<void>;
   private init: SystemInitFrame | undefined;
   private sawResult = false;
-  private stopped = false;
-  private exited = false;
-  private closeTimer: TimerHandle | undefined;
+  private readonly teardown: Teardown;
   private turn: TurnFeed | undefined;
   /** Frames that arrived while no turn was attached (the run parked), for the turn that resumes it. */
   private readonly held: Frame[] = [];
@@ -90,9 +86,8 @@ class Pump implements RunPump {
   constructor(private readonly run: Run, message: UserMessage, private readonly options: PumpOptions) {
     run.send(message).catch((error: Error) =>
       options.logger.debug("Upstream did not take the turn's message", { error: error.message }));
-    void run.exited.then(() => {
-      this.exited = true;
-      if (this.closeTimer !== undefined) options.clock.clearTimeout(this.closeTimer);
+    this.teardown = createTeardown(run, {
+      clock: options.clock, ...(options.interrupt ? { interrupt: options.interrupt } : {})
     });
     this.done = this.pump();
   }
@@ -114,12 +109,7 @@ class Pump implements RunPump {
   }
 
   stop(reason = 'the turn ended early'): void {
-    if (this.stopped || this.exited) return;
-    this.stopped = true;
-    if (this.sawResult) return;
-    const interrupt = this.options.interrupt ?? (() => this.run.interrupt());
-    interrupt(reason).catch(() => undefined);
-    this.closeTimer = this.options.clock.setTimeout(() => void this.run.close(), RESULT_WAIT_MS);
+    this.teardown.descend(reason);
   }
 
   private async pump(): Promise<void> {
@@ -128,12 +118,19 @@ class Pump implements RunPump {
       if (this.turn) this.relay(this.turn, this.turn.translator.end());
     } catch (error) {
       if (!(error instanceof RunFailure)) this.abandon(error);
-      else this.fail(this.options.failures.errorFor({ kind: 'run_failure', reason: error.reason }));
+      else this.ended(error);
     }
     const exit = await this.run.exited;
     this.options.failures.stop();
     this.fail(this.options.failures.errorFor({ kind: 'exit', exit }));
-    this.options.logger.info('Upstream run exited', { code: exit.code, signal: exit.signal, failure: exit.failure });
+    this.options.logger.info('Upstream run exited',
+      { sessionId: this.sessionId, code: exit.code, signal: exit.signal, failure: exit.failure });
+  }
+
+  /** The runner ended the run itself (a timer fired, a line was too long): the turn fails at once. */
+  private ended({ reason }: RunFailure): void {
+    this.options.logger.warn('Upstream run ended by the runner', { sessionId: this.sessionId, reason });
+    this.fail(this.options.failures.errorFor({ kind: 'run_failure', reason }));
   }
 
   private onFrame(frame: Frame): void {
@@ -183,7 +180,7 @@ class Pump implements RunPump {
       sessionId: result.session_id, subtype: result.subtype, isError: result.is_error,
       stopReason: result.stop_reason, numTurns: result.num_turns, durationMs: result.duration_ms
     });
-    void this.run.close();
+    this.teardown.resultIn();
   }
 
   /** A fault in the wrapper itself: fail the turn and stop the run. */

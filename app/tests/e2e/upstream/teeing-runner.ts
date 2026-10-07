@@ -32,6 +32,7 @@ function teed(run: Run, frames: Frame[]): Run {
     send: message => run.send(message),
     interrupt: () => run.interrupt(),
     close: () => run.close(),
+    kill: () => run.kill(),
     park: () => run.park(),
     exited: run.exited
   };

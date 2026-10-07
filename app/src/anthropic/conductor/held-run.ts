@@ -8,9 +8,9 @@ import { Bridge, DeliverOutcome, ToolResultBlock } from '../../upstream/bridge';
 import { HookPolicy } from '../../upstream/hook-policy';
 import { Run } from '../../upstream/runner';
 import { FailureReader } from '../failure';
-import { RunBound } from '../request';
+import { RunBound, RunContinuation, TurnPlan } from '../request';
+import { HeldOpen, Lease } from '../scheduler';
 import { ServerToolCalls } from '../translate';
-import { HeldOpen } from './parking';
 import { PumpLogger, RunPump } from './run-pump';
 
 /** One run the conductor drives, across the turns of a tool loop. */
@@ -30,6 +30,12 @@ export interface ConductedRun {
   readonly runBound: RunBound;
   /** Spawned with `--json-schema`: every turn's translator renders its StructuredOutput answer. */
   readonly structuredOutput: boolean;
+  /** The plan the run was started for: as admitted, or re-planned after waiting on its session. */
+  readonly plan: TurnPlan & { continuation: RunContinuation };
+  /** The run's slot: released when a turn of it ends without parking; given back once it has ended. */
+  readonly lease: Lease;
+  /** Runs `hook` once upstream has exited, before the run gives its slot back (a turn's session bookkeeping). */
+  atExit(hook: () => void): void;
 }
 
 export interface HeldRunOptions {

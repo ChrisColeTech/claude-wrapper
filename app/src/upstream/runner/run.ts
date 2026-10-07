@@ -85,6 +85,11 @@ class RunCore {
     return this.exited;
   }
 
+  kill(): Promise<RunExit> {
+    if (!this.ended) this.process().kill('SIGKILL');
+    return this.exited;
+  }
+
   private sink(): ProcessSink {
     return {
       stdout: chunk => this.onStdout(chunk),
@@ -151,6 +156,7 @@ export function createRun(starter: ProcessStarter, options: RunOptions): Run {
     send: message => core.send(message),
     interrupt: () => core.interrupt(),
     close: () => core.close(),
+    kill: () => core.kill(),
     park: () => core.park(),
     exited: core.exited
   };

@@ -18,7 +18,8 @@ describe('E2E Health Tests', () => {
       service: 'claude-wrapper',
       version: expect.any(String),
       description: expect.any(String),
-      timestamp: expect.any(String)
+      timestamp: expect.any(String),
+      anthropic: expect.objectContaining({ active: 0, parked: 0 })
     });
   });
 

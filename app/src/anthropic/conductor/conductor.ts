@@ -2,12 +2,14 @@
  * The conductor (spec section 16), the surface's only orchestrator: `handleMessages` plans the
  * turn, starts its run (mounting the bridge server when the turn exposes client tools), pumps the
  * frames through the translator into the sink the request asked for (SSE or JSON), and acts on
- * how the response ended. A failure before commit rejects, and the route hands the `SurfaceError`
- * to the shared error handler. A turn that did not complete (failed, rejected, or the client went
- * away) has its run interrupted and torn down (spec section 11); its `TurnSession` forgets its
- * upstream session. A turn that parked leaves its run held open in parking (spec section 7); the
- * request that answers its tool calls resumes it as a new turn of the same run.
- * `handleCountTokens` measures a request with a run of its own (spec section 12).
+ * how the response ended. Every run is admitted by the scheduler first (spec section 14), whose
+ * refusal (529, 429) rejects like any failure before commit, and the route hands the
+ * `SurfaceError` to the shared error handler. A turn that did not complete (failed, rejected, or
+ * the client went away) has its run sent down the teardown ladder; its `TurnSession` forgets its
+ * upstream session. A turn that parked leaves its run held open in the scheduler (spec section 7);
+ * the request that answers its tool calls resumes it as a new turn of the same run. A turn that
+ * ends without parking releases its lease, so the next turn on its session may go once the run has
+ * exited. `handleCountTokens` measures a request with a run of its own (spec section 12).
  */
 import { randomUUID } from 'crypto';
 import { Request, Response } from 'express';
@@ -22,13 +24,14 @@ import { anthropicRequestId } from '../http/surface-tag';
 import { mintRequestId } from '../http/request-id';
 import { SurfaceError } from '../http/surface-error';
 import { changedRunBound, ParkedContinuation, planTurn, resumedSession, TurnPlan } from '../request';
-import { createJsonSink, createSseSink, SinkOutcome, TurnSink } from '../respond';
+import { createJsonSink, createSseSink, TurnSink } from '../respond';
+import { Scheduler } from '../scheduler';
 import { Sessions } from '../sessions';
 import { createTranslator } from '../translate';
+import { outcomeContext, wantsStream, withContext, withoutParks } from './context';
 import { countTokens } from './count-tokens';
 import { ConductedRun, HeldRun } from './held-run';
-import { launchRun, StartingPlan } from './launch';
-import { createParking, Parking } from './parking';
+import { launchRun } from './launch';
 import { PumpLogger } from './run-pump';
 import { TurnSession } from './turn-session';
 
@@ -44,6 +47,8 @@ export interface ConductorDeps {
   redact: readonly string[];
   /** Where a run's bridge server is served; started by the first run that mounts one. */
   controlServer: ControlServer;
+  /** Admits every run and holds the parked ones. */
+  scheduler: Scheduler<HeldRun>;
   logger?: PumpLogger;
 }
 
@@ -61,41 +66,11 @@ interface Exchange {
   requestId: string;
 }
 
-function withContext(logger: PumpLogger, context: object): PumpLogger {
-  return {
-    debug: (message, extra) => logger.debug(message, { ...context, ...(extra as object) }),
-    info: (message, extra) => logger.info(message, { ...context, ...(extra as object) }),
-    warn: (message, extra) => logger.warn(message, { ...context, ...(extra as object) })
-  };
-}
-
-const wantsStream = (body: unknown): boolean =>
-  typeof body === 'object' && body !== null && (body as { stream?: unknown }).stream === true;
-
-const outcomeContext = (outcome: SinkOutcome): object =>
-  ('error' in outcome ? { outcome: outcome.kind, errorType: outcome.error.type } : { outcome: outcome.kind });
-
-/** The same sessions with no parked run: what a turn falls back to when its park was lost. */
-const withoutParks = (sessions: Sessions): Sessions => ({
-  lookup: fingerprint => sessions.lookup(fingerprint),
-  record: (sessionId, fingerprint) => sessions.record(sessionId, fingerprint),
-  forget: sessionId => sessions.forget(sessionId),
-  parked: { get: () => undefined, put: () => undefined, remove: () => undefined }
-});
-
-/** A plan that starts a run, or null for one that resumes a parked run. */
-const starting = (turn: TurnPlan): StartingPlan | null =>
-  ('parked' in turn.continuation ? null : { ...turn, continuation: turn.continuation });
-
 class SurfaceConductor implements Conductor {
   private readonly logger: PumpLogger;
-  private readonly parking: Parking<HeldRun>;
 
   constructor(private readonly deps: ConductorDeps) {
     this.logger = deps.logger ?? defaultLogger;
-    this.parking = createParking<HeldRun>({
-      registry: deps.sessions.parked, clock: deps.clock, ttlMs: deps.settings.parkTtlMs, logger: this.logger
-    });
   }
 
   async handleMessages(req: Request, res: Response): Promise<void> {
@@ -104,13 +79,13 @@ class SurfaceConductor implements Conductor {
     const turn = this.plan(req, runId);
     const { continuation } = turn;
     if ('parked' in continuation) return this.resume(exchange, turn, continuation);
-    return this.start(exchange, runId, { ...turn, continuation });
+    return this.start(exchange, runId, turn);
   }
 
   handleCountTokens(req: Request, res: Response): Promise<void> {
+    const requestId = anthropicRequestId(req) ?? mintRequestId();
     const runId = randomUUID();
-    const log = withContext(this.logger, { requestId: anthropicRequestId(req) ?? mintRequestId(), runId });
-    return countTokens(this.deps, { req, res, runId }, log);
+    return countTokens(this.deps, { req, res, requestId, runId }, withContext(this.logger, { requestId, runId }));
   }
 
   private plan(req: Request, runId: string, sessions = this.deps.sessions): TurnPlan {
@@ -131,28 +106,32 @@ class SurfaceConductor implements Conductor {
     });
   }
 
-  private async start(exchange: Exchange, runId: string, turn: StartingPlan): Promise<void> {
-    const log = withContext(this.logger, { requestId: exchange.requestId, runId });
+  /** Admits the turn's run (re-planned if it waited on its session), starts it and serves the turn. */
+  private async start(exchange: Exchange, runId: string, planned: TurnPlan, sessions = this.deps.sessions): Promise<void> {
+    const { req, requestId } = exchange;
+    const log = withContext(this.logger, { requestId, runId });
+    const replan = () => this.plan(req, runId, sessions);
+    const run = await launchRun(this.deps, { body: req.body, requestId, runId }, { plan: planned, replan }, log);
+    const turn = run.plan;
     if (turn.lostPark) {
       log.info('Lost park: no parked run holds these tool results; the turn is replayed', { toolUseIds: turn.lostPark });
     }
     const session = this.session(turn, log);
     // The session records the answer as the client got it, redacted: that is what it echoes back.
-    const sink = session.relay(this.sinkFor(exchange));
-    const run = await launchRun(this.deps, exchange.req.body, runId, turn, log);
-    await this.serveTurn(run, turn, session, sink, log);
+    await this.serveTurn(run, turn, session, session.relay(this.sinkFor(exchange)), log);
   }
 
   /** Hands the results to the parked run and serves its next turn; a park that will not take them is lost. */
   private async resume(exchange: Exchange, turn: TurnPlan, answer: ParkedContinuation): Promise<void> {
-    const delivery = this.parking.deliver(answer.parked, answer.results);
+    // The run exists already: the shutdown and the rate limit can refuse its turn, the run cap cannot.
+    await this.deps.scheduler.admit({ requestId: exchange.requestId, plan: turn, replan: () => turn });
+    const delivery = this.deps.scheduler.deliver(answer.parked, answer.results);
     if (delivery.status !== 'resumed') {
       this.logger.warn('The parked run did not take the tool results',
         { requestId: exchange.requestId, runId: answer.parked.runId, status: delivery.status });
       const runId = randomUUID();
-      const replayed = starting(this.plan(exchange.req, runId, withoutParks(this.deps.sessions)));
-      if (!replayed) throw new Error('a plan without parked runs resumed one');
-      return this.start(exchange, runId, replayed);
+      const sessions = withoutParks(this.deps.sessions);
+      return this.start(exchange, runId, this.plan(exchange.req, runId, sessions), sessions);
     }
     const held = delivery.run;
     const log = withContext(this.logger, { requestId: exchange.requestId, runId: held.runId });
@@ -176,13 +155,14 @@ class SurfaceConductor implements Conductor {
       now: () => this.deps.clock.now(), ...turn.translatorConfig, structuredOutput: run.structuredOutput
     });
     run.pump.attach({ translator, sink, observers: [session], onPark: toolUseIds => { parked.on = toolUseIds; } });
-    void run.pump.done.catch(() => undefined).then(() => session.exited());
+    run.atExit(() => session.exited());
     const outcome = await sink.outcome;
     const held = outcome.kind === 'completed' ? this.park(run, parked.on, log) : undefined;
     if (held) session.parked();
     session.settled(outcome);
     log.info('Anthropic turn ended', { ...outcomeContext(outcome), ...(held ? { parkedOn: held.toolUseIds } : {}) });
     if (!held && (outcome.kind !== 'completed' || parked.on)) run.pump.stop(`the turn ended: ${outcome.kind}`);
+    if (!held) run.lease.release();
     if (outcome.kind === 'rejected') throw outcome.error;
   }
 
@@ -190,7 +170,7 @@ class SurfaceConductor implements Conductor {
   private park(run: ConductedRun, toolUseIds: string[] | undefined, log: PumpLogger): HeldRun | undefined {
     if (!toolUseIds || !run.bridge) return undefined;
     const held = new HeldRun(run, run.bridge, toolUseIds, { forget: id => this.deps.sessions.forget(id), logger: log });
-    this.parking.park(held);
+    this.deps.scheduler.registerParked(held);
     return held;
   }
 }
