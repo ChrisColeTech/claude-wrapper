@@ -69,7 +69,9 @@ function plan(request: unknown, catalogue: Catalogue, sessions: Sessions, contex
     model,
     messages,
     system,
-    runSpec: buildRunSpec({ modelId: model.id, system, maxTokens, clientToolNames, ...(resume === undefined ? {} : { resume }) }, context),
+    runSpec: buildRunSpec(
+      { modelId: model.id, system, maxTokens, clientToolNames, ...(resume === undefined ? {} : { resume }) }, context
+    ),
     continuation,
     // Upstream reports exactly the mounted tools: the bridge server's, prefixed.
     startupChecks: { model: model.id, tools: clientToolNames.map(name => `${CLIENT_TOOL_PREFIX}${name}`) },
