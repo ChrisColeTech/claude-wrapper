@@ -11,7 +11,7 @@ function stubDeps(): Required<SurfaceDeps> {
     runner: { startRun: jest.fn() },
     catalogue: { resolve: jest.fn(), list: jest.fn() },
     sessions: { lookup: jest.fn(), record: jest.fn(), forget: jest.fn() },
-    controlServer: { start: jest.fn(), registerRun: jest.fn(), releaseRun: jest.fn() },
+    controlServer: { start: jest.fn(), registerRun: jest.fn(), releaseRun: jest.fn(), close: jest.fn() },
     clock: createFakeClock()
   };
 }

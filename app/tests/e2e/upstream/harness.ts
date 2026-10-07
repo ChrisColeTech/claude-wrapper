@@ -17,6 +17,7 @@ import * as os from 'os';
 import * as path from 'path';
 import { EnvironmentManager } from '../../../src/config/env';
 import { Frame } from '../../../src/upstream/frames';
+import { aboveParkTtl } from '../../../src/upstream/mcp-config';
 import { createSpawnRunner, Run, RunExit, RunSpec, RunTimers, UserMessage } from '../../../src/upstream/runner';
 
 export const UPSTREAM_E2E_FLAG = 'UPSTREAM_E2E';
@@ -36,6 +37,8 @@ export interface PlainRunOptions {
   systemPrompt?: string;
   /** Appended after the plain flags (a scenario's own flags). */
   extraFlags?: string[];
+  /** The `--allowedTools` list; empty (the plain turn's) by default. */
+  allowedTools?: string[];
   /** Merged last, like the operator's `upstream.env`. */
   env?: Record<string, string>;
   timers?: Partial<RunTimers>;
@@ -59,12 +62,12 @@ export function childEnvironment(maxTokens: number, extra: Record<string, string
     const value = process.env[name];
     if (value !== undefined) env[name] = value;
   }
-  const aboveParkTtl = String(settings.parkTtlMs + 60_000);
+  const mcpTimeout = String(aboveParkTtl(settings.parkTtlMs));
   return {
     ...env,
     CLAUDE_CODE_MAX_OUTPUT_TOKENS: String(maxTokens),
-    CLAUDE_CODE_MCP_TOOL_IDLE_TIMEOUT: aboveParkTtl,
-    MCP_TOOL_TIMEOUT: aboveParkTtl,
+    CLAUDE_CODE_MCP_TOOL_IDLE_TIMEOUT: mcpTimeout,
+    MCP_TOOL_TIMEOUT: mcpTimeout,
     MCP_CONNECT_TIMEOUT_MS: '5000',
     CLAUDE_CODE_MAX_WEB_SEARCHES_PER_SESSION: '200',
     ...settings.upstreamEnv,
@@ -84,7 +87,7 @@ export function plainRunSpec(cwd: string, options: PlainRunOptions = {}): RunSpe
     '-p', '--input-format', 'stream-json', '--output-format', 'stream-json', '--verbose', '--include-partial-messages',
     '--system-prompt', options.systemPrompt ?? '', '--system-prompt-snapshot', 'off',
     '--setting-sources=', '--strict-mcp-config', '--model', options.model ?? E2E_MODEL,
-    '--tools', '', '--allowedTools', '', '--permission-mode', 'default', '--permission-prompts', 'none',
+    '--tools', '', '--allowedTools', (options.allowedTools ?? []).join(','), '--permission-mode', 'default', '--permission-prompts', 'none',
     '--max-turns', String(EnvironmentManager.getAnthropicSettings().maxTurns), ...(options.extraFlags ?? [])
   ];
   const env = childEnvironment(options.maxTokens ?? 1024, options.env);
