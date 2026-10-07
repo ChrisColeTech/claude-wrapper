@@ -9,8 +9,8 @@
  * The cut call's usage: input and cache counters from its `message_start`, and `output_tokens`
  * estimated as that `message_start`'s count plus the characters relayed in the call divided by
  * four, since upstream is interrupted before it reports the call's usage. The usage-sum pass adds
- * earlier calls' sums on top. This pass reads a call's `message_start`, so a flattener that
- * suppresses later calls' must still let their usage reach it.
+ * earlier calls' sums on top. This pass reads each call's `message_start` usage: the turn's
+ * first, then the internal `call_start` the flattener keeps for each later call.
  */
 import { JsonObject } from '../../upstream/frames';
 import { Pass } from './pass';
@@ -44,8 +44,10 @@ class StopSequenceScan implements Pass<TurnEvent, TurnEvent> {
     if (this.cut) return [];
     switch (event.type) {
       case 'message_start':
-        this.callUsage = (event.message['usage'] as JsonObject | undefined) ?? {};
-        this.relayedCharacters = 0;
+        this.newCall(event.message['usage']);
+        return [event];
+      case 'call_start':
+        this.newCall(event.usage);
         return [event];
       case 'content_block_start':
         this.open.add(event.index);
@@ -63,6 +65,12 @@ class StopSequenceScan implements Pass<TurnEvent, TurnEvent> {
   end(): TurnEvent[] {
     if (this.cut) return [];
     return [...this.scanners.keys()].flatMap(index => this.release(index));
+  }
+
+  /** A model call starts (the turn's first, or a later one the flattener suppressed). */
+  private newCall(usage: unknown): void {
+    this.callUsage = (usage as JsonObject | undefined) ?? {};
+    this.relayedCharacters = 0;
   }
 
   private onDelta(event: DeltaEvent): TurnEvent[] {

@@ -1,0 +1,381 @@
+[
+  {
+    "type": "message_start",
+    "message": {
+      "model": "claude-fable-5-1",
+      "id": "msg_011CfnSgHpacGkbWWw2ATu3w",
+      "type": "message",
+      "role": "assistant",
+      "content": [],
+      "container": null,
+      "stop_reason": null,
+      "stop_sequence": null,
+      "stop_details": null,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 1586,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1586
+        },
+        "output_tokens": 17,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "diagnostics": null
+    }
+  },
+  {
+    "type": "content_block_start",
+    "index": 0,
+    "content_block": {
+      "type": "server_tool_use",
+      "id": "srvtoolu_01BxPz79xA2ZeX92DjciPnsj",
+      "name": "web_search",
+      "input": {}
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 0,
+    "delta": {
+      "type": "input_json_delta",
+      "partial_json": "{\"query\":\"Iceland population 2026 Statistics Iceland\"}"
+    }
+  },
+  {
+    "type": "content_block_stop",
+    "index": 0
+  },
+  {
+    "type": "content_block_start",
+    "index": 1,
+    "content_block": {
+      "type": "web_search_tool_result",
+      "tool_use_id": "srvtoolu_01BxPz79xA2ZeX92DjciPnsj",
+      "content": [
+        {
+          "type": "web_search_result",
+          "url": "https://www.statisticstimes.com/demographics/country/iceland-population.php",
+          "title": "Population of Iceland",
+          "encrypted_content": "eyJ1cmwiOiJodHRwczovL3d3dy5zdGF0aXN0aWNzdGltZXMuY29tL2RlbW9ncmFwaGljcy9jb3VudHJ5L2ljZWxhbmQtcG9wdWxhdGlvbi5waHAiLCJ0aXRsZSI6IlBvcHVsYXRpb24gb2YgSWNlbGFuZCJ9",
+          "page_age": null
+        },
+        {
+          "type": "web_search_result",
+          "url": "https://old.statice.is/publications/news-archive/inhabitants/population-1-january-2026/",
+          "title": "NEWS RELEASE INHABITANTS 12 MARCH 2026",
+          "encrypted_content": "eyJ1cmwiOiJodHRwczovL29sZC5zdGF0aWNlLmlzL3B1YmxpY2F0aW9ucy9uZXdzLWFyY2hpdmUvaW5oYWJpdGFudHMvcG9wdWxhdGlvbi0xLWphbnVhcnktMjAyNi8iLCJ0aXRsZSI6Ik5FV1MgUkVMRUFTRSBJTkhBQklUQU5UUyAxMiBNQVJDSCAyMDI2In0=",
+          "page_age": null
+        },
+        {
+          "type": "web_search_result",
+          "url": "https://www.icelandreview.com/tag/population/",
+          "title": "www.icelandreview.com",
+          "encrypted_content": "eyJ1cmwiOiJodHRwczovL3d3dy5pY2VsYW5kcmV2aWV3LmNvbS90YWcvcG9wdWxhdGlvbi8iLCJ0aXRsZSI6Ind3dy5pY2VsYW5kcmV2aWV3LmNvbSJ9",
+          "page_age": null
+        },
+        {
+          "type": "web_search_result",
+          "url": "https://www.statisticstimes.com/m/demographics/country/iceland-population.php",
+          "title": "Iceland Population (LIVE)",
+          "encrypted_content": "eyJ1cmwiOiJodHRwczovL3d3dy5zdGF0aXN0aWNzdGltZXMuY29tL20vZGVtb2dyYXBoaWNzL2NvdW50cnkvaWNlbGFuZC1wb3B1bGF0aW9uLnBocCIsInRpdGxlIjoiSWNlbGFuZCBQb3B1bGF0aW9uIChMSVZFKSJ9",
+          "page_age": null
+        },
+        {
+          "type": "web_search_result",
+          "url": "https://www.worldometers.info/world-population/iceland-population/",
+          "title": "Iceland Population (LIVE)",
+          "encrypted_content": "eyJ1cmwiOiJodHRwczovL3d3dy53b3JsZG9tZXRlcnMuaW5mby93b3JsZC1wb3B1bGF0aW9uL2ljZWxhbmQtcG9wdWxhdGlvbi8iLCJ0aXRsZSI6IkljZWxhbmQgUG9wdWxhdGlvbiAoTElWRSkifQ==",
+          "page_age": null
+        },
+        {
+          "type": "web_search_result",
+          "url": "https://www.citypopulation.de/php/iceland-admin.php?adm1id=2",
+          "title": "Iceland: Division",
+          "encrypted_content": "eyJ1cmwiOiJodHRwczovL3d3dy5jaXR5cG9wdWxhdGlvbi5kZS9waHAvaWNlbGFuZC1hZG1pbi5waHA/YWRtMWlkPTIiLCJ0aXRsZSI6IkljZWxhbmQ6IERpdmlzaW9uIn0=",
+          "page_age": null
+        },
+        {
+          "type": "web_search_result",
+          "url": "https://citypopulation.de/en/iceland/admin/",
+          "title": "Iceland: Division",
+          "encrypted_content": "eyJ1cmwiOiJodHRwczovL2NpdHlwb3B1bGF0aW9uLmRlL2VuL2ljZWxhbmQvYWRtaW4vIiwidGl0bGUiOiJJY2VsYW5kOiBEaXZpc2lvbiJ9",
+          "page_age": null
+        },
+        {
+          "type": "web_search_result",
+          "url": "https://www.citypopulation.de/en/iceland//admin/",
+          "title": "Iceland: Division",
+          "encrypted_content": "eyJ1cmwiOiJodHRwczovL3d3dy5jaXR5cG9wdWxhdGlvbi5kZS9lbi9pY2VsYW5kLy9hZG1pbi8iLCJ0aXRsZSI6IkljZWxhbmQ6IERpdmlzaW9uIn0=",
+          "page_age": null
+        },
+        {
+          "type": "web_search_result",
+          "url": "https://citypopulation.de/en/iceland/cities/",
+          "title": "citypopulation.de",
+          "encrypted_content": "eyJ1cmwiOiJodHRwczovL2NpdHlwb3B1bGF0aW9uLmRlL2VuL2ljZWxhbmQvY2l0aWVzLyIsInRpdGxlIjoiY2l0eXBvcHVsYXRpb24uZGUifQ==",
+          "page_age": null
+        }
+      ]
+    }
+  },
+  {
+    "type": "content_block_stop",
+    "index": 1
+  },
+  {
+    "type": "content_block_start",
+    "index": 2,
+    "content_block": {
+      "type": "text",
+      "text": ""
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 2,
+    "delta": {
+      "type": "text_delta",
+      "text": "According"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 2,
+    "delta": {
+      "type": "text_delta",
+      "text": " to Statistics Ice"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 2,
+    "delta": {
+      "type": "text_delta",
+      "text": "land,"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 2,
+    "delta": {
+      "type": "text_delta",
+      "text": " Iceland's population was 394"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 2,
+    "delta": {
+      "type": "text_delta",
+      "text": ",324 as of "
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 2,
+    "delta": {
+      "type": "text_delta",
+      "text": "1 January 2026 ("
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 2,
+    "delta": {
+      "type": "text_delta",
+      "text": "up 1.3% from the"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 2,
+    "delta": {
+      "type": "text_delta",
+      "text": " previ"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 2,
+    "delta": {
+      "type": "text_delta",
+      "text": "ous year), with m"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 2,
+    "delta": {
+      "type": "text_delta",
+      "text": "id-2"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 2,
+    "delta": {
+      "type": "text_delta",
+      "text": "026 estimates plac"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 2,
+    "delta": {
+      "type": "text_delta",
+      "text": "ing it at"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 2,
+    "delta": {
+      "type": "text_delta",
+      "text": " roughly 402,000."
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 2,
+    "delta": {
+      "type": "text_delta",
+      "text": "\n\nSources:\n- ["
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 2,
+    "delta": {
+      "type": "text_delta",
+      "text": "Statistics Iceland"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 2,
+    "delta": {
+      "type": "text_delta",
+      "text": " – Population 1 January "
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 2,
+    "delta": {
+      "type": "text_delta",
+      "text": "2026](https://old"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 2,
+    "delta": {
+      "type": "text_delta",
+      "text": ".statice.is/publications"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 2,
+    "delta": {
+      "type": "text_delta",
+      "text": "/news-archive/inh"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 2,
+    "delta": {
+      "type": "text_delta",
+      "text": "abitants/population-1-"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 2,
+    "delta": {
+      "type": "text_delta",
+      "text": "january-2026/)\n-"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 2,
+    "delta": {
+      "type": "text_delta",
+      "text": " [Wor"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 2,
+    "delta": {
+      "type": "text_delta",
+      "text": "ldometers – Iceland"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 2,
+    "delta": {
+      "type": "text_delta",
+      "text": " Population](https://www.wor"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 2,
+    "delta": {
+      "type": "text_delta",
+      "text": "ldometers.info/world-"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 2,
+    "delta": {
+      "type": "text_delta",
+      "text": "population/iceland-population/"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 2,
+    "delta": {
+      "type": "text_delta",
+      "text": ")"
+    }
+  },
+  {
+    "type": "content_block_stop",
+    "index": 2
+  },
+  {
+    "type": "message_delta",
+    "delta": {
+      "stop_reason": "end_turn",
+      "stop_sequence": null,
+      "stop_details": null,
+      "container": null
+    },
+    "usage": {
+      "input_tokens": 34,
+      "cache_creation_input_tokens": 2466,
+      "cache_read_input_tokens": 1586,
+      "output_tokens": 256,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "server_tool_use": {
+        "web_search_requests": 1,
+        "web_fetch_requests": 0
+      }
+    }
+  },
+  {
+    "type": "message_stop"
+  }
+]

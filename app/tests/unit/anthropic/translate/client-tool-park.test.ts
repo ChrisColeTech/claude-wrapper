@@ -69,14 +69,16 @@ describe('translator: a client tool call parks the turn', () => {
     expect(message.content).toEqual([{ type: 'text', text: recordedAnswer(SINGLE_CALL) }]);
   });
 
-  it.each(['WebSearch', 'mcp__docs__search'])('never parks on a %s call, which is upstream’s own', (name) => {
-    const events = translate(toolUseCall(name));
+  it.each([['WebSearch', 'web_search'], ['mcp__docs__search', 'mcp__docs__search']])(
+    'never parks on a %s call, which is upstream’s own', (name, relayed) => {
+      const events = translate(toolUseCall(name));
 
-    expect(events.some(event => event.type === 'park')).toBe(false);
-    expect(events).toContainEqual(expect.objectContaining({
-      type: 'content_block_start', content_block: expect.objectContaining({ name })
-    }));
-  });
+      expect(events.some(event => event.type === 'park')).toBe(false);
+      expect(events).toContainEqual(expect.objectContaining({
+        type: 'content_block_start', content_block: expect.objectContaining({ name: relayed })
+      }));
+    }
+  );
 
   it('strips the prefix from a client tool’s name only', () => {
     const events = translate(toolUseCall('mcp__client__mcp__client__x'));

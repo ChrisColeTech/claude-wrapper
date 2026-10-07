@@ -5,6 +5,7 @@
 import { AnthropicSettings } from '../../config/anthropic-settings';
 import { ClientTool, ToolResultBlock } from '../../upstream/bridge';
 import { JsonObject } from '../../upstream/frames';
+import { HookPolicySpec } from '../../upstream/hook-policy';
 import { RunSpec, UserMessage } from '../../upstream/runner';
 import { StateDirectory } from '../../upstream/state-directory';
 import { ModelInfo } from '../catalogue';
@@ -81,6 +82,11 @@ export interface TurnPlan {
   startupChecks: StartupChecks;
   /** The client tools the bridge server serves this turn's run; none (or `tool_choice: none`): not mounted. */
   bridgeTools: ClientTool[];
+  /**
+   * The built-in web tools the run enables and the limits its `PreToolUse` hook enforces; absent
+   * when it enables none (no web tool declared, or `tool_choice: none`): no hook, no settings file.
+   */
+  hookPolicy?: HookPolicySpec;
   /** What the run is spawned with and a resuming turn cannot change. */
   runBound: RunBound;
   /** The `tool_result` ids of a replayed turn whose results named no parked run (spec section 7): a lost park. */

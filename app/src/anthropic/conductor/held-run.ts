@@ -5,9 +5,11 @@
  * is abandoned.
  */
 import { Bridge, DeliverOutcome, ToolResultBlock } from '../../upstream/bridge';
+import { HookPolicy } from '../../upstream/hook-policy';
 import { Run } from '../../upstream/runner';
 import { FailureReader } from '../failure';
 import { RunBound } from '../request';
+import { ServerToolCalls } from '../translate';
 import { HeldOpen } from './parking';
 import { PumpLogger, RunPump } from './run-pump';
 
@@ -20,6 +22,10 @@ export interface ConductedRun {
   readonly failures: FailureReader;
   /** The bridge's state machine, when the run exposes client tools. */
   readonly bridge: Bridge | undefined;
+  /** The hook policy, when the run enables a built-in web tool. */
+  readonly policy: HookPolicy | undefined;
+  /** The run's built-in web calls, across its turns; every turn's translator is built with them. */
+  readonly serverTools: ServerToolCalls;
   /** What the run was spawned with. */
   readonly runBound: RunBound;
   /** Spawned with `--json-schema`: every turn's translator renders its StructuredOutput answer. */
@@ -53,10 +59,15 @@ export class HeldRun implements HeldOpen {
     return this.conducted.pump.sessionId;
   }
 
-  /** All or nothing; once they complete the park the run is active again (its lifetime timer runs). */
+  /**
+   * All or nothing; once they complete the park the run is active again (its lifetime timer runs)
+   * for a new request, whose web tools' `max_uses` count afresh (the tools themselves are run-bound).
+   */
   deliver(results: ToolResultBlock[]): DeliverOutcome {
     const outcome = this.bridge.deliver(results);
-    if (outcome.status === 'resumed') this.unpark();
+    if (outcome.status !== 'resumed') return outcome;
+    this.unpark();
+    this.conducted.policy?.startTurn();
     return outcome;
   }
 

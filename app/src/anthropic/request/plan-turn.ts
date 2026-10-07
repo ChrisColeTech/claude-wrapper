@@ -5,6 +5,7 @@
  * `count_tokens` body the same way, for the run that measures it (spec section 12).
  */
 import { ClientTool, CLIENT_TOOL_PREFIX } from '../../upstream/bridge';
+import { WEB_TOOLS, WebTool } from '../../upstream/hook-policy';
 import { STRUCTURED_OUTPUT_TOOL } from '../../upstream/structured-output';
 import { Catalogue } from '../catalogue';
 import { SurfaceError } from '../http/surface-error';
@@ -34,6 +35,7 @@ import { validateStopSequences } from './validate-stop-sequences';
 import { thinkingEnvironment } from './validate-thinking';
 import { validateToolChoice } from './validate-tool-choice';
 import { validateTurnOrder } from './validate-turn-order';
+import { webTools } from './web-tools';
 
 /** The body fields that shape no part of the plan yet: each is validated, then served or ignored. */
 function validateParameters(request: Body): void {
@@ -51,11 +53,15 @@ function bridgeTools(request: Body): ClientTool[] {
 }
 
 /**
- * What upstream must report on `system/init`: exactly the mounted tools, the bridge server's
- * prefixed, plus `StructuredOutput` on a `--json-schema` run (upstream adds it even under `--tools ""`).
+ * What upstream must report on `system/init`: exactly the enabled tools, the built-ins first, then
+ * the bridge server's prefixed, plus `StructuredOutput` on a `--json-schema` run (upstream adds it
+ * even under `--tools ""`).
  */
-function expectedTools(clientToolNames: readonly string[], structuredOutput: boolean): string[] {
-  return [...clientToolNames.map(name => `${CLIENT_TOOL_PREFIX}${name}`), ...(structuredOutput ? [STRUCTURED_OUTPUT_TOOL] : [])];
+function expectedTools(webTools: readonly WebTool[], clientToolNames: readonly string[], structuredOutput: boolean): string[] {
+  return [
+    ...webTools, ...clientToolNames.map(name => `${CLIENT_TOOL_PREFIX}${name}`),
+    ...(structuredOutput ? [STRUCTURED_OUTPUT_TOOL] : [])
+  ];
 }
 
 function plan(
@@ -73,6 +79,8 @@ function plan(
   const system = systemPrompt(request['system']);
   validateParameters(request);
   const tools = bridgeTools(request);
+  const hookPolicy = webTools(request['tools'], request['tool_choice']);
+  const enabled = WEB_TOOLS.filter(tool => hookPolicy?.[tool] !== undefined);
   const stopSequences = validateStopSequences(request['stop_sequences']) ?? [];
   const thinking = thinkingEnvironment(request['thinking'], model, maxTokens);
   const effort = validateEffort(request['output_config'], model);
@@ -83,7 +91,7 @@ function plan(
   const resume = resumedSession(continuation);
   const clientToolNames = tools.map(tool => tool.name);
   const runInputs = {
-    modelId: model.id, system, thinking, clientToolNames, ...(effort === undefined ? {} : { effort }),
+    modelId: model.id, system, thinking, clientToolNames, webTools: enabled, ...(effort === undefined ? {} : { effort }),
     ...(schema === undefined ? {} : { jsonSchema: JSON.stringify(schema) }), ...(resume === undefined ? {} : { resume })
   };
   return {
@@ -93,8 +101,9 @@ function plan(
     runSpec: buildRunSpec(maxTokens === undefined ? measuringRun(runInputs) : { ...runInputs, maxTokens }, context),
     continuation,
     translatorConfig: { stopSequences, structuredOutput: schema !== undefined },
-    startupChecks: { model: model.id, tools: expectedTools(clientToolNames, schema !== undefined) },
+    startupChecks: { model: model.id, tools: expectedTools(enabled, clientToolNames, schema !== undefined) },
     bridgeTools: tools,
+    ...(hookPolicy ? { hookPolicy } : {}),
     runBound: runBoundParameters(request, model.id, system),
     ...(answer && 'lostPark' in answer ? { lostPark: answer.lostPark } : {})
   };

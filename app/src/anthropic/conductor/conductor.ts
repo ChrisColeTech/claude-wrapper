@@ -172,8 +172,8 @@ class SurfaceConductor implements Conductor {
   ): Promise<void> {
     const parked: { on?: string[] } = {};
     const translator = createTranslator({
-      logger: log, failures: run.failures, redact: this.deps.redact, ...turn.translatorConfig,
-      structuredOutput: run.structuredOutput
+      logger: log, failures: run.failures, redact: this.deps.redact, serverTools: run.serverTools,
+      now: () => this.deps.clock.now(), ...turn.translatorConfig, structuredOutput: run.structuredOutput
     });
     run.pump.attach({ translator, sink, observers: [session], onPark: toolUseIds => { parked.on = toolUseIds; } });
     void run.pump.done.catch(() => undefined).then(() => session.exited());
