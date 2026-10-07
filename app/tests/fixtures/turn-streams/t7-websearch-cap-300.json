@@ -372,6 +372,10 @@
       "server_tool_use": {
         "web_search_requests": 1,
         "web_fetch_requests": 0
+      },
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 2466
       }
     }
   },
