@@ -1,8 +1,8 @@
 /**
- * The connector pass on hand-built frames (spec sections 9 and 11), for what the derived
- * fixtures do not show: a failed call and its non-text items, a connector call in the same message
- * as a client call (the mixed-message order, then the park), a tool name holding `__`, and the
- * redaction of a connector call's input.
+ * The connector pass on hand-built frames (spec sections 9 and 11), for what the recorded round
+ * trip does not show: a failed call and its non-text items, a connector call in the same message
+ * as a client call (the mixed-message order, then the park), a tool name holding `__`, several
+ * calls answered while their message still streams, and the redaction of a connector call's input.
  */
 import { accumulate } from '../../../../src/anthropic/respond';
 import { ApiEvent, createTranslator, TurnEvent } from '../../../../src/anthropic/translate';
@@ -94,6 +94,21 @@ describe('the connector pass (spec section 9)', () => {
       'message_stop', 'park'
     ]);
     expect(events[events.length - 1]).toEqual({ type: 'park', toolUseIds: ['toolu_k'] });
+  });
+
+  it('places the results of calls answered while the message still streams after their calls, in one message', () => {
+    // Upstream runs a connector call as soon as its block ends, so its result can arrive while the next block streams.
+    const [start, delta, stop] = toolBlock(1, 'toolu_2', 'mcp__labels__create', '{"name":"b"}');
+    const events = translate([
+      streamEvent(MESSAGE_START), ...toolBlock(0, 'toolu_1', 'mcp__labels__create', '{"name":"a"}'),
+      start as Frame, userResult('toolu_1', 'created a'), delta as Frame, stop as Frame,
+      userResult('toolu_2', 'created b'), ...callEnd('tool_use'), ...answer('Two labels.')
+    ]);
+
+    expect(shape(events)).toEqual(['message_start', '0:mcp_tool_use', '0:stop', '1:mcp_tool_use', '1:stop', '2:mcp_tool_result', '2:stop',
+      '3:mcp_tool_result', '3:stop', '4:text', '4:stop', 'delta:end_turn', 'message_stop']);
+    expect(accumulate(apiEvents(events)).content.map(block => block['tool_use_id'] ?? block['id'] ?? block['type']))
+      .toEqual(['toolu_1', 'toolu_2', 'toolu_1', 'toolu_2', 'text']);
   });
 
   it("redacts an armed string inside a connector call's input, which stays valid JSON", () => {

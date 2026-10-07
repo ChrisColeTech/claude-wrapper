@@ -312,7 +312,7 @@ Every error is `{"type": "error", "error": {"type", "message"}, "request_id"}`, 
 | 404 | `not_found_error` | The model is not in the catalogue (`model: <name>`), or there is no such path or method under `/v1/messages`. |
 | 413 | `request_too_large` | The body is over 32 MB. |
 | 429 | `rate_limit_error` | Upstream's rate limit. It carries `retry-after` when the reset time is known. |
-| 500 | `api_error` | Covers three cases: the operator's Claude Code login or billing failed (the message names the upstream login); the Claude Code binary is missing; or a run failed or exited. |
+| 500 | `api_error` | Covers four cases: the operator's Claude Code login or billing failed (the message names the upstream login); the Claude Code binary is missing; a model call broke mid-stream (Claude Code hides the cause and retries the call out of the surface's sight); or a run failed or exited. |
 | 504 | `timeout_error` | A run's startup, stall or lifetime timer fired. |
 | 529 | `overloaded_error` | The wrapper is at its cap on runs or shutting down, or upstream is overloaded. |
 

@@ -252,15 +252,56 @@ describe('hook policy: anything else is denied (fail closed)', () => {
 describe('hook policy: auditing the run (spec section 8)', () => {
   const deniedId = String(searchCalls[1]?.stdin.tool_use_id);
   const denial = { tool_name: 'WebSearch', tool_use_id: deniedId, tool_input: searchCalls[1]?.stdin.tool_input };
+  const RAN_DESPITE_DENIAL = "Upstream ran a call the wrapper's hook denied: the denial was not enforced";
+  /** Upstream's `user` frame with its result for `toolUseId`, an error result or not. */
+  const resultOf = (toolUseId: string, isError: boolean) => frameOf({ type: 'user', parent_tool_use_id: null,
+    message: { role: 'user', content: [{ type: 'tool_result', tool_use_id: toolUseId, content: 'search results',
+      ...(isError ? { is_error: true } : {}) }] } });
 
-  it("logs nothing when result.permission_denials holds only the hook's own denials", async () => {
-    const logger = quietLogger();
+  /** A policy that has let the first recorded search through and denied the second (max_uses 1). */
+  async function deniedSecond(logger = quietLogger()) {
     const policy = policyFor({ WebSearch: { maxUses: 1 } }, logger);
     for (const call of searchCalls) await policy.decide(call.stdin);
+    return { policy, logger };
+  }
+
+  it("logs nothing when result.permission_denials holds only the hook's own denials", async () => {
+    const { policy, logger } = await deniedSecond();
 
     policy.onFrame(resultFrame({ permission_denials: [denial] }));
 
     expect(logger.error).not.toHaveBeenCalled();
+  });
+
+  it('logs nothing when upstream honoured the denial: an error result, listed in result.permission_denials', async () => {
+    const { policy, logger } = await deniedSecond();
+
+    policy.onFrame(resultOf(deniedId, true));
+    policy.onFrame(resultFrame({ permission_denials: [denial] }));
+
+    expect(logger.error).not.toHaveBeenCalled();
+  });
+
+  it('logs a denied call whose result is not an error: upstream ran it', async () => {
+    const { policy, logger } = await deniedSecond();
+
+    policy.onFrame(resultOf(deniedId, false));
+
+    expect(logger.error).toHaveBeenCalledWith(RAN_DESPITE_DENIAL, undefined,
+      { toolName: 'WebSearch', toolUseId: deniedId, denial: 'max_uses_exceeded', evidence: 'its tool_result is not an error' });
+  });
+
+  it('logs a denied call that result.permission_denials does not list, once however many signs show', async () => {
+    const { policy, logger } = await deniedSecond();
+
+    policy.onFrame(resultOf(deniedId, false));
+    policy.onFrame(resultFrame({ permission_denials: [] }));
+
+    expect(logger.error).toHaveBeenCalledTimes(1);
+    const unlisted = await deniedSecond();
+    unlisted.policy.onFrame(resultFrame({ permission_denials: [] }));
+    expect(unlisted.logger.error).toHaveBeenCalledWith(RAN_DESPITE_DENIAL, undefined,
+      { toolName: 'WebSearch', toolUseId: deniedId, denial: 'max_uses_exceeded', evidence: 'result.permission_denials does not list it' });
   });
 
   it('logs a denial the hook did not issue as a misconfiguration, without its input', () => {

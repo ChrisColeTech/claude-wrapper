@@ -17,9 +17,9 @@
  * (a prompt that makes the model call one of that server's tools), `UPSTREAM_E2E_DEAD_CONNECTOR_URL`
  * (default `https://127.0.0.1:9/mcp`, a port nothing listens on), `UPSTREAM_E2E_MODEL`,
  * `CLAUDE_COMMAND`. With `UPSTREAM_E2E_RECORD_DIR` set, each run's frames are written there as
- * `connector-round-trip.jsonl` and `connector-not-connected.jsonl`: the real recordings the
- * derived connector fixtures stand in for. Scrub them (`npm run fixtures:scrub`) before any becomes
- * a fixture, and never commit one carrying a token.
+ * `connector-round-trip.jsonl` and `connector-not-connected.jsonl`; the fixtures of those names
+ * under `tests/fixtures/upstream/e2e-runs/` are the first run's (2026-10-07). Scrub a new recording
+ * (`npm run fixtures:scrub`) before it becomes a fixture, and never commit one carrying a token.
  */
 import type Anthropic from '@anthropic-ai/sdk';
 import * as fs from 'fs';
@@ -29,8 +29,8 @@ import { Frame } from '../../../src/upstream/frames';
 import { openStateDirectory, StateDirectory } from '../../../src/upstream/state-directory';
 import type { SurfaceHarness } from '../../mocks/anthropic/surface-harness';
 import { waitFor } from '../../mocks/shared/wait-for';
-import { describeUpstream, E2E_MODEL, removeStateRoot } from './harness';
-import { TeeingRunner, teeingRunner } from './teeing-runner';
+import { describeUpstream, E2E_MODEL, productionSurface, removeStateRoot } from './harness';
+import { recordFrames, TeeingRunner, teeingRunner } from './teeing-runner';
 
 const URL_ = process.env['UPSTREAM_E2E_CONNECTOR_URL'] ?? 'https://mcp.deepwiki.com/mcp';
 const NAME = process.env['UPSTREAM_E2E_CONNECTOR_NAME'] ?? 'deepwiki';
@@ -47,28 +47,12 @@ const TURN_TIMEOUT_MS = 240_000;
 type BetaMessage = Anthropic.Beta.Messages.BetaMessage;
 type BetaParams = Anthropic.Beta.Messages.MessageCreateParamsNonStreaming;
 
-/** Built here, not imported at the top: a skipped file must not start the OpenAI surface's timers. */
-async function productionSurface(state: StateDirectory, runner: TeeingRunner): Promise<SurfaceHarness> {
-  const { createServer } = await import('../../../src/api/server');
-  const { serveApp } = await import('../../mocks/anthropic/surface-harness');
-  return serveApp(createServer({ stateDirectory: state, runner }));
-}
-
 function connector(name: string, url: string, token?: string): Pick<BetaParams, 'mcp_servers' | 'tools' | 'betas'> {
   return {
     betas: [MCP_BETA],
     mcp_servers: [{ type: 'url', url, name, ...(token ? { authorization_token: token } : {}) }],
     tools: [{ type: 'mcp_toolset', mcp_server_name: name }]
   };
-}
-
-/** Writes a run's frames as upstream wrote them, when a record directory is set. */
-function record(name: string, frames: readonly Frame[]): void {
-  const dir = process.env['UPSTREAM_E2E_RECORD_DIR'];
-  if (!dir) return;
-  fs.mkdirSync(dir, { recursive: true });
-  const lines = frames.map(frame => JSON.stringify(frame.type === 'unknown' ? frame.raw : frame));
-  fs.writeFileSync(path.join(dir, `${name}.jsonl`), lines.join('\n') + '\n');
 }
 
 const initOf = (frames: readonly Frame[]) =>
@@ -85,7 +69,7 @@ describeUpstream('connectors through the surface against the real CLI (spec sect
     root = fs.mkdtempSync(path.join(os.tmpdir(), 'connectors-e2e-'));
     state = openStateDirectory(root);
     runner = teeingRunner();
-    surface = await productionSurface(state, runner);
+    surface = await productionSurface(state, { runner });
   });
 
   afterEach(async () => {
@@ -101,7 +85,7 @@ describeUpstream('connectors through the surface against the real CLI (spec sect
     }).finalMessage();
     await waitFor(() => fs.readdirSync(state.runs).length === 0, RUN_EXIT_WAIT_MS);
     const [run] = runner.runs;
-    record('connector-round-trip', run?.frames ?? []);
+    recordFrames('connector-round-trip', run?.frames ?? []);
 
     const init = initOf(run?.frames ?? []);
     expect(init?.mcp_servers).toContainEqual(expect.objectContaining({ name: NAME, status: 'connected' }));
@@ -123,7 +107,7 @@ describeUpstream('connectors through the surface against the real CLI (spec sect
       model: E2E_MODEL, max_tokens: 64, messages: [{ role: 'user', content: 'Reply with the word pong.' }], ...connector('dead', DEAD_URL)
     }).then(() => undefined, (error: unknown) => error as InstanceType<typeof Anthropic.APIError>);
     await waitFor(() => fs.readdirSync(state.runs).length === 0, RUN_EXIT_WAIT_MS);
-    record('connector-not-connected', runner.runs[0]?.frames ?? []);
+    recordFrames('connector-not-connected', runner.runs[0]?.frames ?? []);
 
     expect(failure?.status).toBe(400);
     expect((failure?.error as { error: { message: string } }).error.message)

@@ -18,11 +18,10 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { Frame } from '../../../src/upstream/frames';
-import { Runner } from '../../../src/upstream/runner';
 import { openStateDirectory, StateDirectory } from '../../../src/upstream/state-directory';
 import type { SurfaceHarness } from '../../mocks/anthropic/surface-harness';
 import { waitFor } from '../../mocks/shared/wait-for';
-import { describeUpstream, E2E_MODEL, removeStateRoot } from './harness';
+import { describeUpstream, E2E_MODEL, productionSurface, removeStateRoot } from './harness';
 import { modelCallStarts, sessionOf, TeeingRunner, teeingRunner } from './teeing-runner';
 
 const HAIKU = 'claude-haiku-4-5-20251001';
@@ -41,13 +40,6 @@ const WEATHER = {
 const body = (fields: object = {}) => ({
   model: E2E_MODEL, messages: [{ role: 'user' as const, content: 'Reply with the single word pong.' }], ...fields
 });
-
-/** Built here, not imported at the top: a skipped file must not start the OpenAI surface's timers. */
-async function productionSurface(state: StateDirectory, runner: Runner): Promise<SurfaceHarness> {
-  const { createServer } = await import('../../../src/api/server');
-  const { serveApp } = await import('../../mocks/anthropic/surface-harness');
-  return serveApp(createServer({ stateDirectory: state, runner }));
-}
 
 const projectDirectory = (cwd: string): string =>
   path.join(os.homedir(), '.claude', 'projects', fs.realpathSync(cwd).replace(/[^a-zA-Z0-9]/g, '-'));
@@ -78,7 +70,7 @@ describeUpstream('scenario 5: count_tokens end to end, against the real CLI', ()
     root = fs.mkdtempSync(path.join(os.tmpdir(), 'count-tokens-e2e-'));
     state = openStateDirectory(root);
     runner = teeingRunner();
-    surface = await productionSurface(state, runner);
+    surface = await productionSurface(state, { runner });
   });
 
   afterEach(async () => {

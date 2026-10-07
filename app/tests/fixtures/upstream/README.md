@@ -1,10 +1,8 @@
 # Upstream fixtures
 
-Recorded Claude Code runs, copied from the Anthropic surface's research probes (`cli-probes/`) and the client-tool spike (`spike-runs/`). Each fixture keeps its source file name. Tests pick a fixture by its path below, relative to this directory.
+Recorded Claude Code runs, copied from the Anthropic surface's research probes (`cli-probes/`) and the client-tool spike (`spike-runs/`), and written by the real-CLI e2e scenarios (`e2e-runs/`, from their first full run on 2026-10-07, Claude Code 2.1.291). Each fixture keeps its source file name. Tests pick a fixture by its path below, relative to this directory.
 
 **Scrubbed.** `npm run fixtures:scrub` copies the recordings here and replaces the operator's account email with `user@example.invalid` and the display and full names with `Example User`, reading the live values from the CLI's account file at scrub time. It is re-runnable: it writes only new or changed files, and a recording saved straight into this directory is scrubbed in place. Before the unit, integration and `test:ci` runs, a Jest global setup refuses to run the suite if any file under `tests/fixtures/` still carries a live value. A value split across `text_delta` chunks counts, and so does one inside a wire log's frame string. The guard skips with a notice when there is no account file. Values match as whole words and ignore case. The harness scripts (`*.py`, `*.mjs`) are code and are not copied; their originals stay beside the recordings in `.scratch/anthropic-compat-api/`.
-
-**Derived fixtures.** `derived/` holds stand-ins for recordings nobody has made yet, each built from a recording above by a stated transformation and marked **Derived, not recorded** in its row. The connector fixtures (spec section 9) are bridge runs whose MCP server answered, renamed: upstream reports a call to any MCP server it executes the same way (a `tool_use` named `mcp__<server>__<tool>`, then a `user` frame with its `tool_result`). Only upstream's stdio is kept. `tests/scripts/upstream-fixtures/derive-connector.ts` is the transformation, and `tests/unit/upstream-fixtures/derived-connector.test.ts` fails if a derived file no longer equals its derivation (`UPDATE_DERIVED_FIXTURES=1` rewrites them). The real connector recording is pending e2e scenario 9 (`tests/e2e/upstream/connectors.test.ts` writes it to `UPSTREAM_E2E_RECORD_DIR`); once it is scrubbed in, prefer it and keep the derived files only while a test still needs their shape. A derived file is scanned by the guard like any fixture, and its source carried no address.
 
 **Address column.** `scrubbed` marks the seventeen recordings that carried the account email. Each now holds the placeholder where the address was. Where the address was split across deltas, the placeholder sits whole in the first chunk and the later chunks are empty `text_delta`s, so these files do not exercise a split.
 
@@ -147,8 +145,9 @@ Spec sections refer to `.scratch/anthropic-compat-api/spec.md`.
 | `cli-probes/t5-haiku-disable-thinking.jsonl` | frames+partial | Haiku with `CLAUDE_CODE_DISABLE_THINKING=1`: no thinking block | §12 | |
 | `cli-probes/t6-haiku-max-thinking-1024.jsonl` | frames+partial | Haiku with `MAX_THINKING_TOKENS=1024`: accepted, thinks normally | §12 | |
 | `cli-probes/t7-websearch-cap-300.jsonl` | frames+partial | A two-call web-search turn with partial messages (output cap 300) | §8, §12 | |
-| `derived/connector-labels.wire.ndjson` | wire | **Derived, not recorded**: `cli-probes/q-tool-names-run2.wire.ndjson` with its MCP server renamed `labels`. A connector's shape: six `mcp__labels__…` calls in one message, each answered at once, so most results arrive while the message still streams; then the answer | §9, §11 | |
-| `derived/connector-weather.wire.ndjson` | wire | **Derived, not recorded**: `spike-runs/cli-http-happy.wire.ndjson` with its MCP server renamed `weather`. A connector's shape: one `mcp__weather__get_weather` call answered after three seconds, then an answer quoting its result | §9, §11 | |
+| `e2e-runs/connector-not-connected.jsonl` | frames | E2E scenario 9's not-connected path (Claude Code 2.1.291, Haiku 4.5): `system/init` reports the dead server `failed`, its entry carrying `source: "dynamic"`, with no tools; then the surface's interrupt and `result/error_during_execution` | §9, §13 | |
+| `e2e-runs/connector-round-trip.jsonl` | frames+partial | E2E scenario 9 against DeepWiki's public MCP server (Claude Code 2.1.291, Haiku 4.5): a text block and one `mcp__deepwiki__read_wiki_structure` call, then its `user` frame, whose `tool_result.content` is a string and whose `tool_use_result` is `{content, structuredContent}`; then the answer | §9, §11 | |
+| `e2e-runs/scenario-1-failure-after-content-error_event.jsonl` | frames+partial | E2E scenario 1 (Claude Code 2.1.291, Haiku 4.5): the fault proxy broke the call with an SSE `overloaded_error` after its first `content_block_delta`. Upstream closed the call with `content_block_stop` and `message_stop` but no `message_delta`, retried it with no `api_retry` and no stream event, and gave the whole answer only in the `assistant` frame; `result` is `success` | §11, §13 | |
 | `spike-runs/cli-http-happy.summary.json` | summary | Timings, ids and bridge trace of `cli-http-happy` | §7 | |
 | `spike-runs/cli-http-happy.wire.ndjson` | wire | Raw CLI plus wrapper-hosted HTTP MCP server: one client tool round trip, `_meta["claudecode/toolUseId"]` over HTTP | §7, §16 | |
 | `spike-runs/cli-http-interrupt.summary.json` | summary | Timings, ids and bridge trace of `cli-http-interrupt` | §7, §14 | |
@@ -168,7 +167,7 @@ Spec sections refer to `.scratch/anthropic-compat-api/spec.md`.
 
 ## Recording an observed failure
 
-Some upstream failures cannot be provoked on demand, so their rows in the spec's section 13 table rest on documented shapes until someone records them: e2e scenario 8, a live 429 (the subscription window exhausted) and an OAuth-expiry run, and e2e scenario 1 (a model call failing after it has streamed content). When one happens, record it while the condition still holds:
+Some upstream failures cannot be provoked on demand, so their rows in the spec's section 13 table rest on documented shapes until someone records them: e2e scenario 8, a live 429 (the subscription window exhausted) and an OAuth-expiry run. E2E scenario 1 (a model call failing after it has streamed content) provokes its failure with a fault proxy; its first recording is `e2e-runs/scenario-1-failure-after-content-error_event.jsonl`. When a failure happens, record it while the condition still holds:
 
 1. Record a raw run with the surface's output flags, bounded because upstream's retry loop runs for minutes (a 401 or a 429 shows as `system/api_retry` frames, a rejected window as a `rate_limit_event` with `status: "rejected"`):
 
@@ -180,7 +179,7 @@ Some upstream failures cannot be provoked on demand, so their rows in the spec's
      > 2026-10-07-live-429.jsonl 2> 2026-10-07-live-429.stderr.txt; echo "exit=$?" >> 2026-10-07-live-429.stderr.txt
    ```
 
-   Name the files by date and by what was seen (`live-429`, `oauth-expired`). For scenario 1, run `tests/e2e/upstream/failure-after-content.test.ts` with `UPSTREAM_E2E_RECORD_DIR` set to the `observed` directory; it writes the frames and a summary naming the trigger that fired.
+   Name the files by date and by what was seen (`live-429`, `oauth-expired`). To record scenario 1 again (on a new Claude Code version, say), run `tests/e2e/upstream/failure-after-content.test.ts` with `UPSTREAM_E2E_RECORD_DIR` set to the `e2e-runs` directory; it writes the frames and a summary naming the trigger that fired.
 2. Run `npm --prefix app run fixtures:scrub`. The unit and integration suites refuse to run while a recording still carries the account's email or names.
 3. Add one index row per file above (kind `frames+partial`, `stderr` or `summary`; spec `§13`), in the same commit.
 4. Replay it through the translator (a case in `tests/unit/anthropic/translate/translator-failures.test.ts`) so the mapped row is pinned. If the shape differs from what the spec expects (the category, `api_error_status`, the synthetic frame's text, or which trigger fired), fix the table or the triggers and note it in the spec's "Unverified mechanics".

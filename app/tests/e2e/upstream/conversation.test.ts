@@ -16,7 +16,7 @@ import { createSpawnRunner, Runner, RunSpec } from '../../../src/upstream/runner
 import { openStateDirectory, StateDirectory } from '../../../src/upstream/state-directory';
 import type { SurfaceHarness } from '../../mocks/anthropic/surface-harness';
 import { waitFor } from '../../mocks/shared/wait-for';
-import { describeUpstream, E2E_MODEL, removeStateRoot } from './harness';
+import { describeUpstream, E2E_MODEL, productionSurface, removeStateRoot } from './harness';
 
 const RUN_EXIT_WAIT_MS = 60_000;
 const FIRST: Anthropic.MessageParam = {
@@ -36,13 +36,6 @@ function notingRunner(specs: RunSpec[]): Runner {
   return { startRun: spec => { specs.push(spec); return runner.startRun(spec); } };
 }
 
-/** Built here, not imported at the top: a skipped file must not start the OpenAI surface's timers. */
-async function productionSurface(state: StateDirectory, runner: Runner): Promise<SurfaceHarness> {
-  const { createServer } = await import('../../../src/api/server');
-  const { serveApp } = await import('../../mocks/anthropic/surface-harness');
-  return serveApp(createServer({ stateDirectory: state, runner }));
-}
-
 describeUpstream('a continued turn against the real CLI', () => {
   let root: string;
   let state: StateDirectory;
@@ -56,7 +49,7 @@ describeUpstream('a continued turn against the real CLI', () => {
     root = fs.mkdtempSync(path.join(os.tmpdir(), 'conversation-e2e-'));
     state = openStateDirectory(root);
     specs = [];
-    surface = await productionSurface(state, notingRunner(specs));
+    surface = await productionSurface(state, { runner: notingRunner(specs) });
   });
 
   afterEach(async () => {

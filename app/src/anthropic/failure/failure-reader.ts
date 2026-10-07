@@ -21,7 +21,11 @@ import { DETERMINISTIC_CATEGORIES, UpstreamSignal } from './upstream-signal';
 export type FailureTrigger =
   /** (ii) a failed `result` before the turn's end. */
   | { kind: 'result'; result: ResultFrame }
-  /** (i) a `message_start` while the current upstream message still had an open block. */
+  /**
+   * (i) a broken model call: a `message_start` while the current upstream message still had an
+   * open block, or a `message_stop` with no `message_delta`. Without an `api_retry` naming the
+   * cause, it is the table's `unknown` row.
+   */
   | { kind: 'broken_call' }
   /** (iii) the runner ended the run: a timer, an oversized line, a spawn failure. */
   | { kind: 'run_failure'; reason: RunFailureReason }

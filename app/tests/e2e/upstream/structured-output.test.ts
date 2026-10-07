@@ -18,7 +18,7 @@ import { createSpawnRunner, Runner, RunSpec } from '../../../src/upstream/runner
 import { openStateDirectory, StateDirectory } from '../../../src/upstream/state-directory';
 import type { SurfaceHarness } from '../../mocks/anthropic/surface-harness';
 import { waitFor } from '../../mocks/shared/wait-for';
-import { describeUpstream, E2E_MODEL, removeStateRoot } from './harness';
+import { describeUpstream, E2E_MODEL, productionSurface, removeStateRoot } from './harness';
 
 const RUN_EXIT_WAIT_MS = 60_000;
 const SCHEMA = {
@@ -33,13 +33,6 @@ const params = { model: E2E_MODEL, max_tokens: 1024, messages: [ASK], output_con
 function notingRunner(specs: RunSpec[]): Runner {
   const runner = createSpawnRunner();
   return { startRun: spec => { specs.push(spec); return runner.startRun(spec); } };
-}
-
-/** Built here, not imported at the top: a skipped file must not start the OpenAI surface's timers. */
-async function productionSurface(state: StateDirectory, runner: Runner): Promise<SurfaceHarness> {
-  const { createServer } = await import('../../../src/api/server');
-  const { serveApp } = await import('../../mocks/anthropic/surface-harness');
-  return serveApp(createServer({ stateDirectory: state, runner }));
 }
 
 /** Every text block is JSON (what `parse()` requires), and no tool call reached the client. */
@@ -63,7 +56,7 @@ describeUpstream('structured output through the surface against the real CLI', (
     root = fs.mkdtempSync(path.join(os.tmpdir(), 'structured-output-e2e-'));
     state = openStateDirectory(root);
     specs = [];
-    surface = await productionSurface(state, notingRunner(specs));
+    surface = await productionSurface(state, { runner: notingRunner(specs) });
   });
 
   afterEach(async () => {
