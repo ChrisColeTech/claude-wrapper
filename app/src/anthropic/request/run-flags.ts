@@ -2,9 +2,9 @@
  * The argument list of a run (spec section 10), in the table's order. Never passed: the flags the
  * spec rules out (`--fallback-model`, `--max-budget-usd`, `--append-system-prompt`, `--bare`,
  * `--dangerously-skip-permissions`, `--exclude-dynamic-system-prompt-sections`), and the
- * conditional ones (`--settings`, `--json-schema`, `--no-session-persistence`) until a turn needs
- * them. `--mcp-config` is a turn's that mounts the bridge server, `--effort` the request's
- * `output_config.effort`; `--resume` is a continued turn's.
+ * conditional ones (`--settings`, `--json-schema`) until a turn needs them. `--mcp-config` is a
+ * turn's that mounts the bridge server, `--effort` the request's `output_config.effort`;
+ * `--resume` is a continued turn's, `--no-session-persistence` a `count_tokens` run's.
  */
 
 export interface FlagInputs {
@@ -21,6 +21,8 @@ export interface FlagInputs {
   effort?: string;
   /** A continued turn's upstream session. */
   resume?: string;
+  /** A `count_tokens` run: upstream writes no transcript. */
+  noSessionPersistence?: boolean;
 }
 
 const STREAM_JSON = [
@@ -41,6 +43,7 @@ export function runFlags(inputs: FlagInputs): string[] {
     ...(inputs.mcpConfig === undefined ? [] : ['--mcp-config', inputs.mcpConfig]),
     '--max-turns', String(inputs.maxTurns),
     ...(inputs.effort === undefined ? [] : ['--effort', inputs.effort]),
-    ...(inputs.resume === undefined ? [] : ['--resume', inputs.resume])
+    ...(inputs.resume === undefined ? [] : ['--resume', inputs.resume]),
+    ...(inputs.noSessionPersistence ? ['--no-session-persistence'] : [])
   ];
 }
