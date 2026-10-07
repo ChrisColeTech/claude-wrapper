@@ -25,3 +25,4 @@ Spec: [spec.md](../spec.md), sections 2, 13 (envelope), 15 (settings)
 ## Comments
 
 - Resolved by merge 3d12d65 on anthropic-compat-api.
+- Follow-up (merge 30d64fd): on the Anthropic surface the credential check now runs before the 32 MB body parser, so a missing or wrong key is refused before the body is read; the OpenAI surface's order (body parsed, then the Bearer check) is unchanged.
