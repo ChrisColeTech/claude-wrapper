@@ -7,7 +7,7 @@
  */
 import { SurfaceError } from '../surface-error';
 import { CONNECTOR_HISTORY_BLOCKS } from './history-connector-blocks';
-import { attribute } from './history-markup';
+import { attribute, callTag } from './history-markup';
 import { WEB_HISTORY_BLOCKS } from './history-web-blocks';
 import { ContentBlock } from './turn-plan';
 
@@ -26,10 +26,7 @@ function toolResultContent(content: unknown): HistoryPart[] {
   return items.flatMap((item, index) => (index === 0 ? [item] : ['\n', item]));
 }
 
-const toolUse: HistoryBlock = block => [
-  `<tool_use id="${attribute(block['id'])}" name="${attribute(block['name'])}">` +
-  `${JSON.stringify(block['input'] ?? {})}</tool_use>`
-];
+const toolUse: HistoryBlock = block => [callTag('tool_use', block)];
 
 const toolResult: HistoryBlock = block => [
   `<tool_result tool_use_id="${attribute(block['tool_use_id'])}" is_error="${block['is_error'] === true}">`,

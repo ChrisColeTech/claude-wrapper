@@ -277,7 +277,7 @@ Tools, web search and connectors:
 - **Web search results have no citations**, an opaque `encrypted_content`, and `page_age: null`.
 - **Web fetch returns Claude Code's extraction of the page**, not the page itself.
 - **A message that calls a client tool before a web or connector tool ends the turn early.** The turn ends with a `server_tool_use` block and no result block, and the result opens the next turn's message.
-- **Nothing may follow the `tool_result` blocks** in the message that answers a parked tool call (a 400).
+- **Nothing may follow the `tool_result` blocks** in the message that answers a parked tool call: it is a 400, where the real API accepts trailing text. The held-open run can take only the tool results, so send the text in the next turn.
 - **Lost tool results reach the model as text.** If no parked run holds the results (the park timed out, or the wrapper restarted), the request is still answered, but the model sees the results as text in the replayed history rather than as real tool results.
 - **Structured output keeps only the JSON.** Prose text blocks are dropped, a stop sequence can cut inside the JSON, and a schema Claude Code refuses at startup is a 400 `output_config.format.schema <reason>`.
 - **Connectors are off by default** and gated by the operator's host list.

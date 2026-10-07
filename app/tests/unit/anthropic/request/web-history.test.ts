@@ -103,11 +103,27 @@ describe('renderReplay: the web tools in earlier turns (spec sections 5, 8)', ()
     ));
   });
 
-  it('answers 400 for a server tool the surface does not serve, rather than dropping it', () => {
-    const render = () => historyOf({ type: 'server_tool_use', id: 'srvtoolu_1', name: 'code_execution', input: { code: 'x' } });
+  it('renders a call of a server tool the surface does not serve generically, exactly as sent', () => {
+    const rendered = historyOf(
+      { type: 'server_tool_use', id: 'srvtoolu_1', name: 'code_execution', input: { code: 'print("<a & b>")' } },
+      { type: 'server_tool_use', id: 'srvtoolu_2', name: 'tool_search_tool_regex' },
+      text('Done.')
+    );
 
-    expect(render).toThrow(SurfaceError);
-    expect(render).toThrow('messages: server_tool_use blocks named "code_execution" in earlier turns are not supported');
+    expect(rendered).toBe(assistantTurn(
+      '<server_tool_use id="srvtoolu_1" name="code_execution">{"code":"print(\\"<a & b>\\")"}</server_tool_use>\n' +
+      '<server_tool_use id="srvtoolu_2" name="tool_search_tool_regex">{}</server_tool_use>\nDone.\n'
+    ));
+  });
+
+  it('plans a replayed turn whose history holds a server tool call the surface does not serve', () => {
+    const plan = planDefault({ model: 'opus', max_tokens: 64, messages: [
+      { role: 'user', content: 'Run it.' },
+      { role: 'assistant', content: [{ type: 'server_tool_use', id: 'srvtoolu_1', name: 'code_execution', input: { code: 'x' } }] },
+      { role: 'user', content: 'And?' }
+    ] });
+
+    expect(plan).not.toBeInstanceOf(SurfaceError);
   });
 
   it('plans a replayed turn whose history holds the blocks a web search turn returned', () => {
