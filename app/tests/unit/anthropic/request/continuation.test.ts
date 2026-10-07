@@ -54,7 +54,7 @@ describe('planTurn: continued or replayed turn', () => {
 
   it("sends the new message's blocks verbatim", () => {
     recorded('session-1', U1, A1);
-    const blocks = [{ type: 'text', text: 'And this?', cache_control: { type: 'ephemeral' } },
+    const blocks = [{ type: 'text', text: '  And this?  ', citations: null },
       { type: 'image', source: { type: 'base64', media_type: 'image/png', data: 'iVBORw0KGgo=' } }];
 
     const result = plan([U1, A1, { role: 'user', content: blocks }]);
@@ -62,10 +62,11 @@ describe('planTurn: continued or replayed turn', () => {
     expect(result.continuation).toEqual({ resume: 'session-1', message: { role: 'user', content: blocks } });
   });
 
-  it('continues whatever form the client echoes the answer in', () => {
+  it('continues whatever form the client echoes the answer in, wherever it moves its cache breakpoint', () => {
     recorded('session-1', U1, A1);
     const echoes: Message[] = [
       { role: 'assistant', content: 'Nice to meet you, Sam.' },
+      { role: 'assistant', content: [{ type: 'text', text: 'Nice to meet you, Sam.', cache_control: { type: 'ephemeral' } }] },
       { role: 'assistant', content: [{ type: 'thinking', thinking: '', signature: 'c2ln' },
         { type: 'text', text: 'Nice to meet you, Sam.', citations: null }] }
     ];
