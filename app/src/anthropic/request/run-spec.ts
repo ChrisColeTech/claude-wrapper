@@ -38,6 +38,9 @@ export interface RunInputs {
 /** The permission rule that admits each built-in; the hook enforces the request's limits on top. */
 const ALLOW_RULES: Readonly<Record<WebTool, string>> = { WebSearch: 'WebSearch', WebFetch: 'WebFetch(domain:*)' };
 
+/** The run's file holding the system prompt, which upstream reads verbatim as UTF-8. */
+export const SYSTEM_PROMPT_FILE_NAME = 'system-prompt.txt';
+
 export function buildRunSpec(inputs: RunInputs, context: RunContext): RunSpec {
   const { settings, environment, state, runId } = context;
   const { timers } = settings;
@@ -47,7 +50,7 @@ export function buildRunSpec(inputs: RunInputs, context: RunContext): RunSpec {
   const hooked = inputs.webTools.length > 0;
   return {
     flags: runFlags({
-      system: inputs.system, modelId: inputs.modelId, maxTurns: settings.maxTurns,
+      systemPromptFile: path.join(runDir, SYSTEM_PROMPT_FILE_NAME), modelId: inputs.modelId, maxTurns: settings.maxTurns,
       tools: inputs.webTools,
       allowedTools: [
         ...inputs.clientToolNames.map(name => `${CLIENT_TOOL_PREFIX}${name}`),
@@ -64,7 +67,7 @@ export function buildRunSpec(inputs: RunInputs, context: RunContext): RunSpec {
     }),
     env: childEnvironment({ maxOutputTokens: inputs.maxTokens, thinking: inputs.thinking, settings, environment }),
     cwd: state.cwd,
-    runDir: { path: runDir, files: {} },
+    runDir: { path: runDir, files: { [SYSTEM_PROMPT_FILE_NAME]: inputs.system } },
     timers: { startup: timers.startupMs, stall: timers.stallMs, lifetime: timers.lifetimeMs }
   };
 }

@@ -21,3 +21,4 @@ Spec: [spec.md](../spec.md), sections 4 (basics), 6 (system prompt and isolation
 
 - Deviation: `planTurn` takes a fourth `context` argument (settings, environment, state directory, run id) alongside request, catalogue and sessions.
 - Resolved by merge bef1798 on anthropic-compat-api.
+- Changed in review fixes (impl/review-fixes): the system prompt is written to the run's `0600` file `system-prompt.txt` and passed as `--system-prompt-file <path>`, replacing `--system-prompt <text>`. One argument cannot exceed 128 KiB (E2BIG at spawn) and argv is readable by every local user. CLI 2.1.291 has the flag (left out of `--help`'s option list, named in `--bare`'s text); it reads the file as UTF-8 verbatim, so an empty file is an empty prompt. `--system-prompt-snapshot off` stays.

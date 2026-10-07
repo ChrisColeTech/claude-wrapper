@@ -1,7 +1,9 @@
 /**
  * `system` (spec section 6): the upstream system prompt is exactly the client's, a string as is
  * or its text blocks joined with a blank line, and the empty string when absent (or `null`).
- * It travels as one argument, so it cannot carry a NUL character.
+ * It travels in a file of the run's (`--system-prompt-file`), so its size is bounded only by the
+ * request's. A NUL character is still refused: the rule dates from when the prompt was an
+ * argument, and how upstream and the API take one in a prompt file is unverified.
  */
 import { SurfaceError } from '../surface-error';
 import { fieldInvalid, fieldRequired, isObject } from './field-errors';

@@ -54,7 +54,7 @@ describe('planTurn mounts the connectors (spec sections 9, 10)', () => {
     });
     expect(JSON.stringify(runSpec.flags)).not.toContain(TOKEN);
     expect(JSON.stringify(runSpec.env)).not.toContain(TOKEN);
-    expect(runSpec.runDir?.files).toEqual({});
+    expect(runSpec.runDir?.files).toEqual({ 'system-prompt.txt': '' });
   });
 
   it('allows the client tools first, then each server, beside the bridge server', () => {
