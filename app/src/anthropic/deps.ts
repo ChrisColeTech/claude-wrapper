@@ -10,6 +10,7 @@
 import { Clock } from '../utils/clock';
 import { ControlServer } from '../upstream/control-server';
 import { Runner } from '../upstream/runner';
+import { StateDirectory } from '../upstream/state-directory';
 import { Catalogue } from './catalogue';
 
 export type { Catalogue } from './catalogue';
@@ -28,6 +29,7 @@ export interface Sessions {
 export type { ControlServer };
 
 export interface SurfaceDeps {
+  /** Defaults to the spawn runner (the operator's Claude Code, `CLAUDE_COMMAND`). */
   runner?: Runner;
   /** Defaults to the catalogue file the operator's settings name, else the shipped one. */
   catalogue?: Catalogue;
@@ -36,4 +38,10 @@ export interface SurfaceDeps {
   controlServer?: ControlServer;
   /** Defaults to `systemClock`; tests pass a fake clock (`tests/mocks/shared/fake-clock.ts`). */
   clock?: Clock;
+  /**
+   * The working and per-run directories. Defaults to the process's own state directory, opened
+   * once per process at the first turn (opening one empties it). Tests with the replay runner
+   * pass plain paths; nothing is created on disk for them.
+   */
+  stateDirectory?: StateDirectory;
 }

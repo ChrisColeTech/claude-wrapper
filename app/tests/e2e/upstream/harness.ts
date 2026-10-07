@@ -93,6 +93,12 @@ export interface UpstreamHarness {
 const projectDir = (cwd: string): string =>
   path.join(os.homedir(), '.claude', 'projects', fs.realpathSync(cwd).replace(/[^a-zA-Z0-9]/g, '-'));
 
+/** Removes a scenario's state root and the CLI's project directory for its working directory. */
+export function removeStateRoot(root: string, cwd: string): void {
+  fs.rmSync(projectDir(cwd), { recursive: true, force: true });
+  fs.rmSync(root, { recursive: true, force: true });
+}
+
 export function createUpstreamHarness(): UpstreamHarness {
   const runner = createSpawnRunner({ command: process.env['CLAUDE_COMMAND'] ?? 'claude' });
   const runs: Run[] = [];
@@ -119,10 +125,7 @@ export function createUpstreamHarness(): UpstreamHarness {
     },
     async cleanup() {
       await Promise.all(runs.splice(0).map(run => run.close()));
-      for (const { root, cwd } of roots.splice(0)) {
-        fs.rmSync(projectDir(cwd), { recursive: true, force: true });
-        fs.rmSync(root, { recursive: true, force: true });
-      }
+      for (const { root, cwd } of roots.splice(0)) removeStateRoot(root, cwd);
     }
   };
 }

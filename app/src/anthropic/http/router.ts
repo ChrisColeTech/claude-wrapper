@@ -13,18 +13,28 @@ import { requireAnthropicVersion } from './version';
 
 const NOT_FOUND = 'The requested resource could not be found.';
 
+/** An endpoint handler: a rejection is an error the shared error handler renders. */
+export type SurfaceHandler = (req: Request, res: Response) => Promise<void>;
+
 export interface AnthropicRoutes {
   catalogue: Catalogue;
+  /** `POST /v1/messages`. */
+  messages: SurfaceHandler;
 }
 
 function notFound(_req: Request, _res: Response, next: NextFunction): void {
   next(new SurfaceError(404, 'not_found_error', NOT_FOUND));
 }
 
-export function createAnthropicRouter({ catalogue }: AnthropicRoutes): Router {
+const route = (handler: SurfaceHandler) => (req: Request, res: Response, next: NextFunction): void => {
+  handler(req, res).catch(next);
+};
+
+export function createAnthropicRouter({ catalogue, messages }: AnthropicRoutes): Router {
   const router = Router();
   router.use(createModelsRouter(catalogue));
   router.use('/v1/messages', requireAnthropicVersion);
+  router.post('/v1/messages', route(messages));
   router.use('/v1/messages', notFound);
   return router;
 }
