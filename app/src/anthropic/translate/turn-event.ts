@@ -24,6 +24,11 @@ export interface TranslatorLogger {
 export interface TranslatorConfig {
   /** Dropped fields and frames are logged here at debug; defaults to the wrapper's logger. */
   logger?: TranslatorLogger;
+  /**
+   * The armed strings (spec section 6): each is replaced with `[redacted]` in text and tool-input
+   * deltas. Not run-bound, so every turn gets the surface's list; none redacts nothing.
+   */
+  redact?: readonly string[];
 }
 
 export interface Translator {

@@ -30,6 +30,8 @@ export interface ConductorDeps {
   settings: AnthropicSettings;
   /** The wrapper's state directory, opened on first use. */
   stateDirectory: () => StateDirectory;
+  /** The strings redaction is armed with, applied to every turn's output. */
+  redact: readonly string[];
   logger?: PumpLogger;
 }
 
@@ -81,10 +83,11 @@ export function createConductor(deps: ConductorDeps): Conductor {
       const turn = plan(req, runId);
       const log = withContext(logger, { requestId, runId });
       const session = trackSession(turn, log);
+      // The session records the answer as the client got it, redacted: that is what it echoes back.
       const sink = session.relay(sinkFor(req, res, requestId));
       const pump = pumpRun(deps.runner.startRun(turn.runSpec), messageToSend(turn.continuation), {
-        translator: createTranslator({ logger: log }), sink, checks: turn.startupChecks, clock: deps.clock, logger: log,
-        observers: [session]
+        translator: createTranslator({ logger: log, redact: deps.redact }), sink, checks: turn.startupChecks,
+        clock: deps.clock, logger: log, observers: [session]
       });
       pump.done.catch(error => log.warn('Upstream run pump failed', { error: String(error) }))
         .then(() => session.exited());

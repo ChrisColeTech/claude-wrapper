@@ -7,10 +7,13 @@
  * own `system/init` and `assistant` frames are the oracle.
  */
 import Anthropic from '@anthropic-ai/sdk';
-import { createReplayRunner, ReplayRunner } from '../../../src/upstream/runner';
+import { ANTHROPIC_SETTING_ENV } from '../../../src/config/anthropic-settings';
+import { createReplayRunner, parseRecording, Recording, ReplayRunner } from '../../../src/upstream/runner';
 import { STATE } from '../../mocks/anthropic/plan-context';
 import { memorySessions, TestSessions } from '../../mocks/anthropic/sessions';
 import { SurfaceHarness, startSurface } from '../../mocks/anthropic/surface-harness';
+import { BLOCK_STOP, END_TURN, initFrame, MESSAGE_START, MESSAGE_STOP, resultFrame, streamEvent, TEXT_START, textDelta }
+  from '../../mocks/anthropic/turn-frames';
 import { waitFor } from '../../mocks/shared/wait-for';
 import { loadRecording, recordedStdout } from '../../mocks/upstream/recordings';
 
@@ -46,8 +49,9 @@ describe('Anthropic surface: a conversation', () => {
   const surfaces: SurfaceHarness[] = [];
   let state: TestSessions;
 
-  async function serve(...fixtures: string[]): Promise<{ client: Anthropic; runner: ReplayRunner }> {
-    const runner = createReplayRunner(fixtures.map(loadRecording), { timeScale: 0 });
+  async function serve(...fixtures: (string | Recording)[]): Promise<{ client: Anthropic; runner: ReplayRunner }> {
+    const recordings = fixtures.map(fixture => (typeof fixture === 'string' ? loadRecording(fixture) : fixture));
+    const runner = createReplayRunner(recordings, { timeScale: 0 });
     state = memorySessions();
     const surface = await startSurface({ runner, stateDirectory: STATE, sessions: state.sessions });
     surfaces.push(surface);
@@ -65,6 +69,7 @@ describe('Anthropic surface: a conversation', () => {
   });
 
   afterEach(async () => {
+    delete process.env[ANTHROPIC_SETTING_ENV.redact];
     await Promise.all(surfaces.splice(0).map(surface => surface.close()));
   });
 
@@ -114,6 +119,21 @@ describe('Anthropic surface: a conversation', () => {
     expect(runner.started.map(run => flagValue(run.spec.flags, '--resume') ?? null))
       .toEqual([null, sessionId, sessionId]);
     expect(userLine(runner, 2)).toEqual({ role: 'user', content: [{ type: 'text', text: U3.content }] });
+  });
+
+  it('continues after an answer the client got redacted, since that is the answer it echoes', async () => {
+    process.env[ANTHROPIC_SETTING_ENV.redact] = 'Sam';
+    const call = (text: string) => [MESSAGE_START, TEXT_START, textDelta(text), BLOCK_STOP, END_TURN, MESSAGE_STOP];
+    const answer = (text: string) => parseRecording([initFrame(), ...call(text).map(event => streamEvent(event)), resultFrame()]
+      .map(frame => JSON.stringify(frame)).join('\n'));
+    const { client, runner } = await serve(answer('Hello Sam.'), answer('Bye.'));
+
+    const first = await create(client, [{ role: 'user', content: 'I am Sam.' }]);
+    await recordedTurns(1);
+    await create(client, [{ role: 'user', content: 'I am Sam.' }, { role: 'assistant', content: first.content }, U2]);
+
+    expect(textOf(first)).toBe('Hello [redacted].');
+    expect(flagValue(runner.started[1]?.spec.flags ?? [], '--resume')).toBe('session-1');
   });
 
   it('replays the next turn after a restart, the new app knowing no session', async () => {

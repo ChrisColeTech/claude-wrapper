@@ -7,6 +7,7 @@ import { logger as defaultLogger } from '../../utils/logger';
 import { createAllowlist } from './allowlist';
 import { createFlattener } from './flatten';
 import { chain, inOrder } from './pass';
+import { createRedaction } from './redact';
 import { createSyntheticDrop } from './synthetic-drop';
 import { Translator, TranslatorConfig } from './turn-event';
 
@@ -15,7 +16,8 @@ export function createTranslator(config: TranslatorConfig = {}): Translator {
   const frames = chain(createSyntheticDrop(logger), createFlattener());
   const events = inOrder([
     // 3 server-tool pass, 4 connector pass, 5 bridge prefix strip, 6 StructuredOutput buffer,
-    // 7 max_tokens cut, 8 stop-sequence scan, 9 redaction
+    // 7 max_tokens cut, 8 stop-sequence scan
+    createRedaction(config.redact ?? []),
     createAllowlist(logger)
     // 11 usage sum
   ]);
