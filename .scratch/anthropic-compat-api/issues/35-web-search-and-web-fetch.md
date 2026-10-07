@@ -6,13 +6,21 @@ Spec: [spec.md](../spec.md), section 8, section 11 (multi-call flattening, mixed
 
 **Blocked by:** 34 (Client tools round trip)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] Planning: `--tools` and `--allowedTools` per the spec's mapping table; `tool_choice: none` disables server tools; the hook policy (counters, lists) in the plan; a per-run `0600` settings file with the `PreToolUse` hook on `WebSearch|WebFetch`
-- [ ] The hook client: an executable shipped with the package that posts its stdin to the run's hook endpoint and prints the reply, invoked with the absolute Node path; the control server's hook endpoint applies the policy (`updatedInput` with the request's domain lists; deny with `max_uses_exceeded` or `url_not_allowed` as the reason)
-- [ ] Translator: multi-call flattening (later `message_start` suppressed, block indices offset, a call's `message_delta` and `message_stop` suppressed when every tool call in it is built-in, frames with a `parent_tool_use_id` dropped); the server-tool pass (`server_tool_use` with filtered `{query}` or `{url}` input in one delta, `web_search_tool_result` and `web_fetch_tool_result` synthesised whole on the `user/tool_result` frame, error blocks from hook denials and failures, the WebSearch and WebFetch renames); the mixed-message hold of a client `tool_use` behind a preceding built-in's result
-- [ ] Usage: `server_tool_use.web_search_requests` from `searchCount`, `web_fetch_requests` by count, summed into the final `message_delta.usage`
-- [ ] `system/init.tools` checked against the expected list; `result.permission_denials` checked when `result` arrives and any entry the wrapper's hook did not issue logged as a misconfiguration
-- [ ] Renderer: `server_tool_use`, `web_search_tool_result` and `web_fetch_tool_result` history blocks rendered as the spec states; replayed blocks accepted as sent
-- [ ] Unit: translator goldens from the web-search and hook recordings; the policy; the renderer; integration through the SDK against the replay runner with a two-call search turn
-- [ ] E2E (flag): a search with `allowed_domains` returning only allowed hosts; a fetch; and scenario 7, the hook client round trip through the control server
+- [x] Planning: `--tools` and `--allowedTools` per the spec's mapping table; `tool_choice: none` disables server tools; the hook policy (counters, lists) in the plan; a per-run `0600` settings file with the `PreToolUse` hook on `WebSearch|WebFetch`
+- [x] The hook client: an executable shipped with the package that posts its stdin to the run's hook endpoint and prints the reply, invoked with the absolute Node path; the control server's hook endpoint applies the policy (`updatedInput` with the request's domain lists; deny with `max_uses_exceeded` or `url_not_allowed` as the reason)
+- [x] Translator: multi-call flattening (later `message_start` suppressed, block indices offset, a call's `message_delta` and `message_stop` suppressed when every tool call in it is built-in, frames with a `parent_tool_use_id` dropped); the server-tool pass (`server_tool_use` with filtered `{query}` or `{url}` input in one delta, `web_search_tool_result` and `web_fetch_tool_result` synthesised whole on the `user/tool_result` frame, error blocks from hook denials and failures, the WebSearch and WebFetch renames); the mixed-message hold of a client `tool_use` behind a preceding built-in's result
+- [x] Usage: `server_tool_use.web_search_requests` from `searchCount`, `web_fetch_requests` by count, summed into the final `message_delta.usage`
+- [x] `system/init.tools` checked against the expected list; `result.permission_denials` checked when `result` arrives and any entry the wrapper's hook did not issue logged as a misconfiguration
+- [x] Renderer: `server_tool_use`, `web_search_tool_result` and `web_fetch_tool_result` history blocks rendered as the spec states; replayed blocks accepted as sent
+- [x] Unit: translator goldens from the web-search and hook recordings; the policy; the renderer; integration through the SDK against the replay runner with a two-call search turn
+- [x] E2E (flag): a search with `allowed_domains` returning only allowed hosts; a fetch; and scenario 7, the hook client round trip through the control server
+
+## Comments
+
+- Resolved by merge a55a813 on anthropic-compat-api.
+- The E2E criterion is ticked on the tests being written (`app/tests/e2e/upstream/web-tools.test.ts`: a search with `allowed_domains`, a fetch, and scenario 7, the hook client round trip); their runs against the real CLI are still pending.
+- Reading: the `server_tool_use` id is `srv` plus upstream's `toolu_` id (so `srvtoolu_…`), not the first `srvtoolu_` id in the call's `tool_use_result.results` as spec section 8 states, because that result arrives on the `user/tool_result` frame, after the `server_tool_use` block has already started streaming.
+- Reading: `usage.server_tool_use.web_fetch_requests` counts successful WebFetch calls only; a fetch the hook denied or that failed is not counted.
+- Reading: the control-server token reaches the hook client through a `0600` `hook-endpoint.json` in the per-run directory, a third per-run file beside the MCP config and settings files that spec section 10 names; it is still never in argv or the environment.
