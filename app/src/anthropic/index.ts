@@ -6,8 +6,12 @@
  */
 import { Router } from 'express';
 import { EnvironmentManager } from '../config/env';
+import { createSpawnRunner } from '../upstream/runner';
+import { processStateDirectory, StateDirectory } from '../upstream/state-directory';
+import { systemClock } from '../utils/clock';
 import { SHIPPED_CATALOGUE_PATH, loadCatalogue } from './catalogue';
-import { SurfaceDeps } from './deps';
+import { createConductor } from './conductor';
+import { Sessions, SurfaceDeps } from './deps';
 import { createAnthropicRouter } from './http';
 import { checkUpstreamEnv } from './request';
 
@@ -16,9 +20,26 @@ export interface AnthropicSurface {
   router: Router;
 }
 
+/** Until conversation state lands, no turn continues an upstream session: every turn is replayed. */
+const NO_SESSIONS: Sessions = { lookup: () => null, record: () => undefined, forget: () => undefined };
+
+function stateDirectoryFrom(deps: SurfaceDeps): () => StateDirectory {
+  const injected = deps.stateDirectory;
+  return injected ? () => injected : processStateDirectory;
+}
+
 export function createAnthropicSurface(deps: SurfaceDeps = {}): AnthropicSurface {
   const settings = EnvironmentManager.getAnthropicSettings();
   checkUpstreamEnv(settings.upstreamEnv);
   const catalogue = deps.catalogue ?? loadCatalogue(settings.cataloguePath ?? SHIPPED_CATALOGUE_PATH);
-  return { router: createAnthropicRouter({ catalogue }) };
+  const clock = deps.clock ?? systemClock;
+  const conductor = createConductor({
+    runner: deps.runner ?? createSpawnRunner({ clock }),
+    catalogue,
+    sessions: deps.sessions ?? NO_SESSIONS,
+    clock,
+    settings,
+    stateDirectory: stateDirectoryFrom(deps)
+  });
+  return { router: createAnthropicRouter({ catalogue, messages: (req, res) => conductor.handleMessages(req, res) }) };
 }

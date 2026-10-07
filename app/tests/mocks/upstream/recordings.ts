@@ -4,7 +4,7 @@
  */
 import * as fs from 'fs';
 import * as path from 'path';
-import { Frame } from '../../../src/upstream/frames';
+import { Frame, parseFrame } from '../../../src/upstream/frames';
 import { parseRecording, Recording } from '../../../src/upstream/runner';
 
 export const UPSTREAM_FIXTURES = path.resolve(__dirname, '..', '..', 'fixtures', 'upstream');
@@ -26,6 +26,11 @@ export function recordedStdout(name: string): unknown[] {
     .map(line => JSON.parse(line) as { dir: string; frame?: string; line?: string })
     .filter(entry => entry.dir === 'cli->host')
     .map(entry => JSON.parse(entry.frame ?? entry.line ?? ''));
+}
+
+/** The stdout frames of a fixture as the run yields them (each line through `parseFrame`). */
+export function recordedFrames(name: string): Frame[] {
+  return recordedStdout(name).map(value => parseFrame(JSON.stringify(value)));
 }
 
 /** A wire fixture's timing: when the user message went in, and when each stdout frame came out. */

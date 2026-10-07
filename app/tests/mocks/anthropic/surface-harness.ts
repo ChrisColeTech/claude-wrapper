@@ -1,12 +1,15 @@
 /**
  * Serves a fresh app on an ephemeral loopback port and hands out official SDK clients
- * pointed at it. One harness per test; `close()` in `afterEach`.
+ * pointed at it. One harness per test; `close()` in `afterEach`. A test that injects no runner
+ * gets one that refuses to run anything.
  */
 import Anthropic, { ClientOptions } from '@anthropic-ai/sdk';
 import { once } from 'events';
+import { Express } from 'express';
 import { AddressInfo } from 'net';
 import { createServer } from '../../../src/api/server';
 import { SurfaceDeps } from '../../../src/anthropic/deps';
+import { Runner } from '../../../src/upstream/runner';
 
 export interface SurfaceHarness {
   baseURL: string;
@@ -15,8 +18,22 @@ export interface SurfaceHarness {
   close(): Promise<void>;
 }
 
+/**
+ * The runner of a test app that injects none: it refuses every run, so no test reaches the
+ * operator's Claude Code (the production default) by accident. Inject the replay or scripted
+ * runner to run turns.
+ */
+export const REFUSING_RUNNER: Runner = {
+  startRun: () => { throw new Error('this test app has no runner: inject one (replay or scripted)'); }
+};
+
 export async function startSurface(deps: SurfaceDeps = {}): Promise<SurfaceHarness> {
-  const server = createServer(deps).listen(0, '127.0.0.1');
+  return serveApp(createServer({ runner: REFUSING_RUNNER, ...deps }));
+}
+
+/** Serves `app` on an ephemeral loopback port. */
+export async function serveApp(app: Express): Promise<SurfaceHarness> {
+  const server = app.listen(0, '127.0.0.1');
   await once(server, 'listening');
   const { port } = server.address() as AddressInfo;
   const baseURL = `http://127.0.0.1:${port}`;

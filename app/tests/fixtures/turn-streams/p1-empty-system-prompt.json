@@ -1,0 +1,243 @@
+[
+  {
+    "type": "message_start",
+    "message": {
+      "model": "claude-fable-5-1",
+      "id": "msg_011CfhQqbZuq5gojHsFUwoow",
+      "type": "message",
+      "role": "assistant",
+      "content": [],
+      "container": null,
+      "stop_reason": null,
+      "stop_sequence": null,
+      "stop_details": null,
+      "usage": {
+        "input_tokens": 493,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 2,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "diagnostics": null
+    }
+  },
+  {
+    "type": "content_block_start",
+    "index": 0,
+    "content_block": {
+      "type": "thinking",
+      "thinking": "",
+      "signature": ""
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 0,
+    "delta": {
+      "type": "thinking_delta",
+      "thinking": ""
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 0,
+    "delta": {
+      "type": "thinking_delta",
+      "thinking": ""
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 0,
+    "delta": {
+      "type": "signature_delta",
+      "signature": "CAQSggcKEAgSGAI4AUIIdGhpbmtpbmcSDPzUWs5gVXQEpj98UhoMMBobDxncuShbcGqrIjBxBKD+SfJAayWenMTni42VoXztg9hPGI4B05wh2YnCv5+xsEt73K3UVu5k3oVvH28qnwbGCucJfz8Y5xsS3OQGr/zGPpKAh+dzlY81MU/2fCQ6rUKpuElPwCTkOzHo7jblxud11UclVvw/sV1/ZfO0R/DE1UghCnOMHhKwOq4iGy+i0V3rHPrfYjDCQynYsiVPLI4d/LpE260LSB66jP0o/GyCPRsInMS+8BQ16xBjcwVzsejyMFP1KUK/Fud1IqUgp5bcdJpbrPZpASSvu1eyHUa5MUeubxiY6d/2azYS8E5hssRPKHV9MWsT3+qI2Qq6XXD2fkfsuAOsnnkBTGpQ9zP52SItjYQV9XEIfnVKpKoel98BTIRzUO3ctX7CxN8xB4/SCQ7zHstMuSM/WUHS8jjNRhJSiDCgbr/rnoSLidqggcVB6EgYklYa5vAEcKFZ11ZXvSrO9xEK5U9Y/8ssQvc+p5wq4tel7MVigOV3+4IovI8ITDrC54yMALIU0FwsC9m48TFMTZfmUSb7eiNTn8dSBe3l+yzPg9lYLOq0odvGz2q71kzqN2lOkRlMMGaObss+s+A8DhKDxxHPVIWzRbzktr4m+2F5lll/6fxTqOloWDyXIqchR4K/a0e/OaXSUyArd6gPNpTQC4Ro3KIpFQL/ytCE2R2A0ii6VZVKJkHokME/ZuHfotUU2PspgEfUFoTZMxCEwQU+aTd9IuO8zty7Cp4Ob8NvlYZahow4uxGTWywHpVHYJOFbzQZ7xni8d7/KfJnz1mUG6+nmS1mCg50OTj5bDKqWaKhBBqaUvjV2NTHC9DgdFNID9tiRId3TZhn13tU9odFo4+9y+kWJvVRn2ziCZsf4wye47TGUJa9MiH4unbDva5jVxWaxn2gwe9fLXG9CzICvsFNNpGicCMqj9F6B4TAXTcPS8043cd78TCJxvUWI1M5YDqwCjZ8M4SJlmoyjLPYS2tAjI/PuQIrP3OPQfoHvSnsfBbDgnfbYPA8jeMtxgHQsfaYNRj4AKzUof61mqwVgBiBF6dgPlxmkFOY2u427AzY5tvHCC02JJ2c7OLeB5QZm337/RKMRiRef0btUlno2oH+Uz5QK4J7wQk3UVkblYRJ5TDSoFFPpGAE="
+    }
+  },
+  {
+    "type": "content_block_stop",
+    "index": 0
+  },
+  {
+    "type": "content_block_start",
+    "index": 1,
+    "content_block": {
+      "type": "text",
+      "text": ""
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": "I'm"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": " Claude, an"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": " AI ag"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": "ent built by Anthropic"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": " on the"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": " Claude Agent SD"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": "K (running the"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": " F"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": "able 5.1 model),"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": " and in"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": " this partic"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": "ular session I have no tools available"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": "—"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": "just"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": " the"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": " ability to conver"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": "se with you in"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": " text."
+    }
+  },
+  {
+    "type": "content_block_stop",
+    "index": 1
+  },
+  {
+    "type": "message_delta",
+    "delta": {
+      "stop_reason": "end_turn",
+      "stop_sequence": null,
+      "stop_details": null,
+      "container": null
+    },
+    "usage": {
+      "input_tokens": 493,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "output_tokens": 149,
+      "output_tokens_details": {
+        "thinking_tokens": 79
+      }
+    }
+  },
+  {
+    "type": "message_stop"
+  }
+]

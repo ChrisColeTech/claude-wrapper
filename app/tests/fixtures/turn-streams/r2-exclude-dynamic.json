@@ -1,0 +1,203 @@
+[
+  {
+    "type": "message_start",
+    "message": {
+      "model": "claude-fable-5-1",
+      "id": "msg_011CfhSsAJv3vQkWS6skRa97",
+      "type": "message",
+      "role": "assistant",
+      "content": [],
+      "container": null,
+      "stop_reason": null,
+      "stop_sequence": null,
+      "stop_details": null,
+      "usage": {
+        "input_tokens": 489,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 2,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "diagnostics": null
+    }
+  },
+  {
+    "type": "content_block_start",
+    "index": 0,
+    "content_block": {
+      "type": "thinking",
+      "thinking": "",
+      "signature": ""
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 0,
+    "delta": {
+      "type": "thinking_delta",
+      "thinking": ""
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 0,
+    "delta": {
+      "type": "thinking_delta",
+      "thinking": ""
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 0,
+    "delta": {
+      "type": "signature_delta",
+      "signature": "CAQS0gYKEAgSGAI4AUIIdGhpbmtpbmcSDO+QEyJ9BcDSkqjKARoMXjleeVvrPf2Et6q5IjBrR2uq5XclGVl1EMVLFKVk9yd6Vzhd6uRI88iC9fvOee+o4prbCOTw0REuBqw3J3Iq7wXeY2ZqFJhNvRjWVnkihCyWm0Cwl9T8LIstDnKvAwjopEDAMHCdJMtI7Oy3vacRmdS/SHFcLZxdXZsqf2bjM1zQTWfzT2GLiFkyKVlxd1hpkEWU4mXdV3oxjgXqdggK/JWeU+n8ykr1znG0dunRpKoDxgtTisAi78DBFooUbuSu6w4ZDJE4Gq8w1rVvpaUGmhuRzScjdYlpK/ia/eieD4vlzPTd5dzWvi5o7mjx6AyZ0pVPthp5YT/Q+6lodmFulU2sT9tJjJPJ7QUBepKeQPyBtfuwxIOqJFJVhyH9O/u62F87z4TB6lh9nPJlBSMXm+TC+kX+0lAmrANykrgzFHl5X7BnQvw9RhXl8F60r/LsPmUR/rBHsgkg1G1xdiSNwrE5XUeyuHIP5d/bMEAX06UZt6ngfDvellOmLv1eLIGLqS2moukI13f57lUjsIhC477HPsT1mTCqbnkXv/2gUzmB6kuFJwXCQGiDh/jhlKKCH5/AAam/CnzBDVY0+WW+EJV6vcoTv9R6TJh0IW5bX1NByTfTjxsvYhPFhre4ZKw5yXpzuypztAjmS1HCsY82AzvC91pY7PJXPiNc025OXvslSs2s+Wj8pL18+1yrWCreAuoIaW5qODtcbhrMEf0OXVKnSlTb1GrCsIBqQO62yglnmXSE1Bwh/IrZBDlEpBKqnAwoIBuMwTRtRSBvDfJ2mX44W7tB1YrXVGU15WUg2FDcPm5NtVOkAcYoTgFeK8wEb8M4r+d5tmmvx0I1GSrt3csGSJNpdENcHrlbv7eOlyRxKzGSF1J3roSHYaKQgOjCyoynhL+fKKULV1vywBVKitz6R+2qRDcSs4nNZeaF1cXtT86r+Mqkoc6B8wr/0Kmw2Y3IP0hFaw5foTvwP4vPJF20Drol+bLJv/16j4BjJ9IECY8b25WeGTMJFVHOL9yO5nVY0ACQAo1hzkXsapHlrMQSDSkYct4yAf6h4spGP9b40qliTtGn6hDyetu1Dai3GAE="
+    }
+  },
+  {
+    "type": "content_block_stop",
+    "index": 0
+  },
+  {
+    "type": "content_block_start",
+    "index": 1,
+    "content_block": {
+      "type": "text",
+      "text": ""
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": "The email address in my context is:"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": " `"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": "user@example.invalid"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": "`"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": "\n\nIt"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": " was att"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": "ached automatically as your own account"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": " identifier ("
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": "for things"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": " like attribution or filtering"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": " your work"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": "), not as something I'"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": "d send anywhere."
+    }
+  },
+  {
+    "type": "content_block_stop",
+    "index": 1
+  },
+  {
+    "type": "message_delta",
+    "delta": {
+      "stop_reason": "end_turn",
+      "stop_sequence": null,
+      "stop_details": null,
+      "container": null
+    },
+    "usage": {
+      "input_tokens": 489,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "output_tokens": 139,
+      "output_tokens_details": {
+        "thinking_tokens": 72
+      }
+    }
+  },
+  {
+    "type": "message_stop"
+  }
+]

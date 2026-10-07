@@ -43,3 +43,15 @@ export function openStateDirectory(root: string): StateDirectory {
   freshDirectory(state.runs);
   return state;
 }
+
+let processState: StateDirectory | undefined;
+
+/**
+ * The wrapper process's own state directory under `defaultStateRoot()`: opened on the first call
+ * (the first turn), then the same one for every app in the process, so opening it never removes
+ * a live run's directory.
+ */
+export function processStateDirectory(): StateDirectory {
+  processState ??= openStateDirectory(defaultStateRoot());
+  return processState;
+}
