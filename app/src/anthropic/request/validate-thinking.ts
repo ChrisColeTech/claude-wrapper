@@ -5,7 +5,7 @@
  *
  * - `adaptive`: nothing to pass (upstream thinks adaptively on the models that offer it);
  * - `enabled`: `MAX_THINKING_TOKENS=<budget_tokens>`, once the budget is an integer of at least
- *   1024 and below `max_tokens`;
+ *   1024 and below `max_tokens` (a `count_tokens` body has no `max_tokens` to be below);
  * - `disabled`, or `thinking` absent on a model without adaptive thinking (its API default is no
  *   thinking, but upstream thinks by default): `CLAUDE_CODE_DISABLE_THINKING=1`;
  * - `between_tools`: a 400 on every model, as upstream has no knob for it.
@@ -46,7 +46,9 @@ function budgetOf(thinking: Record<string, unknown>): number {
 }
 
 /** The child-environment variables `thinking` asks for on `model`, or the 400. */
-export function thinkingEnvironment(thinking: unknown, model: ModelInfo, maxTokens: number): Record<string, string> {
+export function thinkingEnvironment(
+  thinking: unknown, model: ModelInfo, maxTokens: number | undefined
+): Record<string, string> {
   const capability = model.capabilities?.thinking;
   if (thinking === undefined || thinking === null) {
     return capability && !capability.types.adaptive.supported ? DISABLE : {};
@@ -59,7 +61,7 @@ export function thinkingEnvironment(thinking: unknown, model: ModelInfo, maxToke
   if (!accepts(capability, String(type))) throw notSupported(String(type));
   if (type === 'disabled') return DISABLE;
   if (budget === undefined) return {};
-  if (budget >= maxTokens) {
+  if (maxTokens !== undefined && budget >= maxTokens) {
     throw SurfaceError.invalidRequest('`max_tokens` must be greater than `thinking.budget_tokens`.');
   }
   return { MAX_THINKING_TOKENS: String(budget) };

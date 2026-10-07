@@ -23,6 +23,8 @@ export interface RunInputs {
   effort?: string;
   /** A continued turn's upstream session, resumed with `--resume`. */
   resume?: string;
+  /** A `count_tokens` run (spec section 12): upstream writes no transcript. */
+  noSessionPersistence?: boolean;
 }
 
 export function buildRunSpec(inputs: RunInputs, context: RunContext): RunSpec {
@@ -37,7 +39,8 @@ export function buildRunSpec(inputs: RunInputs, context: RunContext): RunSpec {
       // The conductor writes the file into the run's directory once the control server has its token.
       ...(bridged ? { mcpConfig: path.join(runDir, MCP_CONFIG_FILE_NAME) } : {}),
       ...(inputs.effort === undefined ? {} : { effort: inputs.effort }),
-      ...(inputs.resume === undefined ? {} : { resume: inputs.resume })
+      ...(inputs.resume === undefined ? {} : { resume: inputs.resume }),
+      ...(inputs.noSessionPersistence ? { noSessionPersistence: true } : {})
     }),
     env: childEnvironment({ maxOutputTokens: inputs.maxTokens, thinking: inputs.thinking, settings, environment }),
     cwd: state.cwd,

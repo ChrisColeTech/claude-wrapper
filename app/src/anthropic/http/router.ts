@@ -20,6 +20,8 @@ export interface AnthropicRoutes {
   catalogue: Catalogue;
   /** `POST /v1/messages`. */
   messages: SurfaceHandler;
+  /** `POST /v1/messages/count_tokens`. */
+  countTokens: SurfaceHandler;
 }
 
 function notFound(_req: Request, _res: Response, next: NextFunction): void {
@@ -30,11 +32,12 @@ const route = (handler: SurfaceHandler) => (req: Request, res: Response, next: N
   handler(req, res).catch(next);
 };
 
-export function createAnthropicRouter({ catalogue, messages }: AnthropicRoutes): Router {
+export function createAnthropicRouter({ catalogue, messages, countTokens }: AnthropicRoutes): Router {
   const router = Router();
   router.use(createModelsRouter(catalogue));
   router.use('/v1/messages', requireAnthropicVersion);
   router.post('/v1/messages', route(messages));
+  router.post('/v1/messages/count_tokens', route(countTokens));
   router.use('/v1/messages', notFound);
   return router;
 }
