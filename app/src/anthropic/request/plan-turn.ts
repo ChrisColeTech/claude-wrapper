@@ -4,6 +4,7 @@
  * throws its `SurfaceError`; the first one is the answer.
  */
 import { ClientTool, CLIENT_TOOL_PREFIX } from '../../upstream/bridge';
+import { WEB_TOOLS } from '../../upstream/hook-policy';
 import { Catalogue } from '../catalogue';
 import { SurfaceError } from '../http/surface-error';
 import { Sessions } from '../sessions';
@@ -30,6 +31,7 @@ import { validateStopSequences } from './validate-stop-sequences';
 import { thinkingEnvironment } from './validate-thinking';
 import { validateToolChoice } from './validate-tool-choice';
 import { validateTurnOrder } from './validate-turn-order';
+import { webTools } from './web-tools';
 
 /** The body fields that shape no part of the plan yet: each is validated, then served or ignored. */
 function validateParameters(request: Body): void {
@@ -58,6 +60,8 @@ function plan(request: unknown, catalogue: Catalogue, sessions: Sessions, contex
   const system = systemPrompt(request['system']);
   validateParameters(request);
   const tools = bridgeTools(request);
+  const hookPolicy = webTools(request['tools'], request['tool_choice']);
+  const enabled = WEB_TOOLS.filter(tool => hookPolicy?.[tool] !== undefined);
   const stopSequences = validateStopSequences(request['stop_sequences']) ?? [];
   const thinking = thinkingEnvironment(request['thinking'], model, maxTokens);
   const effort = validateEffort(request['output_config'], model);
@@ -67,7 +71,7 @@ function plan(request: unknown, catalogue: Catalogue, sessions: Sessions, contex
   const resume = resumedSession(continuation);
   const clientToolNames = tools.map(tool => tool.name);
   const runInputs = {
-    modelId: model.id, system, maxTokens, thinking, clientToolNames,
+    modelId: model.id, system, maxTokens, thinking, clientToolNames, webTools: enabled,
     ...(effort === undefined ? {} : { effort }), ...(resume === undefined ? {} : { resume })
   };
   return {
@@ -77,9 +81,10 @@ function plan(request: unknown, catalogue: Catalogue, sessions: Sessions, contex
     runSpec: buildRunSpec(runInputs, context),
     continuation,
     translatorConfig: { stopSequences },
-    // Upstream reports exactly the mounted tools: the bridge server's, prefixed.
-    startupChecks: { model: model.id, tools: clientToolNames.map(name => `${CLIENT_TOOL_PREFIX}${name}`) },
+    // Upstream reports exactly the enabled tools: the built-ins, then the bridge server's, prefixed.
+    startupChecks: { model: model.id, tools: [...enabled, ...clientToolNames.map(name => `${CLIENT_TOOL_PREFIX}${name}`)] },
     bridgeTools: tools,
+    ...(hookPolicy ? { hookPolicy } : {}),
     runBound: runBoundParameters(request, model.id, system),
     ...(answer && 'lostPark' in answer ? { lostPark: answer.lostPark } : {})
   };

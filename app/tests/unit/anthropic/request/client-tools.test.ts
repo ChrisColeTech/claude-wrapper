@@ -87,7 +87,6 @@ describe('planTurn mounts the bridge server for client tools (spec sections 7, 1
   it.each([
     ['no tools', {}],
     ['an empty list', { tools: [] }],
-    ['only a web tool', { tools: [WEB_SEARCH] }],
     ['tool_choice none', { tools: [WEATHER, TIME], tool_choice: { type: 'none' } }]
   ])('mounts nothing for %s', (_case, fields) => {
     const { runSpec, startupChecks, bridgeTools } = planOf({ ...VALID, ...fields });
@@ -96,6 +95,13 @@ describe('planTurn mounts the bridge server for client tools (spec sections 7, 1
     expect(runSpec.flags).not.toContain('--mcp-config');
     expect(flagValue(runSpec.flags, '--allowedTools')).toBe('');
     expect(startupChecks.tools).toEqual([]);
+  });
+
+  it('mounts no bridge server for a web tool alone', () => {
+    const { runSpec, bridgeTools } = planOf(withTools([WEB_SEARCH]));
+
+    expect(bridgeTools).toEqual([]);
+    expect(runSpec.flags).not.toContain('--mcp-config');
   });
 
   it('still validates the tools tool_choice none hides', () => {

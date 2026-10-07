@@ -149,6 +149,8 @@ class SurfaceConductor implements Conductor {
     const ignored = changedRunBound(held.conducted.runBound, turn.runBound);
     if (ignored.length > 0) log.debug('Run-bound parameters ignored on a resuming turn', { parameters: ignored });
     log.info('Parked run resumed', { sessionId: held.sessionId, toolUseIds: held.toolUseIds });
+    // A new request: its web tools' max_uses count afresh (the tools themselves are run-bound).
+    held.conducted.policy?.startTurn();
     const session = this.session(turn, log, held.sessionId);
     await this.serveTurn(held.conducted, turn, session, session.relay(this.sinkFor(exchange)), log);
   }
@@ -161,7 +163,10 @@ class SurfaceConductor implements Conductor {
     run: ConductedRun, turn: TurnPlan, session: TurnSession, sink: TurnSink, log: PumpLogger
   ): Promise<void> {
     const parked: { on?: string[] } = {};
-    const translator = createTranslator({ logger: log, failures: run.failures, redact: this.deps.redact, ...turn.translatorConfig });
+    const translator = createTranslator({
+      logger: log, failures: run.failures, redact: this.deps.redact, serverTools: run.serverTools,
+      now: () => this.deps.clock.now(), ...turn.translatorConfig
+    });
     run.pump.attach({ translator, sink, observers: [session], onPark: toolUseIds => { parked.on = toolUseIds; } });
     void run.pump.done.catch(() => undefined).then(() => session.exited());
     const outcome = await sink.outcome;
