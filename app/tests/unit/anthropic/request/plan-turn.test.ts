@@ -50,8 +50,9 @@ function goldenPlan(canonicalId: string): TurnPlan {
     },
     continuation: { replay: { role: 'user', content: HELLO } },
     translatorConfig: { stopSequences: [], structuredOutput: false },
-    startupChecks: { model: canonicalId, tools: [] },
+    startupChecks: { model: canonicalId, tools: [], connectors: [] },
     bridgeTools: [],
+    connectors: {},
     runBound: {
       model: `"${canonicalId}"`, max_tokens: '1024', system: '""', thinking: 'null', 'output_config.effort': 'null',
       'output_config.format': 'null', tools: 'null', mcp_servers: 'null'

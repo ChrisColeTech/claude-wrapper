@@ -21,6 +21,8 @@ export interface RunInputs {
   clientToolNames: readonly string[];
   /** The built-in web tools the run enables, in `--tools` order; none: no hook. */
   webTools: readonly WebTool[];
+  /** The `--allowedTools` rules of the connectors the run mounts; none: no connector. */
+  connectorRules: readonly string[];
   /** The thinking variables the request asks for (`CLAUDE_CODE_DISABLE_THINKING` or `MAX_THINKING_TOKENS`). */
   thinking: Readonly<Record<string, string>>;
   /** `output_config.effort`, passed as `--effort`. */
@@ -40,7 +42,8 @@ export function buildRunSpec(inputs: RunInputs, context: RunContext): RunSpec {
   const { settings, environment, state, runId } = context;
   const { timers } = settings;
   const runDir = path.join(state.runs, runId);
-  const bridged = inputs.clientToolNames.length > 0;
+  // The bridge server and the connectors share the run's one MCP config file.
+  const mcpServers = inputs.clientToolNames.length > 0 || inputs.connectorRules.length > 0;
   const hooked = inputs.webTools.length > 0;
   return {
     flags: runFlags({
@@ -48,10 +51,11 @@ export function buildRunSpec(inputs: RunInputs, context: RunContext): RunSpec {
       tools: inputs.webTools,
       allowedTools: [
         ...inputs.clientToolNames.map(name => `${CLIENT_TOOL_PREFIX}${name}`),
+        ...inputs.connectorRules,
         ...inputs.webTools.map(tool => ALLOW_RULES[tool])
       ],
       // The conductor writes these files into the run's directory once the control server has its token.
-      ...(bridged ? { mcpConfig: path.join(runDir, MCP_CONFIG_FILE_NAME) } : {}),
+      ...(mcpServers ? { mcpConfig: path.join(runDir, MCP_CONFIG_FILE_NAME) } : {}),
       ...(hooked ? { settings: path.join(runDir, HOOK_SETTINGS_FILE_NAME) } : {}),
       ...(inputs.effort === undefined ? {} : { effort: inputs.effort }),
       ...(inputs.jsonSchema === undefined ? {} : { jsonSchema: inputs.jsonSchema }),

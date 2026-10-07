@@ -5,9 +5,7 @@
  * message. Checked before anything else in the body, as the real API's schema is. A
  * `count_tokens` body (spec section 12) takes fewer fields: the Messages-only ones (`max_tokens`,
  * `stream`, `stop_sequences`, the sampling and plain fields, `container`) are extra inputs there.
- *
- * `mcp_servers` is beta-only and in neither list: the connectors ticket adds it to both, with its
- * gate.
+ * `mcp_servers` is known to both: beta-only, its gate is the connectors' (`connectors.ts`).
  */
 import { SurfaceError } from '../http/surface-error';
 import { Body, fieldInvalid, isObject } from './field-errors';
@@ -16,11 +14,11 @@ import { Endpoint } from './turn-plan';
 const KNOWN_FIELDS = new Set([
   'model', 'messages', 'max_tokens', 'system', 'stream', 'tools', 'tool_choice', 'temperature', 'top_p', 'top_k',
   'stop_sequences', 'metadata', 'thinking', 'output_config', 'service_tier', 'cache_control', 'container',
-  'inference_geo', 'diagnostics'
+  'inference_geo', 'diagnostics', 'mcp_servers'
 ]);
 
 const COUNT_TOKENS_FIELDS = new Set([
-  'model', 'messages', 'system', 'tools', 'tool_choice', 'thinking', 'output_config', 'cache_control'
+  'model', 'messages', 'system', 'tools', 'tool_choice', 'thinking', 'output_config', 'cache_control', 'mcp_servers'
 ]);
 
 const KNOWN_OUTPUT_CONFIG_FIELDS = new Set(['effort', 'format']);

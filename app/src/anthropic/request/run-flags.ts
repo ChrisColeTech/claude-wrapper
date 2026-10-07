@@ -3,10 +3,10 @@
  * spec rules out (`--fallback-model`, `--max-budget-usd`, `--append-system-prompt`, `--bare`,
  * `--dangerously-skip-permissions`, `--exclude-dynamic-system-prompt-sections`), and the
  * conditional ones until a turn needs them. `--tools` names exactly the built-ins the declared
- * server tools need; `--mcp-config` is a turn's that mounts the bridge server, `--settings` one's
- * that enables a built-in (its hook), `--effort` the request's `output_config.effort`,
- * `--json-schema` its `output_config.format.schema`; `--resume` is a continued turn's,
- * `--no-session-persistence` a `count_tokens` run's.
+ * server tools need; `--mcp-config` is a turn's that mounts the bridge server or a connector,
+ * `--settings` one's that enables a built-in (its hook), `--effort` the request's
+ * `output_config.effort`, `--json-schema` its `output_config.format.schema`; `--resume` is a
+ * continued turn's, `--no-session-persistence` a `count_tokens` run's.
  */
 
 export interface FlagInputs {
@@ -17,9 +17,12 @@ export interface FlagInputs {
   maxTurns: number;
   /** The built-in tools the run enables (`WebSearch`, `WebFetch`); none: `""`. */
   tools: readonly string[];
-  /** Exactly the enabled tools, each client tool as `mcp__client__<name>`, then the built-ins' rules; none: `""`. */
+  /**
+   * Exactly the enabled tools: each client tool as `mcp__client__<name>`, each connector's rules
+   * (`mcp__<name>` or `mcp__<name>__<tool>`), then the built-ins' rules; none: `""`.
+   */
   allowedTools: readonly string[];
-  /** The run's MCP config file, when the turn mounts the bridge server. */
+  /** The run's MCP config file, when the turn mounts the bridge server or a connector. */
   mcpConfig?: string;
   /** The run's settings file, holding the `PreToolUse` hook, when the turn enables a built-in. */
   settings?: string;

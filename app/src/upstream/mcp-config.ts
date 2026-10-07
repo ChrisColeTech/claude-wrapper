@@ -1,9 +1,9 @@
 /**
- * The per-run MCP config file upstream reads through `--mcp-config <path>` (spec section 10):
- * the bridge server's `http` entry, and later one entry per connector beside it, written `0600`
- * into the run's own directory before spawn and removed at teardown. The control-server token
- * travels in the entry's `Authorization` header, so it is in this file and nowhere else: never
- * in argv, never in the environment.
+ * The per-run MCP config file upstream reads through `--mcp-config <path>` (spec sections 9 and
+ * 10): the bridge server's `http` entry and one entry per connector beside it, written `0600` into
+ * the run's own directory before spawn and removed at teardown. The control-server token and a
+ * connector's `authorization_token` travel in their entry's `Authorization` header, so each is in
+ * this file and nowhere else: never in argv, never in the environment.
  */
 import { promises as fs } from 'fs';
 import * as path from 'path';
@@ -41,6 +41,21 @@ export function bridgeServerEntry(endpoint: RunEndpoint, parkTtlMs: number): Mcp
     headers: { Authorization: `Bearer ${endpoint.token}` },
     alwaysLoad: true,
     timeout: aboveParkTtl(parkTtlMs)
+  };
+}
+
+/**
+ * A connector's entry (spec section 9): the client's `https` URL, its token as the Bearer header
+ * when it gave one, its tools always loaded (startup waits for it to connect), and the connector
+ * call timeout, so a dead connector yields an error result the model can report.
+ */
+export function connectorServerEntry(server: { url: string; token?: string | undefined }, timeoutMs: number): McpHttpServerEntry {
+  return {
+    type: 'http',
+    url: server.url,
+    ...(server.token === undefined ? {} : { headers: { Authorization: `Bearer ${server.token}` } }),
+    alwaysLoad: true,
+    timeout: timeoutMs
   };
 }
 
