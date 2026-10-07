@@ -242,7 +242,6 @@ Anthropic's [legal and compliance page](https://code.claude.com/docs/en/legal-an
 
 - `/health` shows the run counts: runs active and parked, turns queued and the last rate-limit state. It shows no session ids.
 - `/docs` and `/docs/anthropic-openapi.json` are public.
-- The body is parsed before the key is checked, so a client without a key can still make the wrapper parse up to 32 MB.
 
 ### Known deviations from the real API
 

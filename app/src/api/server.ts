@@ -13,7 +13,7 @@ import logsRoutes from './routes/logs';
 import portForwardingRoutes from './routes/port-forwarding';
 import { logger } from '../utils/logger';
 import { EnvironmentManager } from '../config/env';
-import { createAuthMiddleware, getApiKey } from '../auth/middleware';
+import { AuthMiddlewareOptions, createAuthMiddleware, getApiKey } from '../auth/middleware';
 import { swaggerSpec } from './swagger';
 import { SurfaceDeps } from '../anthropic/deps';
 import { AnthropicSurface, createAnthropicSurface } from '../anthropic';
@@ -21,9 +21,20 @@ import {
   ANTHROPIC_OPENAPI_PATH, createAnthropicAuth, isAnthropicRequest, parseAnthropicBody, serveAnthropicOpenApi, tagSurface
 } from '../anthropic/http';
 
+/** The client gate's options, read per request (the API key can be set at runtime). */
+function authOptions(): AuthMiddlewareOptions {
+  const apiKey = getApiKey();
+  return {
+    skipPaths: ['/health', '/docs', '/swagger.json', '/v1/auth/status', '/logs', '/port-forwarding'], // Always allow these endpoints
+    ...(apiKey && { apiKey }) // Only include apiKey if it exists
+  };
+}
+
 function mountMiddleware(app: Express): void {
   app.use(tagSurface); // first: every later middleware renders by the surface tag
   app.use(cors());
+  // The Anthropic surface checks the key (x-api-key or Bearer, its own envelope) before it reads a body of up to 32 MB
+  app.use((req, res, next) => (isAnthropicRequest(req) ? createAnthropicAuth(authOptions())(req, res, next) : next()));
   app.use(parseAnthropicBody); // 32 MB on Anthropic-tagged requests; express.json() skips a parsed body
   app.use(express.json());
 
@@ -42,17 +53,9 @@ function mountMiddleware(app: Express): void {
     });
   }
 
-  // Optional HTTP API protection middleware (lazy initialization to handle runtime API key setting)
-  app.use((req, res, next) => {
-    const apiKey = getApiKey();
-    const options = {
-      skipPaths: ['/health', '/docs', '/swagger.json', '/v1/auth/status', '/logs', '/port-forwarding'], // Always allow these endpoints
-      ...(apiKey && { apiKey }) // Only include apiKey if it exists
-    };
-    // The Anthropic surface also accepts x-api-key and answers in its own envelope; the OpenAI surface stays Bearer-only
-    const authMiddleware = isAnthropicRequest(req) ? createAnthropicAuth(options) : createAuthMiddleware(options);
-    authMiddleware(req, res, next);
-  });
+  // Optional HTTP API protection middleware (lazy initialization to handle runtime API key setting).
+  // The OpenAI surface stays Bearer-only, checked here, after its body is parsed, as it always was.
+  app.use((req, res, next) => (isAnthropicRequest(req) ? next() : createAuthMiddleware(authOptions())(req, res, next)));
 }
 
 // Swagger documentation routes (always public)
