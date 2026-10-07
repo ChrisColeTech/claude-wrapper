@@ -4,18 +4,19 @@
  * default operator settings and a small parent environment. Nothing here touches the disk.
  */
 import { loadCatalogue, SHIPPED_CATALOGUE_PATH } from '../../../src/anthropic/catalogue';
-import { Sessions } from '../../../src/anthropic/deps';
+import { Sessions } from '../../../src/anthropic/sessions';
 import { SurfaceError } from '../../../src/anthropic/http/surface-error';
 import { planTurn, RunContext, TurnPlan } from '../../../src/anthropic/request';
 import { ANTHROPIC_SETTING_DEFAULTS } from '../../../src/config/anthropic-settings';
 
 export const shippedCatalogue = loadCatalogue(SHIPPED_CATALOGUE_PATH);
 
-/** Sessions that never match: every turn is a replayed turn. */
+/** Sessions that never match and keep nothing: every turn is a replayed turn. */
 export const NO_SESSIONS: Sessions = {
   lookup: () => null,
   record: () => undefined,
-  forget: () => undefined
+  forget: () => undefined,
+  parked: { get: () => undefined, put: () => undefined, remove: () => undefined }
 };
 
 export const STATE = { cwd: '/var/lib/claude-wrapper/cwd', runs: '/var/lib/claude-wrapper/runs' };

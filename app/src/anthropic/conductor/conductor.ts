@@ -12,14 +12,15 @@ import { StateDirectory } from '../../upstream/state-directory';
 import { Clock } from '../../utils/clock';
 import { logger as defaultLogger } from '../../utils/logger';
 import { Catalogue } from '../catalogue';
-import { Sessions } from '../deps';
 import { anthropicRequestId } from '../http/surface-tag';
 import { mintRequestId } from '../http/request-id';
 import { SurfaceError } from '../http/surface-error';
-import { planTurn, TurnPlan } from '../request';
+import { messageToSend, planTurn, resumedSession, TurnPlan } from '../request';
 import { createJsonSink, createSseSink, SinkOutcome, TurnSink } from '../respond';
+import { Sessions } from '../sessions';
 import { createTranslator } from '../translate';
 import { PumpLogger, pumpRun } from './run-pump';
+import { TurnSession } from './turn-session';
 
 export interface ConductorDeps {
   runner: Runner;
@@ -66,19 +67,30 @@ export function createConductor(deps: ConductorDeps): Conductor {
     return planned;
   }
 
+  function trackSession(turn: TurnPlan, log: PumpLogger): TurnSession {
+    const resumed = resumedSession(turn.continuation);
+    return new TurnSession({
+      sessions: deps.sessions, transcript: turn.messages, logger: log, ...(resumed === undefined ? {} : { resumed })
+    });
+  }
+
   return {
     async handleMessages(req, res) {
       const requestId = anthropicRequestId(req) ?? mintRequestId();
       const runId = randomUUID();
       const turn = plan(req, runId);
       const log = withContext(logger, { requestId, runId });
-      const sink = sinkFor(req, res, requestId);
-      const pump = pumpRun(deps.runner.startRun(turn.runSpec), turn.continuation.replay, {
-        translator: createTranslator({ logger: log }), sink, checks: turn.startupChecks, clock: deps.clock, logger: log
+      const session = trackSession(turn, log);
+      const sink = session.relay(sinkFor(req, res, requestId));
+      const pump = pumpRun(deps.runner.startRun(turn.runSpec), messageToSend(turn.continuation), {
+        translator: createTranslator({ logger: log }), sink, checks: turn.startupChecks, clock: deps.clock, logger: log,
+        observers: [session]
       });
-      pump.done.catch(error => log.warn('Upstream run pump failed', { error: String(error) }));
+      pump.done.catch(error => log.warn('Upstream run pump failed', { error: String(error) }))
+        .then(() => session.exited());
 
       const outcome = await sink.outcome;
+      session.settled(outcome);
       log.info('Anthropic turn ended', outcomeContext(outcome));
       if (outcome.kind !== 'completed') pump.stop();
       if (outcome.kind === 'rejected') throw outcome.error;

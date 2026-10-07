@@ -21,6 +21,11 @@ export interface PumpLogger {
   warn(message: string, context?: unknown): void;
 }
 
+/** Sees every frame of the run, in order, before the translator does. */
+export interface FrameObserver {
+  onFrame(frame: Frame): void;
+}
+
 export interface PumpOptions {
   translator: Translator;
   sink: TurnSink;
@@ -28,6 +33,8 @@ export interface PumpOptions {
   clock: Clock;
   /** Carries the request id; never given the run spec. */
   logger: PumpLogger;
+  /** The turn's other readers of the frames (its session bookkeeping, a bridge). */
+  observers?: readonly FrameObserver[];
 }
 
 export interface RunPump {
@@ -79,6 +86,7 @@ class Pump implements RunPump {
   }
 
   private onFrame(frame: Frame): void {
+    this.options.observers?.forEach(observer => observer.onFrame(frame));
     if (frame.type === 'system' && frame.subtype === 'init' && !this.sawInit) this.onInit(frame);
     this.toSink(this.options.translator.push(frame));
     if (frame.type === 'result' && !this.sawResult) this.onResult(frame);

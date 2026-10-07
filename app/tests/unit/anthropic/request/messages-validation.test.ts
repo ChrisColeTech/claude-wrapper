@@ -108,12 +108,4 @@ describe('planTurn validates the order of messages (spec section 4.2)', () => {
   ])('rejects a conversation ending with an assistant message (prefill) with the real API’s message', (messages) => {
     expect(rejectionOf(withMessages(messages))).toEqual(invalidRequest(PREFILL));
   });
-
-  it('answers 400 for earlier turns until the history renderer lands, rather than dropping them', () => {
-    const messages = [message('user', 'Hi'), message('assistant', 'Hello'), message('user', 'How are you?')];
-
-    expect(rejectionOf(withMessages(messages))).toEqual(
-      invalidRequest('messages: earlier turns (an assistant message before the last user message) are not supported yet')
-    );
-  });
 });

@@ -6,26 +6,41 @@
  */
 import { Router } from 'express';
 import { EnvironmentManager } from '../config/env';
+import { AnthropicSettings } from '../config/anthropic-settings';
 import { createSpawnRunner } from '../upstream/runner';
 import { processStateDirectory, StateDirectory } from '../upstream/state-directory';
-import { systemClock } from '../utils/clock';
+import { createTranscriptStore, upstreamProjectDirectory } from '../upstream/transcripts';
+import { Clock, systemClock } from '../utils/clock';
 import { SHIPPED_CATALOGUE_PATH, loadCatalogue } from './catalogue';
 import { createConductor } from './conductor';
-import { Sessions, SurfaceDeps } from './deps';
+import { SurfaceDeps } from './deps';
 import { createAnthropicRouter } from './http';
 import { checkUpstreamEnv } from './request';
+import { createSessions, Sessions } from './sessions';
 
 export interface AnthropicSurface {
   /** Mounted before the OpenAI routes. */
   router: Router;
 }
 
-/** Until conversation state lands, no turn continues an upstream session: every turn is replayed. */
-const NO_SESSIONS: Sessions = { lookup: () => null, record: () => undefined, forget: () => undefined };
-
 function stateDirectoryFrom(deps: SurfaceDeps): () => StateDirectory {
   const injected = deps.stateDirectory;
   return injected ? () => injected : processStateDirectory;
+}
+
+/**
+ * An empty fingerprint map (a restart forgets every conversation). Forgetting deletes upstream's
+ * transcript where a run's child keeps it: its `HOME` is the wrapper's unless `upstream.env` sets
+ * one (or `CLAUDE_CONFIG_DIR`), its working directory the state directory's.
+ */
+function defaultSessions(settings: AnthropicSettings, clock: Clock, state: () => StateDirectory): Sessions {
+  const childEnv = { HOME: process.env['HOME'], ...settings.upstreamEnv };
+  return createSessions({
+    clock,
+    capacity: settings.fingerprintCapacity,
+    expiryMs: settings.fingerprintExpiryMs,
+    transcripts: createTranscriptStore(() => upstreamProjectDirectory(state().cwd, childEnv))
+  });
 }
 
 export function createAnthropicSurface(deps: SurfaceDeps = {}): AnthropicSurface {
@@ -33,13 +48,14 @@ export function createAnthropicSurface(deps: SurfaceDeps = {}): AnthropicSurface
   checkUpstreamEnv(settings.upstreamEnv);
   const catalogue = deps.catalogue ?? loadCatalogue(settings.cataloguePath ?? SHIPPED_CATALOGUE_PATH);
   const clock = deps.clock ?? systemClock;
+  const stateDirectory = stateDirectoryFrom(deps);
   const conductor = createConductor({
     runner: deps.runner ?? createSpawnRunner({ clock }),
     catalogue,
-    sessions: deps.sessions ?? NO_SESSIONS,
+    sessions: deps.sessions ?? defaultSessions(settings, clock, stateDirectory),
     clock,
     settings,
-    stateDirectory: stateDirectoryFrom(deps)
+    stateDirectory
   });
   return { router: createAnthropicRouter({ catalogue, messages: (req, res) => conductor.handleMessages(req, res) }) };
 }
