@@ -27,7 +27,7 @@ import { Frame } from '../../../src/upstream/frames';
 import { openStateDirectory, StateDirectory } from '../../../src/upstream/state-directory';
 import type { SurfaceHarness } from '../../mocks/anthropic/surface-harness';
 import { waitFor } from '../../mocks/shared/wait-for';
-import { createUpstreamHarness, describeUpstream, E2E_MODEL, removeStateRoot } from './harness';
+import { createUpstreamHarness, describeUpstream, E2E_MODEL, firstMessage, removeStateRoot } from './harness';
 import { FaultMode, FaultProxy, startFaultProxy } from './fault-proxy';
 
 const MARKER = 'e2e-fault-7f3a';
@@ -89,7 +89,7 @@ describeUpstream('scenario 1: a model call failing after it has streamed content
     it('records the shape and names the trigger that fired', async () => {
       const { run, plan } = harness.start({ prompt: PROMPT, env: { ANTHROPIC_BASE_URL: proxy.url } });
 
-      const { frames, exit } = await harness.complete(run, plan.continuation.replay);
+      const { frames, exit } = await harness.complete(run, firstMessage(plan));
 
       expect(proxy.messagesRequests()).toBeGreaterThan(0);
       expect(proxy.faulted()).toBe(true);

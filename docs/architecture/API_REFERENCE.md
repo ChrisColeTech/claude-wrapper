@@ -4,6 +4,8 @@
 
 The Claude Wrapper provides an OpenAI-compatible API interface for interacting with Claude Code CLI. This document describes all available endpoints, request/response formats, and authentication methods.
 
+The wrapper also serves the Anthropic Messages API on the same port: see [Anthropic Surface](#anthropic-surface), whose full contract is the OpenAPI document at `/docs/anthropic-openapi.json`.
+
 ## 🌐 Base URL
 
 ```
@@ -15,6 +17,7 @@ http://localhost:8000
 ### **HTTP API Protection (Optional)**
 - **No Authentication Required**: Default mode - direct access to all endpoints
 - **Bearer Token Protection**: Optional API key protection with `--api-key` flag
+- **Anthropic Surface**: Also accepts the key as `x-api-key`, and answers a missing or wrong key with the Anthropic error envelope
 - **Selective Protection**: Health and models endpoints always public
 - **Local Development**: Perfect for development and testing without auth overhead
 
@@ -227,6 +230,93 @@ Service health status.
 }
 ```
 
+The response also has an `anthropic` key with the Anthropic surface's run counts: `{active, parked, maxRuns, queued, rateLimit}`. `queued` maps an upstream session id to the turns waiting on it.
+
+
+## Anthropic Surface
+
+The Anthropic Messages API, served beside the OpenAI surface on the same port. The official Anthropic SDKs work against it unmodified (`ANTHROPIC_BASE_URL=http://localhost:8000`). What it is, the operator warning and the known deviations from the real API are in the [README](../../README.md#anthropic-surface); settings are in the [runbook](../ANTHROPIC_SURFACE_RUNBOOK.md).
+
+**The OpenAPI document is the full contract.** It covers every body field, content block, tool type, stream event and error, with the surface's deviations stated on the fields they concern:
+
+- `GET /docs/anthropic-openapi.json`, public like `/swagger.json`;
+- the Swagger UI at `/docs`, where "Anthropic surface" is one of the two definitions in the picker;
+- its source, `app/src/anthropic/http/openapi.json`. It is a static file. `app/tests/integration/anthropic/openapi-document.test.ts` checks it is valid and that its body fields match what the surface accepts.
+
+### **Requests**
+
+| Header | Rule |
+| - | - |
+| `anthropic-version` | Required on `/v1/messages` and `/v1/messages/count_tokens`: `2023-06-01`, or the deprecated `2023-01-01`. Missing or another value is a 400. On `/v1/models*`, its presence alone selects this surface. |
+| `x-api-key` or `Authorization: Bearer` | The wrapper's `API_KEY`, when one is set (wrong or missing: 401 `authentication_error`). With no `API_KEY` the surface is open. The key never reaches upstream. |
+| `anthropic-beta` | Accepted and ignored, except `mcp-client-2025-11-20`, which enables `mcp_servers`. |
+| `content-type` | `application/json`. Bodies up to 32 MB (413 `request_too_large` above). |
+
+Every response carries `request-id: req_<24 base62 characters>`.
+
+### **Endpoints**
+
+#### `POST /v1/messages`
+
+One turn on upstream, answered as one API message, even when upstream made several model calls. Without `stream` the response is a `Message`; with `stream: true` it is server-sent events: `message_start`, then `content_block_start`, `content_block_delta` and `content_block_stop` per block, `message_delta` with the summed usage, then `message_stop`. A `ping` follows 15 s without an event.
+
+```bash
+curl http://localhost:8000/v1/messages \
+  -H 'content-type: application/json' -H 'anthropic-version: 2023-06-01' \
+  -d '{"model": "sonnet", "max_tokens": 1024, "messages": [{"role": "user", "content": "Hello, Claude"}]}'
+```
+
+```json
+{
+  "id": "msg_01XFDUDYJgAACzvnptvVoYEL",
+  "type": "message",
+  "role": "assistant",
+  "model": "claude-sonnet-5-5",
+  "content": [{ "type": "text", "text": "Hello! How can I help?", "citations": null }],
+  "stop_reason": "end_turn",
+  "stop_sequence": null,
+  "stop_details": null,
+  "container": null,
+  "diagnostics": null,
+  "usage": { "input_tokens": 512, "output_tokens": 9, "cache_creation_input_tokens": 0, "cache_read_input_tokens": 0, "service_tier": "standard" }
+}
+```
+
+What the turn supports:
+
+- **Client tools.** A turn that calls one ends with upstream's own `tool_use` blocks and `stop_reason: tool_use`. The `tool_result` blocks on the next request continue the same run.
+- **Web search and web fetch.** `web_search_*` and `web_fetch_*` tools come back as `server_tool_use` and `web_search_tool_result` / `web_fetch_tool_result` blocks.
+- **Connectors.** `mcp_servers` with `mcp_toolset` tools come back as `mcp_tool_use` and `mcp_tool_result` blocks.
+- **Conversations.** A history that matches what the surface served continues upstream's session; any other history is replayed into a fresh run's prompt.
+
+#### `POST /v1/messages/count_tokens`
+
+The Messages body without the output-only fields. It answers `{"input_tokens": <n>}`, measured by a run of its own capped at one output token, so the count includes the context upstream adds (about 500 tokens). Each count costs one minimal model call.
+
+#### `GET /v1/models` (with `anthropic-version`)
+
+The catalogue, newest first: `{"data": [ModelInfo...], "first_id", "last_id", "has_more"}`. Query parameters: `limit` (1 to 1000, default 20), `after_id` and `before_id` (an id or alias in the catalogue). Without the header this path is the OpenAI surface's list, described above.
+
+#### `GET /v1/models/{model_id}` (with `anthropic-version`)
+
+One catalogue entry, found by canonical id or alias, under its canonical id. An unknown name is 404 `not_found_error`.
+
+### **Errors**
+
+Every error is `{"type": "error", "error": {"type", "message"}, "request_id"}`, carrying the same id as the `request-id` header. A turn's status and headers are final at its first `message_start`. A failure before that is an HTTP status from the table below. A failure after it is one SSE `error` event with the same body, and then the stream closes.
+
+| Status | `error.type` | When |
+| - | - | - |
+| 400 | `invalid_request_error` | Covers four cases: a request the surface refuses before any run (an unknown field, or an unsupported parameter, block or tool type); `anthropic-version` missing or unknown; invalid JSON; upstream's own 400, including the billing gate, relayed verbatim. |
+| 401 | `authentication_error` | `API_KEY` is set and the client's key is missing or wrong. |
+| 404 | `not_found_error` | The model is not in the catalogue (`model: <name>`), or there is no such path or method under `/v1/messages`. |
+| 413 | `request_too_large` | The body is over 32 MB. |
+| 429 | `rate_limit_error` | Upstream's rate limit. It carries `retry-after` when the reset time is known. |
+| 500 | `api_error` | Covers three cases: the operator's Claude Code login or billing failed (the message names the upstream login); the Claude Code binary is missing; or a run failed or exited. |
+| 504 | `timeout_error` | A run's startup, stall or lifetime timer fired. |
+| 529 | `overloaded_error` | The wrapper is at its cap on runs or shutting down, or upstream is overloaded. |
+
+`x-should-retry: false` comes on every 4xx and on the 500s that retrying cannot fix. Otherwise the header is absent, so the SDK's own retry rules apply.
 
 ## 🗂️ Session Management Endpoints (Planned)
 

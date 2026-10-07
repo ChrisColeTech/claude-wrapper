@@ -5,7 +5,7 @@
  */
 import * as fs from 'fs';
 import { Frame } from '../../../src/upstream/frames';
-import { createUpstreamHarness, describeUpstream } from './harness';
+import { createUpstreamHarness, describeUpstream, firstMessage } from './harness';
 
 const indexOf = (frames: Frame[], match: (frame: Frame) => boolean): number => frames.findIndex(match);
 
@@ -19,7 +19,7 @@ describeUpstream('upstream runner against the real CLI', () => {
   it('a plain run with the planned spec yields system/init, frames, result and exit 0', async () => {
     const { run, plan, spec } = harness.start({ prompt: 'Reply with the single word pong.' });
 
-    const { frames, exit } = await harness.complete(run, plan.continuation.replay);
+    const { frames, exit } = await harness.complete(run, firstMessage(plan));
 
     const init = indexOf(frames, frame => frame.type === 'system' && frame.subtype === 'init');
     const firstEvent = indexOf(frames, frame => frame.type === 'stream_event');
