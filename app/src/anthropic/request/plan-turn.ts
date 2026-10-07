@@ -5,6 +5,7 @@
  * `count_tokens` body the same way, for the run that measures it (spec section 12).
  */
 import { ClientTool, CLIENT_TOOL_PREFIX } from '../../upstream/bridge';
+import { STRUCTURED_OUTPUT_TOOL } from '../../upstream/structured-output';
 import { Catalogue } from '../catalogue';
 import { SurfaceError } from '../http/surface-error';
 import { Sessions } from '../sessions';
@@ -22,6 +23,7 @@ import { Continuation, Endpoint, RunContext, TurnPlan } from './turn-plan';
 import { validateContentBlocks } from './validate-content-blocks';
 import { validateEffort } from './validate-effort';
 import { rejectExtraFields } from './validate-extra-fields';
+import { validateFormat } from './validate-format';
 import { validateMaxTokens } from './validate-max-tokens';
 import { validateMessages } from './validate-messages';
 import { resolveModel } from './validate-model';
@@ -48,6 +50,14 @@ function bridgeTools(request: Body): ClientTool[] {
   return isObject(choice) && choice['type'] === 'none' ? [] : tools;
 }
 
+/**
+ * What upstream must report on `system/init`: exactly the mounted tools, the bridge server's
+ * prefixed, plus `StructuredOutput` on a `--json-schema` run (upstream adds it even under `--tools ""`).
+ */
+function expectedTools(clientToolNames: readonly string[], structuredOutput: boolean): string[] {
+  return [...clientToolNames.map(name => `${CLIENT_TOOL_PREFIX}${name}`), ...(structuredOutput ? [STRUCTURED_OUTPUT_TOOL] : [])];
+}
+
 function plan(
   request: unknown, catalogue: Catalogue, sessions: Sessions, context: RunContext, endpoint: Endpoint
 ): TurnPlan {
@@ -66,14 +76,15 @@ function plan(
   const stopSequences = validateStopSequences(request['stop_sequences']) ?? [];
   const thinking = thinkingEnvironment(request['thinking'], model, maxTokens);
   const effort = validateEffort(request['output_config'], model);
+  const schema = validateFormat(request['output_config']);
   // A parked run's answer continues that run; anything else starts one, continued or replayed.
   const answer = parkedAnswer(messages, clientMessages, sessions.parked);
   const continuation: Continuation = answer && 'parked' in answer ? answer : chooseContinuation(messages, sessions);
   const resume = resumedSession(continuation);
   const clientToolNames = tools.map(tool => tool.name);
   const runInputs = {
-    modelId: model.id, system, thinking, clientToolNames,
-    ...(effort === undefined ? {} : { effort }), ...(resume === undefined ? {} : { resume })
+    modelId: model.id, system, thinking, clientToolNames, ...(effort === undefined ? {} : { effort }),
+    ...(schema === undefined ? {} : { jsonSchema: JSON.stringify(schema) }), ...(resume === undefined ? {} : { resume })
   };
   return {
     model,
@@ -81,9 +92,8 @@ function plan(
     system,
     runSpec: buildRunSpec(maxTokens === undefined ? measuringRun(runInputs) : { ...runInputs, maxTokens }, context),
     continuation,
-    translatorConfig: { stopSequences },
-    // Upstream reports exactly the mounted tools: the bridge server's, prefixed.
-    startupChecks: { model: model.id, tools: clientToolNames.map(name => `${CLIENT_TOOL_PREFIX}${name}`) },
+    translatorConfig: { stopSequences, structuredOutput: schema !== undefined },
+    startupChecks: { model: model.id, tools: expectedTools(clientToolNames, schema !== undefined) },
     bridgeTools: tools,
     runBound: runBoundParameters(request, model.id, system),
     ...(answer && 'lostPark' in answer ? { lostPark: answer.lostPark } : {})

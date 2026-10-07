@@ -21,6 +21,8 @@ export interface RunInputs {
   thinking: Readonly<Record<string, string>>;
   /** `output_config.effort`, passed as `--effort`. */
   effort?: string;
+  /** `output_config.format.schema` as JSON text, passed as `--json-schema`. */
+  jsonSchema?: string;
   /** A continued turn's upstream session, resumed with `--resume`. */
   resume?: string;
   /** A `count_tokens` run (spec section 12): upstream writes no transcript. */
@@ -39,6 +41,7 @@ export function buildRunSpec(inputs: RunInputs, context: RunContext): RunSpec {
       // The conductor writes the file into the run's directory once the control server has its token.
       ...(bridged ? { mcpConfig: path.join(runDir, MCP_CONFIG_FILE_NAME) } : {}),
       ...(inputs.effort === undefined ? {} : { effort: inputs.effort }),
+      ...(inputs.jsonSchema === undefined ? {} : { jsonSchema: inputs.jsonSchema }),
       ...(inputs.resume === undefined ? {} : { resume: inputs.resume }),
       ...(inputs.noSessionPersistence ? { noSessionPersistence: true } : {})
     }),
