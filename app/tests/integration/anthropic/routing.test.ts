@@ -36,6 +36,19 @@ describe('Anthropic surface: routing under /v1/messages', () => {
       expect(error).toBeInstanceOf(Anthropic.NotFoundError);
       expect(envelopeOf(error).error.message).toBe(NOT_FOUND);
     });
+
+    it.each([['no', null], ['an unknown', '2024-01-01']])(
+      'answers an unknown path or method with NotFoundError whatever the version header says (%s version)',
+      async (_label, version) => {
+        const options = { headers: { 'anthropic-version': version } };
+
+        for (const request of [surface.client().messages.batches.list({}, options), surface.client().get('/v1/messages', options)]) {
+          const error = await rejectionOf(request);
+          expect(error).toBeInstanceOf(Anthropic.NotFoundError);
+          expect(envelopeOf(error).error).toEqual({ type: 'not_found_error', message: NOT_FOUND });
+        }
+      }
+    );
   });
 
   describe('anthropic-version', () => {

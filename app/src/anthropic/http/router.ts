@@ -1,9 +1,8 @@
 /**
  * The Anthropic surface's routes, mounted before the OpenAI routes. The models routes serve
- * the catalogue to requests carrying `anthropic-version` and pass the rest on. Everything under
- * `/v1/messages` passes the `anthropic-version` check first. Endpoint handlers are added
- * between that check and the catch-all that answers every other path or method under
- * `/v1/messages` with 404 `not_found_error`.
+ * the catalogue to requests carrying `anthropic-version` and pass the rest on. Each endpoint under
+ * `/v1/messages` passes the `anthropic-version` check before its handler; a catch-all answers
+ * every other path or method under `/v1/messages` with 404 `not_found_error`, header or not.
  */
 import { NextFunction, Request, Response, Router } from 'express';
 import { Catalogue } from '../catalogue';
@@ -35,9 +34,8 @@ const route = (handler: SurfaceHandler) => (req: Request, res: Response, next: N
 export function createAnthropicRouter({ catalogue, messages, countTokens }: AnthropicRoutes): Router {
   const router = Router();
   router.use(createModelsRouter(catalogue));
-  router.use('/v1/messages', requireAnthropicVersion);
-  router.post('/v1/messages', route(messages));
-  router.post('/v1/messages/count_tokens', route(countTokens));
+  router.post('/v1/messages', requireAnthropicVersion, route(messages));
+  router.post('/v1/messages/count_tokens', requireAnthropicVersion, route(countTokens));
   router.use('/v1/messages', notFound);
   return router;
 }

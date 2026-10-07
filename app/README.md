@@ -268,7 +268,6 @@ Parameters and validation:
 - **Unknown `anthropic-beta` names are accepted** rather than rejected.
 - **Some 400 messages use the surface's own wording**, where the real API's text was never recorded. These are the messages for sampling, `container`, unsupported blocks and tool types, the thinking budget and effort checks, and duplicate tool names. A `system` prompt containing a NUL character is a 400.
 - **Mixed document citations give a 400 that indexes Claude Code's messages.** When citations are enabled on some documents but not all, the 400 is relayed from upstream, and its message counts Claude Code's own messages (`messages.9`), not yours.
-- **An unknown path under `/v1/messages` without `anthropic-version`** is a 400 for the missing header, not a 404.
 
 Tools, web search and connectors:
 
