@@ -131,6 +131,23 @@ describe('the scheduler: shutdown', () => {
     expect(run.stopped).toEqual(['server shutting down']);
   });
 
+  it('waits for a run that started during the drain as for the others', async () => {
+    const scheduler = schedulerOn(clock);
+    const early = fakeRun('run-early');
+    (await scheduler.admit(admission('req_early'))).started(early);
+    const late = await scheduler.admit(admission('req_late'));
+
+    const drained = scheduler.shutdown();
+    const lateRun = fakeRun('run-late');
+    late.started(lateRun);
+    early.end();
+
+    expect(await hasSettled(drained)).toBe(false);
+    lateRun.end();
+    await drained;
+    expect(lateRun.stopped).toEqual(['server shutting down']);
+  });
+
   it('drains a replayed run in flight down the ladder: interrupt, stdin closed 5 s later, then its exit', async () => {
     const runner = createReplayRunner([loadRecording('cli-probes/c-partial.jsonl')], { clock });
     const scheduler = createScheduler({

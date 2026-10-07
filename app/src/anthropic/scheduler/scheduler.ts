@@ -119,15 +119,26 @@ class RunScheduler<R extends HeldOpen> implements Scheduler<R>, SlotHost {
     this.logger.info('Shutting down: draining upstream runs', { ...this.counts(), deadlineMs });
     this.locks.close(overloaded('Overloaded: the server is shutting down'));
     this.parking.abandonAll(SHUTTING_DOWN);
-    const running = [...this.slots].filter(slot => slot.run);
-    running.forEach(slot => slot.run && this.endForShutdown(slot.run));
-    if (await within(Promise.all(running.map(slot => slot.ended)), deadlineMs, this.options.clock)) return;
-    const left = [...this.slots].filter(slot => slot.run);
+    this.running().forEach(slot => slot.run && this.endForShutdown(slot.run));
+    if (await within(this.allEnded(), deadlineMs, this.options.clock)) return;
+    const left = this.running();
     for (const { requestId, run } of left) {
       this.logger.warn('Shutdown drain ran out: run killed', { requestId, runId: run?.runId, sessionId: run?.sessionId });
       run?.kill();
     }
     await Promise.all(left.map(slot => slot.ended));
+  }
+
+  /** The slots whose run has started and not ended. */
+  private running(): Slot[] {
+    return [...this.slots].filter(slot => slot.run);
+  }
+
+  /** Settles once no run is left, a run started meanwhile (admitted before the shutdown) included. */
+  private async allEnded(): Promise<void> {
+    for (let left = this.running(); left.length > 0; left = this.running()) {
+      await Promise.all(left.map(slot => slot.ended));
+    }
   }
 
   /** A turn in flight gets the SSE `error` (or, before commit, its HTTP error); the run goes down the ladder. */
