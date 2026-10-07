@@ -35,7 +35,10 @@ export interface SurfaceDeps {
    * transcripts under the state directory's project.
    */
   sessions?: Sessions;
-  /** Not defaulted yet: its first reader (the conductor) defaults it and awaits `start()` first. */
+  /**
+   * Defaults to a loopback control server of the surface's own, started by the first turn that
+   * mounts a bridge server (tests inject one and close it).
+   */
   controlServer?: ControlServer;
   /** Defaults to `systemClock`; tests pass a fake clock (`tests/mocks/shared/fake-clock.ts`). */
   clock?: Clock;

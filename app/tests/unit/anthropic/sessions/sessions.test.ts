@@ -142,7 +142,7 @@ describe('sessions', () => {
 
   describe('the parked-run registry', () => {
     it("finds a parked run by any of its tool_use ids until it is removed", () => {
-      const run = { toolUseIds: ['toolu_1', 'toolu_2'] };
+      const run = { toolUseIds: ['toolu_1', 'toolu_2'], runId: 'run-1', abandon: async () => undefined };
 
       sessions.parked.put(run);
 

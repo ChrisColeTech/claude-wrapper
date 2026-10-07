@@ -15,6 +15,15 @@ export interface FailSignal {
   error: SurfaceError;
 }
 
+/**
+ * The turn parked (spec section 7): the call's `message_stop` has just been relayed, and the run
+ * stays held open until a request answers these client `tool_use` ids. Always the turn's last event.
+ */
+export interface ParkSignal {
+  type: 'park';
+  toolUseIds: string[];
+}
+
 /** Why the surface cut the turn (spec section 12, ADR 0004). */
 export type CutReason = 'max_tokens' | 'stop_sequence';
 
@@ -28,13 +37,13 @@ export interface CutSignal {
   reason: CutReason;
 }
 
-/** The control signals carried inline in the turn stream. The client-tool ticket adds `park`. */
-export type ControlSignal = FailSignal | CutSignal;
+/** The control signals carried inline in the turn stream. */
+export type ControlSignal = FailSignal | ParkSignal | CutSignal;
 
 /** An API event or a control signal. */
 export type TurnEvent = ApiEvent | ControlSignal;
 
-const CONTROL_SIGNALS: ReadonlySet<string> = new Set<ControlSignal['type']>(['fail', 'cut']);
+const CONTROL_SIGNALS: ReadonlySet<string> = new Set<ControlSignal['type']>(['fail', 'park', 'cut']);
 
 /** A control signal, which no sink writes as an event. */
 export function isControlSignal(event: TurnEvent): event is ControlSignal {

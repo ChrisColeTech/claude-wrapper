@@ -14,8 +14,9 @@
  * no open block is retried as one more suppressed `message_start`.
  *
  * Today the only calls (c) suppresses are failed StructuredOutput answers, whose block pass 6 has
- * already taken out. The server-tool ticket widens (c) to calls whose `tool_use` blocks are all
- * built-in, and adds its synthesised result blocks to (b)'s count.
+ * already taken out. A call with a client `tool_use` block ends the turn here, and the park rule
+ * (`park.ts`, the pass right after this one) parks it. The server-tool ticket widens (c) to calls
+ * whose `tool_use` blocks are all built-in, and adds its synthesised result blocks to (b)'s count.
  */
 import { ApiRetryFrame, Frame, ResultFrame, StreamEvent } from '../../upstream/frames';
 import { FailureReader } from '../failure';

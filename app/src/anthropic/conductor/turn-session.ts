@@ -6,7 +6,7 @@
  * (a rejection, a post-commit failure, a disconnect, a cut, an error `result`, a run that ended
  * before its `result`) is an error turn: the session is forgotten at once, so the client's retry
  * is a replayed turn, and forgotten again once the run has exited, since upstream writes its
- * transcript up to its exit.
+ * transcript up to its exit. A turn that parks hands its run on and decides nothing.
  */
 import { Frame, ResultFrame } from '../../upstream/frames';
 import { fingerprint, NormalisedMessage } from '../request';
@@ -32,7 +32,7 @@ export class TurnSession implements FrameObserver {
   private outcome: SinkOutcome | undefined;
   /** `null`: the run ended without one. */
   private result: ResultFrame | null | undefined;
-  private decision: 'record' | 'forget' | undefined;
+  private decision: 'record' | 'forget' | 'parked' | undefined;
 
   constructor(private readonly options: TurnSessionOptions) {}
 
@@ -60,6 +60,14 @@ export class TurnSession implements FrameObserver {
   settled(outcome: SinkOutcome): void {
     this.outcome = outcome;
     this.decide();
+  }
+
+  /**
+   * The turn parked (spec section 7): nothing is recorded or forgotten for it. Its run, and with it
+   * the upstream session, passes to the turn that resumes it, or to the park's abandonment.
+   */
+  parked(): void {
+    this.decision ??= 'parked';
   }
 
   /** Upstream has exited. */

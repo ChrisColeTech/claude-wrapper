@@ -10,9 +10,11 @@ import { createFailureReader } from '../failure';
 import { createAllowlist } from './allowlist';
 import { createFlattener } from './flatten';
 import { createMaxTokensCut } from './max-tokens-cut';
+import { createParkRule } from './park';
 import { chain, inOrder, Pass } from './pass';
 import { createRedaction } from './redact';
 import { createStopSequenceScan } from './stop-sequences';
+import { createBridgePrefixStrip } from './strip-bridge-prefix';
 import { createStructuredOutputBuffer } from './structured-output';
 import { createSyntheticDrop } from './synthetic-drop';
 import { Translator, TranslatorConfig, TranslatorLogger } from './turn-event';
@@ -27,7 +29,11 @@ export function createTranslator(config: TranslatorConfig = {}): Translator {
   const failures = config.failures ?? createFailureReader();
   const frames = chain(chain(createSyntheticDrop(logger), structuredOutput(config, logger)), createFlattener(failures));
   const events = inOrder([
-    // 3 server-tool pass, 4 connector pass, 5 bridge prefix strip (6, the StructuredOutput buffer, reads frames)
+    // The flattener's park rule (c), in its own file; a cut after it drops its `park`.
+    createParkRule(),
+    // 3 server-tool pass, 4 connector pass
+    createBridgePrefixStrip(),
+    // 6, the StructuredOutput buffer, reads frames: it sits before the flattener
     createMaxTokensCut(),
     createStopSequenceScan(config.stopSequences ?? []),
     createRedaction(config.redact ?? [], config.structuredOutput ? 'json' : 'text'),
