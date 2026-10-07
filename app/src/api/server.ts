@@ -15,7 +15,6 @@ import { logger } from '../utils/logger';
 import { EnvironmentManager } from '../config/env';
 import { createAuthMiddleware, getApiKey } from '../auth/middleware';
 import { swaggerSpec } from './swagger';
-import { lazyApp } from './lazy-app';
 import { SurfaceDeps } from '../anthropic/deps';
 import { AnthropicSurface, createAnthropicSurface } from '../anthropic';
 import {
@@ -94,8 +93,8 @@ function mountErrorHandling(app: Express): void {
   app.use(errorHandler);
 }
 
-/** Where an app keeps its Anthropic surface, for `anthropicSurfaceOf` (it works through the lazy default app). */
-const ANTHROPIC_SURFACE = 'anthropic surface';
+/** Each app's Anthropic surface, for `anthropicSurfaceOf`. */
+const surfaces = new WeakMap<Express, AnthropicSurface>();
 
 /**
  * Build a fresh Express app. Each call returns a new, independent app.
@@ -105,7 +104,7 @@ const ANTHROPIC_SURFACE = 'anthropic surface';
 export function createServer(deps: SurfaceDeps = {}): Express {
   const app = express();
   const anthropic = createAnthropicSurface(deps);
-  app.set(ANTHROPIC_SURFACE, anthropic);
+  surfaces.set(app, anthropic);
   mountMiddleware(app);
   mountDocs(app);
   mountRoutes(app, anthropic);
@@ -114,15 +113,13 @@ export function createServer(deps: SurfaceDeps = {}): Express {
 }
 
 /**
- * The Anthropic surface of an app `createServer` built, the default export included, as the
- * wrapper process drives it (spec section 14): `start()` when the wrapper starts (the transcript
+ * The Anthropic surface of an app `createServer` built, as the wrapper process drives it (spec section 14): `start()` when the wrapper starts (the transcript
  * sweeps), `shutdown(deadlineMs?)` first in its shutdown (new requests 529, turns in flight their
  * error, every run down the teardown ladder, SIGKILL at the deadline; resolves once every run has
  * exited).
  */
 export function anthropicSurfaceOf(app: Express): Pick<AnthropicSurface, 'start' | 'shutdown'> {
-  const surface = app.get(ANTHROPIC_SURFACE) as AnthropicSurface | undefined;
-  return surface ?? { start: () => undefined, shutdown: async () => undefined };
+  return surfaces.get(app) ?? { start: () => undefined, shutdown: async () => undefined };
 }
 
 /**
@@ -138,9 +135,3 @@ export function startServer(deps: SurfaceDeps = {}): Server {
     });
   });
 }
-
-/**
- * The CLI and the daemon listen on this app. It is built on first use, after they have set
- * the environment, so importing this module builds no app.
- */
-export default lazyApp(() => createServer());

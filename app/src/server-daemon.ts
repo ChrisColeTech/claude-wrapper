@@ -60,7 +60,8 @@ async function startDaemon(): Promise<void> {
   }
 
   // Import server AFTER setting environment variables
-  const { default: app, anthropicSurfaceOf } = await import('./api/server');
+  const { anthropicSurfaceOf, createServer } = await import('./api/server');
+  const app = createServer();
 
   // Start server
   const server = app.listen(options.port, '0.0.0.0', () => {
