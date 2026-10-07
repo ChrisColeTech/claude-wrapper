@@ -10,6 +10,9 @@ import { fieldInvalid, fieldRequired } from './field-errors';
 
 const TYPES: readonly unknown[] = ['auto', 'any', 'tool', 'none'];
 
+/** `tool_choice: none`: the turn's tools are hidden, though validated all the same. */
+export const toolsHidden = (toolChoice: unknown): boolean => isObject(toolChoice) && toolChoice['type'] === 'none';
+
 export function validateToolChoice(toolChoice: unknown): void {
   if (toolChoice === undefined || toolChoice === null) return;
   if (!isObject(toolChoice)) throw fieldInvalid('tool_choice', 'a valid dictionary');

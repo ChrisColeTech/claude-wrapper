@@ -34,7 +34,7 @@ import { validateSampling } from './validate-sampling';
 import { validateServerTools } from './validate-server-tools';
 import { validateStopSequences } from './validate-stop-sequences';
 import { thinkingEnvironment } from './validate-thinking';
-import { validateToolChoice } from './validate-tool-choice';
+import { toolsHidden, validateToolChoice } from './validate-tool-choice';
 import { validateTurnOrder } from './validate-turn-order';
 import { webTools } from './web-tools';
 
@@ -49,8 +49,7 @@ function validateParameters(request: JsonObject): void {
 /** The client tools the turn exposes: none under `tool_choice: none`, though they are validated all the same. */
 function bridgeTools(request: JsonObject): ClientTool[] {
   const tools = clientTools(request['tools']);
-  const choice = request['tool_choice'];
-  return isObject(choice) && choice['type'] === 'none' ? [] : tools;
+  return toolsHidden(request['tool_choice']) ? [] : tools;
 }
 
 /**

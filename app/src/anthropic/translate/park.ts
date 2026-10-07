@@ -7,15 +7,13 @@
  * order. Nothing is synthesised. A call whose `tool_use` blocks are all built-in or connector
  * calls never parks: the run continues on upstream's side.
  */
-import { CLIENT_TOOL_PREFIX } from '../../upstream/bridge';
 import { JsonObject } from '../../upstream/frames';
 import { Pass } from './pass';
+import { toolUseKind } from './tool-use-kind';
 import { TurnEvent } from './turn-event';
 
 const clientToolUseId = (block: JsonObject): string | undefined =>
-  (block['type'] === 'tool_use' && typeof block['name'] === 'string' && block['name'].startsWith(CLIENT_TOOL_PREFIX)
-    ? String(block['id'])
-    : undefined);
+  (toolUseKind(block) === 'client' ? String(block['id']) : undefined);
 
 class ParkRule implements Pass<TurnEvent, TurnEvent> {
   /** The current call's client `tool_use` ids. */

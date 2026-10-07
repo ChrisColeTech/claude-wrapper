@@ -20,18 +20,16 @@
  * whose category is deterministic. A plain `api_retry` is not a trigger: a failed call that had
  * no open block is retried as one more suppressed `message_start`.
  */
-import { isConnectorTool } from '../../upstream/connector-tools';
 import { ApiRetryFrame, Frame, isCleanResult, ResultFrame, StreamEvent, UserFrame } from '../../upstream/frames';
-import { isWebTool } from '../../upstream/hook-policy';
+import { WebTool } from '../../upstream/hook-policy';
 import { FailureReader } from '../failure';
 import { SurfaceError } from '../surface-error';
 import { MixedMessageHold } from './mixed-message';
 import { Pass } from './pass';
 import { BlockOffsets, serverToolResults } from './surface-blocks';
+import { runsUpstream, ToolKind, toolUseKind } from './tool-use-kind';
 import { ServerToolCalls, TurnEvent } from './turn-event';
 
-/** A call upstream runs itself, the model then called again: a built-in web tool or a connector's tool. */
-const runsUpstream = (name: unknown): boolean => isWebTool(name) || isConnectorTool(name);
 
 
 class Flattener implements Pass<Frame, TurnEvent> {
@@ -40,7 +38,7 @@ class Flattener implements Pass<Frame, TurnEvent> {
   /** The current upstream message's blocks that have started and not stopped, as they arrive. */
   private readonly openBlocks = new Set<number>();
   /** The tools the current call relayed `tool_use` blocks for (c). */
-  private callTools: string[] = [];
+  private callTools: (ToolKind | undefined)[] = [];
   /** The current call's end is suppressed (c): its `message_stop` does not end the turn. */
   private continues = false;
   private readonly blocks = new BlockOffsets();
@@ -74,10 +72,9 @@ class Flattener implements Pass<Frame, TurnEvent> {
 
   private onBlockStart(index: number, block: Record<string, unknown>): void {
     this.openBlocks.add(index);
-    const name = block['name'];
-    if (block['type'] !== 'tool_use') return;
-    if (isWebTool(name)) this.calls.note(String(block['id']), name);
-    else if (isConnectorTool(name)) this.calls.note(String(block['id']), 'connector');
+    const kind = toolUseKind(block);
+    if (kind === 'web') this.calls.note(String(block['id']), block['name'] as WebTool);
+    else if (kind === 'connector') this.calls.note(String(block['id']), 'connector');
   }
 
   private onUser(frame: UserFrame): TurnEvent[] {
@@ -101,7 +98,7 @@ class Flattener implements Pass<Frame, TurnEvent> {
       case 'message_stop':
         return this.onMessageStop(event);
       case 'content_block_start':
-        if (event.content_block['type'] === 'tool_use') this.callTools.push(String(event.content_block['name']));
+        if (event.content_block['type'] === 'tool_use') this.callTools.push(toolUseKind(event.content_block));
         return this.blocks.block(event);
       default:
         return this.blocks.block(event);

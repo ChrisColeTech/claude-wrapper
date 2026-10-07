@@ -21,9 +21,9 @@
  * call's end as success or failure. Frames of other threads (`parent_tool_use_id`) pass as they came.
  */
 import { Frame, isCleanResult, JsonObject, ResultFrame, StreamEvent, StreamEventFrame, UserFrame } from '../../upstream/frames';
-import { STRUCTURED_OUTPUT_TOOL } from '../../upstream/structured-output';
 import { Logger } from '../../utils/logger';
 import { Pass } from './pass';
+import { toolUseKind } from './tool-use-kind';
 
 interface Buffered {
   /** The `tool_use` id its `tool_result` names. */
@@ -35,8 +35,7 @@ type BlockEvent = Extract<StreamEvent, { index: number }>;
 
 const relayed = (event: StreamEvent): StreamEventFrame => ({ type: 'stream_event', event, parent_tool_use_id: null });
 
-const isStructuredOutput = (block: JsonObject): boolean =>
-  block['type'] === 'tool_use' && block['name'] === STRUCTURED_OUTPUT_TOOL;
+const isStructuredOutput = (block: JsonObject): boolean => toolUseKind(block) === 'structured_output';
 
 /** The `tool_result` blocks of a `user` frame. */
 function toolResults(frame: UserFrame): JsonObject[] {

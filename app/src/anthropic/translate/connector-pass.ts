@@ -8,33 +8,26 @@
  * two model calls as a built-in does (the flattener's rule (c)) and never parks. No usage counter
  * is added: the real API has none for MCP.
  */
-import { isConnectorTool, splitConnectorTool } from '../../upstream/connector-tools';
+import { splitConnectorTool } from '../../upstream/connector-tools';
 import { JsonObject } from '../../upstream/frames';
-import { isObject } from '../../utils/json-object';
 import { Logger } from '../../utils/logger';
 import { eachEvent, Pass } from './pass';
+import { receivedTexts } from './server-tool-results';
+import { toolUseKind } from './tool-use-kind';
 import { ApiEvent, ServerToolResultSignal, TurnEvent } from './turn-event';
 
 type BlockStart = Extract<ApiEvent, { type: 'content_block_start' }>;
 
 function useBlock(event: BlockStart): TurnEvent {
   const block = event.content_block;
-  const name = block['name'];
-  if (block['type'] !== 'tool_use' || !isConnectorTool(name)) return event;
-  const { server, tool } = splitConnectorTool(name);
+  if (toolUseKind(block) !== 'connector') return event;
+  const { server, tool } = splitConnectorTool(String(block['name']));
   return { ...event, content_block: { type: 'mcp_tool_use', id: block['id'], name: tool, server_name: server, input: block['input'] ?? {} } };
 }
 
 /** What upstream's model received, as the API's text blocks. */
-function textBlocks(content: unknown, logger: Pick<Logger, 'debug'>): JsonObject[] {
-  if (typeof content === 'string') return [{ type: 'text', text: content }];
-  if (!Array.isArray(content)) return [];
-  return content.filter(isObject).flatMap(item => {
-    if (item['type'] === 'text') return [{ type: 'text', text: String(item['text'] ?? '') }];
-    logger.debug('Connector result item dropped', { type: item['type'] });
-    return [];
-  });
-}
+const textBlocks = (content: unknown, logger: Pick<Logger, 'debug'>): JsonObject[] =>
+  receivedTexts(content, type => logger.debug('Connector result item dropped', { type })).map(text => ({ type: 'text', text }));
 
 function resultBlocks(result: ServerToolResultSignal, logger: Pick<Logger, 'debug'>): TurnEvent[] {
   const content_block = {

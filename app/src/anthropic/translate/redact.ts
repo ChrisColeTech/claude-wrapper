@@ -12,7 +12,7 @@
  * value, and the SDKs' `parse()` helpers still read the text.
  */
 import { JsonObject } from '../../upstream/frames';
-import { Pass } from './pass';
+import { identity, Pass } from './pass';
 import { createScanner, PayloadKind, PayloadScanner } from './redact-scanner';
 import { ApiEvent, TurnEvent } from './turn-event';
 
@@ -78,6 +78,6 @@ class Redaction implements Pass<TurnEvent, TurnEvent> {
 /** `textKind` is how text deltas are read: `'json'` on a structured-output run. */
 export function createRedaction(strings: readonly string[], textKind: PayloadKind = 'text'): Pass<TurnEvent, TurnEvent> {
   const armed = strings.filter(armed => armed.length > 0);
-  if (armed.length === 0) return { push: event => [event], end: () => [] };
+  if (armed.length === 0) return identity();
   return new Redaction(armed, textKind);
 }

@@ -12,6 +12,7 @@ import { JsonObject, isObject } from '../../utils/json-object';
 import { SurfaceError } from '../surface-error';
 import { WEB_TOOL_NAMES } from '../web-tools';
 import { fieldInvalid, fieldRequired, present } from './field-errors';
+import { toolsHidden } from './validate-tool-choice';
 
 const KINDS = Object.values(WEB_TOOL_NAMES);
 
@@ -61,6 +62,5 @@ export function webTools(tools: unknown, toolChoice: unknown): HookPolicySpec | 
     if (policy[kind.tool]) throw SurfaceError.invalidRequest('tools: Tool names must be unique.');
     policy[kind.tool] = limits(tool, path);
   });
-  const disabled = isObject(toolChoice) && toolChoice['type'] === 'none';
-  return disabled || Object.keys(policy).length === 0 ? undefined : policy;
+  return toolsHidden(toolChoice) || Object.keys(policy).length === 0 ? undefined : policy;
 }

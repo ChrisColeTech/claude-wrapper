@@ -12,7 +12,7 @@ import { createConnectorPass } from './connector-pass';
 import { createFlattener } from './flatten';
 import { createMaxTokensCut } from './max-tokens-cut';
 import { createParkRule } from './park';
-import { chain, inOrder, Pass } from './pass';
+import { chain, identity, inOrder, Pass } from './pass';
 import { createRedaction } from './redact';
 import { createServerToolCalls } from './server-tool-calls';
 import { createServerToolPass } from './server-tools';
@@ -25,7 +25,7 @@ import { createUsageSum } from './usage-sum';
 
 /** Pass 6 on a `--json-schema` run; it reads frames, so it sits before the flattener. */
 function structuredOutput(config: TranslatorConfig, logger: Pick<Logger, 'debug'>): Pass<Frame, Frame> {
-  return config.structuredOutput ? createStructuredOutputBuffer(logger) : { push: frame => [frame], end: () => [] };
+  return config.structuredOutput ? createStructuredOutputBuffer(logger) : identity();
 }
 
 export function createTranslator(config: TranslatorConfig = {}): Translator {

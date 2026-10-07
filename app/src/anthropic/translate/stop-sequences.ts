@@ -13,7 +13,7 @@
  * first, then the internal `call_start` the flattener keeps for each later call.
  */
 import { JsonObject } from '../../upstream/frames';
-import { Pass } from './pass';
+import { identity, Pass } from './pass';
 import { createStopScanner, StopScanner } from './stop-scanner';
 import { ApiEvent, CutSignal, TurnEvent } from './turn-event';
 
@@ -136,6 +136,6 @@ class StopSequenceScan implements Pass<TurnEvent, TurnEvent> {
 /** Nothing to scan for, nothing changes. */
 export function createStopSequenceScan(sequences: readonly string[]): Pass<TurnEvent, TurnEvent> {
   const armed = sequences.filter(sequence => sequence.length > 0);
-  if (armed.length === 0) return { push: event => [event], end: () => [] };
+  if (armed.length === 0) return identity();
   return new StopSequenceScan(armed);
 }

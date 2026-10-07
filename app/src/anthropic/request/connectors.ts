@@ -16,6 +16,7 @@ import { SurfaceError } from '../surface-error';
 import { DeclaredServer, declaredServers } from './connector-servers';
 import { allowRules, pairedToolsets } from './connector-toolsets';
 import { extraInputs } from './validate-extra-fields';
+import { toolsHidden } from './validate-tool-choice';
 
 /** The `anthropic-beta` value that unlocks `mcp_servers` and `mcp_toolset`. */
 export const MCP_CLIENT_BETA = 'mcp-client-2025-11-20';
@@ -59,8 +60,7 @@ export function connectors(request: JsonObject, settings: AnthropicSettings, bet
   servers.forEach(server => checkHost(server, settings.connectorHosts));
   const mounted = servers.map(server => ({ server, rules: allowRules(server, paired.get(server.name)!) }))
     .filter(({ rules }) => rules.length > 0);
-  const choice = request['tool_choice'];
-  if (isObject(choice) && choice['type'] === 'none') return NO_CONNECTORS;
+  if (toolsHidden(request['tool_choice'])) return NO_CONNECTORS;
   return {
     entries: Object.fromEntries(mounted.map(({ server }) =>
       [server.name, connectorServerEntry({ url: server.url, token: server.token }, settings.connectorCallTimeoutMs)])),
