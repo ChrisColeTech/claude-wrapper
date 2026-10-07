@@ -68,10 +68,7 @@ export interface Lease {
   onFrame(frame: Frame): void;
   /** The admitted run has started; its slot is given back once it has ended. */
   started(run: ScheduledRun): void;
-  /**
-   * The turn is over and did not park: the next turn waiting on the session goes once the run has
-   * exited. A lease whose run never started gives its slot back here.
-   */
+  /** The turn is over and did not park. A lease whose run never started gives its slot back here. */
   release(): void;
 }
 
@@ -90,7 +87,8 @@ export interface Scheduler<R extends HeldOpen = HeldOpen> {
   /**
    * Admits a turn, or rejects with the `SurfaceError` to answer: 529 at shutdown or at the run cap,
    * 429 while upstream's rate limit is rejecting. A continued turn queues behind its session's
-   * earlier turns, waits for the session's previous run to exit, and is re-planned.
+   * earlier turns, holding no slot, and waits up to the continued-turn wait for the session's
+   * previous run to exit (parked or not; it is evicted then); it is re-planned and admitted again.
    */
   admit(admission: Admission): Promise<Lease>;
   /** Holds a run its turn parked until the client answers it, its park TTL expires, or it ends. */

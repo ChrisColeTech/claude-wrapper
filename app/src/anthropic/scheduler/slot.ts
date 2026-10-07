@@ -1,9 +1,9 @@
 /**
- * A lease (spec section 14). A turn that starts a run holds a slot from its admission until its
- * run has ended, so a slot counts one run in existence, active or parked; a run that never started
- * frees its slot when the lease is released. The slot also marks where its run is for the session
- * mutex: its turn is in flight until the lease is released (a park keeps it in flight, for the
- * turn that resumes the run), and over once released or once the run has ended.
+ * A lease (spec section 14). A turn that starts a run holds a slot from the moment it may run (a
+ * continued turn: once it has waited on its session) until its run has ended, so a slot counts one
+ * run in existence, active or parked; a run that never started frees its slot when the lease is
+ * released. The slot also marks its run for the session mutex: the next turn on its session waits
+ * for the slot to end.
  */
 import { Frame } from '../../upstream/frames';
 import { TurnPlan } from '../request';
@@ -22,16 +22,10 @@ export class Slot implements Lease {
   run: ScheduledRun | undefined;
   /** The upstream sessions the slot's run is on. */
   readonly sessions = new Set<string>();
-  private readonly turn = deferred();
   private readonly gone = deferred();
   private free = false;
 
   constructor(readonly requestId: string, public plan: TurnPlan, private readonly host: SlotHost) {}
-
-  /** Settles once the turn is over: released, or the run has ended. */
-  get turnOver(): Promise<void> {
-    return this.turn.promise;
-  }
 
   /** Settles once the slot is free. */
   get ended(): Promise<void> {
@@ -49,14 +43,12 @@ export class Slot implements Lease {
   }
 
   release(): void {
-    this.turn.resolve();
     if (!this.run) this.end();
   }
 
   private end(): void {
     if (this.free) return;
     this.free = true;
-    this.turn.resolve();
     this.gone.resolve();
     this.host.freed(this);
   }

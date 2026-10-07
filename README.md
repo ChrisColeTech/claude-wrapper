@@ -290,7 +290,7 @@ Conversations:
 
 - **Edits to earlier history are ignored on the turn that answers a parked tool call.** The held run continues with the history Claude Code holds. A regenerate, or an edit on any other turn, is a replayed turn, not a fork.
 - **Some parameters cannot change while a run is held open.** On that same turn, a different `model`, `max_tokens`, `system`, `thinking`, `output_config`, `tools` or `mcp_servers` is ignored, because the held run keeps the values it started with. `message.model` always names the model that ran.
-- **A request that continues a conversation waits for the conversation's previous turn to end.** If that turn is parked on a tool call the client abandoned, the wait lasts until the park times out (10 minutes by default).
+- **A request that continues a conversation waits up to 10 s for the conversation's previous run to end.** Then that run is ended: a run parked on a tool call the client abandoned has its tool calls rejected, and the request is answered as a replayed turn.
 
 Errors and headers:
 

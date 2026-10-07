@@ -20,7 +20,7 @@ Every setting is an environment variable, read when the wrapper builds its app a
 | `CLAUDE_WRAPPER_STALL_TIMEOUT_MS` | `90000` (90 s) | Longest silence allowed between two upstream frames. A parked run's heartbeats count as frames. |
 | `CLAUDE_WRAPPER_RUN_LIFETIME_MS` | `1800000` (30 min) | A run's active lifetime, park time excluded. |
 | `CLAUDE_WRAPPER_MAX_RUNS` | `4` | Upstream runs in existence, active and parked together, `count_tokens` runs included. A request beyond it gets 529 `overloaded_error` at once; there is no queue. A run is a Claude Code process of roughly 230 to 260 MB. |
-| `CLAUDE_WRAPPER_CONTINUED_TURN_WAIT_MS` | `10000` (10 s) | How long a continued turn waits for the previous run on its conversation to exit before killing it. |
+| `CLAUDE_WRAPPER_CONTINUED_TURN_WAIT_MS` | `10000` (10 s) | How long a continued turn waits for the previous run on its conversation to exit before killing it, whether that run is streaming or parked (a parked run's tool calls are rejected first). The waiting turn holds no run slot. |
 | `CLAUDE_WRAPPER_SHUTDOWN_DRAIN_MS` | `15000` (15 s) | How long shutdown waits for runs to end before killing the rest. |
 | `CLAUDE_WRAPPER_MAX_TURNS` | `25` | Upstream's `--max-turns` per run, a runaway guard. Hitting it ends the turn with 500 `api_error`. |
 | `CLAUDE_WRAPPER_UPSTREAM_ENV` | `{}` | A JSON object of strings, merged last into every run's environment (below). |

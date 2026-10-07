@@ -30,7 +30,9 @@ export interface Parking<R extends HeldOpen = HeldOpen> {
   park(run: R): void;
   /** Hands `results` to `parked`; when they complete its park it is taken out of parking and returned. */
   deliver(parked: ParkedRun, results: ToolResultBlock[]): Delivery<R>;
-  /** Abandons every parked run (the shutdown): each is interrupted before its waiting calls are rejected. */
+  /** Abandons the parked run `runId`, if it is parked: interrupted before its waiting calls are rejected. */
+  abandon(runId: string, reason: string): void;
+  /** Abandons every parked run (the shutdown). */
   abandonAll(reason: string): void;
   /** Runs parked now. */
   readonly count: number;
@@ -75,12 +77,19 @@ class ParkingLot<R extends HeldOpen> implements Parking<R> {
     return { status: 'resumed', run: entry.run };
   }
 
+  abandon(runId: string, reason: string): void {
+    const parked = [...this.held.values()].find(({ run }) => run.runId === runId);
+    if (parked) this.abandonRun(parked.run, reason);
+  }
+
   abandonAll(reason: string): void {
-    for (const { run } of [...this.held.values()]) {
-      this.release(run);
-      this.options.logger.info('Parked run abandoned', { runId: run.runId, toolUseIds: run.toolUseIds, reason });
-      void run.abandon(reason);
-    }
+    for (const { run } of [...this.held.values()]) this.abandonRun(run, reason);
+  }
+
+  private abandonRun(run: R, reason: string): void {
+    this.release(run);
+    this.options.logger.info('Parked run abandoned', { runId: run.runId, toolUseIds: run.toolUseIds, reason });
+    void run.abandon(reason);
   }
 
   private expire(run: R): void {

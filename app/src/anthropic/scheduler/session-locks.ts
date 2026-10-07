@@ -1,12 +1,12 @@
 /**
  * The per-session mutex (spec section 14): one upstream session never runs two runs at once. A
- * continued turn queues FIFO behind the earlier turns on its session. At the head it waits for the
- * session's previous run: without bound while that run's turn is in flight (a park keeps it in
- * flight), then up to the continued-turn wait for its exit, which a SIGKILL ends. Only then is the
- * turn re-planned, against the sessions as that run left them: upstream has written its transcript,
- * and a turn that ended in an error has forgotten the session. So a follow-up resumes a session
- * whose transcript is complete, and a duplicate becomes a replayed turn rather than a resume onto
- * a transcript that has moved on.
+ * continued turn queues FIFO behind the earlier turns on its session. At the head it waits up to
+ * the continued-turn wait for the session's previous run to exit, whether that run's turn is in
+ * flight, over or parked; then the run is evicted (a parked one abandoned, every one SIGKILLed).
+ * Only then is the turn re-planned, against the sessions as that run left them: upstream has
+ * written its transcript, and a turn that ended in an error, or a park that was abandoned, has
+ * forgotten the session. So a follow-up resumes a session whose transcript is complete, and a
+ * duplicate becomes a replayed turn rather than a resume onto a transcript that has moved on.
  */
 import { Clock } from '../../utils/clock';
 import { resumedSession, TurnPlan } from '../request';
@@ -25,6 +25,8 @@ export interface SessionLockOptions {
   /** The continued-turn wait for the previous run's exit. */
   waitMs: number;
   logger: SchedulerLogger;
+  /** Ends a previous run that outlived the wait: its park abandoned if it is parked, then SIGKILL. */
+  evict(previous: Slot): void;
 }
 
 export class SessionLocks {
@@ -93,13 +95,12 @@ export class SessionLocks {
   private async previousRunGone(slot: Slot, session: string): Promise<void> {
     const previous = this.holders.get(session);
     if (!previous || previous === slot) return;
-    await this.until(previous.turnOver);
-    const { clock, waitMs, logger } = this.options;
+    const { clock, waitMs, logger, evict } = this.options;
     if (await this.until(within(previous.ended, waitMs, clock))) return;
     logger.warn("The session's previous run did not exit in time: killed", {
       requestId: slot.requestId, sessionId: session, runId: previous.run?.runId, waitMs
     });
-    previous.run?.kill();
+    evict(previous);
     await this.until(previous.ended);
   }
 
