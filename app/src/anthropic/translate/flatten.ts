@@ -14,11 +14,13 @@
  * become internal `server_tool_result` signals for the server-tool and connector passes; a client
  * call behind one of them waits for its result (`mixed-message`).
  *
- * It also ends the turn with the `fail` signal, mapped by the run's failure reader: (i) a
- * `message_start` while the current upstream message still has an open block (its model call
- * broke after streaming content), (ii) a failed `result` before the end, and a `system/api_retry`
- * whose category is deterministic. A plain `api_retry` is not a trigger: a failed call that had
- * no open block is retried as one more suppressed `message_start`.
+ * It also ends the turn with the `fail` signal, mapped by the run's failure reader: (i) a broken
+ * model call, either a `message_start` while the current upstream message still has an open block
+ * or a `message_stop` with no `message_delta` before it (Claude Code closes a call broken by a
+ * mid-stream error that way and retries it where no stream event shows it), (ii) a failed
+ * `result` before the end, and a `system/api_retry` whose category is deterministic. A plain
+ * `api_retry` is not a trigger: a failed call that had no open block is retried as one more
+ * suppressed `message_start`.
  */
 import { ApiRetryFrame, Frame, isCleanResult, ResultFrame, StreamEvent, UserFrame } from '../../upstream/frames';
 import { WebTool } from '../../upstream/hook-policy';
@@ -37,6 +39,8 @@ class Flattener implements Pass<Frame, TurnEvent> {
   private ended = false;
   /** The current upstream message's blocks that have started and not stopped, as they arrive. */
   private readonly openBlocks = new Set<number>();
+  /** The current upstream message has had its `message_delta`, so its `message_stop` ends a whole call. */
+  private delta = false;
   /** The tools the current call relayed `tool_use` blocks for (c). */
   private callTools: (ToolKind | undefined)[] = [];
   /** The current call's end is suppressed (c): its `message_stop` does not end the turn. */
@@ -61,13 +65,19 @@ class Flattener implements Pass<Frame, TurnEvent> {
 
   /** Tracks the message's open blocks and the run's built-in calls as upstream sends them. */
   private onArrival(event: StreamEvent): TurnEvent[] {
-    if (event.type === 'message_start' && this.openBlocks.size > 0) {
-      return this.fail(this.failures.errorFor({ kind: 'broken_call' }));
-    }
+    if (this.brokeOff(event)) return this.fail(this.failures.errorFor({ kind: 'broken_call' }));
+    if (event.type === 'message_start') this.delta = false;
+    if (event.type === 'message_delta') this.delta = true;
     if (event.type === 'content_block_start') this.onBlockStart(event.index, event.content_block);
     if (event.type === 'content_block_stop') this.openBlocks.delete(event.index);
     if (event.type === 'message_stop') this.openBlocks.clear();
     return this.hold.arrive(event) ? [] : this.emit(this.relay(event));
+  }
+
+  /** Trigger (i): a new call while this one has a block open, or this one stopping without its `message_delta`. */
+  private brokeOff(event: StreamEvent): boolean {
+    if (event.type === 'message_start') return this.openBlocks.size > 0;
+    return event.type === 'message_stop' && !this.delta;
   }
 
   private onBlockStart(index: number, block: Record<string, unknown>): void {

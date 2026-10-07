@@ -148,4 +148,15 @@ describe('the StructuredOutput buffer', () => {
 
     expect(kinds(turn)).toEqual(['message_start', 'start 0 text', 'stop 0', 'message_delta end_turn', 'message_stop']);
   });
+
+  it('fails the turn when the answering call stops with no message_delta, whatever the out-of-stream retry answers', () => {
+    // A call broken mid-answer: upstream closes its blocks and the call, then retries it unseen and reports success.
+    const turn = translateFormatRun([
+      ...events(MESSAGE_START, ...thinking(0), ...answer(1, 'toolu_1', ['{"ok": ']), MESSAGE_STOP),
+      toolResult('toolu_2'),
+      resultFrame({ result: '{"ok":true}', stop_reason: 'tool_use', num_turns: 2 })
+    ]);
+
+    expect(kinds(turn)).toEqual(['message_start', 'start 0 thinking', 'stop 0', 'fail']);
+  });
 });

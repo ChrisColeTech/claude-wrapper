@@ -1,14 +1,15 @@
 /**
  * How a turn fails inside the turn stream (spec sections 11 and 13): recorded upstream failures
  * and hand-built ones in, the `fail` signal with the mapped error out, and nothing after it.
- * Trigger (i) is a `message_start` while the current upstream message still has an open block;
- * (ii) a failed `result` before the turn's end; a deterministic `api_retry` fails at first sight.
+ * Trigger (i) is a broken model call: a `message_start` while the current upstream message still
+ * has an open block, or a `message_stop` with no `message_delta` before it; (ii) a failed `result`
+ * before the turn's end; a deterministic `api_retry` fails at first sight.
  */
 import { createFailureReader } from '../../../../src/anthropic/failure';
 import { FailSignal, TurnEvent } from '../../../../src/anthropic/translate';
 import { Frame } from '../../../../src/upstream/frames';
 import {
-  apiRetry, BLOCK_STOP, MESSAGE_START, resultFrame, streamEvent, TEXT_START, textDelta, translate
+  apiRetry, BLOCK_STOP, frameOf, MESSAGE_START, MESSAGE_STOP, resultFrame, streamEvent, TEXT_START, textDelta, translate
 } from '../../../mocks/anthropic/turn-frames';
 import { recordedFrames } from '../../../mocks/upstream/recordings';
 
@@ -97,5 +98,32 @@ describe('translator: a model call that fails after it has streamed content', ()
 
     expect(types(events)).toEqual(['message_start', 'content_block_start', 'content_block_delta', 'fail']);
     expect(failure(events)).toEqual({ status: 529, type: 'overloaded_error', message: 'Overloaded', retryable: true });
+  });
+
+  it('fails when the call stops with no message_delta, though upstream then reports success', () => {
+    // Claude Code 2.1.291 closes a call broken by a mid-stream error this way and retries it out of the stream.
+    const events = translate([...streamed, streamEvent(BLOCK_STOP), streamEvent(MESSAGE_STOP), resultFrame({ result: 'Hello there.' })]);
+
+    expect(types(events)).toEqual(['message_start', 'content_block_start', 'content_block_delta', 'content_block_stop', 'fail']);
+    expect(failure(events)).toEqual({ status: 500, type: 'api_error', retryable: true,
+      message: "upstream's model call failed after it had streamed content" });
+  });
+
+  it('fails a later model call that stops with no message_delta, never ending the turn without one', () => {
+    const connectorCall = [
+      streamEvent(MESSAGE_START),
+      streamEvent({ type: 'content_block_start', index: 0, content_block: { type: 'tool_use', id: 'toolu_c', name: 'mcp__docs__fetch', input: {} } }),
+      streamEvent({ type: 'content_block_stop', index: 0 }),
+      streamEvent({ type: 'message_delta', delta: { stop_reason: 'tool_use', stop_sequence: null }, usage: { output_tokens: 3 } }),
+      streamEvent(MESSAGE_STOP),
+      frameOf({ type: 'user', parent_tool_use_id: null,
+        message: { role: 'user', content: [{ type: 'tool_result', tool_use_id: 'toolu_c', content: 'the page' }] } })
+    ];
+
+    const events = translate([...connectorCall, secondCall, streamEvent(TEXT_START), streamEvent(textDelta('Hel')),
+      streamEvent(BLOCK_STOP), streamEvent(MESSAGE_STOP), resultFrame()]);
+
+    expect(types(events).slice(-1)).toEqual(['fail']);
+    expect(types(events).filter(type => type === 'message_delta' || type === 'message_stop')).toEqual([]);
   });
 });

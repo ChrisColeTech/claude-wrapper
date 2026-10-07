@@ -14,7 +14,7 @@ import { STATE } from '../../mocks/anthropic/plan-context';
 import { memorySessions, TestSessions } from '../../mocks/anthropic/sessions';
 import { envelopeOf, rejectionOf, REQUEST_ID, SurfaceHarness, startSurface } from '../../mocks/anthropic/surface-harness';
 import {
-  initFrame, MESSAGE_START, resultFrame, streamEvent, syntheticError, TEXT_START, textDelta
+  BLOCK_STOP, initFrame, MESSAGE_START, MESSAGE_STOP, resultFrame, streamEvent, syntheticError, TEXT_START, textDelta
 } from '../../mocks/anthropic/turn-frames';
 import { recordedTurn } from '../../mocks/upstream/recorded-turns';
 import { loadRecording } from '../../mocks/upstream/recordings';
@@ -162,6 +162,21 @@ describe('count_tokens: the first message_delta ends the run', () => {
     await waitFor(() => process.writtenLines().some(isInterrupt));
     process.frames(resultFrame({ subtype: 'error_during_execution', is_error: true }));
     await waitFor(() => process.inputEnded());
+    process.exit(0);
+  });
+
+  it('fails at once, counting nothing, when the call stops with no message_delta, and interrupts the run', async () => {
+    const counted = rejectionOf(surface.client().messages.countTokens(countRequest));
+    const { process } = await runner.nextRun();
+    await waitFor(() => process.writtenLines().length >= 1);
+
+    process.frames(initFrame(), streamEvent(MESSAGE_START), streamEvent(TEXT_START), streamEvent(textDelta('A')),
+      streamEvent(BLOCK_STOP), streamEvent(MESSAGE_STOP));
+    const error = await counted;
+
+    expect(error).toBeInstanceOf(Anthropic.InternalServerError);
+    expect(envelopeOf(error).error).toEqual({ type: 'api_error', message: "upstream's model call failed after it had streamed content" });
+    await waitFor(() => process.writtenLines().some(isInterrupt));
     process.exit(0);
   });
 });

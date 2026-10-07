@@ -96,6 +96,17 @@ describe('Anthropic surface: how a turn fails', () => {
       await expectForgottenAfterExit(upstream);
     });
 
+    it('(i) a call that stops with no message_delta: api_error after the text, then interrupt and forget', async () => {
+      const { upstream, ended, texts } = await committed();
+
+      upstream.frames(streamEvent(BLOCK_STOP), streamEvent(MESSAGE_STOP));
+
+      expectSseError(await ended, 'api_error', "upstream's model call failed after it had streamed content");
+      expect(texts).toEqual(['Hel']);
+      await waitFor(interrupted(upstream));
+      await expectForgottenAfterExit(upstream);
+    });
+
     it('is not failed by a plain api_retry when the failed call left no block open', async () => {
       const { upstream, ended, texts } = await committed();
 
