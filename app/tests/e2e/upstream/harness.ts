@@ -45,6 +45,8 @@ export interface PlainRunOptions {
   prompt?: string;
   /** A scenario's own flags, appended after the planned ones (the spec's flags are the plan's). */
   extraFlags?: string[];
+  /** Replaces the planned `--allowedTools` list (empty for a text turn) until the planner mounts tools. */
+  allowedTools?: string[];
   /** A scenario's own variables, merged after the planned environment. */
   env?: Record<string, string>;
   timers?: Partial<RunTimers>;
@@ -70,9 +72,11 @@ export function planPlainTurn(stateRoot: string, options: PlainRunOptions = {}):
 }
 
 function withOverrides(spec: RunSpec, options: PlainRunOptions): RunSpec {
+  const flags = [...spec.flags];
+  if (options.allowedTools) flags[flags.indexOf('--allowedTools') + 1] = options.allowedTools.join(',');
   return {
     ...spec,
-    flags: [...spec.flags, ...(options.extraFlags ?? [])],
+    flags: [...flags, ...(options.extraFlags ?? [])],
     env: { ...spec.env, ...options.env },
     timers: { ...spec.timers, ...options.timers }
   };

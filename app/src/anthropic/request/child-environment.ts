@@ -4,6 +4,7 @@
  * or `ANTHROPIC*` variable reaches upstream unless the operator puts it in `upstream.env`.
  */
 import { ANTHROPIC_SETTING_ENV, AnthropicSettings } from '../../config/anthropic-settings';
+import { aboveParkTtl } from '../../upstream/mcp-config';
 
 /** Copied when present: what a process needs to find its home, binaries, locale and proxy. */
 const BASE_VARIABLES = [
@@ -17,8 +18,6 @@ const REFUSED_VARIABLES: Readonly<Record<string, string>> = {
   CLAUDE_CODE_SIMPLE: 'it refuses the subscription login'
 };
 
-/** How far above the park TTL upstream's MCP timeouts sit, so a park always ends on the wrapper's side. */
-const PARK_TTL_MARGIN_MS = 60_000;
 /** The CLI's own default, pinned so the connector connect wait is known and inside the startup timer. */
 const MCP_CONNECT_TIMEOUT_MS = 5_000;
 /** Upstream's per-session search cap; a run is one turn, so `max_uses` always binds first. */
@@ -53,12 +52,13 @@ export function childEnvironment(inputs: EnvironmentInputs): Record<string, stri
     const value = environment[name];
     if (value !== undefined) env[name] = value;
   }
-  const aboveParkTtl = String(settings.parkTtlMs + PARK_TTL_MARGIN_MS);
+  // Above the park TTL, as the bridge server's own call timeout is, so a park ends on the wrapper's side.
+  const mcpTimeout = String(aboveParkTtl(settings.parkTtlMs));
   return {
     ...env,
     CLAUDE_CODE_MAX_OUTPUT_TOKENS: String(inputs.maxOutputTokens),
-    CLAUDE_CODE_MCP_TOOL_IDLE_TIMEOUT: aboveParkTtl,
-    MCP_TOOL_TIMEOUT: aboveParkTtl,
+    CLAUDE_CODE_MCP_TOOL_IDLE_TIMEOUT: mcpTimeout,
+    MCP_TOOL_TIMEOUT: mcpTimeout,
     MCP_CONNECT_TIMEOUT_MS: String(MCP_CONNECT_TIMEOUT_MS),
     CLAUDE_CODE_MAX_WEB_SEARCHES_PER_SESSION: String(WEB_SEARCHES_PER_SESSION),
     ...settings.upstreamEnv

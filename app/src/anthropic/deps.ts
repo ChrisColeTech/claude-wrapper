@@ -8,6 +8,7 @@
  * (re-exported or imported here) and leaves the slot name and `createServer`'s signature alone.
  */
 import { Clock } from '../utils/clock';
+import { ControlServer } from '../upstream/control-server';
 import { Runner } from '../upstream/runner';
 import { Catalogue } from './catalogue';
 
@@ -23,18 +24,15 @@ export interface Sessions {
   forget(sessionId: string): unknown;
 }
 
-/** Placeholder until the control server (ticket 33): `start() → {baseUrl}`, `registerRun`, `releaseRun`. */
-export interface ControlServer {
-  start(): unknown;
-  registerRun(id: string, handlers: unknown): unknown;
-  releaseRun(id: string): unknown;
-}
+/** The loopback control server each run registers its bridge server and hook endpoint with. */
+export type { ControlServer };
 
 export interface SurfaceDeps {
   runner?: Runner;
   /** Defaults to the catalogue file the operator's settings name, else the shipped one. */
   catalogue?: Catalogue;
   sessions?: Sessions;
+  /** Not defaulted yet: its first reader (the conductor) defaults it and awaits `start()` first. */
   controlServer?: ControlServer;
   /** Defaults to `systemClock`; tests pass a fake clock (`tests/mocks/shared/fake-clock.ts`). */
   clock?: Clock;
