@@ -4,7 +4,6 @@
  */
 export type { Run, Runner, RunEndpoint, RunExit, RunFailureReason, RunSpec, RunTimerName, RunTimers, UserMessage } from './types';
 export { RunFailure } from './run-failure';
-export { DEFAULT_RUN_TIMERS } from './defaults';
 export { createSpawnRunner } from './spawn-runner';
 export type { SpawnFunction, SpawnRunnerOptions } from './spawn-runner';
 export { createReplayRunner } from './replay-runner';
