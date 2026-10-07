@@ -8,7 +8,8 @@ module.exports = {
   testMatch: ["<rootDir>/tests/integration/**/*.test.ts"],
   // Refuses to run while a fixture carries a live account value
   globalSetup: "<rootDir>/tests/setup/upstream-fixtures-guard.ts",
-  setupFilesAfterEnv: ["<rootDir>/tests/setup.ts"],
+  // Never reads the operator's CLI account file
+  setupFilesAfterEnv: ["<rootDir>/tests/setup.ts", "<rootDir>/tests/setup/isolate-cli-account.ts"],
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/src/$1",
     "^@core/(.*)$": "<rootDir>/src/core/$1",
