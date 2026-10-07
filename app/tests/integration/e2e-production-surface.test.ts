@@ -16,7 +16,7 @@ import { productionSurface } from '../e2e/upstream/harness';
 function probe(url: string): Promise<number | string> {
   return new Promise(resolve => {
     http.get(url, { agent: false }, response => { response.resume(); resolve(response.statusCode ?? 0); })
-      .on('error', (error: NodeJS.ErrnoException) => resolve(error.code ?? 'error'));
+      .on('error', (error: Error & { code?: string }) => resolve(error.code ?? 'error'));
   });
 }
 
