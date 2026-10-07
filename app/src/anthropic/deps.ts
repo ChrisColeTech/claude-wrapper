@@ -44,4 +44,9 @@ export interface SurfaceDeps {
    * pass plain paths; nothing is created on disk for them.
    */
   stateDirectory?: StateDirectory;
+  /**
+   * The CLI account file read once at startup to arm redaction. Defaults to the one the runs'
+   * CLI reads (`.claude.json` under `upstream.env`'s `CLAUDE_CONFIG_DIR`, else the home directory).
+   */
+  accountFile?: string;
 }

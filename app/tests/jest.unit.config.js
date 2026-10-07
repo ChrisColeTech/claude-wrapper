@@ -15,7 +15,8 @@ module.exports = {
   globalSetup: "<rootDir>/tests/setup/upstream-fixtures-guard.ts",
   // Points Claude Code at a shim that fails loudly; steps aside with UPSTREAM_E2E=1
   setupFiles: ["<rootDir>/tests/setup/real-cli-guard.ts"],
-  setupFilesAfterEnv: ["<rootDir>/tests/setup.ts"],
+  // Never reads the operator's CLI account file
+  setupFilesAfterEnv: ["<rootDir>/tests/setup.ts", "<rootDir>/tests/setup/isolate-cli-account.ts"],
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/src/$1",
     "^@core/(.*)$": "<rootDir>/src/core/$1",
