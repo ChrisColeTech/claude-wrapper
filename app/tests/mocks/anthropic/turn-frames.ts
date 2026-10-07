@@ -3,8 +3,9 @@
  * model call, and builders for `system/init`, `result` and stream events. Every frame goes
  * through `parseFrame`, as a run yields it.
  */
+import { FailureReader } from '../../../src/anthropic/failure';
 import { createTranslator, TurnEvent } from '../../../src/anthropic/translate';
-import { Frame, parseFrame } from '../../../src/upstream/frames';
+import { ApiRetryFrame, Frame, parseFrame } from '../../../src/upstream/frames';
 
 const SESSION = { session_id: 'session-1', uuid: 'frame-uuid' };
 
@@ -42,8 +43,24 @@ export const resultFrame = (fields: object = {}): Frame => frameOf({
   ...SESSION, ...fields
 });
 
-/** Every frame through one translator, then its end. */
-export function translate(frames: Frame[], debug: jest.Mock = jest.fn()): TurnEvent[] {
-  const translator = createTranslator({ logger: { debug } });
+/** Upstream's error prose: a synthetic assistant frame (`model: "<synthetic>"`) with its category. */
+export const syntheticError = (category: string, text: string): Frame => frameOf({
+  type: 'assistant', parent_tool_use_id: null, error: category, ...SESSION,
+  message: { id: 'synthetic-1', model: '<synthetic>', role: 'assistant', content: [{ type: 'text', text }] }
+});
+
+/** One attempt of upstream's retry loop. */
+export const apiRetry = (category: string, status: number | null = null): ApiRetryFrame => frameOf({
+  type: 'system', subtype: 'api_retry', attempt: 1, max_retries: 10, retry_delay_ms: 500, error_status: status,
+  error: category, ...SESSION
+}) as ApiRetryFrame;
+
+/** A `rate_limit_event`; `resetsAt` is in epoch seconds. */
+export const rateLimitEvent = (status: string, resetsAt: number): Frame =>
+  frameOf({ type: 'rate_limit_event', rate_limit_info: { status, resetsAt, rateLimitType: 'five_hour' }, ...SESSION });
+
+/** Every frame through one translator, then its end; `failures` replaces its own failure reader. */
+export function translate(frames: Frame[], debug: jest.Mock = jest.fn(), failures?: FailureReader): TurnEvent[] {
+  const translator = createTranslator({ logger: { debug }, ...(failures ? { failures } : {}) });
   return [...frames.flatMap(frame => translator.push(frame)), ...translator.end()];
 }
