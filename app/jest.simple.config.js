@@ -6,6 +6,8 @@ module.exports = {
   ],
   // Refuses to run while a fixture carries a live account value
   globalSetup: "<rootDir>/tests/setup/upstream-fixtures-guard.ts",
+  // Points Claude Code at a shim that fails loudly; steps aside with UPSTREAM_E2E=1
+  setupFiles: ["<rootDir>/tests/setup/real-cli-guard.ts"],
   setupFilesAfterEnv: ["<rootDir>/tests/setup.ts"],
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/src/$1",
