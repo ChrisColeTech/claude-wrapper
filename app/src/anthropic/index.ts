@@ -47,7 +47,7 @@ export function createAnthropicSurface(deps: SurfaceDeps = {}): AnthropicSurface
   const environment = process.env;
   const catalogue = deps.catalogue ?? loadCatalogue(settings.cataloguePath ?? SHIPPED_CATALOGUE_PATH);
   const clock = deps.clock ?? systemClock;
-  const redact = armRedaction({ accountFile: deps.accountFile ?? cliAccountFile(settings.upstreamEnv), extra: settings.redact });
+  const redact = armRedaction({ accountFile: deps.accountFile ?? cliAccountFile(settings.upstreamEnv, environment), extra: settings.redact });
   const { stateDirectory, sessions, retention } = surfaceState(deps, settings, clock, environment);
   const scheduler = createScheduler<HeldRun>({ settings, clock, registry: sessions.parked });
   // Listens from the first turn that mounts a bridge server; the shutdown closes it.

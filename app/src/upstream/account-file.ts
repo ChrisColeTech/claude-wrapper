@@ -29,9 +29,9 @@ export function accountFilePath(env: Environment, home: string = os.homedir()): 
   return path.join(env['CLAUDE_CONFIG_DIR'] || env['HOME'] || home, ACCOUNT_FILE_NAME);
 }
 
-/** The account file the runs read, given the operator's `upstream.env`. */
-export function cliAccountFile(upstreamEnv: Readonly<Record<string, string>>): string {
-  return accountFilePath({ HOME: process.env['HOME'], ...upstreamEnv });
+/** The account file the runs read, given the operator's `upstream.env` and the wrapper's own environment. */
+export function cliAccountFile(upstreamEnv: Readonly<Record<string, string>>, environment: Environment = process.env): string {
+  return accountFilePath({ HOME: environment['HOME'], ...upstreamEnv });
 }
 
 /** The OAuth account's email, display name and full name that `file` holds, trimmed, when present. */
