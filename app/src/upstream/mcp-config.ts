@@ -64,7 +64,7 @@ export function connectorServerEntry(server: { url: string; token?: string | und
  * `withRunFile(spec, MCP_CONFIG_FILE_NAME, mcpConfigContent(servers))`: the spawn runner writes it
  * `0600` into the run's directory before spawn and removes it with the directory at exit.
  */
-export function mcpConfigContent(servers: Record<string, McpHttpServerEntry>): string {
+export function mcpConfigContent(servers: Readonly<Record<string, McpHttpServerEntry>>): string {
   return JSON.stringify({ mcpServers: servers });
 }
 

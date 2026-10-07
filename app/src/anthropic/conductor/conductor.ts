@@ -20,7 +20,7 @@ import { StateDirectory } from '../../upstream/state-directory';
 import { Clock } from '../../utils/clock';
 import { logger as defaultLogger } from '../../utils/logger';
 import { Catalogue } from '../catalogue';
-import { anthropicRequestId } from '../http/surface-tag';
+import { anthropicBetas, anthropicRequestId } from '../http/surface-tag';
 import { mintRequestId } from '../http/request-id';
 import { SurfaceError } from '../http/surface-error';
 import { changedRunBound, ParkedContinuation, planTurn, resumedSession, TurnPlan } from '../request';
@@ -89,7 +89,9 @@ class SurfaceConductor implements Conductor {
   }
 
   private plan(req: Request, runId: string, sessions = this.deps.sessions): TurnPlan {
-    const context = { settings: this.deps.settings, environment: process.env, state: this.deps.stateDirectory(), runId };
+    const context = {
+      settings: this.deps.settings, environment: process.env, state: this.deps.stateDirectory(), runId, betas: anthropicBetas(req)
+    };
     const planned = planTurn(req.body, this.deps.catalogue, sessions, context);
     if (planned instanceof SurfaceError) throw planned;
     return planned;

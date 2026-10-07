@@ -1,9 +1,11 @@
 /**
  * The JSON body parser for Anthropic-tagged requests (spec section 2): bodies up to 32 MB, as
  * the real API (one base64 image would overflow the OpenAI surface's 100 kB default). Mounted
- * ahead of the global `express.json()`, which then skips a body already parsed here.
+ * ahead of the global `express.json()`, which then skips a body already parsed here, and ahead of
+ * the request log, which then cannot print a connector's token (`connector-tokens`).
  */
 import express, { NextFunction, Request, Response } from 'express';
+import { hideConnectorTokens } from './connector-tokens';
 import { SurfaceError } from './surface-error';
 import { isAnthropicRequest } from './surface-tag';
 
@@ -31,6 +33,7 @@ export function parseAnthropicBody(req: Request, res: Response, next: NextFuncti
     return;
   }
   parseJson(req, res, (error?: unknown) => {
+    if (error === undefined) hideConnectorTokens(req.body);
     next(error === undefined ? undefined : asSurfaceError(error));
   });
 }
