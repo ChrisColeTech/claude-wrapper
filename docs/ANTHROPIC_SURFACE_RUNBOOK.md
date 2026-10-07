@@ -16,7 +16,7 @@ Every setting is an environment variable, read when the wrapper builds its app a
 | `CLAUDE_WRAPPER_CATALOGUE_PATH` | unset: the shipped `catalogue/models.json` | A replacement model catalogue, in the shipped file's shape (`{"models": [<ModelInfo> plus "aliases"]}`). Ids and aliases must be unique. A file that cannot be read or is malformed stops the wrapper at start. |
 | `CLAUDE_WRAPPER_CONNECTOR_HOSTS` | empty: connectors off | Comma-separated hosts that a client's `mcp_servers` may name: `host` or `host:port`, matched case-insensitively; `*` allows every host. Read the README's operator warning first. |
 | `CLAUDE_WRAPPER_CONNECTOR_TIMEOUT_MS` | `60000` (60 s) | Timeout of one connector tool call. A connector that stops answering then gives the model an error result to report, instead of stalling the turn. |
-| `CLAUDE_WRAPPER_STARTUP_TIMEOUT_MS` | `20000` (20 s) | Spawn to upstream's `system/init`, including each connector's connect wait (pinned at 5 s). |
+| `CLAUDE_WRAPPER_STARTUP_TIMEOUT_MS` | `20000` (20 s) | Spawn to upstream's `system/init`, including each connector's connect wait (`MCP_CONNECT_TIMEOUT_MS` and `MCP_TIMEOUT`, both pinned at 5 s). |
 | `CLAUDE_WRAPPER_STALL_TIMEOUT_MS` | `90000` (90 s) | Longest silence allowed between two upstream frames. A parked run's heartbeats count as frames. |
 | `CLAUDE_WRAPPER_RUN_LIFETIME_MS` | `1800000` (30 min) | A run's active lifetime, park time excluded. |
 | `CLAUDE_WRAPPER_MAX_RUNS` | `4` | Upstream runs in existence, active and parked together, `count_tokens` runs included. A request beyond it gets 529 `overloaded_error` at once; there is no queue. A run is a Claude Code process of roughly 230 to 260 MB. |

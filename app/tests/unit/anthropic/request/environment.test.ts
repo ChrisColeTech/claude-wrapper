@@ -66,9 +66,20 @@ describe('planTurn: the child environment', () => {
       CLAUDE_CODE_MCP_TOOL_IDLE_TIMEOUT: '660000',
       MCP_TOOL_TIMEOUT: '660000',
       MCP_CONNECT_TIMEOUT_MS: '5000',
+      MCP_TIMEOUT: '5000',
       CLAUDE_CODE_MAX_WEB_SEARCHES_PER_SESSION: '200',
       CLAUDE_CODE_DISABLE_THINKING: '1'
     });
+  });
+
+  it("pins both of upstream's MCP connect waits inside the default startup timer", () => {
+    const env = envOf(planTurn(REQUEST, shippedCatalogue, NO_SESSIONS, runContext()));
+    const startupMs = loadAnthropicSettings({}).timers.startupMs;
+
+    for (const name of ['MCP_CONNECT_TIMEOUT_MS', 'MCP_TIMEOUT']) {
+      expect(Number(env[name])).toBeGreaterThan(0);
+      expect(Number(env[name])).toBeLessThan(startupMs);
+    }
   });
 
   it('copies nothing that is absent, and starts from nothing when the wrapper environment is empty', () => {
@@ -76,7 +87,7 @@ describe('planTurn: the child environment', () => {
 
     expect(Object.keys(envOf(plan)).sort()).toEqual([
       'CLAUDE_CODE_DISABLE_THINKING', 'CLAUDE_CODE_MAX_OUTPUT_TOKENS', 'CLAUDE_CODE_MAX_WEB_SEARCHES_PER_SESSION', 'CLAUDE_CODE_MCP_TOOL_IDLE_TIMEOUT',
-      'MCP_CONNECT_TIMEOUT_MS', 'MCP_TOOL_TIMEOUT'
+      'MCP_CONNECT_TIMEOUT_MS', 'MCP_TIMEOUT', 'MCP_TOOL_TIMEOUT'
     ]);
   });
 

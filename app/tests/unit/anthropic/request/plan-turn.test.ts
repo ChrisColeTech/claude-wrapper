@@ -42,6 +42,7 @@ function goldenPlan(canonicalId: string): TurnPlan {
         CLAUDE_CODE_MCP_TOOL_IDLE_TIMEOUT: '660000',
         MCP_TOOL_TIMEOUT: '660000',
         MCP_CONNECT_TIMEOUT_MS: '5000',
+        MCP_TIMEOUT: '5000',
         CLAUDE_CODE_MAX_WEB_SEARCHES_PER_SESSION: '200',
         ...thinking
       },

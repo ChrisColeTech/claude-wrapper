@@ -285,7 +285,7 @@ Tools, web search and connectors:
 - **Some connector settings are ignored or restricted.** `defer_loading` is ignored. `enabled: false` is honoured, but disabling one tool in `configs`, while the toolset enables tools by default, needs that server's `tool_configuration.allowed_tools`; otherwise it is a 400.
 - **Connector names are restricted.** They may hold only letters, digits, `_` and `-`, never `__`, and `client` is reserved. A pinned `tools` listing in an `mcp_toolset` is a 400.
 - **Connector results keep only text items.** Other item types are dropped.
-- **A connector that cannot connect may give a 504.** It may hit the startup timer before it reports as not connected, and so answer 504 instead of the 400 that names it (unverified).
+- **A connector that cannot connect may give a 504.** Both of Claude Code's connect waits (`MCP_CONNECT_TIMEOUT_MS`, `MCP_TIMEOUT`) are pinned at 5 s, inside the 20 s startup timer, so it should report the server as not connected and the turn get the 400 that names it; that is unverified, and a 504 from the startup timer remains possible.
 
 Conversations:
 
