@@ -38,6 +38,7 @@
     "lint:fix": "eslint src tests --ext .ts --fix",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist",
+    "fixtures:scrub": "ts-node tests/scripts/scrub-upstream-fixtures.ts",
     "clean:logs": "rm -rf tests/logs/pass/* tests/logs/fail/* tests/logs/verbose/*",
     "precommit": "npm run build && npm run test:ci && npm run lint && npm run typecheck"
   },

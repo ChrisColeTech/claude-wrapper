@@ -1,0 +1,46 @@
+{
+ "probe": "s3-sdk-hooks-allowed",
+ "driver": "agent-sdk 0.3.289 in-process hooks",
+ "started": "2026-10-04T15:44:02.308Z",
+ "duration_s": 19.512,
+ "messages": 128,
+ "spawned": {
+  "command": "/home/anas/.local/share/mise/installs/claude/latest/claude",
+  "args": [
+   "--output-format",
+   "stream-json",
+   "--verbose",
+   "--input-format",
+   "stream-json",
+   "--max-budget-usd",
+   "1",
+   "--permission-prompts",
+   "none",
+   "--allowedTools",
+   "WebSearch",
+   "--tools",
+   "WebSearch",
+   "--setting-sources=",
+   "--strict-mcp-config",
+   "--permission-mode",
+   "default",
+   "--include-hook-events",
+   "--include-partial-messages",
+   "--no-session-persistence"
+  ]
+ },
+ "prompt": "Run exactly one WebSearch search for the latest Claude Code release notes. Do not run a second search. Then answer in one sentence listing the URLs it returned.",
+ "env_stripped": [
+  "CLAUDECODE",
+  "CLAUDE_CODE_CHILD_SESSION",
+  "CLAUDE_CODE_ENTRYPOINT",
+  "CLAUDE_CODE_EXECPATH",
+  "CLAUDE_CODE_MESSAGING_SOCKET",
+  "CLAUDE_CODE_MESSAGING_TOKEN",
+  "CLAUDE_CODE_SESSION_ATTENDED",
+  "CLAUDE_CODE_SESSION_ID",
+  "CLAUDE_EFFORT",
+  "CLAUDE_PID"
+ ],
+ "hook_log": "/tmp/claude-1000/-home-anas-Work-claude-wrapper/23127712-bc1f-4f65-ab20-57491898aa91/scratchpad/probe-21/hooklog/s3-sdk-hooks-allowed.jsonl"
+}

@@ -1,0 +1,401 @@
+{
+  "tag": "run2",
+  "recorded_at": "2026-10-04T15:12:49.465Z",
+  "version": "2.1.289 (Claude Code)",
+  "prefix": "mcp__client__",
+  "prefixLength": 13,
+  "cwd": "/tmp/claude-1000/-home-anas-Work-claude-wrapper/23127712-bc1f-4f65-ab20-57491898aa91/scratchpad/probe-17/cwd",
+  "args": [
+    "-p",
+    "--input-format",
+    "stream-json",
+    "--output-format",
+    "stream-json",
+    "--verbose",
+    "--include-partial-messages",
+    "--tools",
+    "",
+    "--setting-sources=",
+    "--strict-mcp-config",
+    "--permission-mode",
+    "default",
+    "--permission-prompts",
+    "none",
+    "--max-budget-usd",
+    "1",
+    "--no-session-persistence",
+    "--mcp-config",
+    "{\"mcpServers\":{\"client\":{\"type\":\"http\",\"url\":\"http://127.0.0.1:45675/mcp\",\"alwaysLoad\":true}}}",
+    "--allowedTools",
+    "mcp__client__len064_012345678901234567890123456789012345678901234567890123456,mcp__client__len100_012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012,mcp__client__len115_012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567,mcp__client__has-hyphens-in-name,mcp__client__twin_shared_prefix_012345678901234567890123456789012345678901234_alpha,mcp__client__twin_shared_prefix_012345678901234567890123456789012345678901234_bravo"
+  ],
+  "prompt": "You have 6 tools from the \"client\" MCP server. Call each of the following tools exactly once, with input {\"label\": \"x\"}, all in a single response. Then reply with exactly the word: done\n\nTools:\n1. mcp__client__len064_012345678901234567890123456789012345678901234567890123456\n2. mcp__client__len100_012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012\n3. mcp__client__len115_012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567\n4. mcp__client__has-hyphens-in-name\n5. mcp__client__twin_shared_prefix_012345678901234567890123456789012345678901234_alpha\n6. mcp__client__twin_shared_prefix_012345678901234567890123456789012345678901234_bravo",
+  "init": {
+    "tools": [
+      "mcp__client__has-hyphens-in-name",
+      "mcp__client__len064_012345678901234567890123456789012345678901234567890123456",
+      "mcp__client__len100_012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012",
+      "mcp__client__len115_012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567",
+      "mcp__client__twin_shared_prefix_012345678901234567890123456789012345678901234_alpha",
+      "mcp__client__twin_shared_prefix_012345678901234567890123456789012345678901234_bravo"
+    ],
+    "mcp_servers": [
+      {
+        "name": "client",
+        "status": "connected",
+        "source": "dynamic"
+      }
+    ],
+    "claude_code_version": "2.1.289",
+    "model": "claude-fable-5-1",
+    "permissionMode": "default",
+    "apiKeySource": "none"
+  },
+  "systemFrames": [
+    {
+      "type": "system",
+      "subtype": "status",
+      "status": "requesting",
+      "session_id": "a6bf6011-1221-4619-8a8f-d1472fefa166",
+      "uuid": "aa4d847a-954d-4b30-b37b-6c7c46ecbb8d"
+    },
+    {
+      "type": "system",
+      "subtype": "status",
+      "status": "requesting",
+      "session_id": "a6bf6011-1221-4619-8a8f-d1472fefa166",
+      "uuid": "757b65ae-ce74-462e-bfc7-f8ead771aaf6"
+    }
+  ],
+  "toolUseBlocks": [
+    {
+      "id": "toolu_011miMHdG2F7bnPP9HwyuDs7",
+      "name": "mcp__client__len064_012345678901234567890123456789012345678901234567890123456",
+      "length": 77,
+      "input": {
+        "label": "x"
+      }
+    },
+    {
+      "id": "toolu_01KoHS3EwLsQ8TtfySAYauoe",
+      "name": "mcp__client__len100_012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012",
+      "length": 113,
+      "input": {
+        "label": "x"
+      }
+    },
+    {
+      "id": "toolu_01HPq129BiQ2dj3W6xadQPgd",
+      "name": "mcp__client__len115_012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567",
+      "length": 128,
+      "input": {
+        "label": "x"
+      }
+    },
+    {
+      "id": "toolu_01P54WsQ9z8w9WyT4kW2QkLt",
+      "name": "mcp__client__has-hyphens-in-name",
+      "length": 32,
+      "input": {
+        "label": "x"
+      }
+    },
+    {
+      "id": "toolu_019AhjQ9HXaB11MbST19KVkS",
+      "name": "mcp__client__twin_shared_prefix_012345678901234567890123456789012345678901234_alpha",
+      "length": 83,
+      "input": {
+        "label": "x"
+      }
+    },
+    {
+      "id": "toolu_01FowMDUF3ojCBBbTZeZg9nt",
+      "name": "mcp__client__twin_shared_prefix_012345678901234567890123456789012345678901234_bravo",
+      "length": 83,
+      "input": {
+        "label": "x"
+      }
+    }
+  ],
+  "streamToolUseStarts": [
+    {
+      "id": "toolu_011miMHdG2F7bnPP9HwyuDs7",
+      "name": "mcp__client__len064_012345678901234567890123456789012345678901234567890123456"
+    },
+    {
+      "id": "toolu_01KoHS3EwLsQ8TtfySAYauoe",
+      "name": "mcp__client__len100_012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012"
+    },
+    {
+      "id": "toolu_01HPq129BiQ2dj3W6xadQPgd",
+      "name": "mcp__client__len115_012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567"
+    },
+    {
+      "id": "toolu_01P54WsQ9z8w9WyT4kW2QkLt",
+      "name": "mcp__client__has-hyphens-in-name"
+    },
+    {
+      "id": "toolu_019AhjQ9HXaB11MbST19KVkS",
+      "name": "mcp__client__twin_shared_prefix_012345678901234567890123456789012345678901234_alpha"
+    },
+    {
+      "id": "toolu_01FowMDUF3ojCBBbTZeZg9nt",
+      "name": "mcp__client__twin_shared_prefix_012345678901234567890123456789012345678901234_bravo"
+    }
+  ],
+  "toolResults": [
+    {
+      "tool_use_id": "toolu_011miMHdG2F7bnPP9HwyuDs7",
+      "is_error": false,
+      "content": "[{\"type\":\"text\",\"text\":\"ok:len064_01234\"}]"
+    },
+    {
+      "tool_use_id": "toolu_01KoHS3EwLsQ8TtfySAYauoe",
+      "is_error": false,
+      "content": "[{\"type\":\"text\",\"text\":\"ok:len100_01234\"}]"
+    },
+    {
+      "tool_use_id": "toolu_01HPq129BiQ2dj3W6xadQPgd",
+      "is_error": false,
+      "content": "[{\"type\":\"text\",\"text\":\"ok:len115_01234\"}]"
+    },
+    {
+      "tool_use_id": "toolu_01P54WsQ9z8w9WyT4kW2QkLt",
+      "is_error": false,
+      "content": "[{\"type\":\"text\",\"text\":\"ok:has-hyphens-\"}]"
+    },
+    {
+      "tool_use_id": "toolu_019AhjQ9HXaB11MbST19KVkS",
+      "is_error": false,
+      "content": "[{\"type\":\"text\",\"text\":\"ok:twin_shared_\"}]"
+    },
+    {
+      "tool_use_id": "toolu_01FowMDUF3ojCBBbTZeZg9nt",
+      "is_error": false,
+      "content": "[{\"type\":\"text\",\"text\":\"ok:twin_shared_\"}]"
+    }
+  ],
+  "mcpListServed": [
+    [
+      "len064_012345678901234567890123456789012345678901234567890123456",
+      "len100_012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012",
+      "len115_012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567",
+      "has-hyphens-in-name",
+      "twin_shared_prefix_012345678901234567890123456789012345678901234_alpha",
+      "twin_shared_prefix_012345678901234567890123456789012345678901234_bravo"
+    ]
+  ],
+  "mcpCalls": [
+    {
+      "t_ms": 3700,
+      "name": "len064_012345678901234567890123456789012345678901234567890123456",
+      "args": {
+        "label": "x"
+      },
+      "toolUseId": "toolu_011miMHdG2F7bnPP9HwyuDs7"
+    },
+    {
+      "t_ms": 4360,
+      "name": "len100_012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012",
+      "args": {
+        "label": "x"
+      },
+      "toolUseId": "toolu_01KoHS3EwLsQ8TtfySAYauoe"
+    },
+    {
+      "t_ms": 4586,
+      "name": "len115_012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567",
+      "args": {
+        "label": "x"
+      },
+      "toolUseId": "toolu_01HPq129BiQ2dj3W6xadQPgd"
+    },
+    {
+      "t_ms": 5154,
+      "name": "has-hyphens-in-name",
+      "args": {
+        "label": "x"
+      },
+      "toolUseId": "toolu_01P54WsQ9z8w9WyT4kW2QkLt"
+    },
+    {
+      "t_ms": 5778,
+      "name": "twin_shared_prefix_012345678901234567890123456789012345678901234_alpha",
+      "args": {
+        "label": "x"
+      },
+      "toolUseId": "toolu_019AhjQ9HXaB11MbST19KVkS"
+    },
+    {
+      "t_ms": 6067,
+      "name": "twin_shared_prefix_012345678901234567890123456789012345678901234_bravo",
+      "args": {
+        "label": "x"
+      },
+      "toolUseId": "toolu_01FowMDUF3ojCBBbTZeZg9nt"
+    }
+  ],
+  "results": [
+    {
+      "subtype": "success",
+      "is_error": false,
+      "api_error_status": null,
+      "stop_reason": "end_turn",
+      "num_turns": 7,
+      "total_cost_usd": 0.1575545,
+      "duration_ms": 6832,
+      "permission_denials": [],
+      "result": "done",
+      "usage": {
+        "input_tokens": 34,
+        "output_tokens": 462,
+        "cache_read_input_tokens": 5738,
+        "cache_creation_input_tokens": 6634
+      }
+    }
+  ],
+  "rateLimits": [
+    {
+      "t_ms": 6070,
+      "five_hour": {
+        "utilization": 0.26,
+        "resetsAt": 1791141600
+      },
+      "seven_day": {
+        "utilization": 0.22,
+        "resetsAt": 1791460800
+      },
+      "status": "allowed"
+    },
+    {
+      "t_ms": 7414,
+      "five_hour": {
+        "utilization": 0.27,
+        "resetsAt": 1791141600
+      },
+      "seven_day": {
+        "utilization": 0.23,
+        "resetsAt": 1791460800
+      },
+      "status": "allowed"
+    }
+  ],
+  "five_hour_before": 0.26,
+  "five_hour_after": 0.27,
+  "exit": {
+    "code": 0,
+    "signal": null,
+    "t_ms": 9254
+  },
+  "stderr": "",
+  "table": [
+    {
+      "key": "len064",
+      "clientName": "len064_012345678901234567890123456789012345678901234567890123456",
+      "clientLength": 64,
+      "upstreamName": "mcp__client__len064_012345678901234567890123456789012345678901234567890123456",
+      "upstreamLength": 77,
+      "initTools": "exact",
+      "modelCalledAs": [
+        "mcp__client__len064_012345678901234567890123456789012345678901234567890123456"
+      ],
+      "mcpReceivedAs": [
+        "len064_012345678901234567890123456789012345678901234567890123456"
+      ],
+      "toolResultIsError": [
+        false
+      ],
+      "denied": false
+    },
+    {
+      "key": "len100",
+      "clientName": "len100_012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012",
+      "clientLength": 100,
+      "upstreamName": "mcp__client__len100_012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012",
+      "upstreamLength": 113,
+      "initTools": "exact",
+      "modelCalledAs": [
+        "mcp__client__len100_012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012"
+      ],
+      "mcpReceivedAs": [
+        "len100_012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012"
+      ],
+      "toolResultIsError": [
+        false
+      ],
+      "denied": false
+    },
+    {
+      "key": "len115",
+      "clientName": "len115_012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567",
+      "clientLength": 115,
+      "upstreamName": "mcp__client__len115_012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567",
+      "upstreamLength": 128,
+      "initTools": "exact",
+      "modelCalledAs": [
+        "mcp__client__len115_012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567"
+      ],
+      "mcpReceivedAs": [
+        "len115_012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567"
+      ],
+      "toolResultIsError": [
+        false
+      ],
+      "denied": false
+    },
+    {
+      "key": "hyphen",
+      "clientName": "has-hyphens-in-name",
+      "clientLength": 19,
+      "upstreamName": "mcp__client__has-hyphens-in-name",
+      "upstreamLength": 32,
+      "initTools": "exact",
+      "modelCalledAs": [
+        "mcp__client__has-hyphens-in-name"
+      ],
+      "mcpReceivedAs": [
+        "has-hyphens-in-name"
+      ],
+      "toolResultIsError": [
+        false
+      ],
+      "denied": false
+    },
+    {
+      "key": "twinA",
+      "clientName": "twin_shared_prefix_012345678901234567890123456789012345678901234_alpha",
+      "clientLength": 70,
+      "upstreamName": "mcp__client__twin_shared_prefix_012345678901234567890123456789012345678901234_alpha",
+      "upstreamLength": 83,
+      "initTools": "exact",
+      "modelCalledAs": [
+        "mcp__client__twin_shared_prefix_012345678901234567890123456789012345678901234_alpha"
+      ],
+      "mcpReceivedAs": [
+        "twin_shared_prefix_012345678901234567890123456789012345678901234_alpha"
+      ],
+      "toolResultIsError": [
+        false
+      ],
+      "denied": false
+    },
+    {
+      "key": "twinB",
+      "clientName": "twin_shared_prefix_012345678901234567890123456789012345678901234_bravo",
+      "clientLength": 70,
+      "upstreamName": "mcp__client__twin_shared_prefix_012345678901234567890123456789012345678901234_bravo",
+      "upstreamLength": 83,
+      "initTools": "exact",
+      "modelCalledAs": [
+        "mcp__client__twin_shared_prefix_012345678901234567890123456789012345678901234_bravo"
+      ],
+      "mcpReceivedAs": [
+        "twin_shared_prefix_012345678901234567890123456789012345678901234_bravo"
+      ],
+      "toolResultIsError": [
+        false
+      ],
+      "denied": false
+    }
+  ]
+}

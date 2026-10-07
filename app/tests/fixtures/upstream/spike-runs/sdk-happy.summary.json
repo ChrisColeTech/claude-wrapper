@@ -1,0 +1,365 @@
+{
+  "name": "sdk-happy",
+  "recorded_at": "2026-10-04T14:28:37.874Z",
+  "marks": [
+    {
+      "t_ms": 0,
+      "label": "scenario",
+      "name": "sdk-happy",
+      "driver": "sdk",
+      "prompt": "Use the get_weather tool for Paris, then reply with one short sentence about the weather there. Do not call any other tool.",
+      "client": "answer",
+      "CLIENT_DELAY_MS": 3000,
+      "cli": "/home/anas/.local/share/mise/installs/claude/latest/claude",
+      "cwd": "/tmp/claude-1000/-home-anas-Work-claude-wrapper/d3fca5e2-71dd-4306-bec0-29bbeb4844c8/scratchpad/spike-cwd"
+    },
+    {
+      "t_ms": 7,
+      "label": "spawn",
+      "command": "/home/anas/.local/share/mise/installs/claude/latest/claude",
+      "args": [
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "--input-format",
+        "stream-json",
+        "--max-budget-usd",
+        "1",
+        "--permission-prompts",
+        "none",
+        "--allowedTools",
+        "mcp__spike__get_weather",
+        "--tools",
+        "",
+        "--setting-sources=",
+        "--strict-mcp-config",
+        "--permission-mode",
+        "default",
+        "--include-partial-messages",
+        "--no-session-persistence"
+      ]
+    },
+    {
+      "t_ms": 997,
+      "label": "system/init",
+      "session_id": "f2cad773-ecb2-4955-86c5-3c56b1c0fcc4",
+      "claude_code_version": "2.1.289",
+      "tools": [
+        "mcp__spike__get_weather"
+      ],
+      "mcp_servers": [
+        {
+          "name": "spike",
+          "status": "connected",
+          "source": "sdk"
+        }
+      ],
+      "apiKeySource": "none",
+      "permissionMode": "default",
+      "model": "claude-fable-5-1"
+    },
+    {
+      "t_ms": 999,
+      "label": "system/status"
+    },
+    {
+      "t_ms": 3574,
+      "label": "stream message_start #1",
+      "id": "msg_011CfhMYoGoqcv85o7VbaVK1"
+    },
+    {
+      "t_ms": 3575,
+      "label": "stream content_block_start",
+      "index": 0,
+      "type": "tool_use",
+      "name": "mcp__spike__get_weather",
+      "id": "toolu_019xg7m3tJ8Tn4RGaaBfzdL4"
+    },
+    {
+      "t_ms": 4666,
+      "label": "assistant tool_use frame",
+      "id": "toolu_019xg7m3tJ8Tn4RGaaBfzdL4",
+      "name": "mcp__spike__get_weather",
+      "input": {
+        "city": "Paris"
+      }
+    },
+    {
+      "t_ms": 4675,
+      "label": "MCP handler parked on bridge",
+      "toolUseId": "toolu_019xg7m3tJ8Tn4RGaaBfzdL4",
+      "early": false,
+      "metaKeys": [
+        "claudecode/toolUseId",
+        "progressToken"
+      ],
+      "extraKeys": [
+        "signal",
+        "sessionId",
+        "_meta",
+        "sendNotification",
+        "sendRequest",
+        "authInfo",
+        "requestId",
+        "requestInfo",
+        "taskId",
+        "taskStore",
+        "taskRequestedTtl",
+        "closeSSEStream",
+        "closeStandaloneSSEStream"
+      ]
+    },
+    {
+      "t_ms": 4675,
+      "label": "stream message_delta",
+      "stop_reason": "tool_use",
+      "output_tokens": 57
+    },
+    {
+      "t_ms": 4675,
+      "label": "PARKED: surface would now end the turn with stop_reason=tool_use",
+      "toolUses": [
+        "toolu_019xg7m3tJ8Tn4RGaaBfzdL4"
+      ]
+    },
+    {
+      "t_ms": 4676,
+      "label": "stream message_stop"
+    },
+    {
+      "t_ms": 7679,
+      "label": "client delivered tool_result",
+      "toolUseId": "toolu_019xg7m3tJ8Tn4RGaaBfzdL4",
+      "status": "resumed"
+    },
+    {
+      "t_ms": 7679,
+      "label": "MCP handler returning client result",
+      "toolUseId": "toolu_019xg7m3tJ8Tn4RGaaBfzdL4"
+    },
+    {
+      "t_ms": 7687,
+      "label": "cli emitted user/tool_result frame",
+      "tool_use_id": "toolu_019xg7m3tJ8Tn4RGaaBfzdL4",
+      "content": "[{\"type\":\"text\",\"text\":\"{\\\"city\\\":\\\"Paris\\\",\\\"temp_c\\\":18,\\\"sky\\\":\\\"overcast\\\"}\"}]"
+    },
+    {
+      "t_ms": 7689,
+      "label": "system/status"
+    },
+    {
+      "t_ms": 11000,
+      "label": "stream message_start #2",
+      "id": "msg_011CfhMZHp2bhU87DFtWPbrL"
+    },
+    {
+      "t_ms": 11000,
+      "label": "stream content_block_start",
+      "index": 0,
+      "type": "text"
+    },
+    {
+      "t_ms": 11002,
+      "label": "assistant text frame",
+      "text": "Paris is currently a mild 18°C under overcast skies."
+    },
+    {
+      "t_ms": 11005,
+      "label": "stream message_delta",
+      "stop_reason": "end_turn",
+      "output_tokens": 22
+    },
+    {
+      "t_ms": 11006,
+      "label": "stream message_stop"
+    },
+    {
+      "t_ms": 11012,
+      "label": "result",
+      "subtype": "success",
+      "stop_reason": "end_turn",
+      "num_turns": 2,
+      "duration_ms": 10410,
+      "duration_api_ms": 7794,
+      "total_cost_usd": 0.028497250000000002,
+      "is_error": false,
+      "terminal_reason": "completed",
+      "result": "Paris is currently a mild 18°C under overcast skies.",
+      "session_id": "f2cad773-ecb2-4955-86c5-3c56b1c0fcc4",
+      "usage": {
+        "input_tokens": 34,
+        "output_tokens": 79,
+        "cache_read_input_tokens": 1013,
+        "cache_creation_input_tokens": 1149
+      },
+      "permission_denials": []
+    },
+    {
+      "t_ms": 11891,
+      "label": "process exit",
+      "code": 0,
+      "signal": null
+    }
+  ],
+  "scenario": {
+    "driver": "sdk",
+    "prompt": "Use the get_weather tool for Paris, then reply with one short sentence about the weather there. Do not call any other tool.",
+    "client": "answer"
+  },
+  "init": {
+    "session_id": "f2cad773-ecb2-4955-86c5-3c56b1c0fcc4",
+    "claude_code_version": "2.1.289",
+    "tools": [
+      "mcp__spike__get_weather"
+    ],
+    "mcp_servers": [
+      {
+        "name": "spike",
+        "status": "connected",
+        "source": "sdk"
+      }
+    ],
+    "apiKeySource": "none",
+    "permissionMode": "default",
+    "model": "claude-fable-5-1"
+  },
+  "modelCalls": 2,
+  "assistantMessageIds": [
+    "msg_011CfhMYoGoqcv85o7VbaVK1",
+    "msg_011CfhMZHp2bhU87DFtWPbrL"
+  ],
+  "ids": {
+    "announcedOnAssistantFrames": [
+      "toolu_019xg7m3tJ8Tn4RGaaBfzdL4"
+    ],
+    "seenInMcpMeta": [
+      "toolu_019xg7m3tJ8Tn4RGaaBfzdL4"
+    ],
+    "inCliToolResultFrames": [
+      "toolu_019xg7m3tJ8Tn4RGaaBfzdL4"
+    ],
+    "allMatch": true
+  },
+  "timings_ms": {
+    "tool_use_frame": 4666,
+    "message_delta_tool_use": 4675,
+    "message_stop_first": 4676,
+    "mcp_call": 4675,
+    "parked": 4675,
+    "client_delivered": 7679,
+    "cli_tool_result_frame": 7687,
+    "second_message_start": 11000,
+    "result": 11012,
+    "exit": 11891
+  },
+  "derived_ms": {
+    "bridge_detect_overhead": -1,
+    "resume_overhead_delivered_to_cli_tool_result": 8,
+    "delivered_to_next_model_call": 3321
+  },
+  "stopReasons": [
+    "tool_use",
+    "end_turn"
+  ],
+  "results": [
+    {
+      "subtype": "success",
+      "stop_reason": "end_turn",
+      "num_turns": 2,
+      "duration_ms": 10410,
+      "duration_api_ms": 7794,
+      "total_cost_usd": 0.028497250000000002,
+      "is_error": false,
+      "terminal_reason": "completed",
+      "result": "Paris is currently a mild 18°C under overcast skies.",
+      "session_id": "f2cad773-ecb2-4955-86c5-3c56b1c0fcc4",
+      "usage": {
+        "input_tokens": 34,
+        "output_tokens": 79,
+        "cache_read_input_tokens": 1013,
+        "cache_creation_input_tokens": 1149
+      },
+      "permission_denials": []
+    }
+  ],
+  "finalText": [
+    "Paris is currently a mild 18°C under overcast skies."
+  ],
+  "interrupt": null,
+  "controlFramesOnStdout": 0,
+  "resume": null,
+  "bridgeTrace": [
+    {
+      "at": 997,
+      "kind": "turn_started"
+    },
+    {
+      "at": 4667,
+      "kind": "client_tool_use_announced",
+      "id": "toolu_019xg7m3tJ8Tn4RGaaBfzdL4",
+      "name": "get_weather"
+    },
+    {
+      "at": 4675,
+      "kind": "mcp_call_registered",
+      "toolUseId": "toolu_019xg7m3tJ8Tn4RGaaBfzdL4",
+      "name": "mcp__spike__get_weather",
+      "early": false
+    },
+    {
+      "at": 4675,
+      "kind": "assistant_message_complete",
+      "stopReason": "tool_use"
+    },
+    {
+      "at": 4675,
+      "kind": "park",
+      "toolUses": [
+        {
+          "id": "toolu_019xg7m3tJ8Tn4RGaaBfzdL4",
+          "name": "get_weather",
+          "input": {
+            "city": "Paris"
+          }
+        }
+      ]
+    },
+    {
+      "at": 7679,
+      "kind": "client_result_delivered",
+      "toolUseId": "toolu_019xg7m3tJ8Tn4RGaaBfzdL4",
+      "isError": false
+    },
+    {
+      "at": 7679,
+      "kind": "resumed"
+    },
+    {
+      "at": 11012,
+      "kind": "turn_ended"
+    }
+  ],
+  "bridgeFinal": {
+    "phase": "done",
+    "assistantMessageDone": false,
+    "announced": [],
+    "pending": [],
+    "delivered": [
+      "toolu_019xg7m3tJ8Tn4RGaaBfzdL4"
+    ]
+  },
+  "five_hour_utilization": {
+    "five_hour": {
+      "utilization": 0.05,
+      "resetsAt": 1791141600
+    },
+    "seven_day": {
+      "utilization": 0.19,
+      "resetsAt": 1791460800
+    },
+    "seven_day_overage_included": {
+      "utilization": 0.36,
+      "resetsAt": 1791460800
+    }
+  }
+}
