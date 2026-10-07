@@ -45,6 +45,12 @@ function validateMessage(message: unknown, index: number): ClientMessage {
   if (!isObject(message)) throw fieldInvalid(path, 'a valid dictionary');
   const role = message['role'];
   if (role === undefined) throw fieldRequired(`${path}.role`);
+  if (role === 'system') {
+    // The real API's mid-conversation system message is model-gated and has no upstream path.
+    throw SurfaceError.invalidRequest(
+      `${path}.role: "system" messages are not supported on this surface; use the top-level system field`
+    );
+  }
   if (role !== 'user' && role !== 'assistant') throw fieldInvalid(`${path}.role`, "'user' or 'assistant'");
   return { role, content: validateContent(message['content'], path) };
 }

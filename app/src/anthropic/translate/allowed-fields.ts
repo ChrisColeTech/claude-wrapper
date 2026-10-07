@@ -6,8 +6,13 @@
  * dropped by the allowlist pass. This must grow when the API grows.
  */
 
-/** `true` keeps the value as is; `fields` filters an object; `byType` filters by its `type`. */
-export type FieldRule = true | { readonly fields: Fields } | { readonly byType: { readonly [type: string]: Fields } };
+/**
+ * `true` keeps the value as is; `fields` filters an object; `byType` filters by its `type`;
+ * `replaceWith` relays the surface's own value in place of upstream's.
+ */
+export type FieldRule = true | FieldFilter | { readonly replaceWith: null };
+
+export type FieldFilter = { readonly fields: Fields } | { readonly byType: { readonly [type: string]: Fields } };
 
 export interface Fields {
   readonly [name: string]: FieldRule;
@@ -56,7 +61,9 @@ const MESSAGE = {
     stop_details: KEEP,
     usage: USAGE,
     container: KEEP,
-    diagnostics: KEEP
+    // Upstream's report on its own request (the CLI's `previous_message_id`); the client's
+    // `diagnostics` is ignored (spec section 4.1), so the response says null.
+    diagnostics: { replaceWith: null }
   }
 };
 

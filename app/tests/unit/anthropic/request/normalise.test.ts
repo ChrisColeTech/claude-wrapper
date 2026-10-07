@@ -21,9 +21,9 @@ describe('planTurn: normalised messages and the replayed-turn message', () => {
     expect(result.continuation).toEqual({ replay: { role: 'user', content: blocks } });
   });
 
-  it('replays a single user message’s blocks verbatim, every field kept', () => {
+  it('replays a single user message’s blocks verbatim, every field kept but cache_control (ignored-content.test.ts)', () => {
     const blocks = [
-      { type: 'text', text: 'What is in this picture?', cache_control: { type: 'ephemeral' } },
+      { type: 'text', text: 'What is in this picture?' },
       { type: 'image', source: { type: 'base64', media_type: 'image/png', data: 'iVBORw0KGgo=' } },
       { type: 'text', text: '  spaced  ', citations: null }
     ];
