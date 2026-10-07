@@ -5,8 +5,8 @@
  * renders that tool's call as the JSON text block. `null` reads as absent.
  */
 import { SurfaceError } from '../../../../src/anthropic/http/surface-error';
-import { TurnPlan } from '../../../../src/anthropic/request';
-import { invalidRequest, planDefault, rejectionOf } from '../../../mocks/anthropic/plan-context';
+import { planCountTokens, TurnPlan } from '../../../../src/anthropic/request';
+import { invalidRequest, planDefault, rejectionOf, runContext, shippedCatalogue } from '../../../mocks/anthropic/plan-context';
 
 const SCHEMA = {
   type: 'object',
@@ -68,6 +68,15 @@ describe('output_config.format', () => {
     [{ format: { ...format, strict: true } }, 'output_config.format.strict: Extra inputs are not permitted']
   ])('rejects output_config %p', (outputConfig, message) => {
     expect(rejectionOf(request({ output_config: outputConfig }))).toEqual(invalidRequest(message));
+  });
+
+  it('is measured on a count_tokens run too: the schema is part of what upstream sends', () => {
+    const count = planCountTokens({ model: 'fable', messages: [{ role: 'user', content: 'Hi' }], output_config: { format } },
+      shippedCatalogue, runContext()) as TurnPlan;
+
+    expect(flagValue(count.runSpec.flags, '--json-schema')).toBe(JSON.stringify(SCHEMA));
+    expect(count.runSpec.flags.slice(-3)).toEqual(['--json-schema', JSON.stringify(SCHEMA), '--no-session-persistence']);
+    expect(count.startupChecks.tools).toEqual(['StructuredOutput']);
   });
 
   it('leaves judging the schema itself to upstream', () => {
