@@ -74,6 +74,12 @@ export function planPlainTurn(stateRoot: string, options: PlainRunOptions = {}):
   return plan;
 }
 
+/** The message a planned run starts with: planned with no sessions, a run is always a replayed turn. */
+export function firstMessage(plan: TurnPlan): UserMessage {
+  if (!('replay' in plan.continuation)) throw new Error('the e2e harness plans fresh runs only');
+  return plan.continuation.replay;
+}
+
 function withOverrides(spec: RunSpec, options: PlainRunOptions): RunSpec {
   const flags = [...spec.flags];
   if (options.allowedTools) flags[flags.indexOf('--allowedTools') + 1] = options.allowedTools.join(',');

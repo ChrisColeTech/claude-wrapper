@@ -21,8 +21,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { Frame, JsonObject } from '../../../src/upstream/frames';
-import { messageToSend } from '../../../src/anthropic/request';
-import { createUpstreamHarness, describeUpstream, PlainRunOptions } from './harness';
+import { createUpstreamHarness, describeUpstream, firstMessage, PlainRunOptions } from './harness';
 
 const HAIKU = 'claude-haiku-4-5-20251001';
 const FIVE_X_MODEL = process.env['UPSTREAM_E2E_5X_MODEL'] ?? 'claude-sonnet-5-5';
@@ -62,7 +61,7 @@ describeUpstream('thinking against the real CLI (spec section 12, e2e scenarios 
   /** One planned run to its exit; the run must succeed. */
   async function think(name: string, options: PlainRunOptions): Promise<Thought> {
     const { run, plan, spec } = harness.start({ prompt: PROMPT, ...options });
-    const { frames, exit } = await harness.complete(run, messageToSend(plan.continuation));
+    const { frames, exit } = await harness.complete(run, firstMessage(plan));
     record(name, frames);
     expect(frames.find(frame => frame.type === 'result')).toEqual(expect.objectContaining({ is_error: false }));
     expect(exit.code).toBe(0);

@@ -91,6 +91,7 @@ describe('Anthropic surface: disk retention', () => {
     expect(fs.readdirSync(project)).toEqual([]);
     transcript('written-since');
     await surface.shutdown();
+    await surface.close();
     await serve();
     await turn();
 
