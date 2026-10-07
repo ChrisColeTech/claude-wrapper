@@ -9,15 +9,12 @@
  */
 import { Clock } from '../utils/clock';
 import { Runner } from '../upstream/runner';
+import { Catalogue } from './catalogue';
+
+export type { Catalogue } from './catalogue';
 
 /** The upstream runner: `startRun(spec) → Run` (the spawn runner in production, replay in tests). */
 export type { Runner };
-
-/** Placeholder until the catalogue (ticket 25): `resolve(name) → entry | null`, `list(page)`. */
-export interface Catalogue {
-  resolve(name: string): unknown;
-  list(page: unknown): unknown;
-}
 
 /** Placeholder until conversation state (ticket 31): `lookup`, `record`, `forget`; `parked` comes with it. */
 export interface Sessions {
@@ -35,6 +32,7 @@ export interface ControlServer {
 
 export interface SurfaceDeps {
   runner?: Runner;
+  /** Defaults to the catalogue file the operator's settings name, else the shipped one. */
   catalogue?: Catalogue;
   sessions?: Sessions;
   controlServer?: ControlServer;

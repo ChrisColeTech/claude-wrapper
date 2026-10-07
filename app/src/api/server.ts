@@ -17,9 +17,13 @@ import { createAuthMiddleware, getApiKey } from '../auth/middleware';
 import { swaggerSpec } from './swagger';
 import { lazyApp } from './lazy-app';
 import { SurfaceDeps } from '../anthropic/deps';
+import { AnthropicSurface, createAnthropicSurface } from '../anthropic';
+import { createAnthropicAuth, isAnthropicRequest, parseAnthropicBody, tagSurface } from '../anthropic/http';
 
 function mountMiddleware(app: Express): void {
+  app.use(tagSurface); // first: every later middleware renders by the surface tag
   app.use(cors());
+  app.use(parseAnthropicBody); // 32 MB on Anthropic-tagged requests; express.json() skips a parsed body
   app.use(express.json());
 
   // Enhanced request/response logging middleware (debug mode)
@@ -40,10 +44,12 @@ function mountMiddleware(app: Express): void {
   // Optional HTTP API protection middleware (lazy initialization to handle runtime API key setting)
   app.use((req, res, next) => {
     const apiKey = getApiKey();
-    const authMiddleware = createAuthMiddleware({
+    const options = {
       skipPaths: ['/health', '/docs', '/swagger.json', '/v1/auth/status', '/logs', '/port-forwarding'], // Always allow these endpoints
       ...(apiKey && { apiKey }) // Only include apiKey if it exists
-    });
+    };
+    // The Anthropic surface also accepts x-api-key and answers in its own envelope; the OpenAI surface stays Bearer-only
+    const authMiddleware = isAnthropicRequest(req) ? createAnthropicAuth(options) : createAuthMiddleware(options);
     authMiddleware(req, res, next);
   });
 }
@@ -61,7 +67,8 @@ function mountDocs(app: Express): void {
   }));
 }
 
-function mountRoutes(app: Express): void {
+function mountRoutes(app: Express, anthropic: AnthropicSurface): void {
+  app.use('/', anthropic.router); // before the OpenAI routes: Anthropic wins on a shared path
   app.use('/', healthRoutes);
   app.use('/', modelsRoutes);
   app.use('/', sessionRoutes);
@@ -81,14 +88,15 @@ function mountErrorHandling(app: Express): void {
 
 /**
  * Build a fresh Express app. Each call returns a new, independent app.
- * `_deps` is reserved for the Anthropic surface's composition root (ticket 24 onwards);
- * every slot is optional and the OpenAI surface ignores them.
+ * `deps` go to the Anthropic surface's composition root; every slot is optional and the
+ * OpenAI surface ignores them.
  */
-export function createServer(_deps: SurfaceDeps = {}): Express {
+export function createServer(deps: SurfaceDeps = {}): Express {
   const app = express();
+  const anthropic = createAnthropicSurface(deps);
   mountMiddleware(app);
   mountDocs(app);
-  mountRoutes(app);
+  mountRoutes(app, anthropic);
   mountErrorHandling(app);
   return app;
 }
