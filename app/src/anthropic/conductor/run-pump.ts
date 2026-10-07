@@ -3,16 +3,18 @@
  * every frame goes through the startup checks and the translator into the sink, stdin is closed
  * once `result` is in, and the frames are read to the end after the response has ended, so
  * `result` and the exit are logged without the client waiting for them. A run that ends before
- * the turn did fails the turn. This is the run's only reader of its frames.
+ * the turn did fails the turn, mapped by the run's failure reader: at once when the runner
+ * ended the run (a timer, an oversized line), else once upstream has exited. This is the run's
+ * only reader of its frames.
  */
 import { Frame, ResultFrame, SystemInitFrame } from '../../upstream/frames';
 import { Run, RunFailure, UserMessage } from '../../upstream/runner';
 import { Clock, TimerHandle } from '../../utils/clock';
+import { FailureReader } from '../failure';
 import { SurfaceError } from '../http/surface-error';
 import { StartupChecks } from '../request';
 import { TurnSink } from '../respond';
 import { Translator, TurnEvent } from '../translate';
-import { runEndError } from './run-end-error';
 import { startupError } from './startup-checks';
 
 export interface PumpLogger {
@@ -22,7 +24,10 @@ export interface PumpLogger {
 }
 
 export interface PumpOptions {
+  /** Fed every frame; built with the same `failures`. */
   translator: Translator;
+  /** The run's failure reader: maps a run that ends before the turn did, and is stopped at exit. */
+  failures: FailureReader;
   sink: TurnSink;
   checks: StartupChecks;
   clock: Clock;
@@ -35,6 +40,8 @@ export interface RunPump {
   stop(): void;
   /** Settles once upstream has exited and the exit is logged. */
   readonly done: Promise<void>;
+  /** Upstream's session id from `system/init`; undefined until it arrives. */
+  readonly sessionId: string | undefined;
 }
 
 /** How long a stopped run gets to write its `result` before its stdin is closed (spec section 14). */
@@ -42,7 +49,7 @@ export const RESULT_WAIT_MS = 5_000;
 
 class Pump implements RunPump {
   readonly done: Promise<void>;
-  private sawInit = false;
+  private init: SystemInitFrame | undefined;
   private sawResult = false;
   private stopped = false;
   private exited = false;
@@ -58,6 +65,10 @@ class Pump implements RunPump {
     this.done = this.pump();
   }
 
+  get sessionId(): string | undefined {
+    return this.init?.session_id;
+  }
+
   stop(): void {
     if (this.stopped || this.exited) return;
     this.stopped = true;
@@ -71,24 +82,26 @@ class Pump implements RunPump {
       for await (const frame of this.run.frames) this.onFrame(frame);
       this.toSink(this.options.translator.end());
     } catch (error) {
-      if (!(error instanceof RunFailure)) this.abandon(error);
+      if (error instanceof RunFailure) this.fail(this.options.failures.errorFor({ kind: 'run_failure', reason: error.reason }));
+      else this.abandon(error);
     }
     const exit = await this.run.exited;
-    this.options.sink.push({ type: 'fail', error: runEndError(exit) });
+    this.options.failures.stop();
+    this.fail(this.options.failures.errorFor({ kind: 'exit', exit }));
     this.options.logger.info('Upstream run exited', { code: exit.code, signal: exit.signal, failure: exit.failure });
   }
 
   private onFrame(frame: Frame): void {
-    if (frame.type === 'system' && frame.subtype === 'init' && !this.sawInit) this.onInit(frame);
+    if (frame.type === 'system' && frame.subtype === 'init' && !this.init) this.onInit(frame);
     this.toSink(this.options.translator.push(frame));
     if (frame.type === 'result' && !this.sawResult) this.onResult(frame);
   }
 
   private onInit(init: SystemInitFrame): void {
-    this.sawInit = true;
+    this.init = init;
     this.options.logger.info('Upstream run started', { sessionId: init.session_id, model: init.model });
     const error = startupError(init, this.options.checks);
-    if (error) this.options.sink.push({ type: 'fail', error });
+    if (error) this.fail(error);
   }
 
   private onResult(result: ResultFrame): void {
@@ -103,8 +116,13 @@ class Pump implements RunPump {
   /** A fault in the wrapper itself: fail the turn and stop the run. */
   private abandon(error: unknown): void {
     this.options.logger.warn('Turn abandoned on an internal error', { error: String(error) });
-    this.options.sink.push({ type: 'fail', error: new SurfaceError(500, 'api_error', 'Internal server error') });
+    this.fail(new SurfaceError(500, 'api_error', 'Internal server error'));
     this.stop();
+  }
+
+  /** Ignored by a sink whose outcome has settled. */
+  private fail(error: SurfaceError): void {
+    this.options.sink.push({ type: 'fail', error });
   }
 
   private toSink(events: TurnEvent[]): void {
