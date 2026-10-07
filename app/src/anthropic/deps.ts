@@ -8,16 +8,13 @@
  * (re-exported or imported here) and leaves the slot name and `createServer`'s signature alone.
  */
 import { Clock } from '../utils/clock';
+import { Catalogue } from './catalogue';
+
+export type { Catalogue } from './catalogue';
 
 /** Placeholder until the upstream runner (ticket 27): `startRun(spec) → Run`. */
 export interface Runner {
   startRun(spec: unknown): unknown;
-}
-
-/** Placeholder until the catalogue (ticket 25): `resolve(name) → entry | null`, `list(page)`. */
-export interface Catalogue {
-  resolve(name: string): unknown;
-  list(page: unknown): unknown;
 }
 
 /** Placeholder until conversation state (ticket 31): `lookup`, `record`, `forget`; `parked` comes with it. */
@@ -36,6 +33,7 @@ export interface ControlServer {
 
 export interface SurfaceDeps {
   runner?: Runner;
+  /** Defaults to the catalogue file the operator's settings name, else the shipped one. */
   catalogue?: Catalogue;
   sessions?: Sessions;
   controlServer?: ControlServer;
