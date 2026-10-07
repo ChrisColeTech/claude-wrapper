@@ -12,34 +12,29 @@ import { createRetention, Retention } from './retention';
 import { createSessions, Sessions } from './sessions';
 
 export interface SurfaceState {
-  /** Opened at the first turn, unless injected. */
+  /** Opened on first use (wrapper start, else the first turn), unless injected. */
   stateDirectory: () => StateDirectory;
   sessions: Sessions;
-  /** Present with the production fingerprint map; the shutdown stops it. */
+  /** Present with the production fingerprint map: the wrapper's start starts it, the shutdown stops it. */
   retention?: Retention;
 }
 
 /**
  * Injected sessions keep their own transcripts. Otherwise an empty fingerprint map (a restart
  * forgets every conversation) whose forgets delete upstream's transcript where a run's child keeps
- * it: its `HOME` is the wrapper's unless `upstream.env` sets one (or `CLAUDE_CONFIG_DIR`), its
- * working directory the state directory's. Opening the process's state directory sweeps the
- * transcripts an earlier process left; the first turn starts the hourly sweep.
+ * it: its `HOME` is the wrapper's (from `environment`) unless `upstream.env` sets one (or
+ * `CLAUDE_CONFIG_DIR`), its working directory the state directory's. Its retention, started with
+ * the wrapper, sweeps the transcripts an earlier process left, then hourly.
  */
-export function surfaceState(deps: SurfaceDeps, settings: AnthropicSettings, clock: Clock): SurfaceState {
+export function surfaceState(
+  deps: SurfaceDeps, settings: AnthropicSettings, clock: Clock, environment: Readonly<Record<string, string | undefined>>
+): SurfaceState {
   const injected = deps.stateDirectory;
-  if (deps.sessions) {
-    return { stateDirectory: injected ? () => injected : () => processStateDirectory(), sessions: deps.sessions };
-  }
-  const childEnv = { HOME: process.env['HOME'], ...settings.upstreamEnv };
+  const stateDirectory = injected ? () => injected : () => processStateDirectory();
+  if (deps.sessions) return { stateDirectory, sessions: deps.sessions };
+  const childEnv = { HOME: environment['HOME'], ...settings.upstreamEnv };
   const transcripts = createTranscriptStore(() => upstreamProjectDirectory(stateDirectory().cwd, childEnv));
   const retention = createRetention({ transcripts, clock, expiryMs: settings.fingerprintExpiryMs });
-  const open = injected ? () => injected : () => processStateDirectory(() => retention.sweepOrphans());
-  const stateDirectory = (): StateDirectory => {
-    const state = open();
-    retention.start();
-    return state;
-  };
   const sessions = createSessions({
     clock, capacity: settings.fingerprintCapacity, expiryMs: settings.fingerprintExpiryMs, transcripts
   });

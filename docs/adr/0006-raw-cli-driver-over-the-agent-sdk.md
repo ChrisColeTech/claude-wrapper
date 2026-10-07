@@ -19,3 +19,9 @@ The wrapper needs a runner that spawns Claude Code, speaks stream-json over stdi
 - The hook is a child process per call (a thin HTTP client); its policy state lives in the wrapper.
 - The stream-json control protocol is consumed directly, with the SDK's `sdk.d.ts` as its reference; `system/init.capabilities` is the feature-detection point when the CLI moves.
 - Parks longer than the HTTP MCP idle default depend on the environment knob, which the e2e scenario list verifies.
+
+## Amendment: where the scheduler and the surface error live
+
+Recorded 2026-10-07 after the code review of the implementation. Spec section 16 lists the **scheduler** in the upstream package. It lives in the anthropic package instead (`app/src/anthropic/scheduler/`), because its interface takes `TurnPlan`s (the request module's) and answers with `SurfaceError`s (the surface's error type): in the surface-neutral upstream package it would make upstream depend on the surface. What it drives below that is upstream's alone: the runner's `Run` (`interrupt`, `close`, `kill`), and the runner's result wait (`RESULT_WAIT_MS`), which the teardown ladder takes from the runner rather than defining its own.
+
+For the same reason the **surface error type** is a module of its own (`app/src/anthropic/surface-error/`) rather than part of the http module, as spec section 16 lists it: the request, translate, failure, respond and scheduler modules all throw or return it, and none of them depends on the HTTP layer for it. The http module keeps the renderer.

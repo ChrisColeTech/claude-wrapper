@@ -3,7 +3,7 @@
  * in the real API's schema wording. A valid list goes to the turn's translator, whose scan cuts
  * the turn at the first match; it is not run-bound, so it travels with the plan, not the run spec.
  */
-import { SurfaceError } from '../../../../src/anthropic/http/surface-error';
+import { SurfaceError } from '../../../../src/anthropic/surface-error';
 import { TurnPlan } from '../../../../src/anthropic/request';
 import { invalidRequest, planDefault, rejectionOf } from '../../../mocks/anthropic/plan-context';
 

@@ -98,6 +98,7 @@ describe.each(WEB_RECORDINGS)('web-tool turn golden: $name', ({ name, denialCode
       .reduce((sum, call) => sum + ((results.get(call.id)?.toolUseResult as { searchCount?: number }).searchCount ?? 1), 0);
 
     expect(pick(delta.usage, COUNTERS)).toEqual(pick(result.usage, COUNTERS));
+    expect(delta.usage['cache_creation']).toEqual(result.usage['cache_creation']);
     expect(delta.usage['output_tokens_details']).toEqual(result.usage['output_tokens_details']);
     expect(delta.usage['server_tool_use']).toEqual({ web_search_requests: counted('WebSearch'), web_fetch_requests: counted('WebFetch') });
     expect(events[0]).toEqual(expect.objectContaining({ type: 'message_start' }));

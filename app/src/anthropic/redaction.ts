@@ -7,18 +7,13 @@
  */
 import { ANTHROPIC_SETTING_ENV } from '../config/anthropic-settings';
 import { readAccountValues } from '../upstream/account-file';
-import { logger as defaultLogger } from '../utils/logger';
+import { logger as defaultLogger, Logger } from '../utils/logger';
 
 export interface RedactionSources {
   /** The CLI account file the runs read. */
   accountFile: string;
   /** The operator's `redact` setting. */
   extra: readonly string[];
-}
-
-export interface RedactionLogger {
-  info(message: string, context?: unknown): void;
-  warn(message: string, context?: unknown): void;
 }
 
 /** Each string once, ignoring case, as the translator matches it. */
@@ -33,7 +28,7 @@ function distinct(strings: readonly string[]): string[] {
 }
 
 /** The strings every turn redacts. */
-export function armRedaction(sources: RedactionSources, logger: RedactionLogger = defaultLogger): readonly string[] {
+export function armRedaction(sources: RedactionSources, logger: Pick<Logger, 'info' | 'warn'> = defaultLogger): readonly string[] {
   const account = readAccountValues(sources.accountFile);
   if (account.kind === 'unreadable') {
     logger.warn('The CLI account file could not be read, so its account values are not redacted',

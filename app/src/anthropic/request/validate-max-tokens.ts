@@ -4,7 +4,7 @@
  * Above the entry's limit the real API's own message names the canonical id.
  */
 import { ModelInfo } from '../catalogue';
-import { SurfaceError } from '../http/surface-error';
+import { SurfaceError } from '../surface-error';
 import { fieldInvalid, fieldRequired } from './field-errors';
 
 export function validateMaxTokens(maxTokens: unknown, model: ModelInfo): number {

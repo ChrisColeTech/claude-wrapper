@@ -8,7 +8,7 @@
  */
 import { ParkedRun, Sessions } from '../../../../src/anthropic/sessions';
 import { changedRunBound, planTurn, TurnPlan } from '../../../../src/anthropic/request';
-import { SurfaceError } from '../../../../src/anthropic/http/surface-error';
+import { SurfaceError } from '../../../../src/anthropic/surface-error';
 import { invalidRequest, NO_SESSIONS, runContext, shippedCatalogue } from '../../../mocks/anthropic/plan-context';
 
 const TOOLS = [{ name: 'get_weather', input_schema: { type: 'object' } }];

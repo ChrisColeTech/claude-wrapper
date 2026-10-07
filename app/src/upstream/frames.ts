@@ -6,8 +6,8 @@
  * the union, or that is not a JSON object at all, becomes an `UnknownFrame` carrying the parsed
  * value (or the raw text), so a CLI that adds frame types never breaks a run.
  */
-
-export type JsonObject = { [key: string]: unknown };
+import { isObject, JsonObject } from '../utils/json-object';
+export type { JsonObject };
 
 interface FrameBase {
   uuid?: string;
@@ -158,10 +158,6 @@ const SYSTEM_SUBTYPES = new Set(['init', 'api_retry', 'status']);
 const FRAME_TYPES = new Set(['stream_event', 'assistant', 'user', 'result', 'rate_limit_event',
   'tool_progress', 'control_request', 'control_response']);
 
-function isJsonObject(value: unknown): value is JsonObject {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
 function parseJson(line: string): unknown {
   try {
     return JSON.parse(line);
@@ -180,18 +176,21 @@ function isKnown(value: JsonObject): boolean {
 /** Classifies one stdout line. Never throws. */
 export function parseFrame(line: string): Frame {
   const value = parseJson(line);
-  if (isJsonObject(value) && isKnown(value)) {
+  if (isObject(value) && isKnown(value)) {
     return value as unknown as Frame;
   }
   return { type: 'unknown', raw: value };
 }
+
+/** A `result` that reports success: subtype `success` and not `is_error`. */
+export const isCleanResult = (result: ResultFrame): boolean => result.subtype === 'success' && !result.is_error;
 
 /** `type` or `type/subtype` of what upstream sent, for logs; never the frame's content. */
 export function describeFrame(frame: Frame): string {
   if (frame.type !== 'unknown') {
     return 'subtype' in frame ? `${frame.type}/${frame.subtype}` : frame.type;
   }
-  if (!isJsonObject(frame.raw)) {
+  if (!isObject(frame.raw)) {
     return 'non-JSON line';
   }
   const { type, subtype } = frame.raw;

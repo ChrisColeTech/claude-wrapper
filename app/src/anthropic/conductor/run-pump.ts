@@ -14,18 +14,13 @@ import { Frame, ResultFrame, SystemInitFrame } from '../../upstream/frames';
 import { Run, RunFailure, UserMessage } from '../../upstream/runner';
 import { Clock } from '../../utils/clock';
 import { FailureReader } from '../failure';
-import { SurfaceError } from '../http/surface-error';
+import { SurfaceError } from '../surface-error';
 import { StartupChecks } from '../request';
 import { TurnSink } from '../respond';
 import { createTeardown, Teardown } from '../scheduler';
 import { Translator, TurnEvent } from '../translate';
+import { ConductorLogger } from './context';
 import { startupError } from './startup-checks';
-
-export interface PumpLogger {
-  debug(message: string, context?: unknown): void;
-  info(message: string, context?: unknown): void;
-  warn(message: string, context?: unknown): void;
-}
 
 /** Sees every frame of the run, in order, before the translator does. */
 export interface FrameObserver {
@@ -49,7 +44,7 @@ export interface PumpOptions {
   checks: StartupChecks;
   clock: Clock;
   /** Carries the request id; never given the run spec. */
-  logger: PumpLogger;
+  logger: ConductorLogger;
   /** The run's own readers of every frame, as it arrives, a turn attached or not (its bridge). */
   observers?: readonly FrameObserver[];
   /**
@@ -186,7 +181,7 @@ class Pump implements RunPump {
   /** A fault in the wrapper itself: fail the turn and stop the run. */
   private abandon(error: unknown): void {
     this.options.logger.warn('Turn abandoned on an internal error', { error: String(error) });
-    this.fail(new SurfaceError(500, 'api_error', 'Internal server error'));
+    this.fail(SurfaceError.of('api_error', 'Internal server error'));
     this.stop();
   }
 }

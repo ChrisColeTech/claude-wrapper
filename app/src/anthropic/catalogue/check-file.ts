@@ -4,7 +4,8 @@
  * read are kept as written, so an entry copied from the real API's listing loads as it is.
  */
 import { checkCapabilities } from './check-capabilities';
-import { CatalogueFormatError, fail, isObject, objectAt } from './checks';
+import { isObject } from '../../utils/json-object';
+import { CatalogueFormatError, fail, objectAt } from './checks';
 import { CatalogueEntry } from './model-info';
 
 const RFC_3339 = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/i;

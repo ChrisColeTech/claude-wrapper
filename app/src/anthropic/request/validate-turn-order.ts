@@ -3,7 +3,7 @@
  * message and ends with one. A trailing assistant message is a prefill, which the 4.6-and-later
  * models the catalogue serves reject with the real API's message.
  */
-import { SurfaceError } from '../http/surface-error';
+import { SurfaceError } from '../surface-error';
 import { NormalisedMessage } from './turn-plan';
 
 const PREFILL =

@@ -17,10 +17,14 @@ export function chain<A, B, C>(first: Pass<A, B>, second: Pass<B, C>): Pass<A, C
   };
 }
 
+/** A pass that changes nothing: an unarmed pass, and the start of a composition. */
+export function identity<T>(): Pass<T, T> {
+  return { push: item => [item], end: () => [] };
+}
+
 /** Event passes applied in order. */
 export function inOrder(passes: Pass<TurnEvent, TurnEvent>[]): Pass<TurnEvent, TurnEvent> {
-  const identity: Pass<TurnEvent, TurnEvent> = { push: event => [event], end: () => [] };
-  return passes.reduce((composed, pass) => chain(composed, pass), identity);
+  return passes.reduce((composed, pass) => chain(composed, pass), identity<TurnEvent>());
 }
 
 /** A pass that holds nothing: each event maps to zero or more events. */

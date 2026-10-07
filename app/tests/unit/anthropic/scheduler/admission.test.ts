@@ -4,7 +4,7 @@
  * `rate_limit_event`: after `rejected`, every request until `resetsAt` gets 429
  * `rate_limit_error` with `retry-after`, before any run starts.
  */
-import { SurfaceError } from '../../../../src/anthropic/http/surface-error';
+import { SurfaceError } from '../../../../src/anthropic/surface-error';
 import { Lease } from '../../../../src/anthropic/scheduler';
 import { initFrame, rateLimitEvent } from '../../../mocks/anthropic/turn-frames';
 import {
@@ -98,15 +98,16 @@ describe('the scheduler: admission', () => {
   });
 
   it("counts what /health shows: active and parked runs, the cap, turns queued per session, upstream's last rate-limit state", async () => {
-    const scheduler = schedulerOn(clock, { maxRuns: 3 });
+    const scheduler = schedulerOn(clock, { maxRuns: 4 });
     const first = await scheduler.admit(admission('req_1'));
     first.started(fakeRun('run-1', 'session-1'));
     first.onFrame(initFrame({ session_id: 'session-1' }));
     const second = await scheduler.admit(admission('req_2'));
     second.started(fakeRun('run-2'));
-    scheduler.registerParked(heldRun(['toolu_1']));
-    void scheduler.admit(admission('req_3', continuedPlan('session-1')));
-    expect(scheduler.counts()).toEqual({ active: 2, parked: 1, maxRuns: 3, queued: { 'session-1': 1 }, rateLimit: null });
+    scheduler.registerParked(heldRun(['toolu_1'], 'run-2'));
+    (await scheduler.admit(admission('req_3'))).started(fakeRun('run-3'));
+    void scheduler.admit(admission('req_4', continuedPlan('session-1')));
+    expect(scheduler.counts()).toEqual({ active: 2, parked: 1, maxRuns: 4, queued: { 'session-1': 1 }, rateLimit: null });
 
     first.onFrame(rateLimitEvent('allowed', 1_791_003_600));
 

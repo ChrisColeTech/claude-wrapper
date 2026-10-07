@@ -7,6 +7,7 @@
  * As in the spike, a request that is neither an `initialize` nor in a known session is a 400:
  * upstream's `server/discover` probe gets it and falls back to `initialize`.
  */
+import { Logger } from '../../utils/logger';
 import { randomUUID } from 'crypto';
 import { ServerResponse } from 'http';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
@@ -20,10 +21,6 @@ import { BRIDGE_SERVER_NAME, BridgeCall, ClientTool, McpToolResult } from './typ
 
 export type BridgeCallHandler = (call: BridgeCall) => Promise<McpToolResult>;
 
-export interface McpEndpointLogger {
-  debug(message: string, context?: unknown): void;
-}
-
 const TOOL_USE_ID = 'claudecode/toolUseId';
 
 function listed(tool: ClientTool): Tool {
@@ -35,7 +32,7 @@ function listed(tool: ClientTool): Tool {
   };
 }
 
-function bridgeServer(tools: ClientTool[], onCall: BridgeCallHandler, log: McpEndpointLogger): Server {
+function bridgeServer(tools: ClientTool[], onCall: BridgeCallHandler, log: Pick<Logger, 'debug'>): Server {
   const server = new Server({ name: BRIDGE_SERVER_NAME, version: '1.0.0' }, { capabilities: { tools: {} } });
   server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: tools.map(listed) }));
   server.setRequestHandler(CallToolRequestSchema, async (request): Promise<CallToolResult> => {
@@ -55,7 +52,7 @@ function noSession(res: ServerResponse): void {
   res.writeHead(400, { 'content-type': 'text/plain; charset=utf-8' }).end('no session');
 }
 
-export function createMcpEndpoint(tools: ClientTool[], onCall: BridgeCallHandler, log: McpEndpointLogger): McpHttpHandler {
+export function createMcpEndpoint(tools: ClientTool[], onCall: BridgeCallHandler, log: Pick<Logger, 'debug'>): McpHttpHandler {
   const sessions = new Map<string, StreamableHTTPServerTransport>();
 
   const openSession = async (): Promise<StreamableHTTPServerTransport> => {

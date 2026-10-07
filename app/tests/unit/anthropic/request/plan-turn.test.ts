@@ -4,6 +4,7 @@
  * the replayed-turn message and the startup checks. The expected plans are written out from the
  * spec's tables, never derived from the planner.
  */
+import * as path from 'path';
 import { planTurn, TurnPlan } from '../../../../src/anthropic/request';
 import { loadAnthropicSettings } from '../../../../src/config/anthropic-settings';
 import { NO_SESSIONS, planDefault as plan, runContext, shippedCatalogue } from '../../../mocks/anthropic/plan-context';
@@ -24,7 +25,7 @@ function goldenPlan(canonicalId: string): TurnPlan {
       flags: [
         '-p',
         '--input-format', 'stream-json', '--output-format', 'stream-json', '--verbose', '--include-partial-messages',
-        '--system-prompt', '',
+        '--system-prompt-file', '/var/lib/claude-wrapper/runs/run-0001/system-prompt.txt',
         '--system-prompt-snapshot', 'off',
         '--setting-sources=', '--strict-mcp-config',
         '--model', canonicalId,
@@ -41,11 +42,12 @@ function goldenPlan(canonicalId: string): TurnPlan {
         CLAUDE_CODE_MCP_TOOL_IDLE_TIMEOUT: '660000',
         MCP_TOOL_TIMEOUT: '660000',
         MCP_CONNECT_TIMEOUT_MS: '5000',
+        MCP_TIMEOUT: '5000',
         CLAUDE_CODE_MAX_WEB_SEARCHES_PER_SESSION: '200',
         ...thinking
       },
       cwd: '/var/lib/claude-wrapper/cwd',
-      runDir: { path: '/var/lib/claude-wrapper/runs/run-0001', files: {} },
+      runDir: { path: '/var/lib/claude-wrapper/runs/run-0001', files: { 'system-prompt.txt': '' } },
       timers: { startup: 20_000, stall: 90_000, lifetime: 1_800_000 }
     },
     continuation: { replay: { role: 'user', content: HELLO } },
@@ -93,7 +95,7 @@ describe('planTurn: golden request to plan', () => {
       }
       expect(runSpec).not.toHaveProperty('mcp');
       expect(runSpec).not.toHaveProperty('hooks');
-      expect(runSpec.runDir?.files).toEqual({});
+      expect(runSpec.runDir?.files).toEqual({ 'system-prompt.txt': 'Be brief.' });
     }
   );
 });
@@ -105,9 +107,12 @@ describe('planTurn: system prompt (spec section 6)', () => {
     messages: [{ role: 'user', content: 'Hello' }],
     ...(system === undefined ? {} : { system })
   });
+  /** The text of the file `--system-prompt-file` names, from the run's private directory. */
   const systemFlag = (result: unknown) => {
-    const { flags } = (result as TurnPlan).runSpec;
-    return flags[flags.indexOf('--system-prompt') + 1];
+    const { flags, runDir } = (result as TurnPlan).runSpec;
+    const file = flags[flags.indexOf('--system-prompt-file') + 1] ?? '';
+    expect(path.dirname(file)).toBe(runDir?.path);
+    return runDir?.files[path.basename(file)];
   };
 
   it('passes a string system exactly as the system prompt, with no preamble', () => {
@@ -117,6 +122,17 @@ describe('planTurn: system prompt (spec section 6)', () => {
 
     expect(result).toEqual(expect.objectContaining({ system }));
     expect(systemFlag(result)).toBe(system);
+  });
+
+  it('passes the system prompt in a file of the run, never on the argument list, whatever its size', () => {
+    const system = `${'Answer in French. '.repeat(10_000)}End.`;
+
+    const result = plan(request(system)) as TurnPlan;
+
+    expect(Buffer.byteLength(system)).toBeGreaterThan(128 * 1024);
+    expect(systemFlag(result)).toBe(system);
+    expect(result.runSpec.flags).not.toContain('--system-prompt');
+    expect(result.runSpec.flags.join('\n')).not.toContain('Answer in French.');
   });
 
   it('joins system text blocks with a blank line', () => {
@@ -165,6 +181,6 @@ describe('planTurn: operator settings and the state directory (spec sections 10,
     const { runSpec } = planTurn(request, shippedCatalogue, NO_SESSIONS, context) as TurnPlan;
 
     expect(runSpec.cwd).toBe('/srv/state/cwd');
-    expect(runSpec.runDir).toEqual({ path: '/srv/state/runs/b7e1', files: {} });
+    expect(runSpec.runDir).toEqual({ path: '/srv/state/runs/b7e1', files: { 'system-prompt.txt': '' } });
   });
 });

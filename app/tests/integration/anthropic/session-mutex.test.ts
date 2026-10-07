@@ -4,10 +4,13 @@
  * upstream's `result`, so a client that sends its next turn faster than upstream writes `result`
  * still gets a continued turn. That turn waits for the previous run's exit (the transcript is
  * written by then), up to 10 s, then SIGKILL; it is re-planned after the wait, so a previous turn
- * that turned out an error makes it a replayed turn. A duplicate request queues behind the turn in
- * flight on its session and is replayed.
+ * that turned out an error makes it a replayed turn. A previous run still parked after the wait is
+ * abandoned (its session forgotten) and SIGKILLed, so the turn is replayed. A duplicate request
+ * queues behind the turn in flight on its session and is replayed.
  */
 import Anthropic from '@anthropic-ai/sdk';
+import { weatherCalls } from '../../mocks/anthropic/bridge-upstream';
+import { GET_WEATHER } from '../../mocks/anthropic/client-tool-recordings';
 import { STATE } from '../../mocks/anthropic/plan-context';
 import { memorySessions, TestSessions } from '../../mocks/anthropic/sessions';
 import { SurfaceHarness, startSurface } from '../../mocks/anthropic/surface-harness';
@@ -141,6 +144,41 @@ describe('Anthropic surface: one run per upstream session', () => {
     await answerWithoutResult(run2, 'session-2');
     await finishCleanly(run2, 'session-2');
     await second;
+  });
+
+  it('abandons a parked run its session waited 10 s for, SIGKILLs it, and replays the new turn', async () => {
+    const withTool = (messages: MessageParam[]) => ({ ...body(messages), tools: [GET_WEATHER as Anthropic.Tool] });
+    const initWithTool = (sessionId = SESSION) => initFrame({ session_id: sessionId, tools: ['mcp__client__get_weather'] });
+    const first = client.messages.create(withTool([U1]));
+    const run1 = await nextRun();
+    run1.process.frames(initWithTool(), ...call());
+    await first;
+    await finishCleanly(run1);
+    const parking = client.messages.create(withTool(FOLLOW_UP));
+    const run2 = await nextRun();
+    run2.process.frames(initWithTool(), ...weatherCalls([{ id: 'toolu_1', city: 'Paris' }]));
+    expect(await parking).toEqual(expect.objectContaining({ stop_reason: 'tool_use' }));
+    await waitFor(() => state.sessions.parked.get('toolu_1') !== undefined);
+
+    // The client drops the tool call and sends another message on the same history.
+    const dropped = client.messages.create(withTool([U1, { role: 'assistant', content: 'hi' }, { role: 'user', content: 'Never mind.' }]));
+    const next = nextRun();
+    expect(await startsSoon(next)).toBe(false);
+    clock.advance(9_999);
+    expect(run2.process.kills).toEqual([]);
+    clock.advance(1);
+    await waitFor(() => run2.process.kills.includes('SIGKILL'));
+    expect(state.sessions.parked.get('toolu_1')).toBeUndefined();
+    expect(state.forgotten).toContain(SESSION);
+    run2.process.exit(null, 'SIGKILL');
+    const run3 = await next;
+
+    expect(resumeOf(run2)).toBe(SESSION);
+    expect(resumeOf(run3)).toBeNull();
+    expect(sentText(run3)).toContain('<conversation_history>');
+    run3.process.frames(initWithTool('session-2'), ...call());
+    await finishCleanly(run3, 'session-2');
+    await expect(dropped).resolves.toEqual(expect.objectContaining({ stop_reason: 'end_turn' }));
   });
 
   it('queues a duplicate behind the turn in flight on its session, then replays it', async () => {

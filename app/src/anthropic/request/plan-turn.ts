@@ -7,14 +7,14 @@
 import { ClientTool, CLIENT_TOOL_PREFIX } from '../../upstream/bridge';
 import { WEB_TOOLS, WebTool } from '../../upstream/hook-policy';
 import { STRUCTURED_OUTPUT_TOOL } from '../../upstream/structured-output';
+import { JsonObject, isObject } from '../../utils/json-object';
 import { Catalogue } from '../catalogue';
-import { SurfaceError } from '../http/surface-error';
+import { SurfaceError } from '../surface-error';
 import { Sessions } from '../sessions';
 import { clientTools } from './client-tools';
 import { connectors } from './connectors';
 import { chooseContinuation, resumedSession } from './continuation';
 import { measuringRun, NOTHING_TO_CONTINUE } from './count-run';
-import { Body, isObject } from './field-errors';
 import { withoutIgnoredContent } from './ignored-content';
 import { normaliseMessages } from './normalise';
 import { parkedAnswer } from './parked-answer';
@@ -34,12 +34,12 @@ import { validateSampling } from './validate-sampling';
 import { validateServerTools } from './validate-server-tools';
 import { validateStopSequences } from './validate-stop-sequences';
 import { thinkingEnvironment } from './validate-thinking';
-import { validateToolChoice } from './validate-tool-choice';
+import { toolsHidden, validateToolChoice } from './validate-tool-choice';
 import { validateTurnOrder } from './validate-turn-order';
 import { webTools } from './web-tools';
 
 /** The body fields that shape no part of the plan yet: each is validated, then served or ignored. */
-function validateParameters(request: Body): void {
+function validateParameters(request: JsonObject): void {
   validatePlainFields(request);
   validateSampling(request);
   validateToolChoice(request['tool_choice']);
@@ -47,10 +47,9 @@ function validateParameters(request: Body): void {
 }
 
 /** The client tools the turn exposes: none under `tool_choice: none`, though they are validated all the same. */
-function bridgeTools(request: Body): ClientTool[] {
+function bridgeTools(request: JsonObject): ClientTool[] {
   const tools = clientTools(request['tools']);
-  const choice = request['tool_choice'];
-  return isObject(choice) && choice['type'] === 'none' ? [] : tools;
+  return toolsHidden(request['tool_choice']) ? [] : tools;
 }
 
 /**

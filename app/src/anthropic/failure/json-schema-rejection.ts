@@ -4,7 +4,7 @@
  * ("is not valid JSON: …", "must be a JSON object", "is not a valid JSON Schema: …"). The schema
  * is the client's `output_config.format.schema`, so the exit is a 400 naming that field.
  */
-import { SurfaceError } from '../http/surface-error';
+import { SurfaceError } from '../surface-error';
 
 const REJECTION = /^Error: --json-schema (.+)$/m;
 

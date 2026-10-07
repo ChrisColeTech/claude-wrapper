@@ -6,8 +6,8 @@
  * `mcp_tool_use` and `mcp_tool_result` blocks with the server split out, in one message. The
  * not-connected path: a server nothing answers at must fail the turn before commit with a 400
  * naming it (and inside the startup timer, the connect wait being capped by
- * `MCP_CONNECT_TIMEOUT_MS`). The round trip spends one model turn or two; the failure path at most
- * the start of one.
+ * `MCP_CONNECT_TIMEOUT_MS` and `MCP_TIMEOUT`). The round trip spends one model turn or two; the
+ * failure path at most the start of one.
  *
  *   UPSTREAM_E2E=1 npm --prefix app run test:e2e -- tests/e2e/upstream/connectors.test.ts
  *

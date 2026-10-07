@@ -6,7 +6,7 @@
  */
 import { NextFunction, Request, Response, Router } from 'express';
 import { Catalogue, ModelPageRequest } from '../catalogue';
-import { SurfaceError } from './surface-error';
+import { SurfaceError } from '../surface-error';
 import { isAnthropicRequest } from './surface-tag';
 
 const DEFAULT_LIMIT = 20;
@@ -60,7 +60,7 @@ export function createModelsRouter(catalogue: Catalogue): Router {
     const name = req.params['modelId'] ?? '';
     const model = catalogue.resolve(name);
     if (!model) {
-      next(new SurfaceError(404, 'not_found_error', `model: ${name}`));
+      next(SurfaceError.of('not_found_error', `model: ${name}`));
       return;
     }
     res.json(model);

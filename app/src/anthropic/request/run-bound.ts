@@ -5,11 +5,11 @@
  * differences logged. `stop_sequences` and the redaction list are not run-bound: they apply per
  * turn in the translator.
  */
-import { Body, isObject } from './field-errors';
+import { JsonObject, isObject } from '../../utils/json-object';
 
 export type RunBound = Readonly<Record<string, string>>;
 
-export function runBoundParameters(request: Body, modelId: string, system: string): RunBound {
+export function runBoundParameters(request: JsonObject, modelId: string, system: string): RunBound {
   const output = isObject(request['output_config']) ? request['output_config'] : {};
   const values: Record<string, unknown> = {
     model: modelId,

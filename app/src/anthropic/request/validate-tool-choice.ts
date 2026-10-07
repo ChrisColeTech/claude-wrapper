@@ -4,10 +4,14 @@
  * message on every catalogue model, Haiku 4.5 included: upstream has no way to force a tool call.
  * `disable_parallel_tool_use` is accepted and ignored. `null` reads as absent.
  */
-import { SurfaceError } from '../http/surface-error';
-import { fieldInvalid, fieldRequired, isObject } from './field-errors';
+import { isObject } from '../../utils/json-object';
+import { SurfaceError } from '../surface-error';
+import { fieldInvalid, fieldRequired } from './field-errors';
 
 const TYPES: readonly unknown[] = ['auto', 'any', 'tool', 'none'];
+
+/** `tool_choice: none`: the turn's tools are hidden, though validated all the same. */
+export const toolsHidden = (toolChoice: unknown): boolean => isObject(toolChoice) && toolChoice['type'] === 'none';
 
 export function validateToolChoice(toolChoice: unknown): void {
   if (toolChoice === undefined || toolChoice === null) return;

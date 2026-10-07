@@ -4,9 +4,8 @@
  */
 import { Request, Response } from 'express';
 import { AppError } from '../../utils/errors';
-import { SurfaceError } from './surface-error';
-import { anthropicRequestId } from './surface-tag';
-import { mintRequestId } from './request-id';
+import { SurfaceError } from '../surface-error';
+import { requestIdOf } from './surface-tag';
 
 /** The HTTP status a stray error carries (the wrapper's `AppError.statusCode`, or `status`), else 500. */
 function strayStatus(error: unknown): number {
@@ -28,12 +27,12 @@ export function toSurfaceError(error: unknown): SurfaceError {
   if (status < 500) {
     return new SurfaceError(status, 'invalid_request_error', error instanceof Error ? error.message : String(error));
   }
-  return new SurfaceError(500, 'api_error', error instanceof AppError ? error.message : 'Internal server error');
+  return SurfaceError.of('api_error', error instanceof AppError ? error.message : 'Internal server error');
 }
 
 export function renderAnthropicError(error: unknown, req: Request, res: Response): void {
   const surfaceError = toSurfaceError(error);
-  const requestId = anthropicRequestId(req) ?? mintRequestId();
+  const requestId = requestIdOf(req);
 
   res.setHeader('request-id', requestId);
   if (!surfaceError.retryable) {

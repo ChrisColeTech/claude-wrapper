@@ -8,7 +8,7 @@
  * no `tool_use` of its own) and the API rejects an orphan result, so they are rendered as their
  * tags. The expected messages are written out by hand from the spec's description.
  */
-import { SurfaceError } from '../../../../src/anthropic/http/surface-error';
+import { SurfaceError } from '../../../../src/anthropic/surface-error';
 import { NormalisedMessage } from '../../../../src/anthropic/request';
 import { renderReplay } from '../../../../src/anthropic/request/render-replay';
 

@@ -4,9 +4,10 @@
  * what each run was started with and written, for tests to assert on.
  */
 import { Clock, systemClock } from '../../utils/clock';
+import { Logger } from '../../utils/logger';
 import { Recording } from './recording';
 import { replayProcess } from './replay-process';
-import { createRun, RunLogger } from './run';
+import { createRun } from './run';
 import { Run, Runner, RunSpec } from './types';
 
 export interface ReplayOptions {
@@ -14,7 +15,7 @@ export interface ReplayOptions {
   clock?: Clock;
   /** Multiplies every recorded gap: 1 plays in real time, 0 as fast as the clock allows. */
   timeScale?: number;
-  logger?: RunLogger;
+  logger?: Pick<Logger, 'debug'>;
 }
 
 export interface ReplayedRun {

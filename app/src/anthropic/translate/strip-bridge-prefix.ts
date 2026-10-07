@@ -5,14 +5,14 @@
  */
 import { CLIENT_TOOL_PREFIX } from '../../upstream/bridge';
 import { eachEvent, Pass } from './pass';
+import { toolUseKind } from './tool-use-kind';
 import { TurnEvent } from './turn-event';
 
 export function createBridgePrefixStrip(): Pass<TurnEvent, TurnEvent> {
   return eachEvent(event => {
     if (event.type !== 'content_block_start') return [event];
     const block = event.content_block;
-    const name = block['name'];
-    if (block['type'] !== 'tool_use' || typeof name !== 'string' || !name.startsWith(CLIENT_TOOL_PREFIX)) return [event];
-    return [{ ...event, content_block: { ...block, name: name.slice(CLIENT_TOOL_PREFIX.length) } }];
+    if (toolUseKind(block) !== 'client') return [event];
+    return [{ ...event, content_block: { ...block, name: String(block['name']).slice(CLIENT_TOOL_PREFIX.length) } }];
   });
 }

@@ -6,7 +6,8 @@
  * runs a tool while its message still streams), and never before the turn's `message_start`. A
  * result placed inside a call moves that call's later blocks one place on.
  */
-import { JsonObject, StreamEvent, UserFrame } from '../../upstream/frames';
+import { StreamEvent, UserFrame } from '../../upstream/frames';
+import { isObject } from '../../utils/json-object';
 import { ServerToolCalls, ServerToolResultSignal, TurnEvent } from './turn-event';
 
 type BlockEvent = Extract<StreamEvent, { index: number }>;
@@ -14,11 +15,9 @@ type BlockEvent = Extract<StreamEvent, { index: number }>;
 /** A built-in call's result waiting for its place: everything but its index. */
 export type PendingResult = Omit<ServerToolResultSignal, 'index'>;
 
-const isBlock = (value: unknown): value is JsonObject => typeof value === 'object' && value !== null;
-
 /** The `tool_result` blocks of a `user` frame that answer one of the run's built-in calls. */
 export function serverToolResults(frame: UserFrame, calls: ServerToolCalls): PendingResult[] {
-  const content = Array.isArray(frame.message.content) ? frame.message.content.filter(isBlock) : [];
+  const content = Array.isArray(frame.message.content) ? frame.message.content.filter(isObject) : [];
   return content.flatMap(block => {
     const toolUseId = String(block['tool_use_id']);
     const tool = block['type'] === 'tool_result' ? calls.toolOf(toolUseId) : undefined;

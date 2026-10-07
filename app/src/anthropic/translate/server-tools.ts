@@ -12,14 +12,14 @@
  */
 import { JsonObject } from '../../upstream/frames';
 import { isWebTool, WebTool } from '../../upstream/hook-policy';
+import { isObject } from '../../utils/json-object';
+import { WEB_TOOL_NAMES } from '../web-tools';
 import { Pass } from './pass';
 import { fetchContent, searchContent, searchCount } from './server-tool-results';
 import { ApiEvent, ServerToolCalls, ServerToolResultSignal, TurnEvent } from './turn-event';
 
 type BlockEvent<T extends ApiEvent['type']> = Extract<ApiEvent, { type: T }>;
 
-const SERVER_NAMES: Readonly<Record<WebTool, string>> = { WebSearch: 'web_search', WebFetch: 'web_fetch' };
-const INPUT_FIELDS: Readonly<Record<WebTool, string>> = { WebSearch: 'query', WebFetch: 'url' };
 
 /** The client-facing id of upstream's call: the same id under the API's `srvtoolu_` prefix. */
 export const serverToolUseId = (toolUseId: string): string =>
@@ -32,8 +32,8 @@ function filteredInput(tool: WebTool, json: string): JsonObject {
   } catch {
     return {};
   }
-  const field = INPUT_FIELDS[tool];
-  const value = typeof input === 'object' && input !== null ? (input as JsonObject)[field] : undefined;
+  const field = WEB_TOOL_NAMES[tool].inputField;
+  const value = isObject(input) ? input[field] : undefined;
   return value === undefined ? {} : { [field]: value };
 }
 
@@ -75,7 +75,7 @@ class ServerToolPass implements Pass<TurnEvent, TurnEvent> {
     if (block['type'] !== 'tool_use' || !isWebTool(name)) return [event];
     const toolUseId = String(block['id']);
     this.open.set(event.index, { tool: name, toolUseId, json: '' });
-    const content_block = { type: 'server_tool_use', id: serverToolUseId(toolUseId), name: SERVER_NAMES[name], input: {} };
+    const content_block = { type: 'server_tool_use', id: serverToolUseId(toolUseId), name: WEB_TOOL_NAMES[name].name, input: {} };
     return [{ ...event, content_block }];
   }
 
@@ -102,7 +102,7 @@ class ServerToolPass implements Pass<TurnEvent, TurnEvent> {
     const content = result.tool === 'WebSearch'
       ? searchContent(result, denial)
       : fetchContent(result, denial, { url: this.inputs.get(result.toolUseId)?.['url'], now: this.now });
-    const content_block = { type: `${SERVER_NAMES[result.tool]}_tool_result`, tool_use_id: serverToolUseId(result.toolUseId), content };
+    const content_block = { type: `${WEB_TOOL_NAMES[result.tool].name}_tool_result`, tool_use_id: serverToolUseId(result.toolUseId), content };
     const failed = !Array.isArray(content) && String(content['type']).endsWith('_error');
     const requests = failed ? 0 : result.tool === 'WebSearch' ? searchCount(result.toolUseResult) : 1;
     const usage = { server_tool_use: {

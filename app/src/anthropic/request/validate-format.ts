@@ -5,7 +5,8 @@
  * it is a 400 (the failure module's). `null` reads as absent.
  */
 import { JsonObject } from '../../upstream/frames';
-import { fieldInvalid, fieldRequired, isObject } from './field-errors';
+import { isObject } from '../../utils/json-object';
+import { fieldInvalid, fieldRequired } from './field-errors';
 import { extraInputs } from './validate-extra-fields';
 
 const FORMAT_FIELDS = new Set(['type', 'schema']);

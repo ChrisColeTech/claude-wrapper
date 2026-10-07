@@ -128,14 +128,15 @@ describe('Anthropic surface: how a turn fails', () => {
       expect(forget).toHaveBeenCalledWith('session-1');
     });
 
-    it('(iii) a timer firing: timeout_error at once, before upstream has exited', async () => {
+    it('(iii) a timer firing: timeout_error at once, before upstream has exited, and the run interrupted', async () => {
       const { upstream, ended } = await committed();
       await settle();
 
       clock.advance(90_000);
 
       expectSseError(await ended, 'timeout_error', 'upstream timed out (stall timer)');
-      expect(upstream.inputEnded()).toBe(true);
+      await waitFor(interrupted(upstream));
+      expect(upstream.inputEnded()).toBe(false);
       await expectForgottenAfterExit(upstream);
     });
 

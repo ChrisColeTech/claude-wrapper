@@ -6,7 +6,7 @@
  * every `mcp__client__<name>`, and `system/init` must report exactly those tools. `tool_choice:
  * none` leaves the bridge unmounted.
  */
-import { SurfaceError } from '../../../../src/anthropic/http/surface-error';
+import { SurfaceError } from '../../../../src/anthropic/surface-error';
 import { TurnPlan } from '../../../../src/anthropic/request';
 import { invalidRequest, planDefault, rejectionOf } from '../../../mocks/anthropic/plan-context';
 

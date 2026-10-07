@@ -11,7 +11,37 @@ claude-wrapper/
 ├── package.json                            # Marketing package.json with global CLI entry
 ├── README.md                               # Marketing README for npm/GitHub
 ├── app/                                    # Main application directory
+│   ├── bin/
+│   │   └── hook-client.js                # The web tools' PreToolUse hook client (run by Claude Code, not on PATH)
+│   ├── catalogue/
+│   │   └── models.json                   # The Anthropic surface's shipped model catalogue
 │   ├── src/                               # Source code
+│   │   ├── anthropic/                     # The Anthropic Messages API surface (spec section 16, ADR 0006)
+│   │   │   ├── index.ts                  # Composition root: createAnthropicSurface(deps) → {router, health, start, shutdown}
+│   │   │   ├── deps.ts                   # SurfaceDeps, the injectable slots (runner, catalogue, sessions, ...)
+│   │   │   ├── surface-state.ts          # State directory, fingerprint map and transcript retention
+│   │   │   ├── retention.ts              # Orphan sweep at wrapper start, hourly expiry sweep
+│   │   │   ├── redaction.ts              # Arms redaction from the CLI account file and the redact setting
+│   │   │   ├── web-tools.ts              # The API's web tools and upstream's built-ins behind them
+│   │   │   ├── surface-error/            # SurfaceError, the one error type of the surface
+│   │   │   ├── http/                     # Surface tag, body parser, credentials, routers, error renderer, OpenAPI document
+│   │   │   ├── catalogue/                # Model catalogue: load, resolve, list
+│   │   │   ├── request/                  # planTurn: validation (one file per concern), normalise, render, run spec
+│   │   │   ├── sessions/                 # Fingerprint map and parked-run registry
+│   │   │   ├── conductor/                # The orchestrator: plan → admit → run → translator → sink
+│   │   │   ├── scheduler/                # Run cap, rate-limit admission, session mutex, parking, teardown ladder
+│   │   │   ├── translate/                # Frames → turn stream, the eleven passes one file each
+│   │   │   ├── respond/                  # SSE, JSON and count sinks; the SDK-mirroring accumulator
+│   │   │   └── failure/                  # Upstream failure mapping (spec section 13) as data
+│   │   ├── upstream/                      # Surface-neutral driving of Claude Code (spec section 16)
+│   │   │   ├── frames.ts                 # The stream-json frame union
+│   │   │   ├── runner/                   # startRun(spec) → Run: spawn and replay adapters, timers, framing, ladder bottom
+│   │   │   ├── control-server/           # Loopback HTTP server with per-run tokened MCP and hook paths
+│   │   │   ├── bridge/                   # The tool bridge state machine and its MCP server adapter
+│   │   │   ├── hook-policy/              # The web tools' PreToolUse policy and audit
+│   │   │   ├── state-directory.ts        # The fixed working directory and per-run directories
+│   │   │   ├── transcripts.ts            # Upstream transcript store; transcript-sweep.ts sweeps it
+│   │   │   └── ...                       # mcp-config, hook-settings, account-file, connector-tools, structured-output
 │   │   ├── api/                           # API layer
 │   │   │   ├── routes/                    # Route handlers
 │   │   │   │   ├── chat.ts               # Chat completions endpoint
@@ -44,7 +74,9 @@ claude-wrapper/
 │   │   │   ├── manager.ts                # Background process management
 │   │   │   ├── daemon.ts                 # Daemon mode implementation
 │   │   │   ├── pid.ts                    # PID file management
-│   │   │   └── signals.ts                # Signal handling for graceful shutdown
+│   │   │   ├── signals.ts                # Signal handling for graceful shutdown
+│   │   │   ├── shutdown-budget.ts        # How long the whole shutdown may take
+│   │   │   └── surface-drain.ts          # Starts the Anthropic surface with the wrapper, drains it first at shutdown
 │   │   ├── session/                       # Session management
 │   │   │   ├── manager.ts                # Session lifecycle management
 │   │   │   └── storage.ts                # In-memory TTL storage
@@ -56,6 +88,9 @@ claude-wrapper/
 │   │   │   └── index.ts                  # Main type exports (enhanced POC)
 │   │   ├── utils/                         # Utility functions
 │   │   │   ├── logger.ts                 # Structured logging system
+│   │   │   ├── log-context.ts            # A logger whose every line carries the same context
+│   │   │   ├── clock.ts                  # The injectable clock (the system's by default)
+│   │   │   ├── json-object.ts            # JsonObject and the one object check
 │   │   │   └── errors.ts                 # Error handling utilities
 │   │   └── cli.ts                        # Main CLI entry point
 │   ├── tests/                             # Test suites
@@ -72,8 +107,20 @@ claude-wrapper/
 │   │   │   ├── cli/                      # CLI integration tests
 │   │   │   ├── process/                  # Process integration tests
 │   │   │   ├── session/                  # Session integration tests
-│   │   │   └── streaming/                # Streaming integration tests
+│   │   │   ├── streaming/                # Streaming integration tests
+│   │   │   ├── anthropic/                # The Anthropic surface through the official SDK
+│   │   │   └── upstream/                 # The spawn runner and the hook client against real local processes
+│   │   ├── e2e/                           # End-to-end tests
+│   │   │   └── upstream/                 # Real-CLI scenarios, skipped unless UPSTREAM_E2E=1
+│   │   ├── mocks/                         # Mocks ({module}-mock.ts) and test harnesses
+│   │   │   ├── anthropic/                # Surface harness, recordings readers, frame builders, SDK oracles
+│   │   │   ├── upstream/                 # Scripted and replayed runs, recordings
+│   │   │   └── shared/                   # Fake clock, waitFor
+│   │   ├── setup/                         # Jest setup: the real-CLI guard, the account-file isolation, the fixture guard
+│   │   ├── scripts/                       # Fixture scrub script and its library
 │   │   └── fixtures/                      # Test data and fixtures
+│   │       ├── upstream/                 # Scrubbed CLI recordings (index: README.md)
+│   │       └── turn-streams/             # Translator goldens
 │   ├── package.json                       # Dependencies and scripts
 │   ├── tsconfig.json                      # TypeScript configuration
 │   ├── jest.config.js                     # Jest testing configuration
@@ -142,6 +189,11 @@ claude-wrapper --help
 - **Routes**: RESTful endpoints for chat, models, health, sessions, and auth
 - **Middleware**: Error handling, session management, streaming, and authentication
 - **Server**: Express.js server configuration and setup
+
+#### **Anthropic Surface** (`app/src/anthropic/`, `app/src/upstream/`)
+- **anthropic**: the Messages API surface. The composition root builds it per app from injected dependencies; the conductor is its only orchestrator; the scheduler and the surface error live here too (ADR 0006's amendment)
+- **upstream**: surface-neutral driving of one Claude Code run: frames, the runner, the control server, the bridge and the hook policy
+- Spec: `.scratch/anthropic-compat-api/spec.md`; operator runbook: `docs/ANTHROPIC_SURFACE_RUNBOOK.md`
 
 #### **Core Logic** (`app/src/core/`)
 - **Wrapper**: Main request processing logic (enhanced from POC)

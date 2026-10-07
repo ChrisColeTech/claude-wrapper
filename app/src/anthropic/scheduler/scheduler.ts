@@ -4,14 +4,16 @@
  * `retry-after`) or every slot is taken (529, at once, no queue): one slot per run in existence,
  * active or parked, and a parked run is never evicted to admit a turn. A turn that answers a
  * parked run takes no slot of its own. A continued turn then waits on its session (the session
- * mutex) and is re-planned. The scheduler holds the parked runs, and at shutdown refuses newcomers,
+ * mutex), holding no slot, up to 10 s for the session's previous run, which is evicted then (its
+ * park abandoned, SIGKILL); it is re-planned and admitted again, and only then takes its slot. The
+ * scheduler holds the parked runs, and at shutdown refuses newcomers,
  * fails every turn in flight, abandons every parked run and sends every run down the teardown
  * ladder in parallel, SIGKILLing what is left at the drain's deadline.
  */
 import { ToolResultBlock } from '../../upstream/bridge';
 import { Frame } from '../../upstream/frames';
-import { logger as defaultLogger } from '../../utils/logger';
-import { SurfaceError } from '../http/surface-error';
+import { logger as defaultLogger, Logger } from '../../utils/logger';
+import { SurfaceError } from '../surface-error';
 import { resumedSession, TurnPlan } from '../request';
 import { ParkedRun } from '../sessions';
 import { createParking, Delivery, HeldOpen, Parking } from './parking';
@@ -19,43 +21,52 @@ import { RateLimitGate } from './rate-limit-gate';
 import { SessionLocks } from './session-locks';
 import { parkedRunLease, Slot, SlotHost } from './slot';
 import {
-  Admission, Lease, ScheduledRun, Scheduler, SchedulerCounts, SchedulerLogger, SchedulerOptions
+  Admission, Lease, ScheduledRun, Scheduler, SchedulerCounts, SchedulerOptions
 } from './types';
 import { within } from './wait';
 
 /** What a turn in flight is failed with at shutdown, and why each run goes down the ladder. */
 export const SHUTTING_DOWN = 'server shutting down';
 
-const overloaded = (message: string) => new SurfaceError(529, 'overloaded_error', message);
+const overloaded = (message: string) => SurfaceError.of('overloaded_error', message);
 
 class RunScheduler<R extends HeldOpen> implements Scheduler<R>, SlotHost {
   private readonly slots = new Set<Slot>();
   private readonly parking: Parking<R>;
   private readonly locks: SessionLocks;
   private readonly rateLimit: RateLimitGate;
-  private readonly logger: SchedulerLogger;
+  private readonly logger: Pick<Logger, 'info' | 'warn'>;
   private draining: Promise<void> | undefined;
 
   constructor(private readonly options: SchedulerOptions) {
     const { settings, clock, registry } = options;
     this.logger = options.logger ?? defaultLogger;
     this.parking = createParking<R>({ registry, clock, ttlMs: settings.parkTtlMs, logger: this.logger });
-    this.locks = new SessionLocks({ clock, waitMs: settings.continuedTurnWaitMs, logger: this.logger });
+    this.locks = new SessionLocks({
+      clock, waitMs: settings.continuedTurnWaitMs, logger: this.logger, evict: previous => this.evict(previous)
+    });
     this.rateLimit = new RateLimitGate(clock, this.logger);
   }
 
+  /**
+   * Refused now, or admitted: a parked run's turn at once (its run holds a slot already), a
+   * continued turn once it has waited on its session and is admitted again, as re-planned (the
+   * wait holds no slot), any other turn at once.
+   */
   async admit({ requestId, plan, replan }: Admission): Promise<Lease> {
-    const refusal = this.refusal(requestId, plan);
-    if (refusal) throw refusal;
+    this.refuse(requestId, plan);
     if ('parked' in plan.continuation) return parkedRunLease(plan);
     const slot = new Slot(requestId, plan, this);
-    this.slots.add(slot);
-    try {
-      await this.locks.acquire(slot, replan);
-    } catch (error) {
-      slot.release();
-      throw error;
+    if (resumedSession(plan.continuation) !== undefined) {
+      try {
+        await this.locks.acquire(slot, replan);
+        this.refuse(requestId, slot.plan);
+      } catch (error) {
+        slot.release();
+        throw error;
+      }
     }
+    this.slots.add(slot);
     return slot;
   }
 
@@ -97,22 +108,30 @@ class RunScheduler<R extends HeldOpen> implements Scheduler<R>, SlotHost {
     this.locks.unbind(slot);
   }
 
-  /** Why the request is refused now, if it is; logged with its request id and session. */
-  private refusal(requestId: string, plan: TurnPlan): SurfaceError | undefined {
+  /** Throws the refusal the request gets now, if any, logged with its request id and session. */
+  private refuse(requestId: string, plan: TurnPlan): void {
     const context = { requestId, sessionId: resumedSession(plan.continuation) };
     if (this.draining) {
       this.logger.info('Shutting down: request refused', context);
-      return overloaded('Overloaded: the server is shutting down');
+      throw overloaded('Overloaded: the server is shutting down');
     }
     const rateLimited = this.rateLimit.refusal();
     if (rateLimited) {
       this.logger.warn('Rate-limited: request refused', { ...context, retryAfter: rateLimited.retryAfter });
-      return rateLimited;
+      throw rateLimited;
     }
     const { maxRuns } = this.options.settings;
-    if ('parked' in plan.continuation || this.slots.size < maxRuns) return undefined;
+    if ('parked' in plan.continuation || this.slots.size < maxRuns) return;
     this.logger.warn('Run cap reached: request refused', { ...context, ...this.counts() });
-    return overloaded(`Overloaded: the wrapper is running its limit of ${maxRuns} upstream runs`);
+    throw overloaded(`Overloaded: the wrapper is running its limit of ${maxRuns} upstream runs`);
+  }
+
+  /** A previous run that outlived a continued turn's wait: its park, if parked, abandoned; then SIGKILL. */
+  private evict(previous: Slot): void {
+    if (!previous.run) return;
+    const waited = this.options.settings.continuedTurnWaitMs / 1000;
+    this.parking.abandon(previous.run.runId, `a continued turn on its session waited ${waited} s for it`);
+    previous.run.kill();
   }
 
   private async drain(deadlineMs: number): Promise<void> {
@@ -143,7 +162,7 @@ class RunScheduler<R extends HeldOpen> implements Scheduler<R>, SlotHost {
 
   /** A turn in flight gets the SSE `error` (or, before commit, its HTTP error); the run goes down the ladder. */
   private endForShutdown(run: ScheduledRun): void {
-    run.fail(new SurfaceError(500, 'api_error', SHUTTING_DOWN));
+    run.fail(SurfaceError.of('api_error', SHUTTING_DOWN));
     run.stop(SHUTTING_DOWN);
   }
 }

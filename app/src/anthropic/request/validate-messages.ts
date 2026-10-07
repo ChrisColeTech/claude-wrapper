@@ -4,8 +4,9 @@
  * Paths name the client's own indices, before any merging. What each block kind may carry beyond
  * its `type` is other concerns' (a text block's `text` is checked here).
  */
-import { SurfaceError } from '../http/surface-error';
-import { Body, fieldInvalid, fieldRequired, isObject } from './field-errors';
+import { JsonObject, isObject } from '../../utils/json-object';
+import { SurfaceError } from '../surface-error';
+import { fieldInvalid, fieldRequired } from './field-errors';
 import { ContentBlock } from './turn-plan';
 
 /** A message as the client sent it, its shape checked. */
@@ -24,7 +25,7 @@ function validateBlock(block: unknown, path: string): ContentBlock {
   return block as ContentBlock;
 }
 
-function validateText(block: Body, path: string): void {
+function validateText(block: JsonObject, path: string): void {
   if (block['text'] === undefined) throw fieldRequired(`${path}.text`);
   if (typeof block['text'] !== 'string') throw fieldInvalid(`${path}.text`, 'a valid string');
   if (block['text'] === '') throw SurfaceError.invalidRequest('messages: text content blocks must be non-empty');

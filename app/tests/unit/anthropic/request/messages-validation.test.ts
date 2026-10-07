@@ -2,7 +2,7 @@
  * The rejections of `messages` (spec section 4.2): their shape, checked against the client's own
  * indices, and their order once merged. Exact status, type and message, before anything spawns.
  */
-import { SurfaceError } from '../../../../src/anthropic/http/surface-error';
+import { SurfaceError } from '../../../../src/anthropic/surface-error';
 import { invalidRequest, planDefault, rejectionOf } from '../../../mocks/anthropic/plan-context';
 
 const VALID = { model: 'claude-sonnet-5-5', max_tokens: 1024, messages: [{ role: 'user', content: 'Hello' }] };

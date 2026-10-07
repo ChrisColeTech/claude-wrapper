@@ -4,13 +4,15 @@
  * session key), `service_tier` (its enum validated; the response relays upstream's tier),
  * `inference_geo`, `diagnostics` and a top-level `cache_control`. `null` reads as absent.
  */
-import { SurfaceError } from '../http/surface-error';
-import { Body, fieldInvalid, isObject } from './field-errors';
+import { JsonObject, isObject } from '../../utils/json-object';
+import { SurfaceError } from '../surface-error';
+import { fieldInvalid } from './field-errors';
 import { extraInputs } from './validate-extra-fields';
 
 const SERVICE_TIERS: readonly unknown[] = ['auto', 'standard_only'];
 
-function present(body: Body, field: string): unknown {
+/** The field's value, `null` read as absent. */
+function fieldValue(body: JsonObject, field: string): unknown {
   const value = body[field];
   return value === null ? undefined : value;
 }
@@ -26,20 +28,20 @@ function checkMetadata(metadata: unknown): void {
   }
 }
 
-function checkObject(body: Body, field: string): void {
-  const value = present(body, field);
+function checkObject(body: JsonObject, field: string): void {
+  const value = fieldValue(body, field);
   if (value !== undefined && !isObject(value)) throw fieldInvalid(field, 'a valid dictionary');
 }
 
-export function validatePlainFields(body: Body): void {
-  const stream = present(body, 'stream');
+export function validatePlainFields(body: JsonObject): void {
+  const stream = fieldValue(body, 'stream');
   if (stream !== undefined && typeof stream !== 'boolean') throw fieldInvalid('stream', 'a valid boolean');
-  checkMetadata(present(body, 'metadata'));
-  const tier = present(body, 'service_tier');
+  checkMetadata(fieldValue(body, 'metadata'));
+  const tier = fieldValue(body, 'service_tier');
   if (tier !== undefined && !SERVICE_TIERS.includes(tier)) {
     throw SurfaceError.invalidRequest("service_tier: Input should be 'auto' or 'standard_only'");
   }
-  const geo = present(body, 'inference_geo');
+  const geo = fieldValue(body, 'inference_geo');
   if (geo !== undefined && typeof geo !== 'string') throw fieldInvalid('inference_geo', 'a valid string');
   checkObject(body, 'diagnostics');
   checkObject(body, 'cache_control');

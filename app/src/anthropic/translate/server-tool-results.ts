@@ -8,11 +8,10 @@
  */
 import { JsonObject } from '../../upstream/frames';
 import { DenialCode } from '../../upstream/hook-policy';
+import { isObject } from '../../utils/json-object';
 import { ServerToolResultSignal } from './turn-event';
 
 type ResultInput = Pick<ServerToolResultSignal, 'block' | 'toolUseResult'>;
-
-const isObject = (value: unknown): value is JsonObject => typeof value === 'object' && value !== null && !Array.isArray(value);
 
 const failed = ({ block }: ResultInput): boolean => block['is_error'] === true;
 
@@ -32,11 +31,18 @@ export function searchContent(result: ResultInput, denial: DenialCode | undefine
     .map(({ url, title }) => ({ type: 'web_search_result', url, title, encrypted_content: encrypted(url, title), page_age: null }));
 }
 
-/** The text upstream's model received: a string, or its text blocks. */
-function receivedText(content: unknown): string {
-  if (typeof content === 'string') return content;
-  if (!Array.isArray(content)) return '';
-  return content.filter(isObject).filter(item => item['type'] === 'text').map(item => String(item['text'])).join('\n');
+/**
+ * What upstream's model received from a tool, as text: a string as is, else each text item's text;
+ * `onDropped` hears of every other item's type.
+ */
+export function receivedTexts(content: unknown, onDropped: (type: unknown) => void = () => undefined): string[] {
+  if (typeof content === 'string') return [content];
+  if (!Array.isArray(content)) return [];
+  return content.filter(isObject).flatMap(item => {
+    if (item['type'] === 'text') return [String(item['text'] ?? '')];
+    onDropped(item['type']);
+    return [];
+  });
 }
 
 export interface FetchContext {
@@ -58,7 +64,7 @@ export function fetchContent(result: ResultInput, denial: DenialCode | undefined
     retrieved_at: new Date(context.now()).toISOString(),
     content: {
       type: 'document',
-      source: { type: 'text', media_type: 'text/plain', data: receivedText(result.block['content']) },
+      source: { type: 'text', media_type: 'text/plain', data: receivedTexts(result.block['content']).join('\n') },
       title: null
     }
   };

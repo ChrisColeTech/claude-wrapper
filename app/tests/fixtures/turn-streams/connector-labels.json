@@ -445,6 +445,10 @@
       "output_tokens": 462,
       "output_tokens_details": {
         "thinking_tokens": 0
+      },
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 6634
       }
     }
   },

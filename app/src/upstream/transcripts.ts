@@ -12,7 +12,7 @@
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { logger as defaultLogger } from '../utils/logger';
+import { logger as defaultLogger, Logger } from '../utils/logger';
 import { SESSION_ID, sweepTranscripts } from './transcript-sweep';
 
 export interface TranscriptStore {
@@ -27,10 +27,6 @@ export interface TranscriptDirectory extends TranscriptStore {
    * returns how many went. Never throws: a failure is logged and counts nothing.
    */
   sweep(before?: number): number;
-}
-
-export interface TranscriptLogger {
-  warn(message: string, context?: unknown): void;
 }
 
 /** The child's own environment: where its home and Claude Code's storage knobs come from. */
@@ -53,7 +49,7 @@ export function upstreamProjectDirectory(cwd: string, env: ChildEnvironment): st
 
 /** `directory` is asked at each deletion and sweep: the state directory behind it opens at the first turn. */
 export function createTranscriptStore(
-  directory: () => string, logger: TranscriptLogger = defaultLogger
+  directory: () => string, logger: Pick<Logger, 'warn'> = defaultLogger
 ): TranscriptDirectory {
   return {
     sweep(before) {

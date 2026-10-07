@@ -202,7 +202,7 @@ describe('Anthropic surface: tool_choice', () => {
     const spec = runner.started[0]?.spec;
     expect(spec?.flags).not.toContain('--mcp-config');
     expect(spec?.flags[(spec?.flags.indexOf('--allowedTools') ?? 0) + 1]).toBe('');
-    expect(spec?.runDir?.files).toEqual({});
+    expect(Object.keys(spec?.runDir?.files ?? {})).toEqual(['system-prompt.txt']);
     expect(controlServer.registerRun).not.toHaveBeenCalled();
   });
 

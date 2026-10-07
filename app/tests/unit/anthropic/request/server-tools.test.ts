@@ -3,7 +3,7 @@
  * pass to their tickets; every server tool type the surface cannot serve is a 400 naming the type
  * at the client's index, and a web tool carrying both domain lists is a 400, as on the real API.
  */
-import { SurfaceError } from '../../../../src/anthropic/http/surface-error';
+import { SurfaceError } from '../../../../src/anthropic/surface-error';
 import { invalidRequest, planDefault, rejectionOf } from '../../../mocks/anthropic/plan-context';
 
 const VALID = { model: 'opus', max_tokens: 1024, messages: [{ role: 'user', content: 'Hello' }] };

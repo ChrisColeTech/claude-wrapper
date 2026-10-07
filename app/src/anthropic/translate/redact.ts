@@ -12,7 +12,8 @@
  * value, and the SDKs' `parse()` helpers still read the text.
  */
 import { JsonObject } from '../../upstream/frames';
-import { Pass } from './pass';
+import { BlockScanners } from './block-scanners';
+import { identity, Pass } from './pass';
 import { createScanner, PayloadKind, PayloadScanner } from './redact-scanner';
 import { ApiEvent, TurnEvent } from './turn-event';
 
@@ -23,6 +24,7 @@ const PAYLOAD_FIELDS: Readonly<Record<string, string>> = { text_delta: 'text', i
 interface OpenPayload {
   deltaType: string;
   scanner: PayloadScanner;
+  flush(): string;
 }
 
 const deltaOf = (index: number, deltaType: string, payload: string): DeltaEvent => ({
@@ -30,7 +32,7 @@ const deltaOf = (index: number, deltaType: string, payload: string): DeltaEvent 
 });
 
 class Redaction implements Pass<TurnEvent, TurnEvent> {
-  private readonly open = new Map<number, OpenPayload>();
+  private readonly open = new BlockScanners<OpenPayload>();
 
   constructor(private readonly strings: readonly string[], private readonly textKind: PayloadKind) {}
 
@@ -41,7 +43,7 @@ class Redaction implements Pass<TurnEvent, TurnEvent> {
   }
 
   end(): TurnEvent[] {
-    return [...this.open.keys()].flatMap(index => this.release(index));
+    return this.open.indices.flatMap(index => this.release(index));
   }
 
   private onDelta(event: DeltaEvent): TurnEvent[] {
@@ -59,25 +61,22 @@ class Redaction implements Pass<TurnEvent, TurnEvent> {
   }
 
   private scannerFor(index: number, deltaType: string, kind: PayloadKind): PayloadScanner {
-    const open = this.open.get(index);
-    if (open) return open.scanner;
-    const scanner = createScanner(this.strings, kind);
-    this.open.set(index, { deltaType, scanner });
-    return scanner;
+    return this.open.at(index, () => {
+      const scanner = createScanner(this.strings, kind);
+      return { deltaType, scanner, flush: () => scanner.flush() };
+    }).scanner;
   }
 
   private release(index: number): TurnEvent[] {
-    const open = this.open.get(index);
-    if (!open) return [];
-    this.open.delete(index);
-    const rest = open.scanner.flush();
-    return rest === '' ? [] : [deltaOf(index, open.deltaType, rest)];
+    const released = this.open.release(index);
+    if (!released || released.rest === '') return [];
+    return [deltaOf(index, released.scanner.deltaType, released.rest)];
   }
 }
 
 /** `textKind` is how text deltas are read: `'json'` on a structured-output run. */
 export function createRedaction(strings: readonly string[], textKind: PayloadKind = 'text'): Pass<TurnEvent, TurnEvent> {
   const armed = strings.filter(armed => armed.length > 0);
-  if (armed.length === 0) return { push: event => [event], end: () => [] };
+  if (armed.length === 0) return identity();
   return new Redaction(armed, textKind);
 }

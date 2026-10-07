@@ -7,8 +7,9 @@
  * `stream`, `stop_sequences`, the sampling and plain fields, `container`) are extra inputs there.
  * `mcp_servers` is known to both: beta-only, its gate is the connectors' (`connectors.ts`).
  */
-import { SurfaceError } from '../http/surface-error';
-import { Body, fieldInvalid, isObject } from './field-errors';
+import { JsonObject, isObject } from '../../utils/json-object';
+import { SurfaceError } from '../surface-error';
+import { fieldInvalid } from './field-errors';
 import { Endpoint } from './turn-plan';
 
 const KNOWN_FIELDS = new Set([
@@ -27,7 +28,7 @@ export function extraInputs(path: string): SurfaceError {
   return SurfaceError.invalidRequest(`${path}: Extra inputs are not permitted`);
 }
 
-function rejectUnknown(value: Body, known: ReadonlySet<string>, prefix: string): void {
+function rejectUnknown(value: JsonObject, known: ReadonlySet<string>, prefix: string): void {
   const unknown = Object.keys(value).find(field => !known.has(field));
   if (unknown !== undefined) throw extraInputs(`${prefix}${unknown}`);
 }
@@ -38,7 +39,7 @@ function checkOutputConfig(outputConfig: unknown): void {
   rejectUnknown(outputConfig, KNOWN_OUTPUT_CONFIG_FIELDS, 'output_config.');
 }
 
-export function rejectExtraFields(body: Body, endpoint: Endpoint): void {
+export function rejectExtraFields(body: JsonObject, endpoint: Endpoint): void {
   rejectUnknown(body, endpoint === 'messages' ? KNOWN_FIELDS : COUNT_TOKENS_FIELDS, '');
   checkOutputConfig(body['output_config']);
   if (body['container'] !== undefined && body['container'] !== null) {

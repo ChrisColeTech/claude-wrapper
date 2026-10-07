@@ -3,13 +3,15 @@
  * failure, a park TTL, the shutdown): `control_request interrupt` → up to 5 s for upstream's
  * `result` → stdin closed → up to 2 s for the exit → SIGTERM → up to 5 s → SIGKILL. The steps from
  * the closed stdin down are the run's own `close()`. A run whose `result` is in has nothing left to
- * interrupt: its stdin closes at once, which is also what ends every run after its `result`.
+ * interrupt: its stdin closes at once, which is also what ends every run after its `result`. A run
+ * the runner ended itself (a timer, a line too long) is already on the same ladder in the runner;
+ * descending it as well only interrupts it again (through the bridge, rejecting its waiting calls).
  */
-import { Run } from '../../upstream/runner';
+import { RESULT_WAIT_MS, Run } from '../../upstream/runner';
 import { Clock, TimerHandle } from '../../utils/clock';
 
-/** How long a run on the ladder gets to write its `result` before its stdin is closed. */
-export const RESULT_WAIT_MS = 5_000;
+/** How long a run on the ladder gets to write its `result` before its stdin is closed: the runner's own wait. */
+export { RESULT_WAIT_MS };
 
 export interface TeardownOptions {
   clock: Clock;

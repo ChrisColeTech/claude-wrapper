@@ -25,6 +25,18 @@ export interface SurfaceErrorOptions {
   retryAfter?: number;
 }
 
+/** The status each type is answered with, unless a row of the error tables says otherwise. */
+const STATUS_OF: Readonly<Record<SurfaceErrorType, number>> = {
+  invalid_request_error: 400,
+  authentication_error: 401,
+  not_found_error: 404,
+  request_too_large: 413,
+  rate_limit_error: 429,
+  api_error: 500,
+  timeout_error: 504,
+  overloaded_error: 529
+};
+
 export class SurfaceError extends Error {
   readonly status: number;
   readonly type: SurfaceErrorType;
@@ -40,8 +52,13 @@ export class SurfaceError extends Error {
     this.retryAfter = options.retryAfter;
   }
 
+  /** An error of `type` with that type's usual status (400, 401, 404, 413, 429, 500, 504, 529). */
+  static of(type: SurfaceErrorType, message: string, options: SurfaceErrorOptions = {}): SurfaceError {
+    return new SurfaceError(STATUS_OF[type], type, message, options);
+  }
+
   /** 400 `invalid_request_error`: the client must fix the request. */
   static invalidRequest(message: string): SurfaceError {
-    return new SurfaceError(400, 'invalid_request_error', message);
+    return SurfaceError.of('invalid_request_error', message);
   }
 }

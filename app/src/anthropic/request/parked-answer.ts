@@ -10,7 +10,7 @@
  * replayed, the caller notes it.
  */
 import { ToolResultBlock } from '../../upstream/bridge';
-import { SurfaceError } from '../http/surface-error';
+import { SurfaceError } from '../surface-error';
 import { ParkedRuns } from '../sessions';
 import { ClientMessage } from './validate-messages';
 import { ContentBlock, NormalisedMessage, ParkedContinuation } from './turn-plan';

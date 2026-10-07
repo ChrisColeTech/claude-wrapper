@@ -7,7 +7,7 @@
  * `connected`. `defer_loading` is ignored; `enabled: false` is honoured as far as allow rules can
  * express it. The token never reaches argv or the environment.
  */
-import { SurfaceError } from '../../../../src/anthropic/http/surface-error';
+import { SurfaceError } from '../../../../src/anthropic/surface-error';
 import { planCountTokens, planTurn, RunContext, TurnPlan } from '../../../../src/anthropic/request';
 import { ANTHROPIC_SETTING_DEFAULTS } from '../../../../src/config/anthropic-settings';
 import { connectorRequest, MCP_BETA } from '../../../mocks/anthropic/connector-recordings';
@@ -54,7 +54,7 @@ describe('planTurn mounts the connectors (spec sections 9, 10)', () => {
     });
     expect(JSON.stringify(runSpec.flags)).not.toContain(TOKEN);
     expect(JSON.stringify(runSpec.env)).not.toContain(TOKEN);
-    expect(runSpec.runDir?.files).toEqual({});
+    expect(runSpec.runDir?.files).toEqual({ 'system-prompt.txt': '' });
   });
 
   it('allows the client tools first, then each server, beside the bridge server', () => {

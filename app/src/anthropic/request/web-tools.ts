@@ -8,15 +8,14 @@
  * `tool_choice: none` disables them, though they are validated all the same.
  */
 import { HookPolicySpec, WebTool, WebToolLimits } from '../../upstream/hook-policy';
-import { SurfaceError } from '../http/surface-error';
-import { Body, fieldInvalid, fieldRequired, isObject } from './field-errors';
+import { JsonObject, isObject } from '../../utils/json-object';
+import { SurfaceError } from '../surface-error';
+import { WEB_TOOL_NAMES } from '../web-tools';
+import { fieldInvalid, fieldRequired, present } from './field-errors';
+import { toolsHidden } from './validate-tool-choice';
 
-const KINDS: readonly { prefix: string; name: string; tool: WebTool }[] = [
-  { prefix: 'web_search_', name: 'web_search', tool: 'WebSearch' },
-  { prefix: 'web_fetch_', name: 'web_fetch', tool: 'WebFetch' }
-];
+const KINDS = Object.values(WEB_TOOL_NAMES);
 
-const present = (value: unknown): boolean => value !== undefined && value !== null;
 
 function validateName(value: unknown, name: string, path: string): void {
   if (value === undefined) throw fieldRequired(`${path}.name`);
@@ -39,7 +38,7 @@ function domains(value: unknown, path: string): readonly string[] | undefined {
   return value.length > 0 ? (value as string[]) : undefined;
 }
 
-function limits(tool: Body, path: string): WebToolLimits {
+function limits(tool: JsonObject, path: string): WebToolLimits {
   const uses = maxUses(tool['max_uses'], path);
   const allowed = domains(tool['allowed_domains'], `${path}.allowed_domains`);
   const blocked = domains(tool['blocked_domains'], `${path}.blocked_domains`);
@@ -56,13 +55,12 @@ export function webTools(tools: unknown, toolChoice: unknown): HookPolicySpec | 
   const policy: { [tool in WebTool]?: WebToolLimits } = {};
   tools.forEach((tool: unknown, index) => {
     const type = isObject(tool) ? tool['type'] : undefined;
-    const kind = typeof type === 'string' ? KINDS.find(candidate => type.startsWith(candidate.prefix)) : undefined;
+    const kind = typeof type === 'string' ? KINDS.find(candidate => type.startsWith(candidate.typePrefix)) : undefined;
     if (!kind || !isObject(tool)) return;
     const path = `tools.${index}.${String(type)}`;
     validateName(tool['name'], kind.name, path);
     if (policy[kind.tool]) throw SurfaceError.invalidRequest('tools: Tool names must be unique.');
     policy[kind.tool] = limits(tool, path);
   });
-  const disabled = isObject(toolChoice) && toolChoice['type'] === 'none';
-  return disabled || Object.keys(policy).length === 0 ? undefined : policy;
+  return toolsHidden(toolChoice) || Object.keys(policy).length === 0 ? undefined : policy;
 }

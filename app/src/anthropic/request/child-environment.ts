@@ -18,8 +18,12 @@ const REFUSED_VARIABLES: Readonly<Record<string, string>> = {
   CLAUDE_CODE_SIMPLE: 'it refuses the subscription login'
 };
 
-/** The CLI's own default, pinned so the connector connect wait is known and inside the startup timer. */
-const MCP_CONNECT_TIMEOUT_MS = 5_000;
+/**
+ * The connector connect wait, pinned so it is known and ends inside the startup timer (20 s by
+ * default). Upstream reads two variables for it: `MCP_CONNECT_TIMEOUT_MS` (its default is this
+ * value) and `MCP_TIMEOUT` (its default, 30 s, would outlast the startup timer); both are pinned.
+ */
+const MCP_CONNECT_WAIT_MS = '5000';
 /** Upstream's per-session search cap; a run is one turn, so `max_uses` always binds first. */
 const WEB_SEARCHES_PER_SESSION = 200;
 
@@ -61,7 +65,8 @@ export function childEnvironment(inputs: EnvironmentInputs): Record<string, stri
     CLAUDE_CODE_MAX_OUTPUT_TOKENS: String(inputs.maxOutputTokens),
     CLAUDE_CODE_MCP_TOOL_IDLE_TIMEOUT: mcpTimeout,
     MCP_TOOL_TIMEOUT: mcpTimeout,
-    MCP_CONNECT_TIMEOUT_MS: String(MCP_CONNECT_TIMEOUT_MS),
+    MCP_CONNECT_TIMEOUT_MS: MCP_CONNECT_WAIT_MS,
+    MCP_TIMEOUT: MCP_CONNECT_WAIT_MS,
     CLAUDE_CODE_MAX_WEB_SEARCHES_PER_SESSION: String(WEB_SEARCHES_PER_SESSION),
     ...inputs.thinking,
     ...settings.upstreamEnv

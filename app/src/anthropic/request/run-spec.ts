@@ -8,6 +8,7 @@ import { WebTool } from '../../upstream/hook-policy';
 import { HOOK_SETTINGS_FILE_NAME } from '../../upstream/hook-settings';
 import { MCP_CONFIG_FILE_NAME } from '../../upstream/mcp-config';
 import { RunSpec } from '../../upstream/runner';
+import { WEB_TOOL_NAMES } from '../web-tools';
 import { childEnvironment } from './child-environment';
 import { runFlags } from './run-flags';
 import { RunContext } from './turn-plan';
@@ -35,8 +36,8 @@ export interface RunInputs {
   noSessionPersistence?: boolean;
 }
 
-/** The permission rule that admits each built-in; the hook enforces the request's limits on top. */
-const ALLOW_RULES: Readonly<Record<WebTool, string>> = { WebSearch: 'WebSearch', WebFetch: 'WebFetch(domain:*)' };
+/** The run's file holding the system prompt, which upstream reads verbatim as UTF-8. */
+export const SYSTEM_PROMPT_FILE_NAME = 'system-prompt.txt';
 
 export function buildRunSpec(inputs: RunInputs, context: RunContext): RunSpec {
   const { settings, environment, state, runId } = context;
@@ -47,12 +48,12 @@ export function buildRunSpec(inputs: RunInputs, context: RunContext): RunSpec {
   const hooked = inputs.webTools.length > 0;
   return {
     flags: runFlags({
-      system: inputs.system, modelId: inputs.modelId, maxTurns: settings.maxTurns,
+      systemPromptFile: path.join(runDir, SYSTEM_PROMPT_FILE_NAME), modelId: inputs.modelId, maxTurns: settings.maxTurns,
       tools: inputs.webTools,
       allowedTools: [
         ...inputs.clientToolNames.map(name => `${CLIENT_TOOL_PREFIX}${name}`),
         ...inputs.connectorRules,
-        ...inputs.webTools.map(tool => ALLOW_RULES[tool])
+        ...inputs.webTools.map(tool => WEB_TOOL_NAMES[tool].allowRule)
       ],
       // The conductor writes these files into the run's directory once the control server has its token.
       ...(mcpServers ? { mcpConfig: path.join(runDir, MCP_CONFIG_FILE_NAME) } : {}),
@@ -64,7 +65,7 @@ export function buildRunSpec(inputs: RunInputs, context: RunContext): RunSpec {
     }),
     env: childEnvironment({ maxOutputTokens: inputs.maxTokens, thinking: inputs.thinking, settings, environment }),
     cwd: state.cwd,
-    runDir: { path: runDir, files: {} },
+    runDir: { path: runDir, files: { [SYSTEM_PROMPT_FILE_NAME]: inputs.system } },
     timers: { startup: timers.startupMs, stall: timers.stallMs, lifetime: timers.lifetimeMs }
   };
 }

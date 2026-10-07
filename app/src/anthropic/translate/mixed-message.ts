@@ -7,14 +7,12 @@
  * is held: a built-in after it runs only once the client's results are in, so its result opens the
  * resuming turn instead (the documented deviation).
  */
-import { CLIENT_TOOL_PREFIX } from '../../upstream/bridge';
-import { isConnectorTool } from '../../upstream/connector-tools';
 import { StreamEvent } from '../../upstream/frames';
-import { isWebTool } from '../../upstream/hook-policy';
+import { runsUpstream, ToolKind, toolUseKind } from './tool-use-kind';
 
-const toolUse = (event: StreamEvent): { id: string; name: string } | undefined => {
+const toolUse = (event: StreamEvent): { id: string; kind: ToolKind | undefined } | undefined => {
   if (event.type !== 'content_block_start' || event.content_block['type'] !== 'tool_use') return undefined;
-  return { id: String(event.content_block['id']), name: String(event.content_block['name']) };
+  return { id: String(event.content_block['id']), kind: toolUseKind(event.content_block) };
 };
 
 export class MixedMessageHold {
@@ -34,8 +32,8 @@ export class MixedMessageHold {
       this.clientSeen = false;
     }
     const call = toolUse(event);
-    if (call && (isWebTool(call.name) || isConnectorTool(call.name))) this.unanswered.add(call.id);
-    if (!call?.name.startsWith(CLIENT_TOOL_PREFIX) || this.clientSeen) return false;
+    if (call && runsUpstream(call.kind)) this.unanswered.add(call.id);
+    if (call?.kind !== 'client' || this.clientSeen) return false;
     this.clientSeen = true;
     if (this.unanswered.size === 0) return false;
     this.held = [event];

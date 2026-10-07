@@ -1,23 +1,44 @@
 /**
- * Small helpers of the conductor's: log context, what a request asked for, and the sessions a lost
- * park falls back to.
+ * Small helpers of the conductor's: its logger, the request it answers, what the request asked
+ * for, the planner's context for it, how a turn's end is logged, and the sessions a lost park
+ * falls back to.
  */
+import { Request, Response } from 'express';
+import { AnthropicSettings } from '../../config/anthropic-settings';
+import { StateDirectory } from '../../upstream/state-directory';
+import { isObject } from '../../utils/json-object';
+import { Logger } from '../../utils/logger';
+import { anthropicBetas } from '../http';
+import { RunContext } from '../request';
 import { SinkOutcome } from '../respond';
 import { Sessions } from '../sessions';
-import { PumpLogger } from './run-pump';
 
-/** `logger` with `context` on every line. */
-export function withContext(logger: PumpLogger, context: object): PumpLogger {
-  return {
-    debug: (message, extra) => logger.debug(message, { ...context, ...(extra as object) }),
-    info: (message, extra) => logger.info(message, { ...context, ...(extra as object) }),
-    warn: (message, extra) => logger.warn(message, { ...context, ...(extra as object) })
-  };
+/** What the conductor logs with: every line carries the request's id and its run's. */
+export type ConductorLogger = Pick<Logger, 'debug' | 'info' | 'warn'>;
+
+/** One request being answered: where its answer goes, under which request id. */
+export interface Exchange {
+  req: Request;
+  res: Response;
+  requestId: string;
 }
 
-export const wantsStream = (body: unknown): boolean =>
-  typeof body === 'object' && body !== null && (body as { stream?: unknown }).stream === true;
+/** What planning a request reads beside the request itself. */
+export interface PlanningDeps {
+  settings: AnthropicSettings;
+  /** The wrapper's own environment, read once by the composition root. */
+  environment: Readonly<Record<string, string | undefined>>;
+  stateDirectory: () => StateDirectory;
+}
 
+/** The planner's context for `req`'s run `runId`. */
+export const planContext = (deps: PlanningDeps, req: Request, runId: string): RunContext => ({
+  settings: deps.settings, environment: deps.environment, state: deps.stateDirectory(), runId, betas: anthropicBetas(req)
+});
+
+export const wantsStream = (body: unknown): boolean => isObject(body) && body['stream'] === true;
+
+/** How a response ended, for the line that logs the turn's (or the count's) end. */
 export const outcomeContext = (outcome: SinkOutcome): object =>
   ('error' in outcome ? { outcome: outcome.kind, errorType: outcome.error.type } : { outcome: outcome.kind });
 

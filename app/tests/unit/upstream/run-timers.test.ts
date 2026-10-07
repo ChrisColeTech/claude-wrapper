@@ -22,10 +22,11 @@ function startWith(timers: Partial<RunTimers>) {
   return { clock, proc, run, failure };
 }
 
+/** Whether a timer has ended the run by then: the runner interrupts it first, at the ladder's top. */
 async function firedAfter(setup: ReturnType<typeof startWith>, ms: number): Promise<boolean> {
   setup.clock.advance(ms);
   await settle();
-  return setup.proc.inputEnded();
+  return setup.proc.writtenLines().some(line => (line as { type?: string }).type === 'control_request');
 }
 
 describe('run timers', () => {

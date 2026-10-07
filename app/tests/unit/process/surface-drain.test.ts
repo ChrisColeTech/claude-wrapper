@@ -7,7 +7,8 @@
  */
 import { SIGNAL_CONFIG } from '../../../src/config/constants';
 import { ISignalHandler, ShutdownStep, SignalHandler } from '../../../src/process/signals';
-import { registerSurfaceDrain, SURFACE_DRAIN_MARGIN_MS } from '../../../src/process/surface-drain';
+import { loadAnthropicSettings } from '../../../src/config/anthropic-settings';
+import { attachAnthropicSurface, registerSurfaceDrain, SURFACE_DRAIN_MARGIN_MS } from '../../../src/process/surface-drain';
 
 jest.mock('../../../src/process/pid', () => ({ pidManager: { cleanupPidFile: jest.fn() } }));
 jest.mock('../../../src/utils/logger', () => ({
@@ -30,6 +31,23 @@ describe('the shutdown drains the Anthropic surface', () => {
     expect(steps[0]?.step).toBeLessThan(SIGNAL_CONFIG.SHUTDOWN_STEPS.CLOSE_SERVER);
     await steps[0]?.action();
     expect(drain).toHaveBeenCalledTimes(1);
+  });
+
+  it('starts the surface with the wrapper and drains it at shutdown within the drain setting', async () => {
+    const steps: ShutdownStep[] = [];
+    const handler = { registerShutdownStep: (step: ShutdownStep) => steps.push(step) } as unknown as ISignalHandler;
+    const surface = { start: jest.fn(), shutdown: jest.fn(async () => undefined) };
+
+    attachAnthropicSurface(handler, surface);
+
+    expect(surface.start).toHaveBeenCalledTimes(1);
+    expect(steps).toEqual([expect.objectContaining({
+      step: SIGNAL_CONFIG.SHUTDOWN_STEPS.DRAIN_ANTHROPIC_SURFACE,
+      timeout: loadAnthropicSettings(process.env).shutdownDrainMs + SURFACE_DRAIN_MARGIN_MS
+    })]);
+    expect(surface.shutdown).not.toHaveBeenCalled();
+    await steps[0]?.action();
+    expect(surface.shutdown).toHaveBeenCalledTimes(1);
   });
 
   it('is not cut short by the default 10 s forced exit when the drain takes longer', async () => {

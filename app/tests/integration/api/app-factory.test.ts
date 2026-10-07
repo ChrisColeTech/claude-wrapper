@@ -1,7 +1,7 @@
 import request from 'supertest';
 import { once } from 'events';
 import { AddressInfo } from 'net';
-import defaultApp, { createServer, startServer } from '../../../src/api/server';
+import { createServer, startServer } from '../../../src/api/server';
 import { EnvironmentManager } from '../../../src/config/env';
 import { SurfaceDeps } from '../../../src/anthropic/deps';
 import { createFakeClock } from '../../mocks/shared/fake-clock';
@@ -43,11 +43,6 @@ describe('App factory', () => {
 
     await request(first).get('/only-on-first').expect(200);
     await request(second).get('/only-on-first').expect(404);
-  });
-
-  it('keeps the default export an app that serves the OpenAI surface', async () => {
-    const health = await request(defaultApp).get('/health').expect(200);
-    expect(health.body).toEqual(expect.objectContaining({ status: 'healthy', service: 'claude-wrapper' }));
   });
 
   it('starts a server listening on the configured port', async () => {

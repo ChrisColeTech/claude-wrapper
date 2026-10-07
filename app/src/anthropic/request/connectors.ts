@@ -11,11 +11,12 @@
  */
 import { AnthropicSettings, ANTHROPIC_SETTING_ENV } from '../../config/anthropic-settings';
 import { connectorServerEntry, McpHttpServerEntry } from '../../upstream/mcp-config';
-import { SurfaceError } from '../http/surface-error';
+import { JsonObject, isObject } from '../../utils/json-object';
+import { SurfaceError } from '../surface-error';
 import { DeclaredServer, declaredServers } from './connector-servers';
 import { allowRules, pairedToolsets } from './connector-toolsets';
-import { Body, isObject } from './field-errors';
 import { extraInputs } from './validate-extra-fields';
+import { toolsHidden } from './validate-tool-choice';
 
 /** The `anthropic-beta` value that unlocks `mcp_servers` and `mcp_toolset`. */
 export const MCP_CLIENT_BETA = 'mcp-client-2025-11-20';
@@ -44,7 +45,7 @@ function checkHost(server: DeclaredServer, hosts: readonly string[]): void {
 }
 
 /** What the request asks of connectors; `betas` are its `anthropic-beta` values. */
-export function connectors(request: Body, settings: AnthropicSettings, betas: readonly string[]): ConnectorPlan {
+export function connectors(request: JsonObject, settings: AnthropicSettings, betas: readonly string[]): ConnectorPlan {
   const declared = request['mcp_servers'] !== undefined && request['mcp_servers'] !== null;
   const toolsets = toolsetIndices(request['tools']);
   if (!declared && toolsets.length === 0) return NO_CONNECTORS;
@@ -59,8 +60,7 @@ export function connectors(request: Body, settings: AnthropicSettings, betas: re
   servers.forEach(server => checkHost(server, settings.connectorHosts));
   const mounted = servers.map(server => ({ server, rules: allowRules(server, paired.get(server.name)!) }))
     .filter(({ rules }) => rules.length > 0);
-  const choice = request['tool_choice'];
-  if (isObject(choice) && choice['type'] === 'none') return NO_CONNECTORS;
+  if (toolsHidden(request['tool_choice'])) return NO_CONNECTORS;
   return {
     entries: Object.fromEntries(mounted.map(({ server }) =>
       [server.name, connectorServerEntry({ url: server.url, token: server.token }, settings.connectorCallTimeoutMs)])),

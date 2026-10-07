@@ -268,27 +268,26 @@ Parameters and validation:
 - **Unknown `anthropic-beta` names are accepted** rather than rejected.
 - **Some 400 messages use the surface's own wording**, where the real API's text was never recorded. These are the messages for sampling, `container`, unsupported blocks and tool types, the thinking budget and effort checks, and duplicate tool names. A `system` prompt containing a NUL character is a 400.
 - **Mixed document citations give a 400 that indexes Claude Code's messages.** When citations are enabled on some documents but not all, the 400 is relayed from upstream, and its message counts Claude Code's own messages (`messages.9`), not yours.
-- **An unknown path under `/v1/messages` without `anthropic-version`** is a 400 for the missing header, not a 404.
 
 Tools, web search and connectors:
 
 - **Web search results have no citations**, an opaque `encrypted_content`, and `page_age: null`.
 - **Web fetch returns Claude Code's extraction of the page**, not the page itself.
 - **A message that calls a client tool before a web or connector tool ends the turn early.** The turn ends with a `server_tool_use` block and no result block, and the result opens the next turn's message.
-- **Nothing may follow the `tool_result` blocks** in the message that answers a parked tool call (a 400).
+- **Nothing may follow the `tool_result` blocks** in the message that answers a parked tool call: it is a 400, where the real API accepts trailing text. The held-open run can take only the tool results, so send the text in the next turn.
 - **Lost tool results reach the model as text.** If no parked run holds the results (the park timed out, or the wrapper restarted), the request is still answered, but the model sees the results as text in the replayed history rather than as real tool results.
 - **Structured output keeps only the JSON.** Prose text blocks are dropped, a stop sequence can cut inside the JSON, and a schema Claude Code refuses at startup is a 400 `output_config.format.schema <reason>`.
 - **Connectors are off by default** and gated by the operator's host list.
 - **Some connector settings are ignored or restricted.** `defer_loading` is ignored. `enabled: false` is honoured, but disabling one tool in `configs`, while the toolset enables tools by default, needs that server's `tool_configuration.allowed_tools`; otherwise it is a 400.
 - **Connector names are restricted.** They may hold only letters, digits, `_` and `-`, never `__`, and `client` is reserved. A pinned `tools` listing in an `mcp_toolset` is a 400.
 - **Connector results keep only text items.** Other item types are dropped.
-- **A connector that cannot connect may give a 504.** It may hit the startup timer before it reports as not connected, and so answer 504 instead of the 400 that names it (unverified).
+- **A connector that cannot connect may give a 504.** Both of Claude Code's connect waits (`MCP_CONNECT_TIMEOUT_MS`, `MCP_TIMEOUT`) are pinned at 5 s, inside the 20 s startup timer, so it should report the server as not connected and the turn get the 400 that names it; that is unverified, and a 504 from the startup timer remains possible.
 
 Conversations:
 
 - **Edits to earlier history are ignored on the turn that answers a parked tool call.** The held run continues with the history Claude Code holds. A regenerate, or an edit on any other turn, is a replayed turn, not a fork.
 - **Some parameters cannot change while a run is held open.** On that same turn, a different `model`, `max_tokens`, `system`, `thinking`, `output_config`, `tools` or `mcp_servers` is ignored, because the held run keeps the values it started with. `message.model` always names the model that ran.
-- **A request that continues a conversation waits for the conversation's previous turn to end.** If that turn is parked on a tool call the client abandoned, the wait lasts until the park times out (10 minutes by default).
+- **A request that continues a conversation waits up to 10 s for the conversation's previous run to end.** Then that run is ended: a run parked on a tool call the client abandoned has its tool calls rejected, and the request is answered as a replayed turn.
 
 Errors and headers:
 

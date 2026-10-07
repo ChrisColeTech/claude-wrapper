@@ -4,7 +4,7 @@
  * disconnect, observed over a real loopback connection.
  */
 import { ServerResponse } from 'http';
-import { SurfaceError } from '../../../../src/anthropic/http/surface-error';
+import { SurfaceError } from '../../../../src/anthropic/surface-error';
 import { createSseSink, TurnSink } from '../../../../src/anthropic/respond';
 import { ApiEvent } from '../../../../src/anthropic/translate';
 import { createFakeClock, FakeClock } from '../../../mocks/shared/fake-clock';

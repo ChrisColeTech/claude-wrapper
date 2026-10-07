@@ -6,13 +6,13 @@
  */
 import { createServer, IncomingMessage, Server, ServerResponse } from 'http';
 import { AddressInfo } from 'net';
-import { logger as defaultLogger } from '../../utils/logger';
+import { logger as defaultLogger, Logger } from '../../utils/logger';
 import { readJsonBody } from './request-body';
 import { matchRunPath, mintToken, presentsToken, RUN_ID_PATTERN, RunRoute } from './run-routes';
-import { ControlServer, ControlServerLogger, RunHandlers, RunRegistration } from './types';
+import { ControlServer, RunHandlers, RunRegistration } from './types';
 
 export interface ControlServerOptions {
-  logger?: ControlServerLogger;
+  logger?: Pick<Logger, 'debug' | 'warn'>;
 }
 
 type RegisteredRun = { token: string; handlers: RunHandlers };
@@ -27,7 +27,7 @@ class LoopbackControlServer implements ControlServer {
   private listening: Promise<{ baseUrl: string }> | undefined;
   private baseUrl: string | undefined;
 
-  constructor(private readonly log: ControlServerLogger) {
+  constructor(private readonly log: Pick<Logger, 'debug' | 'warn'>) {
     this.server = createServer((req, res) => { void this.handle(req, res); });
   }
 

@@ -8,7 +8,8 @@
 import { ApiRetryFrame, Frame, ResultFrame } from '../../upstream/frames';
 import { RunExit, RunFailureReason } from '../../upstream/runner';
 import { Clock, systemClock, TimerHandle } from '../../utils/clock';
-import { SurfaceError } from '../http/surface-error';
+import { Logger } from '../../utils/logger';
+import { SurfaceError } from '../surface-error';
 import { FailureEvidence } from './failure-evidence';
 import { jsonSchemaRejection } from './json-schema-rejection';
 import { isBillingGate, mapUpstreamFailure } from './map-upstream-failure';
@@ -27,10 +28,6 @@ export type FailureTrigger =
   /** (iii) the process exited before the turn ended. */
   | { kind: 'exit'; exit: RunExit };
 
-export interface FailureReaderLogger {
-  warn(message: string, context?: unknown): void;
-}
-
 export interface FailureReaderOptions {
   /** What the table needs from the request: the client's `model` (404) and `system` length (billing gate). */
   turn?: { requestedModel?: string; systemLength?: number };
@@ -39,7 +36,7 @@ export interface FailureReaderOptions {
   retryCapMs?: number;
   /** Called once, when the retry cap fires, with the error the last `api_retry` maps to. */
   onGiveUp?: (error: SurfaceError) => void;
-  logger?: FailureReaderLogger;
+  logger?: Pick<Logger, 'warn'>;
 }
 
 export interface FailureReader {
@@ -54,7 +51,7 @@ export interface FailureReader {
 }
 
 const BROKEN_CALL = "upstream's model call failed after it had streamed content";
-const NO_LOGGER: FailureReaderLogger = { warn: () => undefined };
+const NO_LOGGER: Pick<Logger, 'warn'> = { warn: () => undefined };
 
 class Reader implements FailureReader {
   private readonly evidence = new FailureEvidence();
@@ -134,7 +131,7 @@ class Reader implements FailureReader {
     onGiveUp(this.map({ category }));
   }
 
-  private get logger(): FailureReaderLogger {
+  private get logger(): Pick<Logger, 'warn'> {
     return this.options.logger ?? NO_LOGGER;
   }
 }

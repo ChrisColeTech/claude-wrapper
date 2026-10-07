@@ -1,14 +1,15 @@
 /**
  * The per-session mutex (spec section 14): one upstream session never runs two runs at once. A
- * continued turn waits for its session's previous run to exit, up to 10 s once that run's turn is
- * over, then SIGKILLs it and proceeds; it is re-planned only then, against the sessions as that run
- * left them. Concurrent requests on one session queue FIFO, so a duplicate becomes a replayed turn.
+ * continued turn waits up to 10 s for its session's previous run to exit, its turn in flight or
+ * parked, then evicts it (a park abandoned, SIGKILL) and proceeds; it is re-planned only then,
+ * against the sessions as that run left them, and takes its slot only then. Concurrent requests on
+ * one session queue FIFO, so a duplicate becomes a replayed turn.
  */
 import { Lease } from '../../../../src/anthropic/scheduler';
 import { TurnPlan } from '../../../../src/anthropic/request';
 import { initFrame } from '../../../mocks/anthropic/turn-frames';
 import {
-  continuedPlan, fakeRun, FakeRun, freshPlan, hasSettled, quietLog, schedulerOn
+  continuedPlan, fakeRun, FakeRun, freshPlan, hasSettled, heldRun, quietLog, schedulerOn
 } from '../../../mocks/anthropic/scheduler-fixtures';
 import { createFakeClock, FakeClock } from '../../../mocks/shared/fake-clock';
 
@@ -82,21 +83,44 @@ describe('the scheduler: one run per upstream session', () => {
     await expect(admitted).resolves.toBeDefined();
   });
 
-  it("never times out on a previous turn still in flight (or parked): it waits for that turn's end", async () => {
+  it('SIGKILLs a previous run whose turn is still in flight once the continued turn has waited 10 s', async () => {
     const scheduler = schedulerOn(clock);
     const previous = await runOnSession(scheduler);
 
     const admitted = continued(scheduler, 'req_2', freshPlan);
     await hasSettled(admitted);
-    clock.advance(600_000);
+    clock.advance(9_999);
     await hasSettled(admitted);
     expect(previous.run.kills).toBe(0);
+    clock.advance(1);
+    await hasSettled(admitted);
 
-    previous.lease.release();
+    expect(previous.run.kills).toBe(1);
+    previous.run.end();
+    expect((await admitted).plan).toBe(freshPlan());
+  });
+
+  it('abandons a previous run parked for 10 s (interrupt, then reject; session forgotten), SIGKILLs it and re-plans', async () => {
+    const log = quietLog();
+    const scheduler = schedulerOn(clock, {}, log);
+    const previous = await runOnSession(scheduler);
+    const parked = heldRun(['toolu_1'], previous.run.runId);
+    scheduler.registerParked(parked);
+    const replan = jest.fn(freshPlan);
+
+    const admitted = continued(scheduler, 'req_2', replan);
     await hasSettled(admitted);
     clock.advance(10_000);
     await hasSettled(admitted);
+
+    expect(parked.abandoned).toEqual(['a continued turn on its session waited 10 s for it']);
     expect(previous.run.kills).toBe(1);
+    expect(scheduler.counts().parked).toBe(0);
+    expect(log.info).toHaveBeenCalledWith('Parked run abandoned', expect.objectContaining({ runId: previous.run.runId }));
+    expect(replan).not.toHaveBeenCalled();
+    previous.run.end();
+    expect((await admitted).plan).toBe(freshPlan());
+    expect(replan).toHaveBeenCalledTimes(1);
   });
 
   it('queues concurrent turns on one session FIFO, each re-planned after the one before it has gone', async () => {
@@ -141,13 +165,35 @@ describe('the scheduler: one run per upstream session', () => {
     await expect(continued(scheduler, 'req_2', () => continuedPlan(SESSION))).resolves.toBeDefined();
   });
 
-  it('holds a slot while the turn waits', async () => {
+  it('takes no slot while the turn waits on its session: a queued turn is no run', async () => {
     const scheduler = schedulerOn(clock, { maxRuns: 2 });
-    await runOnSession(scheduler);
+    const previous = await runOnSession(scheduler);
 
-    void continued(scheduler, 'req_2', freshPlan);
-    const refused = scheduler.admit({ requestId: 'req_3', plan: freshPlan(), replan: freshPlan });
+    const waiting = continued(scheduler, 'req_2', () => continuedPlan(SESSION));
+    await expect(scheduler.admit({ requestId: 'req_3', plan: freshPlan(), replan: freshPlan })).resolves.toBeDefined();
+    expect(scheduler.counts()).toEqual(expect.objectContaining({ active: 2, queued: { [SESSION]: 1 } }));
 
-    await expect(refused).rejects.toEqual(expect.objectContaining({ status: 529 }));
+    previous.lease.release();
+    previous.run.end();
+    await expect(waiting).resolves.toBeDefined();
+    expect(scheduler.counts()).toEqual(expect.objectContaining({ active: 2, queued: {} }));
+  });
+
+  it('answers 529 to a turn whose wait ends with every slot taken', async () => {
+    const scheduler = schedulerOn(clock, { maxRuns: 2 });
+    const previous = await runOnSession(scheduler);
+    const others: Promise<Lease>[] = [];
+    const waiting = continued(scheduler, 'req_2', () => {
+      // Other requests take every slot, the previous run's included, while the turn is re-planned.
+      for (const requestId of ['req_3', 'req_4']) others.push(scheduler.admit({ requestId, plan: freshPlan(), replan: freshPlan }));
+      return continuedPlan(SESSION);
+    });
+
+    previous.lease.release();
+    previous.run.end();
+
+    await expect(waiting).rejects.toEqual(expect.objectContaining({ status: 529, type: 'overloaded_error' }));
+    await expect(Promise.all(others)).resolves.toHaveLength(2);
+    expect(scheduler.counts()).toEqual(expect.objectContaining({ active: 2, queued: {} }));
   });
 });

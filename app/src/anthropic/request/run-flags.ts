@@ -10,8 +10,11 @@
  */
 
 export interface FlagInputs {
-  /** The upstream system prompt: exactly the client's, or ''. */
-  system: string;
+  /**
+   * The run's file holding the upstream system prompt (exactly the client's, or ''): one argument
+   * could not carry a prompt over 128 KiB, and would show it to every local user.
+   */
+  systemPromptFile: string;
   /** The catalogue's canonical id, never the client's alias. */
   modelId: string;
   maxTurns: number;
@@ -43,7 +46,7 @@ const STREAM_JSON = [
 export function runFlags(inputs: FlagInputs): string[] {
   return [
     ...STREAM_JSON,
-    '--system-prompt', inputs.system,
+    '--system-prompt-file', inputs.systemPromptFile,
     '--system-prompt-snapshot', 'off',
     '--setting-sources=', '--strict-mcp-config',
     '--model', inputs.modelId,

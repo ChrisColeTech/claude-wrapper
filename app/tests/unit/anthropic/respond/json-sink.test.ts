@@ -2,7 +2,7 @@
  * The non-streaming sink (spec section 11): the accumulated `Message` as one JSON response at
  * `message_stop`; any failure is pre-commit; a client gone before the end is a disconnect.
  */
-import { SurfaceError } from '../../../../src/anthropic/http/surface-error';
+import { SurfaceError } from '../../../../src/anthropic/surface-error';
 import { accumulate, createJsonSink, TurnSink } from '../../../../src/anthropic/respond';
 import { ApiEvent } from '../../../../src/anthropic/translate';
 import { MESSAGE_START, PLAIN_CALL, TEXT_START } from '../../../mocks/anthropic/turn-frames';

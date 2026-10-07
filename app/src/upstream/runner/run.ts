@@ -5,7 +5,7 @@
  */
 import { ControlResponse, describeFrame, Frame, parseFrame } from '../frames';
 import { Clock } from '../../utils/clock';
-import { logger as defaultLogger } from '../../utils/logger';
+import { logger as defaultLogger, Logger } from '../../utils/logger';
 import { createControlChannel } from './control-channel';
 import { createFrameQueue } from './frame-queue';
 import { createLineFramer } from './line-framer';
@@ -17,18 +17,16 @@ import { Run, RunExit, RunFailureReason, RunTimers, UserMessage } from './types'
 
 export const MAX_LINE_BYTES = 16 * 1024 * 1024;
 export const STDERR_RING_BYTES = 64 * 1024;
+/** How long an interrupted run gets to write its `result` before its stdin is closed. */
+export const RESULT_WAIT_MS = 5_000;
 /** After stdin ends: how long upstream gets to exit before SIGTERM, then before SIGKILL. */
 export const CLOSE_GRACE_MS = 2_000;
 export const TERM_GRACE_MS = 5_000;
 
-export interface RunLogger {
-  debug(message: string, context?: unknown): void;
-}
-
 export interface RunOptions {
   timers: RunTimers;
   clock: Clock;
-  logger?: RunLogger;
+  logger?: Pick<Logger, 'debug'>;
 }
 
 class RunCore {
@@ -38,7 +36,7 @@ class RunCore {
   private readonly stderr = createStderrRing(STDERR_RING_BYTES);
   private readonly control = createControlChannel();
   private readonly escalation: unknown[] = [];
-  private readonly log: RunLogger;
+  private readonly log: Pick<Logger, 'debug'>;
   private readonly timers: RunTimerSet;
   private upstream: UpstreamProcess | undefined;
   private failure: RunFailureReason | undefined;
@@ -100,7 +98,8 @@ class RunCore {
   }
 
   private onStdout(chunk: Buffer): void {
-    if (this.failure || this.ended) return;
+    if (this.ended) return;
+    if (this.failure) return this.afterFailure(chunk);
     const { lines, oversize } = this.framer.push(chunk);
     lines.forEach(line => this.deliver(line));
     if (oversize) this.fail({ kind: 'line_too_long', limitBytes: MAX_LINE_BYTES });
@@ -118,12 +117,32 @@ class RunCore {
     this.queue.push(frame);
   }
 
+  /**
+   * The runner ends the run: its frames fail, and it goes down the teardown ladder from the top
+   * (spec section 14), interrupted, then closed once its `result` is in or the wait is over. A
+   * process that never started has nothing to interrupt.
+   */
   private fail(reason: RunFailureReason): void {
     if (this.failure || this.ended) return;
     this.failure = reason;
     this.timers.stop();
     this.queue.fail(new RunFailure(reason));
-    void this.close();
+    if (reason.kind === 'spawn_failed') {
+      void this.close();
+      return;
+    }
+    this.interrupt().catch(() => undefined);
+    this.escalation.push(this.options.clock.setTimeout(() => void this.close(), RESULT_WAIT_MS));
+  }
+
+  /** Stdout after the runner ended the run reaches no reader; its `result` ends the wait for it. */
+  private afterFailure(chunk: Buffer): void {
+    // A line too long leaves the framing where it cannot find the next line.
+    if (this.failure?.kind !== 'timeout') return;
+    for (const frame of this.framer.push(chunk).lines.map(parseFrame)) {
+      if (frame.type === 'control_response') this.control.settle(frame.response);
+      if (frame.type === 'result') void this.close();
+    }
   }
 
   private onExit(code: number | null, signal: string | null): void {

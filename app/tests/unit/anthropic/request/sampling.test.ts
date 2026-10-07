@@ -3,7 +3,7 @@
  * catalogue model `temperature` is absent or 1.0, `top_p` absent or at least 0.99, and `top_k`
  * absent; anything else is a 400 naming the field and the accepted value.
  */
-import { SurfaceError } from '../../../../src/anthropic/http/surface-error';
+import { SurfaceError } from '../../../../src/anthropic/surface-error';
 import { invalidRequest, planDefault, rejectionOf } from '../../../mocks/anthropic/plan-context';
 
 const MODELS = ['claude-fable-5-1', 'opus', 'sonnet', 'haiku'];

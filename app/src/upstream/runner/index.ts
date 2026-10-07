@@ -6,6 +6,7 @@ export type {
   Run, Runner, RunDirectory, RunEndpoint, RunExit, RunFailureReason, RunSpec, RunTimerName, RunTimers, UserMessage
 } from './types';
 export { RunFailure } from './run-failure';
+export { RESULT_WAIT_MS } from './run';
 export { createSpawnRunner } from './spawn-runner';
 export { withRunFile } from './run-directory';
 export type { SpawnFunction, SpawnRunnerOptions } from './spawn-runner';

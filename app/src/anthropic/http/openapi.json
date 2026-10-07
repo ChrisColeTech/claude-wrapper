@@ -1299,6 +1299,14 @@
             "type": "object",
             "properties": {"thinking_tokens": {"type": "integer"}},
             "nullable": true
+          },
+          "cache_creation": {
+            "type": "object",
+            "properties": {
+              "ephemeral_5m_input_tokens": {"type": "integer"},
+              "ephemeral_1h_input_tokens": {"type": "integer"}
+            },
+            "description": "Only on a turn of several model calls: every call's breakdown summed. The SDKs read `cache_creation` from `message_start` alone, so their message keeps the first call's."
           }
         },
         "description": "The turn's summed usage. After a stop-sequence cut, `output_tokens` for the cut call is an estimate."

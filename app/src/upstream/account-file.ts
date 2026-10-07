@@ -8,6 +8,7 @@
  * Its values are the operator's personal data: read here, they are never logged, and neither
  * is the file's text (a JSON parser's message quotes it).
  */
+import { isObject } from '../utils/json-object';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
@@ -28,13 +29,10 @@ export function accountFilePath(env: Environment, home: string = os.homedir()): 
   return path.join(env['CLAUDE_CONFIG_DIR'] || env['HOME'] || home, ACCOUNT_FILE_NAME);
 }
 
-/** The account file the runs read, given the operator's `upstream.env`. */
-export function cliAccountFile(upstreamEnv: Readonly<Record<string, string>>): string {
-  return accountFilePath({ HOME: process.env['HOME'], ...upstreamEnv });
+/** The account file the runs read, given the operator's `upstream.env` and the wrapper's own environment. */
+export function cliAccountFile(upstreamEnv: Readonly<Record<string, string>>, environment: Environment = process.env): string {
+  return accountFilePath({ HOME: environment['HOME'], ...upstreamEnv });
 }
-
-const isObject = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
 
 /** The OAuth account's email, display name and full name that `file` holds, trimmed, when present. */
 export function readAccountValues(file: string): AccountRead {

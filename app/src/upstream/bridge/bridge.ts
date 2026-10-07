@@ -6,8 +6,8 @@
 import { Frame } from '../frames';
 import { McpHttpHandler } from '../control-server';
 import { Clock, systemClock } from '../../utils/clock';
-import { logger as defaultLogger } from '../../utils/logger';
-import { createMcpEndpoint, McpEndpointLogger } from './mcp-endpoint';
+import { logger as defaultLogger, Logger } from '../../utils/logger';
+import { createMcpEndpoint } from './mcp-endpoint';
 import { createBridgeMachine } from './state-machine';
 import { toDeliveredResult } from './tool-result-content';
 import { BridgeEventListener, ClientTool, DeliverOutcome, ToolResultBlock } from './types';
@@ -44,7 +44,7 @@ export interface Bridge {
 
 export interface BridgeOptions {
   clock?: Clock;
-  logger?: McpEndpointLogger;
+  logger?: Pick<Logger, 'debug'>;
 }
 
 export function createBridge(tools: ClientTool[], options: BridgeOptions = {}): Bridge {

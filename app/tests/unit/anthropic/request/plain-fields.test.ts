@@ -4,7 +4,7 @@
  * validated), `inference_geo`, `diagnostics` and a top-level `cache_control`. None of them changes
  * the plan. As for every optional field, `null` reads as absent.
  */
-import { SurfaceError } from '../../../../src/anthropic/http/surface-error';
+import { SurfaceError } from '../../../../src/anthropic/surface-error';
 import { TurnPlan } from '../../../../src/anthropic/request';
 import { invalidRequest, planDefault, rejectionOf } from '../../../mocks/anthropic/plan-context';
 

@@ -3,7 +3,7 @@
  * are a 400 with the real API's message on every catalogue model, Haiku 4.5 included (upstream
  * cannot force a tool call); `disable_parallel_tool_use` is accepted and ignored.
  */
-import { SurfaceError } from '../../../../src/anthropic/http/surface-error';
+import { SurfaceError } from '../../../../src/anthropic/surface-error';
 import { invalidRequest, planDefault, rejectionOf } from '../../../mocks/anthropic/plan-context';
 
 const MODELS = ['claude-fable-5-1', 'opus', 'sonnet', 'haiku'];

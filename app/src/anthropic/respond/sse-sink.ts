@@ -8,7 +8,7 @@
  */
 import { ServerResponse } from 'http';
 import { Clock, TimerHandle } from '../../utils/clock';
-import { SurfaceError } from '../http/surface-error';
+import { SurfaceError } from '../surface-error';
 import { isControlSignal, TurnEvent } from '../translate';
 import { Settlement, TurnSink } from './sink';
 

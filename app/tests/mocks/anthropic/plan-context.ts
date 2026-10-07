@@ -5,7 +5,7 @@
  */
 import { loadCatalogue, SHIPPED_CATALOGUE_PATH } from '../../../src/anthropic/catalogue';
 import { Sessions } from '../../../src/anthropic/sessions';
-import { SurfaceError } from '../../../src/anthropic/http/surface-error';
+import { SurfaceError } from '../../../src/anthropic/surface-error';
 import { planTurn, RunContext, TurnPlan } from '../../../src/anthropic/request';
 import { ANTHROPIC_SETTING_DEFAULTS } from '../../../src/config/anthropic-settings';
 

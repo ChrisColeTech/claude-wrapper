@@ -36,32 +36,51 @@ function oneShot(clock: Clock, onFire: () => void): OneShot {
   };
 }
 
+/** `action` the first time the returned function is called, never again. */
+function once(action: () => void): () => void {
+  let done = false;
+  return () => {
+    if (done) return;
+    done = true;
+    action();
+  };
+}
+
+/**
+ * The active lifetime on `timer`, armed now: every open park pauses it (overlapping parks are
+ * counted) and the time spent parked is not counted. Nothing is armed again once `stopped()`.
+ */
+function activeLifetime(timer: OneShot, clock: Clock, lifetimeMs: number, stopped: () => boolean): () => () => void {
+  let parks = 0;
+  let left = lifetimeMs;
+  let activeSince = clock.now();
+  timer.arm(left);
+  const unpark = (): void => {
+    parks -= 1;
+    if (parks > 0 || stopped()) return;
+    activeSince = clock.now();
+    timer.arm(left);
+  };
+  return () => {
+    parks += 1;
+    if (parks === 1) {
+      timer.clear();
+      left -= clock.now() - activeSince;
+    }
+    return once(unpark);
+  };
+}
+
 export function createRunTimers(timers: RunTimers, clock: Clock, fire: (timer: RunTimerName) => void): RunTimerSet {
   let stopped = false;
   const timer = (name: RunTimerName): OneShot => oneShot(clock, () => { if (!stopped) fire(name); });
   const startup = timer('startup');
   const stall = timer('stall');
   const lifetime = timer('lifetime');
-  let idle = false;
-  let parks = 0;
-  let lifetimeLeft = timers.lifetime;
-  let activeSince = clock.now();
-
   startup.arm(timers.startup);
   stall.arm(timers.stall);
-  lifetime.arm(lifetimeLeft);
-
-  const unparkOnce = (): (() => void) => {
-    let done = false;
-    return () => {
-      if (done) return;
-      done = true;
-      parks -= 1;
-      if (parks > 0 || stopped) return;
-      activeSince = clock.now();
-      lifetime.arm(lifetimeLeft);
-    };
-  };
+  const park = activeLifetime(lifetime, clock, timers.lifetime, () => stopped);
+  let idle = false;
 
   return {
     frame(frame) {
@@ -78,14 +97,7 @@ export function createRunTimers(timers: RunTimers, clock: Clock, fire: (timer: R
       idle = false;
       stall.arm(timers.stall);
     },
-    park() {
-      parks += 1;
-      if (parks === 1) {
-        lifetime.clear();
-        lifetimeLeft -= clock.now() - activeSince;
-      }
-      return unparkOnce();
-    },
+    park,
     stop() {
       stopped = true;
       [startup, stall, lifetime].forEach(t => t.clear());

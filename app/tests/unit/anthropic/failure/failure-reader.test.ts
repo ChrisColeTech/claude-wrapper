@@ -5,7 +5,7 @@
  * caps upstream's retry loop for the others.
  */
 import { createFailureReader, FailureReader, FailureReaderOptions } from '../../../../src/anthropic/failure';
-import { SurfaceError } from '../../../../src/anthropic/http/surface-error';
+import { SurfaceError } from '../../../../src/anthropic/surface-error';
 import { Frame, ResultFrame } from '../../../../src/upstream/frames';
 import {
   apiRetry, MESSAGE_START, rateLimitEvent as rateLimit, resultFrame, streamEvent, syntheticError as synthetic
