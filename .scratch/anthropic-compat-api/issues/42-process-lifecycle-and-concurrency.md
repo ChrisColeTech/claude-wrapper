@@ -26,3 +26,4 @@ Spec: [spec.md](../spec.md), section 14
 - The public `/health` now always has an `anthropic` key, including the upstream session ids of sessions with queued turns.
 - `wrapper --stop` still waits only 10 s for the process to exit, while the shutdown drain can take 15 s.
 - Follow-up (branch impl/followups): the public `/health` shows aggregate counts only (active, parked, total queued, last rate-limit state); upstream session ids are gone from it and stay in the log.
+- 2026-10-07: real-CLI run passed (`shutdown.test.ts`: two runs drained in 1131 ms, no child left).

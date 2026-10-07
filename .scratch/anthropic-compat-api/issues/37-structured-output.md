@@ -21,3 +21,4 @@ Spec: [spec.md](../spec.md), section 12
 - Deviation from spec section 11: pass 6 (the StructuredOutput buffer) runs on the raw frames before the flattener, not after pass 5 as section 11 lists it, because it needs the synthetic `tool_result` user frame.
 - The redaction-as-JSON fix carried over from ticket 39 is done: on a structured-output run, text deltas are scanned as JSON, so an armed string is replaced only inside string values and `parse()` still reads the text.
 - Reading: the e2e test where upstream refuses a schema at startup uses a guessed invalid schema (a property typed `nonsense`); it is not confirmed that the real CLI rejects it.
+- 2026-10-07: real-CLI run passed (`structured-output.test.ts`, 4/4). The CLI refuses the nonsense schema at startup (400), and a format turn continues without a format.

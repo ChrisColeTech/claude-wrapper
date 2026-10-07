@@ -20,3 +20,4 @@ Spec: [spec.md](../spec.md), section 7, section 16, ADR 0001
 
 - Resolved by merge 3d32b1a on anthropic-compat-api.
 - The e2e criterion is met as written (the bridge-run test exists behind the flag), but the real-CLI run is pending; it was deliberately not run against the real CLI at merge time.
+- 2026-10-07: real-CLI run passed (`bridge-run.test.ts`).

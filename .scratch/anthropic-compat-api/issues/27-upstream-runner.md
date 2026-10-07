@@ -20,3 +20,4 @@ Spec: [spec.md](../spec.md), section 10 (driver), section 14 (timers, buffers), 
 
 - Resolved by merge 6b08dfa on anthropic-compat-api.
 - The e2e harness criterion is met as written, but the real-CLI run (env flag set) is pending; it was deliberately not run against the real CLI at merge time.
+- 2026-10-07: real-CLI run passed (`plain-run.test.ts`, Claude Code 2.1.291, Haiku 4.5); the empty `--allowedTools ""` and `--tools ""` were accepted at startup.

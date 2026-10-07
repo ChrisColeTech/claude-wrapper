@@ -18,3 +18,4 @@ Spec: [spec.md](../spec.md), section 6
 - Resolved by merge 3942a9f on anthropic-compat-api.
 - The E2E criterion is ticked on the test being written (`app/tests/e2e/upstream/redaction.test.ts`, scenario 10); its run against the real CLI is still pending.
 - Deviation from the criterion's "case-insensitive": matching is whole-word as well as case-insensitive (no letter, mark, digit or underscore touching either end of a match, so a short name never redacts part of another word; a JSON escape counts as a boundary).
+- 2026-10-07: real-CLI run passed (`redaction.test.ts`, scenario 10, 3/3).

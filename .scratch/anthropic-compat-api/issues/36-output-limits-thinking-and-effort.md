@@ -23,3 +23,4 @@ Spec: [spec.md](../spec.md), section 12, ADR 0004
 - Reading: `thinking` absent sets `CLAUDE_CODE_DISABLE_THINKING=1` on any entry without adaptive support, which generalises the spec's Haiku rule.
 - Reading: the 400 messages for the `thinking.enabled.budget_tokens` checks and for an unsupported `output_config.effort` are in the implementer's own wording, not taken from the real API.
 - Ticket 31's deferred cut-case eviction is now done: a `max_tokens` or stop-sequence cut interrupts the run and forgets the session.
+- 2026-10-07: real-CLI runs passed (`thinking.test.ts` scenarios 2 and 3, `max-tokens-cut.test.ts` scenario 4). Haiku thought 686 tokens at budget 1024 vs 11068 at 12000; `CLAUDE_CODE_DISABLE_THINKING` had no effect on sonnet-5-5; no model call started after the cut.

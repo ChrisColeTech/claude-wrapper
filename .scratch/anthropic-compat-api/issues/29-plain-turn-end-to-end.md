@@ -22,3 +22,4 @@ Spec: [spec.md](../spec.md), sections 11, 2, 16
 - Resolved by merge 70f39a2 on anthropic-compat-api.
 - The E2E criterion is ticked on the test being written (`app/tests/e2e/upstream/plain-turn.test.ts`); its run against the real CLI is still pending.
 - Deviation from spec section 16: the sinks are push-based (`push(event)` plus `outcome`), not `writeSse(events, res)`.
+- 2026-10-07: real-CLI run passed (`plain-turn.test.ts`, create and stream).

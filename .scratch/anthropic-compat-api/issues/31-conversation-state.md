@@ -26,3 +26,4 @@ Spec: [spec.md](../spec.md), section 5, ADR 0002
 - The deferred cut-case eviction is now done by ticket 36 (merge c57c04a): a `max_tokens` or stop-sequence cut interrupts the run and forgets the session.
 - The record-at-`result` gap (a fast follow-up turn arriving before the session was recorded) is closed by ticket 42 (merge 8809cb5): a clean turn records its session at response end, and an error `result` undoes that.
 - Follow-up (merge 30d64fd): the E2E criterion's "cache reads" wording is dropped, because a two-turn chat is below every model's minimum cacheable prompt; the e2e now proves the continued turn by `--resume` (on the second run, not the first) plus the model recalling its own earlier answer.
+- 2026-10-07: real-CLI run passed (`conversation.test.ts`, after its cache-read assertion was dropped): the second run used `--resume` and the model recalled its own answer.

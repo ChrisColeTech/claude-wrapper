@@ -20,3 +20,4 @@ Spec: [spec.md](../spec.md), section 4.3
 - Resolved by merge 5518bab on anthropic-compat-api.
 - The E2E criterion is ticked on the test being written (`app/tests/e2e/upstream/media.test.ts`); its run against the real CLI is still pending.
 - The mixed-citations 400 relays upstream's message verbatim, so it names upstream's message index (for example `messages.9`), not the index in the client's request.
+- 2026-10-07: real-CLI run passed (`media.test.ts`, 2/2).

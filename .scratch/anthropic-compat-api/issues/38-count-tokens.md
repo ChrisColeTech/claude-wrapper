@@ -21,3 +21,4 @@ Spec: [spec.md](../spec.md), section 12
 - Reading: a count always sends the replayed-turn rendering of the history, even when the history matches a session; it continues no session and answers no parked run.
 - Reading: `thinking.enabled` on a count runs with `CLAUDE_CODE_DISABLE_THINKING=1`, because the CLI raises any budget to at least 1024 and no budget fits under the one-token cap; scenario 5 checks this.
 - Reading: the Messages-only fields (`max_tokens`, `stream`, `stop_sequences`, the sampling and plain fields, `container`) on a count are a 400 with "Extra inputs are not permitted".
+- 2026-10-07/08: real-CLI run passed (`count-tokens.test.ts`, 5/5). A leaked control server kept Jest alive; that was fixed in merge 4970909, and the rerun exited cleanly.
