@@ -252,6 +252,10 @@ Anthropic's [legal and compliance page](https://code.claude.com/docs/en/legal-an
 
 ### Known deviations from the real API
 
+Models:
+
+- **`GET /v1/models` lists only the catalogue**: the four models above, or the operator's own catalogue, not every model the API serves. `limit`, `after_id` and `before_id` page over it, and `has_more` is computed as on the real API: `false` at the default `limit` of 20, `true` when a smaller `limit` leaves models out, so the SDKs' auto-pagination walks the whole list.
+
 Context, output and usage:
 
 - **Residual context and self-identification.** The model knows it is "a Claude agent, built on Anthropic's Claude Agent SDK". It also knows the working directory, platform, date and the operator's account email. The email, display name and full name are redacted on output; a paraphrase is not.

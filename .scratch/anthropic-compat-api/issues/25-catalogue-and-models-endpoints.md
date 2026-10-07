@@ -17,3 +17,4 @@ Spec: [spec.md](../spec.md), section 3
 ## Comments
 
 - Resolved by merge 52bc7f6 on anthropic-compat-api.
+- Follow-up (branch impl/followups): `has_more` stays computed, not fixed at `false` as the acceptance line above reads, so a smaller `limit` pages through the catalogue; spec section 3, its Known deviations and both READMEs say so.
