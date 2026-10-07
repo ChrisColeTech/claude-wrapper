@@ -110,7 +110,8 @@ class Reader implements FailureReader {
     const retryAfter = retryAfterSeconds(this.evidence.rateLimit, this.clock.now());
     if (isBillingGate(signal) && !this.gateLogged) {
       this.gateLogged = true;
-      this.logger.warn('Upstream billing gate: relayed as a 400, never retried', { systemLength: turn.systemLength ?? 0 });
+      const systemLength = turn.systemLength ?? 0;
+      this.logger.warn('Upstream billing gate: relayed as a 400, never retried', { systemLength });
     }
     return mapUpstreamFailure(signal, {
       ...(turn.requestedModel === undefined ? {} : { requestedModel: turn.requestedModel }),

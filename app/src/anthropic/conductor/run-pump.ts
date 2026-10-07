@@ -82,8 +82,8 @@ class Pump implements RunPump {
       for await (const frame of this.run.frames) this.onFrame(frame);
       this.toSink(this.options.translator.end());
     } catch (error) {
-      if (error instanceof RunFailure) this.fail(this.options.failures.errorFor({ kind: 'run_failure', reason: error.reason }));
-      else this.abandon(error);
+      if (!(error instanceof RunFailure)) this.abandon(error);
+      else this.fail(this.options.failures.errorFor({ kind: 'run_failure', reason: error.reason }));
     }
     const exit = await this.run.exited;
     this.options.failures.stop();

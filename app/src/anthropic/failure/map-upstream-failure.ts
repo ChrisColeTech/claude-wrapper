@@ -5,7 +5,9 @@
  */
 import { constants } from 'os';
 import { SurfaceError } from '../http/surface-error';
-import { FailureRow, MessageRule, rowForCategory, rowForStatus, UPSTREAM_FAILURE_ROWS, UpstreamRowName } from './upstream-table';
+import {
+  FailureRow, MessageRule, rowForCategory, rowForStatus, UPSTREAM_FAILURE_ROWS, UpstreamRowName
+} from './upstream-table';
 import { FailureContext, UpstreamSignal } from './upstream-signal';
 
 const API_ERROR = /^API Error: \d{3} ([\s\S]*)$/;
@@ -60,7 +62,8 @@ export function exitMessage(exit: { code: number | null; signal: string | null }
   const signal = exit?.signal;
   if (!signal) return 'upstream exited';
   const number = (constants.signals as Record<string, number | undefined>)[signal];
-  return number === undefined ? `upstream was ended by ${signal}` : `upstream exited with code ${128 + number} (${signal})`;
+  if (number === undefined) return `upstream was ended by ${signal}`;
+  return `upstream exited with code ${128 + number} (${signal})`;
 }
 
 function messageOf(rule: MessageRule, signal: UpstreamSignal, context: FailureContext): string {

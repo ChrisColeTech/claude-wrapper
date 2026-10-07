@@ -34,12 +34,20 @@ const api = (otherwise: string): MessageRule => ({ from: 'api', otherwise });
 
 export const UPSTREAM_FAILURE_ROWS = {
   // Fix the request.
-  invalidRequest: { status: 400, type: 'invalid_request_error', message: api('Upstream rejected the request'), retryable: false },
+  invalidRequest: {
+    status: 400, type: 'invalid_request_error', message: api('Upstream rejected the request'), retryable: false
+  },
   modelNotFound: { status: 404, type: 'not_found_error', message: { from: 'model' }, retryable: false },
-  requestTooLarge: { status: 413, type: 'request_too_large', message: api('Upstream rejected the request as too large'), retryable: false },
-  otherClientError: { status: null, type: 'invalid_request_error', message: api('Upstream rejected the request'), retryable: false },
+  requestTooLarge: {
+    status: 413, type: 'request_too_large', message: api('Upstream rejected the request as too large'), retryable: false
+  },
+  otherClientError: {
+    status: null, type: 'invalid_request_error', message: api('Upstream rejected the request'), retryable: false
+  },
   /** "Third-party apps now draw from extra usage…": upstream's message as is, never retried. */
-  billingGate: { status: 400, type: 'invalid_request_error', message: api('Upstream rejected the request'), retryable: false },
+  billingGate: {
+    status: 400, type: 'invalid_request_error', message: api('Upstream rejected the request'), retryable: false
+  },
   // Retry later.
   rateLimit: { status: 429, type: 'rate_limit_error', message: api('Upstream rate limit reached') },
   overloaded: { status: 529, type: 'overloaded_error', message: api('Upstream overloaded') },
@@ -49,7 +57,10 @@ export const UPSTREAM_FAILURE_ROWS = {
   login: { status: 500, type: 'api_error', message: { from: 'operator', problem: 'login' }, retryable: false },
   billing: { status: 500, type: 'api_error', message: { from: 'operator', problem: 'billing' }, retryable: false },
   // Other.
-  maxOutputTokens: { status: 500, type: 'api_error', message: { from: 'prose', otherwise: 'Upstream exceeded its output token maximum' }, retryable: false },
+  maxOutputTokens: {
+    status: 500, type: 'api_error', message: { from: 'prose', otherwise: 'Upstream exceeded its output token maximum' },
+    retryable: false
+  },
   unknown: { status: 500, type: 'api_error', message: { from: 'prose', otherwise: 'Upstream failed' } },
   resultSubtype: { status: 500, type: 'api_error', message: { from: 'errors' }, retryable: false },
   exit: { status: 500, type: 'api_error', message: { from: 'exit' } }
