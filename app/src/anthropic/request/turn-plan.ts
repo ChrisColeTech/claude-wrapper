@@ -47,6 +47,8 @@ export interface StartupChecks {
 export interface TurnTranslation {
   /** The request's `stop_sequences`; empty when it has none. */
   stopSequences: readonly string[];
+  /** The run is started with `--json-schema`: its `StructuredOutput` call is the answer. Run-bound. */
+  structuredOutput: boolean;
 }
 
 export interface TurnPlan {

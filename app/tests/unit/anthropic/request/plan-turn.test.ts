@@ -49,7 +49,7 @@ function goldenPlan(canonicalId: string): TurnPlan {
       timers: { startup: 20_000, stall: 90_000, lifetime: 1_800_000 }
     },
     continuation: { replay: { role: 'user', content: HELLO } },
-    translatorConfig: { stopSequences: [] },
+    translatorConfig: { stopSequences: [], structuredOutput: false },
     startupChecks: { model: canonicalId, tools: [] }
   };
 }

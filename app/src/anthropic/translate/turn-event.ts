@@ -63,6 +63,12 @@ export interface TranslatorConfig {
    * completes. Not run-bound, so each turn brings its own; none scans nothing.
    */
   stopSequences?: readonly string[];
+  /**
+   * The run was started with `--json-schema` (spec section 12): its `StructuredOutput` call is the
+   * answer, as one JSON text block, and prose text blocks are dropped. Run-bound: a turn that
+   * resumes a held-open run takes the run's value, not its own request's.
+   */
+  structuredOutput?: boolean;
 }
 
 export interface Translator {

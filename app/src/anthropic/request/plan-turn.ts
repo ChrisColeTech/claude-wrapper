@@ -3,6 +3,7 @@
  * plan or the `SurfaceError` the client gets. Nothing here performs I/O. Each concern below
  * throws its `SurfaceError`; the first one is the answer.
  */
+import { STRUCTURED_OUTPUT_TOOL } from '../../upstream/structured-output';
 import { Catalogue } from '../catalogue';
 import { SurfaceError } from '../http/surface-error';
 import { Sessions } from '../sessions';
@@ -16,6 +17,7 @@ import { RunContext, TurnPlan } from './turn-plan';
 import { validateContentBlocks } from './validate-content-blocks';
 import { validateEffort } from './validate-effort';
 import { rejectExtraFields } from './validate-extra-fields';
+import { validateFormat } from './validate-format';
 import { validateMaxTokens } from './validate-max-tokens';
 import { validateMessages } from './validate-messages';
 import { resolveModel } from './validate-model';
@@ -49,11 +51,12 @@ function plan(request: unknown, catalogue: Catalogue, sessions: Sessions, contex
   const stopSequences = validateStopSequences(request['stop_sequences']) ?? [];
   const thinking = thinkingEnvironment(request['thinking'], model, maxTokens);
   const effort = validateEffort(request['output_config'], model);
+  const schema = validateFormat(request['output_config']);
   const continuation = chooseContinuation(messages, sessions);
   const resume = resumedSession(continuation);
   const runInputs = {
-    modelId: model.id, system, maxTokens, thinking,
-    ...(effort === undefined ? {} : { effort }), ...(resume === undefined ? {} : { resume })
+    modelId: model.id, system, maxTokens, thinking, ...(effort === undefined ? {} : { effort }),
+    ...(schema === undefined ? {} : { jsonSchema: JSON.stringify(schema) }), ...(resume === undefined ? {} : { resume })
   };
   return {
     model,
@@ -61,9 +64,9 @@ function plan(request: unknown, catalogue: Catalogue, sessions: Sessions, contex
     system,
     runSpec: buildRunSpec(runInputs, context),
     continuation,
-    translatorConfig: { stopSequences },
-    // A text turn mounts no tools, so upstream reports none.
-    startupChecks: { model: model.id, tools: [] }
+    translatorConfig: { stopSequences, structuredOutput: schema !== undefined },
+    // A text turn mounts no tools; `--json-schema` adds upstream's own StructuredOutput, even under `--tools ""`.
+    startupChecks: { model: model.id, tools: schema === undefined ? [] : [STRUCTURED_OUTPUT_TOOL] }
   };
 }
 

@@ -17,6 +17,8 @@ export interface RunInputs {
   thinking: Readonly<Record<string, string>>;
   /** `output_config.effort`, passed as `--effort`. */
   effort?: string;
+  /** `output_config.format.schema` as JSON text, passed as `--json-schema`. */
+  jsonSchema?: string;
   /** A continued turn's upstream session, resumed with `--resume`. */
   resume?: string;
 }
@@ -28,6 +30,7 @@ export function buildRunSpec(inputs: RunInputs, context: RunContext): RunSpec {
     flags: runFlags({
       system: inputs.system, modelId: inputs.modelId, maxTurns: settings.maxTurns,
       ...(inputs.effort === undefined ? {} : { effort: inputs.effort }),
+      ...(inputs.jsonSchema === undefined ? {} : { jsonSchema: inputs.jsonSchema }),
       ...(inputs.resume === undefined ? {} : { resume: inputs.resume })
     }),
     env: childEnvironment({ maxOutputTokens: inputs.maxTokens, thinking: inputs.thinking, settings, environment }),
