@@ -15,12 +15,11 @@ import type Anthropic from '@anthropic-ai/sdk';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { ControlServer, createControlServer } from '../../../src/upstream/control-server';
 import { createSpawnRunner, Runner, RunSpec } from '../../../src/upstream/runner';
 import { openStateDirectory, StateDirectory } from '../../../src/upstream/state-directory';
 import type { SurfaceHarness } from '../../mocks/anthropic/surface-harness';
 import { waitFor } from '../../mocks/shared/wait-for';
-import { describeUpstream, E2E_MODEL, removeStateRoot } from './harness';
+import { describeUpstream, E2E_MODEL, productionSurface, removeStateRoot } from './harness';
 
 const RUN_EXIT_WAIT_MS = 60_000;
 const PARK_MS = Number(process.env['UPSTREAM_E2E_PARK_MS'] ?? 330_000);
@@ -49,18 +48,10 @@ function notingRunner(specs: RunSpec[]): Runner {
   return { startRun: spec => { specs.push(spec); return runner.startRun(spec); } };
 }
 
-/** Built here, not imported at the top: a skipped file must not start the OpenAI surface's timers. */
-async function productionSurface(state: StateDirectory, runner: Runner, controlServer: ControlServer): Promise<SurfaceHarness> {
-  const { createServer } = await import('../../../src/api/server');
-  const { serveApp } = await import('../../mocks/anthropic/surface-harness');
-  return serveApp(createServer({ stateDirectory: state, runner, controlServer }));
-}
-
 describeUpstream('client tools through the surface against the real CLI', () => {
   let root: string;
   let state: StateDirectory;
   let surface: SurfaceHarness;
-  let controlServer: ControlServer;
   let specs: RunSpec[];
 
   /** A run's directory goes once it has exited; a parked run is still there. */
@@ -70,14 +61,12 @@ describeUpstream('client tools through the surface against the real CLI', () => 
     root = fs.mkdtempSync(path.join(os.tmpdir(), 'client-tools-e2e-'));
     state = openStateDirectory(root);
     specs = [];
-    controlServer = createControlServer();
-    surface = await productionSurface(state, notingRunner(specs), controlServer);
+    surface = await productionSurface(state, { runner: notingRunner(specs) });
   });
 
   afterEach(async () => {
     await runsExited();
     await surface.close();
-    await controlServer.close();
     removeStateRoot(root, state.cwd);
   }, RUN_EXIT_WAIT_MS + 10_000);
 

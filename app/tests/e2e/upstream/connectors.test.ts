@@ -29,7 +29,7 @@ import { Frame } from '../../../src/upstream/frames';
 import { openStateDirectory, StateDirectory } from '../../../src/upstream/state-directory';
 import type { SurfaceHarness } from '../../mocks/anthropic/surface-harness';
 import { waitFor } from '../../mocks/shared/wait-for';
-import { describeUpstream, E2E_MODEL, removeStateRoot } from './harness';
+import { describeUpstream, E2E_MODEL, productionSurface, removeStateRoot } from './harness';
 import { TeeingRunner, teeingRunner } from './teeing-runner';
 
 const URL_ = process.env['UPSTREAM_E2E_CONNECTOR_URL'] ?? 'https://mcp.deepwiki.com/mcp';
@@ -46,13 +46,6 @@ const TURN_TIMEOUT_MS = 240_000;
 
 type BetaMessage = Anthropic.Beta.Messages.BetaMessage;
 type BetaParams = Anthropic.Beta.Messages.MessageCreateParamsNonStreaming;
-
-/** Built here, not imported at the top: a skipped file must not start the OpenAI surface's timers. */
-async function productionSurface(state: StateDirectory, runner: TeeingRunner): Promise<SurfaceHarness> {
-  const { createServer } = await import('../../../src/api/server');
-  const { serveApp } = await import('../../mocks/anthropic/surface-harness');
-  return serveApp(createServer({ stateDirectory: state, runner }));
-}
 
 function connector(name: string, url: string, token?: string): Pick<BetaParams, 'mcp_servers' | 'tools' | 'betas'> {
   return {
@@ -85,7 +78,7 @@ describeUpstream('connectors through the surface against the real CLI (spec sect
     root = fs.mkdtempSync(path.join(os.tmpdir(), 'connectors-e2e-'));
     state = openStateDirectory(root);
     runner = teeingRunner();
-    surface = await productionSurface(state, runner);
+    surface = await productionSurface(state, { runner });
   });
 
   afterEach(async () => {

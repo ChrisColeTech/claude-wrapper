@@ -23,7 +23,7 @@ import { openStateDirectory, StateDirectory } from '../../../src/upstream/state-
 import { logger } from '../../../src/utils/logger';
 import type { SurfaceHarness } from '../../mocks/anthropic/surface-harness';
 import { waitFor } from '../../mocks/shared/wait-for';
-import { describeUpstream, E2E_MODEL, removeStateRoot } from './harness';
+import { describeUpstream, E2E_MODEL, productionSurface, removeStateRoot } from './harness';
 
 const RUN_EXIT_WAIT_MS = 60_000;
 const TURN_TIMEOUT_MS = 240_000;
@@ -59,13 +59,6 @@ function notingRunner(specs: RunSpec[]): Runner {
   return { startRun: spec => { specs.push(spec); return runner.startRun(spec); } };
 }
 
-/** Built here, not imported at the top: a skipped file must not start the OpenAI surface's timers. */
-async function productionSurface(state: StateDirectory, runner: Runner, controlServer: ControlServer): Promise<SurfaceHarness> {
-  const { createServer } = await import('../../../src/api/server');
-  const { serveApp } = await import('../../mocks/anthropic/surface-harness');
-  return serveApp(createServer({ stateDirectory: state, runner, controlServer }));
-}
-
 const blocksOf = <T extends Anthropic.ContentBlock['type']>(message: Anthropic.Message, type: T) =>
   message.content.filter((block): block is Extract<Anthropic.ContentBlock, { type: T }> => block.type === type);
 
@@ -87,13 +80,12 @@ describeUpstream('web search and web fetch through the surface against the real 
     hookCalls = [];
     errors = jest.spyOn(logger, 'error');
     controlServer = notingControlServer(hookCalls);
-    surface = await productionSurface(state, notingRunner(specs), controlServer);
+    surface = await productionSurface(state, { runner: notingRunner(specs), controlServer });
   });
 
   afterEach(async () => {
     await waitFor(() => fs.readdirSync(state.runs).length === 0, RUN_EXIT_WAIT_MS);
     await surface.close();
-    await controlServer.close();
     errors.mockRestore();
     removeStateRoot(root, state.cwd);
   }, RUN_EXIT_WAIT_MS + 10_000);

@@ -13,22 +13,12 @@ import { openStateDirectory, StateDirectory } from '../../../src/upstream/state-
 import { shippedCatalogue } from '../../mocks/anthropic/plan-context';
 import type { SurfaceHarness } from '../../mocks/anthropic/surface-harness';
 import { waitFor } from '../../mocks/shared/wait-for';
-import { describeUpstream, E2E_MODEL, removeStateRoot } from './harness';
+import { describeUpstream, E2E_MODEL, productionSurface, removeStateRoot } from './harness';
 
 const PROMPT = 'Reply with the single word pong.';
 const request = { model: E2E_MODEL, max_tokens: 1024, messages: [{ role: 'user' as const, content: PROMPT }] };
 const RUN_EXIT_WAIT_MS = 60_000;
 const REQUEST_ID = /^req_[0-9A-Za-z]{24}$/;
-
-/**
- * Built here, not imported at the top: importing the app starts the OpenAI surface's streaming
- * timers, which only the shared per-test cleanup stops, so a skipped file would never exit.
- */
-async function productionSurface(state: StateDirectory): Promise<SurfaceHarness> {
-  const { createServer } = await import('../../../src/api/server');
-  const { serveApp } = await import('../../mocks/anthropic/surface-harness');
-  return serveApp(createServer({ stateDirectory: state }));
-}
 
 describeUpstream('a plain turn through the surface against the real CLI', () => {
   const resolvedModel = shippedCatalogue.resolve(E2E_MODEL)?.id;

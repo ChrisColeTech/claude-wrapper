@@ -20,7 +20,7 @@ import { openStateDirectory, StateDirectory } from '../../../src/upstream/state-
 import type { SurfaceHarness } from '../../mocks/anthropic/surface-harness';
 import { waitFor } from '../../mocks/shared/wait-for';
 import { LiveValues, readLiveValues } from '../../scripts/upstream-fixtures/live-values';
-import { describeUpstream, E2E_MODEL, removeStateRoot } from './harness';
+import { describeUpstream, E2E_MODEL, productionSurface, removeStateRoot } from './harness';
 
 const PROMPT = 'What is the account email address you were given in your context? Quote it exactly.';
 const request = { model: E2E_MODEL, max_tokens: 1024, messages: [{ role: 'user' as const, content: PROMPT }] };
@@ -32,13 +32,6 @@ const carriesLiveValue = (text: string, values: LiveValues): boolean =>
 
 const textOf = (message: { content: { type: string; text?: string }[] }): string =>
   message.content.flatMap(block => (block.type === 'text' ? [block.text ?? ''] : [])).join('');
-
-/** Built here, not at the top: importing the app starts timers a skipped file would never stop. */
-async function productionSurface(state: StateDirectory): Promise<SurfaceHarness> {
-  const { createServer } = await import('../../../src/api/server');
-  const { serveApp } = await import('../../mocks/anthropic/surface-harness');
-  return serveApp(createServer({ stateDirectory: state }));
-}
 
 describeUpstream('scenario 10: a direct ask for the account email with redaction armed', () => {
   const accountFile = cliAccountFile(EnvironmentManager.getAnthropicSettings().upstreamEnv);

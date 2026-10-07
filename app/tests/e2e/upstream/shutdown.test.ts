@@ -14,11 +14,10 @@ import { ChildProcess, execFileSync, spawn as nodeSpawn } from 'child_process';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { ControlServer, createControlServer } from '../../../src/upstream/control-server';
 import { createSpawnRunner, Runner } from '../../../src/upstream/runner';
 import { openStateDirectory, StateDirectory } from '../../../src/upstream/state-directory';
 import type { SurfaceHarness } from '../../mocks/anthropic/surface-harness';
-import { describeUpstream, E2E_MODEL, removeStateRoot } from './harness';
+import { describeUpstream, E2E_MODEL, productionSurface, removeStateRoot } from './harness';
 
 const DRAIN_MS = 15_000;
 const WEATHER: Anthropic.Tool = {
@@ -67,32 +66,22 @@ function notingRunner(children: ChildProcess[]): Runner {
   });
 }
 
-/** Built here, not imported at the top: a skipped file must not start the OpenAI surface's timers. */
-async function productionSurface(state: StateDirectory, runner: Runner, controlServer: ControlServer): Promise<SurfaceHarness> {
-  const { createServer } = await import('../../../src/api/server');
-  const { serveApp } = await import('../../mocks/anthropic/surface-harness');
-  return serveApp(createServer({ stateDirectory: state, runner, controlServer }));
-}
-
 describeUpstream('wrapper shutdown against the real CLI', () => {
   let root: string;
   let state: StateDirectory;
   let surface: SurfaceHarness;
-  let controlServer: ControlServer;
   let children: ChildProcess[];
 
   beforeEach(async () => {
     root = fs.mkdtempSync(path.join(os.tmpdir(), 'shutdown-e2e-'));
     state = openStateDirectory(root);
     children = [];
-    controlServer = createControlServer();
-    surface = await productionSurface(state, notingRunner(children), controlServer);
+    surface = await productionSurface(state, { runner: notingRunner(children) });
   });
 
   afterEach(async () => {
     children.filter(child => child.exitCode === null && child.signalCode === null).forEach(child => child.kill('SIGKILL'));
     await surface.close();
-    await controlServer.close();
     removeStateRoot(root, state.cwd);
   });
 

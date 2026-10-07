@@ -18,7 +18,7 @@ import { openStateDirectory, StateDirectory } from '../../../src/upstream/state-
 import type { SurfaceHarness } from '../../mocks/anthropic/surface-harness';
 import { waitFor } from '../../mocks/shared/wait-for';
 import { UPSTREAM_FIXTURES } from '../../mocks/upstream/recordings';
-import { describeUpstream, E2E_MODEL, removeStateRoot } from './harness';
+import { describeUpstream, E2E_MODEL, productionSurface, removeStateRoot } from './harness';
 
 const RUN_EXIT_WAIT_MS = 60_000;
 const ASK = 'Reply in one line: the colour of the image, then the codeword in the PDF.';
@@ -61,13 +61,6 @@ function notingRunner(specs: RunSpec[]): Runner {
   return { startRun: spec => { specs.push(spec); return runner.startRun(spec); } };
 }
 
-/** Built here, not imported at the top: a skipped file must not start the OpenAI surface's timers. */
-async function productionSurface(state: StateDirectory, runner: Runner): Promise<SurfaceHarness> {
-  const { createServer } = await import('../../../src/api/server');
-  const { serveApp } = await import('../../mocks/anthropic/surface-harness');
-  return serveApp(createServer({ stateDirectory: state, runner }));
-}
-
 describeUpstream('images and documents against the real CLI', () => {
   let root: string;
   let state: StateDirectory;
@@ -80,7 +73,7 @@ describeUpstream('images and documents against the real CLI', () => {
     root = fs.mkdtempSync(path.join(os.tmpdir(), 'media-e2e-'));
     state = openStateDirectory(root);
     specs = [];
-    surface = await productionSurface(state, notingRunner(specs));
+    surface = await productionSurface(state, { runner: notingRunner(specs) });
   });
 
   afterEach(async () => {

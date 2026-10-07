@@ -11,19 +11,23 @@
  * settings (`CLAUDE_WRAPPER_*`) as for the server, and an explicit credential goes in
  * `CLAUDE_WRAPPER_UPSTREAM_ENV`. Each run gets a fresh state directory; `cleanup()` closes the
  * runs and removes those directories and the CLI's project directory for each, so no transcript
- * is left behind.
+ * is left behind. A scenario that goes through the whole surface builds it with
+ * `productionSurface`, whose `close()` also closes the surface's control server.
  */
 import { randomUUID } from 'crypto';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
+import type { SurfaceDeps } from '../../../src/anthropic/deps';
 import { SurfaceError } from '../../../src/anthropic/surface-error';
 import { planTurn, TurnPlan } from '../../../src/anthropic/request';
 import { EnvironmentManager } from '../../../src/config/env';
+import { createControlServer } from '../../../src/upstream/control-server';
 import { Frame } from '../../../src/upstream/frames';
 import { createSpawnRunner, Run, RunExit, RunSpec, RunTimers, UserMessage } from '../../../src/upstream/runner';
-import { openStateDirectory } from '../../../src/upstream/state-directory';
+import { openStateDirectory, StateDirectory } from '../../../src/upstream/state-directory';
 import { NO_SESSIONS, shippedCatalogue } from '../../mocks/anthropic/plan-context';
+import type { SurfaceHarness } from '../../mocks/anthropic/surface-harness';
 
 export const UPSTREAM_E2E_FLAG = 'UPSTREAM_E2E';
 export const E2E_MODEL = process.env['UPSTREAM_E2E_MODEL'] ?? 'claude-haiku-4-5-20251001';
@@ -106,6 +110,22 @@ const projectDir = (cwd: string): string =>
 export function removeStateRoot(root: string, cwd: string): void {
   fs.rmSync(projectDir(cwd), { recursive: true, force: true });
   fs.rmSync(root, { recursive: true, force: true });
+}
+
+/**
+ * The whole surface on `stateDirectory`, served on a loopback port: the production spawn runner
+ * unless `deps` gives a runner. Its control server is `deps.controlServer` or one of its own, and
+ * `close()` closes it with the HTTP server, since a turn or count with client or web tools starts
+ * it and a server left listening keeps Jest from exiting. The app is imported here, not at the
+ * top: a skipped file must not start the OpenAI surface's timers.
+ */
+export async function productionSurface(
+  stateDirectory: StateDirectory, deps: Omit<SurfaceDeps, 'stateDirectory'> = {}
+): Promise<SurfaceHarness> {
+  const { createServer } = await import('../../../src/api/server');
+  const { serveApp } = await import('../../mocks/anthropic/surface-harness');
+  const controlServer = deps.controlServer ?? createControlServer();
+  return serveApp(createServer({ ...deps, stateDirectory, controlServer }), () => controlServer.close());
 }
 
 export function createUpstreamHarness(): UpstreamHarness {
