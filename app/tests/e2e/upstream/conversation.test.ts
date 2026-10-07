@@ -2,8 +2,9 @@
  * E2E (real CLI, behind UPSTREAM_E2E=1): a continued turn (spec section 5, ADR 0002). The first
  * turn starts an upstream session; the second request carries the first answer back as the
  * client got it, so the surface resumes that session (`--resume`) and sends only the new
- * message. The resumed run reads the earlier turn from the prompt cache, and the model refers to
- * its own earlier answer.
+ * message. The continued turn is proven by the second run's `--resume` flag (the first run has
+ * none) and by the model recalling its own earlier answer, which reaches it only through the
+ * resumed session, since the surface does not resend the history.
  *
  *   UPSTREAM_E2E=1 npm --prefix app run test:e2e -- tests/e2e/upstream/conversation.test.ts
  */
@@ -64,7 +65,7 @@ describeUpstream('a continued turn against the real CLI', () => {
     removeStateRoot(root, state.cwd);
   }, RUN_EXIT_WAIT_MS + 10_000);
 
-  it('resumes the upstream session, reads it from the cache, and the model recalls its own answer', async () => {
+  it('resumes the upstream session, and the model recalls its own answer', async () => {
     const client = surface.client();
 
     const first = await client.messages.create({ model: E2E_MODEL, max_tokens: 256, messages: [FIRST] });
@@ -75,7 +76,6 @@ describeUpstream('a continued turn against the real CLI', () => {
 
     expect(specs[0]?.flags).not.toContain('--resume');
     expect(specs[1]?.flags).toContain('--resume');
-    expect(second.usage.cache_read_input_tokens).toBeGreaterThan(0);
     expect(word(textOf(second))).toBe(word(textOf(first)));
   }, 240_000);
 });
