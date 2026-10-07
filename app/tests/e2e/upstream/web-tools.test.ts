@@ -7,17 +7,24 @@
  * endpoint with the run's token, and the policy's replies take effect (`max_uses: 1` denies a
  * second search, which the client sees as `max_uses_exceeded`). The model may make both searches
  * in one message, and their results come back in any order, so each is paired with its call by id.
+ * The private-host block: a fetch of a loopback URL is denied by the hook (`url_not_allowed`), and
+ * the loopback server the test starts sees no connection, which shows upstream honours the deny.
  * In every test the run's audit must log no denied call that upstream ran anyway. Each test spends
  * quota: a model turn plus upstream's own side call per search or fetch.
  *
  *   UPSTREAM_E2E=1 npm --prefix app run test:e2e -- tests/e2e/upstream/web-tools.test.ts
  *   UPSTREAM_E2E=1 npm --prefix app run test:e2e -- tests/e2e/upstream/web-tools.test.ts -t 'scenario 7'
+ *   UPSTREAM_E2E=1 npm --prefix app run test:e2e -- tests/e2e/upstream/web-tools.test.ts -t 'private-host'
  *
  * Optional: `UPSTREAM_E2E_MODEL` (default Haiku 4.5), `CLAUDE_COMMAND`, `UPSTREAM_E2E_RECORD_DIR`
- * (scenario 7's frames are written there as `scenario-7-web-search-max-uses.jsonl`).
+ * (scenario 7's and the private-host run's frames are written there as
+ * `scenario-7-web-search-max-uses.jsonl` and `web-fetch-private-host.jsonl`).
  */
 import type Anthropic from '@anthropic-ai/sdk';
+import { once } from 'events';
 import * as fs from 'fs';
+import * as http from 'http';
+import { AddressInfo } from 'net';
 import * as os from 'os';
 import * as path from 'path';
 import { ControlServer, createControlServer, RunHandlers } from '../../../src/upstream/control-server';
@@ -32,6 +39,8 @@ const RUN_EXIT_WAIT_MS = 60_000;
 const TURN_TIMEOUT_MS = 240_000;
 /** The audit's line for a call upstream ran although the hook denied it. */
 const RAN_DESPITE_DENIAL = "Upstream ran a call the wrapper's hook denied: the denial was not enforced";
+/** The setting the private-host test needs at its default (on). */
+const PUBLIC_ONLY = 'CLAUDE_WRAPPER_WEB_FETCH_PUBLIC_ONLY';
 
 interface HookCall {
   input: { tool_name?: string; tool_use_id?: string; tool_input?: Record<string, unknown> };
@@ -58,6 +67,21 @@ function notingControlServer(calls: HookCall[]): ControlServer {
   };
 }
 
+/** A loopback HTTP server that answers anything and counts every connection made to it. */
+async function countingServer(): Promise<{ url: string; connections(): number; close(): Promise<void> }> {
+  let connections = 0;
+  const server = http.createServer((_req, res) => res.end('This page is on the operator\'s machine and must never be fetched.'));
+  server.on('connection', () => { connections += 1; });
+  server.listen(0, '127.0.0.1');
+  await once(server, 'listening');
+  const { port } = server.address() as AddressInfo;
+  return {
+    url: `http://127.0.0.1:${port}/wrapper-e2e-page`,
+    connections: () => connections,
+    close: () => new Promise<void>(resolve => { server.closeAllConnections(); server.close(() => resolve()); })
+  };
+}
+
 const blocksOf = <T extends Anthropic.ContentBlock['type']>(message: Anthropic.Message, type: T) =>
   message.content.filter((block): block is Extract<Anthropic.ContentBlock, { type: T }> => block.type === type);
 
@@ -67,6 +91,7 @@ const hostOf = (url: string): string => new URL(url).hostname;
 const surfaceId = (call: HookCall): string => `srv${String(call.input.tool_use_id)}`;
 
 describeUpstream('web search and web fetch through the surface against the real CLI', () => {
+  const operatorPublicOnly = process.env[PUBLIC_ONLY];
   let root: string;
   let state: StateDirectory;
   let surface: SurfaceHarness;
@@ -75,6 +100,7 @@ describeUpstream('web search and web fetch through the surface against the real 
   let errors: jest.SpyInstance;
 
   beforeEach(async () => {
+    delete process.env[PUBLIC_ONLY];
     root = fs.mkdtempSync(path.join(os.tmpdir(), 'web-tools-e2e-'));
     state = openStateDirectory(root);
     runner = teeingRunner();
@@ -84,6 +110,7 @@ describeUpstream('web search and web fetch through the surface against the real 
   });
 
   afterEach(async () => {
+    if (operatorPublicOnly !== undefined) process.env[PUBLIC_ONLY] = operatorPublicOnly;
     await waitFor(() => fs.readdirSync(state.runs).length === 0, RUN_EXIT_WAIT_MS);
     await surface.close();
     errors.mockRestore();
@@ -154,5 +181,30 @@ describeUpstream('web search and web fetch through the surface against the real 
     // Upstream honoured each denial; no denial the hook did not issue; no web call that bypassed it.
     expect(errors).not.toHaveBeenCalledWith(RAN_DESPITE_DENIAL, undefined, expect.anything());
     expect(errors).not.toHaveBeenCalled();
+  }, TURN_TIMEOUT_MS + RUN_EXIT_WAIT_MS);
+
+  it('the private-host block: a fetch of a loopback URL is denied by the hook and never reaches the host', async () => {
+    const host = await countingServer();
+    try {
+      const message = await surface.client({ timeout: TURN_TIMEOUT_MS }).messages.create({
+        model: E2E_MODEL, max_tokens: 512, tools: [{ type: 'web_fetch_20250910', name: 'web_fetch' }],
+        messages: [{ role: 'user', content: `Fetch ${host.url} with the web fetch tool, once, then say in one sentence whether it worked.` }]
+      });
+      await runsExited();
+      recordFrames('web-fetch-private-host', runner.runs[0]?.frames ?? []);
+
+      // None means the model never asked, or the CLI refused the URL before its PreToolUse hook ran.
+      const fetches = hookCalls.filter(call => call.input.tool_name === 'WebFetch');
+      expect(fetches.length).toBeGreaterThan(0);
+      expect(fetches.map(call => JSON.stringify(call.reply).includes('url_not_allowed'))).toEqual(fetches.map(() => true));
+      const results = new Map(blocksOf(message, 'web_fetch_tool_result').map(result => [result.tool_use_id, result.content]));
+      expect(fetches.map(call => results.get(surfaceId(call))))
+        .toEqual(fetches.map(() => ({ type: 'web_fetch_tool_result_error', error_code: 'url_not_allowed' })));
+      expect(message.usage.server_tool_use?.web_fetch_requests).toBe(0);
+      expect(host.connections()).toBe(0);
+      expect(errors).not.toHaveBeenCalledWith(RAN_DESPITE_DENIAL, undefined, expect.anything());
+    } finally {
+      await host.close();
+    }
   }, TURN_TIMEOUT_MS + RUN_EXIT_WAIT_MS);
 });
