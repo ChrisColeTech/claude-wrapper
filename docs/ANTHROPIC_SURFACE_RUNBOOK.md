@@ -64,7 +64,7 @@ Redaction reads its account values from `.claude.json` in that `CLAUDE_CONFIG_DI
 
 ## Watching it
 
-- `GET /health` gains an `anthropic` key: `{active, parked, maxRuns, queued, rateLimit}`. `queued` maps an upstream session id to the turns waiting on it. `rateLimit` is the last `rate_limit_event` upstream reported (`status`, `resetsAt`, `rateLimitType`), or null. `/health` is public, so anyone who can reach the port sees these counts and the session ids of conversations with queued turns.
+- `GET /health` gains an `anthropic` key: `{active, parked, maxRuns, queued, rateLimit}`. `queued` is the number of turns waiting on their conversation's previous run, over every conversation. `rateLimit` is the last `rate_limit_event` upstream reported (`status`, `resetsAt`, `rateLimitType`), or null. `/health` is public, so anyone who can reach the port sees these counts. It shows counts only, never an upstream session id; the log has the session ids.
 - The log carries the request id (the `request-id` header clients see) beside upstream's session id. It records every run start and exit, timer firing, cap rejection, park, park expiry, kill, sweep and forgotten session. At start it logs `Redaction armed` with the number of strings (never the values), or a warning that redaction is unarmed. Connector tokens and the control-server token are never logged.
 
 ## Shutdown
