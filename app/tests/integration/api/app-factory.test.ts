@@ -15,7 +15,8 @@ function stubDeps(): Required<SurfaceDeps> {
     controlServer: { start: jest.fn(), registerRun: jest.fn(), releaseRun: jest.fn(), close: jest.fn() },
     clock: createFakeClock(),
     stateDirectory: { cwd: '/state/cwd', runs: '/state/runs' },
-    accountFile: '/state/no-account/.claude.json'
+    accountFile: '/state/no-account/.claude.json',
+    resolveHost: jest.fn()
   };
 }
 

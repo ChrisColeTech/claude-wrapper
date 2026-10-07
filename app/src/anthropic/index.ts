@@ -13,6 +13,7 @@ import { Router } from 'express';
 import { EnvironmentManager } from '../config/env';
 import { cliAccountFile } from '../upstream/account-file';
 import { createControlServer } from '../upstream/control-server';
+import { resolveWithSystem } from '../upstream/hook-policy';
 import { createSpawnRunner } from '../upstream/runner';
 import { systemClock } from '../utils/clock';
 import { SHIPPED_CATALOGUE_PATH, loadCatalogue } from './catalogue';
@@ -69,7 +70,8 @@ export function createAnthropicSurface(deps: SurfaceDeps = {}): AnthropicSurface
   const controlServer = deps.controlServer ?? createControlServer();
   const conductor = createConductor({
     runner: deps.runner ?? createSpawnRunner({ clock }),
-    catalogue, sessions, clock, settings, environment, stateDirectory, redact, controlServer, scheduler
+    catalogue, sessions, clock, settings, environment, stateDirectory, redact, controlServer, scheduler,
+    resolveHost: deps.resolveHost ?? resolveWithSystem
   });
   return {
     router: createAnthropicRouter({

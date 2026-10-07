@@ -14,6 +14,7 @@
 import { randomUUID } from 'crypto';
 import { Request, Response } from 'express';
 import { ControlServer } from '../../upstream/control-server';
+import { ResolveHost } from '../../upstream/hook-policy';
 import { Runner } from '../../upstream/runner';
 import { Clock } from '../../utils/clock';
 import { withContext } from '../../utils/log-context';
@@ -45,6 +46,8 @@ export interface ConductorDeps extends PlanningDeps {
   controlServer: ControlServer;
   /** Admits every run and holds the parked ones. */
   scheduler: Scheduler<HeldRun>;
+  /** Resolves a WebFetch URL's host name, for the hook policy's public-only check. */
+  resolveHost: ResolveHost;
   logger?: ConductorLogger;
 }
 

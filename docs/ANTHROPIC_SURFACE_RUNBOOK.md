@@ -25,6 +25,7 @@ Every setting is an environment variable, read when the wrapper builds its app a
 | `CLAUDE_WRAPPER_MAX_TURNS` | `25` | Upstream's `--max-turns` per run, a runaway guard. Hitting it ends the turn with 500 `api_error`. |
 | `CLAUDE_WRAPPER_UPSTREAM_ENV` | `{}` | A JSON object of strings, merged last into every run's environment (below). |
 | `CLAUDE_WRAPPER_REDACT` | empty | Comma-separated strings to redact from output, beside the account email, display name and full name, which are armed automatically. |
+| `CLAUDE_WRAPPER_WEB_FETCH_PUBLIC_ONLY` | `true` | Keeps web fetch off your network: Claude Code fetches from the wrapper's machine, so a `web_fetch` call whose URL host is not a public address is denied, and the client gets `url_not_allowed`. Not public: loopback, private, link-local, unique-local, unspecified and the other special ranges (IPv4, IPv6 and IPv4-mapped), `localhost` and names under it, and a name that resolves to any of those or does not resolve. Names are resolved with the wrapper machine's resolver when the hook decides the call. `false` (or `0`) lets a fetch reach any address. Limits: Claude Code follows same-host redirects itself, unseen by the hook, and resolves the name again when it fetches, so the check holds at decision time only. See the README's operator warning. |
 
 Timer firings (startup, stall, lifetime) answer 504 `timeout_error` before the response has started, or an SSE `error` event of that type after.
 

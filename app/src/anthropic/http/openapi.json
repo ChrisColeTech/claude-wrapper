@@ -881,7 +881,7 @@
             "description": "Accepted anywhere a request may carry it, and ignored: upstream manages its own prompt cache."
           }
         },
-        "description": "Served by Claude Code's WebFetch, which fetches the URL from the machine the wrapper runs on. The result document is upstream's extraction of the page (converted to Markdown, extracted by a separate model call, truncated, cached for 15 minutes, upgraded to HTTPS, cross-host redirects not followed), not the page itself. `citations`, `max_content_tokens`, `use_cache`, `response_inclusion` and `url_sources` are accepted and ignored."
+        "description": "Served by Claude Code's WebFetch, which fetches the URL from the machine the wrapper runs on. The result document is upstream's extraction of the page (converted to Markdown, extracted by a separate model call, truncated, cached for 15 minutes, upgraded to HTTPS, cross-host redirects not followed), not the page itself. Unless the operator turned it off (`CLAUDE_WRAPPER_WEB_FETCH_PUBLIC_ONLY=false`), a URL whose host is not a public address (loopback, private, link-local and the other special ranges, `localhost`, or a name that resolves to one) is denied with `url_not_allowed`. `citations`, `max_content_tokens`, `use_cache`, `response_inclusion` and `url_sources` are accepted and ignored."
       },
       "McpToolset": {
         "type": "object",

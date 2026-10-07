@@ -2,7 +2,8 @@
  * Serves a fresh app on an ephemeral loopback port and hands out official SDK clients
  * pointed at it. One harness per test; `close()` in `afterEach`. A test that injects no runner
  * gets one that refuses to run anything, and one that injects no sessions gets an in-memory map
- * that deletes no transcript on disk. The control server (its own unless injected) is closed with
+ * that deletes no transcript on disk. A test app resolves no host name (a WebFetch of a name is
+ * then denied), so no test asks DNS. The control server (its own unless injected) is closed with
  * the harness.
  */
 import Anthropic, { ClientOptions } from '@anthropic-ai/sdk';
@@ -12,6 +13,7 @@ import { AddressInfo } from 'net';
 import { anthropicSurfaceOf, createServer } from '../../../src/api/server';
 import { SurfaceDeps } from '../../../src/anthropic/deps';
 import { createControlServer } from '../../../src/upstream/control-server';
+import { ResolveHost } from '../../../src/upstream/hook-policy';
 import { Runner } from '../../../src/upstream/runner';
 import { memorySessions } from './sessions';
 
@@ -35,9 +37,16 @@ export const REFUSING_RUNNER: Runner = {
   startRun: () => { throw new Error('this test app has no runner: inject one (replay or scripted)'); }
 };
 
+/** The host resolver of a test app that injects none: it resolves nothing, so no test reaches DNS. */
+export const NO_HOST_NAMES: ResolveHost = async (hostname) => {
+  throw new Error(`this test app resolves no host name (${hostname}): inject a resolver`);
+};
+
 export async function startSurface(deps: SurfaceDeps = {}): Promise<SurfaceHarness> {
   const controlServer = deps.controlServer ?? createControlServer({ logger: { debug: () => undefined, warn: () => undefined } });
-  const app = createServer({ runner: REFUSING_RUNNER, sessions: memorySessions(deps.clock).sessions, controlServer, ...deps });
+  const app = createServer({
+    runner: REFUSING_RUNNER, sessions: memorySessions(deps.clock).sessions, controlServer, resolveHost: NO_HOST_NAMES, ...deps
+  });
   return serveApp(app, () => controlServer.close());
 }
 
