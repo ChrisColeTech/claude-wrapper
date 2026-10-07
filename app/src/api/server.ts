@@ -6,7 +6,7 @@ import { errorHandler } from './middleware/error';
 import { requestLoggingMiddleware, errorLoggingMiddleware } from './middleware/logging';
 import chatRoutes from './routes/chat';
 import modelsRoutes from './routes/models';
-import healthRoutes from './routes/health';
+import { createHealthRouter } from './routes/health';
 import sessionRoutes from './routes/sessions';
 import authRoutes from './routes/auth';
 import logsRoutes from './routes/logs';
@@ -69,7 +69,7 @@ function mountDocs(app: Express): void {
 
 function mountRoutes(app: Express, anthropic: AnthropicSurface): void {
   app.use('/', anthropic.router); // before the OpenAI routes: Anthropic wins on a shared path
-  app.use('/', healthRoutes);
+  app.use('/', createHealthRouter(() => ({ anthropic: anthropic.health() })));
   app.use('/', modelsRoutes);
   app.use('/', sessionRoutes);
   app.use('/', authRoutes);
@@ -86,6 +86,9 @@ function mountErrorHandling(app: Express): void {
   app.use(errorHandler);
 }
 
+/** Where an app keeps its Anthropic surface, for `shutdownAnthropicSurface`. */
+const ANTHROPIC_SURFACE = 'anthropic surface';
+
 /**
  * Build a fresh Express app. Each call returns a new, independent app.
  * `deps` go to the Anthropic surface's composition root; every slot is optional and the
@@ -94,11 +97,23 @@ function mountErrorHandling(app: Express): void {
 export function createServer(deps: SurfaceDeps = {}): Express {
   const app = express();
   const anthropic = createAnthropicSurface(deps);
+  app.set(ANTHROPIC_SURFACE, anthropic);
   mountMiddleware(app);
   mountDocs(app);
   mountRoutes(app, anthropic);
   mountErrorHandling(app);
   return app;
+}
+
+/**
+ * Drains the Anthropic surface of an app `createServer` built, the default export included (spec
+ * section 14): new requests get 529, turns in flight their error, every upstream run goes down the
+ * teardown ladder, and what is left at `deadlineMs` (the shutdown-drain setting by default) is
+ * SIGKILLed. Resolves once every run has exited.
+ */
+export function shutdownAnthropicSurface(app: Express, deadlineMs?: number): Promise<void> {
+  const surface = app.get(ANTHROPIC_SURFACE) as AnthropicSurface | undefined;
+  return surface ? surface.shutdown(deadlineMs) : Promise.resolve();
 }
 
 /**
