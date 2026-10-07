@@ -6,18 +6,24 @@
  *   UPSTREAM_E2E=1 npm --prefix app run test:e2e -- tests/e2e/upstream
  *
  * `CLAUDE_COMMAND` points at the binary (default `claude` on PATH); `UPSTREAM_E2E_MODEL` picks
- * the model (default Haiku, the cheapest catalogued model). Timers, park TTL, `--max-turns` and
- * `upstream.env` come from the operator settings (`CLAUDE_WRAPPER_*`), so an explicit credential
- * goes in `CLAUDE_WRAPPER_UPSTREAM_ENV` as for the server. Each run gets a fresh empty working
- * directory; `cleanup()` closes the runs and removes those directories and the CLI's project
- * directory for each, so no transcript is left behind.
+ * the model (default Haiku, the cheapest catalogued model). The run spec is the planner's
+ * (`planTurn`), so timers, park TTL, `--max-turns` and `upstream.env` come from the operator
+ * settings (`CLAUDE_WRAPPER_*`) as for the server, and an explicit credential goes in
+ * `CLAUDE_WRAPPER_UPSTREAM_ENV`. Each run gets a fresh state directory; `cleanup()` closes the
+ * runs and removes those directories and the CLI's project directory for each, so no transcript
+ * is left behind.
  */
+import { randomUUID } from 'crypto';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
+import { SurfaceError } from '../../../src/anthropic/http/surface-error';
+import { planTurn, TurnPlan } from '../../../src/anthropic/request';
 import { EnvironmentManager } from '../../../src/config/env';
 import { Frame } from '../../../src/upstream/frames';
 import { createSpawnRunner, Run, RunExit, RunSpec, RunTimers, UserMessage } from '../../../src/upstream/runner';
+import { openStateDirectory } from '../../../src/upstream/state-directory';
+import { NO_SESSIONS, shippedCatalogue } from '../../mocks/anthropic/plan-context';
 
 export const UPSTREAM_E2E_FLAG = 'UPSTREAM_E2E';
 export const E2E_MODEL = process.env['UPSTREAM_E2E_MODEL'] ?? 'claude-haiku-4-5-20251001';
@@ -31,69 +37,50 @@ export function describeUpstream(name: string, body: () => void): void {
 }
 
 export interface PlainRunOptions {
+  /** The request body's `model`: a canonical id or an alias. */
   model?: string;
   maxTokens?: number;
-  systemPrompt?: string;
-  /** Appended after the plain flags (a scenario's own flags). */
+  system?: string;
+  /** The one user message's text. */
+  prompt?: string;
+  /** A scenario's own flags, appended after the planned ones (the spec's flags are the plan's). */
   extraFlags?: string[];
-  /** Merged last, like the operator's `upstream.env`. */
+  /** A scenario's own variables, merged after the planned environment. */
   env?: Record<string, string>;
   timers?: Partial<RunTimers>;
 }
 
-const BASE_ENV = ['HOME', 'PATH', 'LANG', 'LC_ALL', 'TZ', 'TMPDIR', 'HTTP_PROXY', 'HTTPS_PROXY', 'NO_PROXY'];
-/** Refused even from the operator (section 10): one switches the model, one refuses the login. */
-const REFUSED_ENV = ['CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC', 'CLAUDE_CODE_SIMPLE'];
+/** The planner's turn plan for a one-message text request. */
+export function planPlainTurn(stateRoot: string, options: PlainRunOptions = {}): TurnPlan {
+  const request = {
+    model: options.model ?? E2E_MODEL,
+    max_tokens: options.maxTokens ?? 1024,
+    ...(options.system === undefined ? {} : { system: options.system }),
+    messages: [{ role: 'user', content: options.prompt ?? 'Reply with the single word pong.' }]
+  };
+  const context = {
+    settings: EnvironmentManager.getAnthropicSettings(),
+    environment: process.env,
+    state: openStateDirectory(stateRoot),
+    runId: randomUUID()
+  };
+  const plan = planTurn(request, shippedCatalogue, NO_SESSIONS, context);
+  if (plan instanceof SurfaceError) throw new Error(`the planner refused the e2e request: ${plan.message}`);
+  return plan;
+}
 
-/**
- * The spec's child environment (section 10), built from scratch: the base variables, the
- * always-set ones, then the operator's `upstream.env`, then the scenario's own. Nothing else is
- * inherited.
- */
-export function childEnvironment(maxTokens: number, extra: Record<string, string> = {}): Record<string, string> {
-  const settings = EnvironmentManager.getAnthropicSettings();
-  const refused = REFUSED_ENV.filter(name => name in settings.upstreamEnv);
-  if (refused.length > 0) throw new Error(`upstream.env may not set ${refused.join(', ')}`);
-  const env: Record<string, string> = {};
-  for (const name of [...BASE_ENV, ...BASE_ENV.map(n => n.toLowerCase())]) {
-    const value = process.env[name];
-    if (value !== undefined) env[name] = value;
-  }
-  const aboveParkTtl = String(settings.parkTtlMs + 60_000);
+function withOverrides(spec: RunSpec, options: PlainRunOptions): RunSpec {
   return {
-    ...env,
-    CLAUDE_CODE_MAX_OUTPUT_TOKENS: String(maxTokens),
-    CLAUDE_CODE_MCP_TOOL_IDLE_TIMEOUT: aboveParkTtl,
-    MCP_TOOL_TIMEOUT: aboveParkTtl,
-    MCP_CONNECT_TIMEOUT_MS: '5000',
-    CLAUDE_CODE_MAX_WEB_SEARCHES_PER_SESSION: '200',
-    ...settings.upstreamEnv,
-    ...extra
+    ...spec,
+    flags: [...spec.flags, ...(options.extraFlags ?? [])],
+    env: { ...spec.env, ...options.env },
+    timers: { ...spec.timers, ...options.timers }
   };
 }
 
-/** The run timers the operator settings give (section 14). */
-export function settingsTimers(): RunTimers {
-  const { timers } = EnvironmentManager.getAnthropicSettings();
-  return { startup: timers.startupMs, stall: timers.stallMs, lifetime: timers.lifetimeMs };
-}
-
-/** The spec's argument list for a replayed text turn with no tools (section 10). */
-export function plainRunSpec(cwd: string, options: PlainRunOptions = {}): RunSpec {
-  const flags = [
-    '-p', '--input-format', 'stream-json', '--output-format', 'stream-json', '--verbose', '--include-partial-messages',
-    '--system-prompt', options.systemPrompt ?? '', '--system-prompt-snapshot', 'off',
-    '--setting-sources=', '--strict-mcp-config', '--model', options.model ?? E2E_MODEL,
-    '--tools', '', '--allowedTools', '', '--permission-mode', 'default', '--permission-prompts', 'none',
-    '--max-turns', String(EnvironmentManager.getAnthropicSettings().maxTurns), ...(options.extraFlags ?? [])
-  ];
-  const env = childEnvironment(options.maxTokens ?? 1024, options.env);
-  return { flags, env, cwd, timers: { ...settingsTimers(), ...options.timers } };
-}
-
 export interface UpstreamHarness {
-  /** Spawns the real CLI with the plain spec in a fresh empty working directory. */
-  start(options?: PlainRunOptions): { run: Run; spec: RunSpec };
+  /** Spawns the real CLI with the planned spec in a fresh state directory. */
+  start(options?: PlainRunOptions): { run: Run; plan: TurnPlan; spec: RunSpec };
   /** Sends the message, reads frames through `result`, closes stdin, and reads to the exit. */
   complete(run: Run, message: UserMessage): Promise<{ frames: Frame[]; exit: RunExit }>;
   cleanup(): Promise<void>;
@@ -105,16 +92,17 @@ const projectDir = (cwd: string): string =>
 export function createUpstreamHarness(): UpstreamHarness {
   const runner = createSpawnRunner({ command: process.env['CLAUDE_COMMAND'] ?? 'claude' });
   const runs: Run[] = [];
-  const dirs: string[] = [];
+  const roots: { root: string; cwd: string }[] = [];
 
   return {
     start(options = {}) {
-      const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'upstream-e2e-'));
-      dirs.push(cwd);
-      const spec = plainRunSpec(cwd, options);
+      const root = fs.mkdtempSync(path.join(os.tmpdir(), 'upstream-e2e-'));
+      const plan = planPlainTurn(root, options);
+      roots.push({ root, cwd: plan.runSpec.cwd });
+      const spec = withOverrides(plan.runSpec, options);
       const run = runner.startRun(spec);
       runs.push(run);
-      return { run, spec };
+      return { run, plan, spec };
     },
     async complete(run, message) {
       const frames: Frame[] = [];
@@ -127,9 +115,9 @@ export function createUpstreamHarness(): UpstreamHarness {
     },
     async cleanup() {
       await Promise.all(runs.splice(0).map(run => run.close()));
-      for (const cwd of dirs.splice(0)) {
+      for (const { root, cwd } of roots.splice(0)) {
         fs.rmSync(projectDir(cwd), { recursive: true, force: true });
-        fs.rmSync(cwd, { recursive: true, force: true });
+        fs.rmSync(root, { recursive: true, force: true });
       }
     }
   };
