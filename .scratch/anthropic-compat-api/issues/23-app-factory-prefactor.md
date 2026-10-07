@@ -6,10 +6,14 @@ Spec: [spec.md](../spec.md), section 16, Testing Decisions
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] `createServer(deps)` returns a fresh Express app on each call; module load no longer builds one
-- [ ] The dependency object has a slot for every injectable the spec's composition root names (runner, catalogue, sessions, control server, clock), all optional for now, so later tickets add implementations without changing the signature
-- [ ] `startServer` and the default export keep today's behaviour; the CLI and daemon start paths are unchanged
-- [ ] Every existing unit, integration and e2e test passes unchanged
-- [ ] No OpenAI-surface route, middleware or response changes
+- [x] `createServer(deps)` returns a fresh Express app on each call; module load no longer builds one
+- [x] The dependency object has a slot for every injectable the spec's composition root names (runner, catalogue, sessions, control server, clock), all optional for now, so later tickets add implementations without changing the signature
+- [x] `startServer` and the default export keep today's behaviour; the CLI and daemon start paths are unchanged
+- [x] Every existing unit, integration and e2e test passes unchanged
+- [x] No OpenAI-surface route, middleware or response changes
+
+## Comments
+
+- Resolved by merge 7c2cb32 on anthropic-compat-api.
