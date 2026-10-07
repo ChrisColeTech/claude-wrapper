@@ -9,6 +9,7 @@ import { Router } from 'express';
 import { EnvironmentManager } from '../config/env';
 import { AnthropicSettings } from '../config/anthropic-settings';
 import { cliAccountFile } from '../upstream/account-file';
+import { createControlServer } from '../upstream/control-server';
 import { createSpawnRunner } from '../upstream/runner';
 import { processStateDirectory, StateDirectory } from '../upstream/state-directory';
 import { createTranscriptStore, upstreamProjectDirectory } from '../upstream/transcripts';
@@ -60,7 +61,9 @@ export function createAnthropicSurface(deps: SurfaceDeps = {}): AnthropicSurface
     clock,
     settings,
     stateDirectory,
-    redact
+    redact,
+    // Listens from the first turn that mounts a bridge server; closing it is the shutdown's.
+    controlServer: deps.controlServer ?? createControlServer()
   });
   return { router: createAnthropicRouter({ catalogue, messages: (req, res) => conductor.handleMessages(req, res) }) };
 }

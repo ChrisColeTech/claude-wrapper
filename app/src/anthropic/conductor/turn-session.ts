@@ -6,13 +6,13 @@
  * (a rejection, a post-commit failure, a disconnect, an error `result`, a run that ended before
  * its `result`) is an error turn: the session is forgotten at once, so the client's retry is a
  * replayed turn, and forgotten again once the run has exited, since upstream writes its
- * transcript up to its exit.
+ * transcript up to its exit. A turn that parks hands its run on and decides nothing.
  */
 import { Frame, ResultFrame } from '../../upstream/frames';
 import { fingerprint, NormalisedMessage } from '../request';
-import { accumulate, SinkOutcome, TurnSink } from '../respond';
+import { accumulate, SinkEvent, SinkOutcome, TurnSink } from '../respond';
 import { Sessions } from '../sessions';
-import { ApiEvent, TurnEvent } from '../translate';
+import { ApiEvent } from '../translate';
 import { FrameObserver, PumpLogger } from './run-pump';
 
 export interface TurnSessionOptions {
@@ -32,14 +32,14 @@ export class TurnSession implements FrameObserver {
   private outcome: SinkOutcome | undefined;
   /** `null`: the run ended without one. */
   private result: ResultFrame | null | undefined;
-  private decision: 'record' | 'forget' | undefined;
+  private decision: 'record' | 'forget' | 'parked' | undefined;
 
   constructor(private readonly options: TurnSessionOptions) {}
 
   /** `sink`, with every event it is given also kept here: the answer the client got. */
   relay(sink: TurnSink): TurnSink {
     return {
-      push: (event: TurnEvent) => {
+      push: (event: SinkEvent) => {
         // The output-limits ticket's `cut` makes this an error turn here.
         if (event.type !== 'fail') this.events.push(event);
         sink.push(event);
@@ -60,6 +60,14 @@ export class TurnSession implements FrameObserver {
   settled(outcome: SinkOutcome): void {
     this.outcome = outcome;
     this.decide();
+  }
+
+  /**
+   * The turn parked (spec section 7): nothing is recorded or forgotten for it. Its run, and with it
+   * the upstream session, passes to the turn that resumes it, or to the park's abandonment.
+   */
+  parked(): void {
+    this.decision ??= 'parked';
   }
 
   /** Upstream has exited. */

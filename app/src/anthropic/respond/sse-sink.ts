@@ -9,8 +9,7 @@
 import { ServerResponse } from 'http';
 import { Clock, TimerHandle } from '../../utils/clock';
 import { SurfaceError } from '../http/surface-error';
-import { TurnEvent } from '../translate';
-import { Settlement, TurnSink } from './sink';
+import { SinkEvent, Settlement, TurnSink } from './sink';
 
 export interface SseSinkOptions {
   /** Goes into the `error` event's `request_id`. */
@@ -34,7 +33,7 @@ class SseSink implements TurnSink {
     return this.settlement.outcome;
   }
 
-  push(event: TurnEvent): void {
+  push(event: SinkEvent): void {
     if (this.settlement.done) return;
     if (event.type === 'fail') {
       this.fail(event.error);

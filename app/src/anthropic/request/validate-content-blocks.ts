@@ -62,11 +62,23 @@ function validateToolResultContent(content: unknown, path: string): void {
   });
 }
 
+/** A tool result names the call it answers and says whether it is an error: the bridge server passes both on. */
+function validateToolResult(block: Body, path: string): void {
+  const id = block['tool_use_id'];
+  if (id === undefined) throw fieldRequired(`${path}.tool_use_id`);
+  if (typeof id !== 'string') throw fieldInvalid(`${path}.tool_use_id`, 'a valid string');
+  const isError = block['is_error'];
+  if (isError !== undefined && isError !== null && typeof isError !== 'boolean') {
+    throw fieldInvalid(`${path}.is_error`, 'a valid boolean');
+  }
+  validateToolResultContent(block['content'], `${path}.content`);
+}
+
 function validateBlock(block: Body & { type: string }, path: string): void {
   const { type } = block;
   if (!SERVED_BLOCKS.has(type)) throw notSupported(path, `"${type}" blocks`);
   if (Object.hasOwn(SERVED_SOURCES, type)) validateSource(block, type, path);
-  if (type === 'tool_result') validateToolResultContent(block['content'], `${path}.content`);
+  if (type === 'tool_result') validateToolResult(block, path);
 }
 
 /** `messages` as the client sent it, its shape already checked, so paths carry the client's indices. */

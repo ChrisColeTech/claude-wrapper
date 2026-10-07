@@ -4,7 +4,13 @@
  */
 import { ServerResponse } from 'http';
 import { SurfaceError } from '../http/surface-error';
-import { TurnEvent } from '../translate';
+import { ApiEvent, FailSignal } from '../translate';
+
+/**
+ * What a sink is given: the turn stream's API events and its `fail` signal. The `park` signal is
+ * the conductor's (it follows the `message_stop` that has already ended the response).
+ */
+export type SinkEvent = ApiEvent | FailSignal;
 
 export type SinkOutcome =
   /** The whole message reached the response. */
@@ -18,7 +24,7 @@ export type SinkOutcome =
 
 export interface TurnSink {
   /** Every turn event, in order; ignored once the outcome has settled. */
-  push(event: TurnEvent): void;
+  push(event: SinkEvent): void;
   /** Settles once: at `message_stop`, at a `fail`, or when the client disconnects. */
   readonly outcome: Promise<SinkOutcome>;
 }

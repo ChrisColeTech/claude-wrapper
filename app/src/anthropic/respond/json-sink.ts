@@ -4,9 +4,9 @@
  * `message_stop`. Nothing is written before then, so every failure is a pre-commit HTTP error.
  */
 import { ServerResponse } from 'http';
-import { ApiEvent, TurnEvent } from '../translate';
+import { ApiEvent } from '../translate';
 import { accumulate } from './accumulate';
-import { Settlement, TurnSink } from './sink';
+import { SinkEvent, Settlement, TurnSink } from './sink';
 
 class JsonSink implements TurnSink {
   private readonly settlement: Settlement;
@@ -20,7 +20,7 @@ class JsonSink implements TurnSink {
     return this.settlement.outcome;
   }
 
-  push(event: TurnEvent): void {
+  push(event: SinkEvent): void {
     if (this.settlement.done) return;
     if (event.type === 'fail') {
       this.settlement.settle({ kind: 'rejected', error: event.error });

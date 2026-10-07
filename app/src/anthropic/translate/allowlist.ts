@@ -6,7 +6,7 @@
 import { JsonObject } from '../../upstream/frames';
 import { ALLOWED_EVENT_FIELDS, FieldFilter, FieldRule, Fields } from './allowed-fields';
 import { eachEvent, Pass } from './pass';
-import { ApiEvent, TranslatorLogger, TurnEvent } from './turn-event';
+import { ApiEvent, isControlSignal, TranslatorLogger, TurnEvent } from './turn-event';
 
 type Drop = (path: string) => void;
 
@@ -48,7 +48,7 @@ export function createAllowlist(logger: TranslatorLogger): Pass<TurnEvent, TurnE
   };
 
   return eachEvent(event => {
-    if (event.type === 'fail') return [event];
+    if (isControlSignal(event)) return [event];
     const fields = Object.hasOwn(ALLOWED_EVENT_FIELDS, event.type) ? ALLOWED_EVENT_FIELDS[event.type] : undefined;
     if (!fields) {
       drop(String(event.type));

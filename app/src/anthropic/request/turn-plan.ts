@@ -3,10 +3,13 @@
  * the `TurnPlan` it returns.
  */
 import { AnthropicSettings } from '../../config/anthropic-settings';
+import { ClientTool, ToolResultBlock } from '../../upstream/bridge';
 import { JsonObject } from '../../upstream/frames';
 import { RunSpec, UserMessage } from '../../upstream/runner';
 import { StateDirectory } from '../../upstream/state-directory';
 import { ModelInfo } from '../catalogue';
+import { ParkedRun } from '../sessions';
+import { RunBound } from './run-bound';
 
 /** A content block as the client sent it; `type` is all this module reads of most kinds. */
 export type ContentBlock = JsonObject & { type: string };
@@ -28,12 +31,23 @@ export interface RunContext {
   runId: string;
 }
 
-/** How the turn reaches upstream (spec section 5). */
-export type Continuation =
+/** How a turn that starts a run reaches upstream (spec section 5). */
+export type RunContinuation =
   /** A replayed turn: a fresh run receives this one message, any history rendered into it. */
   | { replay: UserMessage }
   /** A continued turn: the run resumes upstream session `resume` and receives only the new message. */
   | { resume: string; message: UserMessage };
+
+/**
+ * A resuming turn (spec section 7): the request answers the parked run's `tool_use` ids, so no
+ * run is started; `results` go to the parked run's bridge server, and it continues.
+ */
+export interface ParkedContinuation {
+  parked: ParkedRun;
+  results: ToolResultBlock[];
+}
+
+export type Continuation = RunContinuation | ParkedContinuation;
 
 /** What the conductor checks on `system/init` before relaying anything; a mismatch fails the turn. */
 export interface StartupChecks {
@@ -53,4 +67,10 @@ export interface TurnPlan {
   runSpec: RunSpec;
   continuation: Continuation;
   startupChecks: StartupChecks;
+  /** The client tools the bridge server serves this turn's run; none (or `tool_choice: none`): not mounted. */
+  bridgeTools: ClientTool[];
+  /** What the run is spawned with and a resuming turn cannot change. */
+  runBound: RunBound;
+  /** The `tool_result` ids of a replayed turn whose results named no parked run (spec section 7): a lost park. */
+  lostPark?: string[];
 }

@@ -6,16 +6,23 @@ import { TranscriptStore } from '../../upstream/transcripts';
 import { Clock } from '../../utils/clock';
 
 /**
- * A held-open run waiting for the client's tool results (spec section 7). The registry reads only
- * the ids; the client-tools ticket adds what resuming the run needs (the run, its bridge, its
- * upstream session).
+ * A held-open run waiting for the client's tool results (spec section 7). The registry and the
+ * planner read only the ids; the conductor, which parked it, resumes it.
  */
 export interface ParkedRun {
   /** The `tool_use` ids the parked turn returned; a request's `tool_result` ids are matched against them. */
   readonly toolUseIds: readonly string[];
+  /** The run's id, for logs. */
+  readonly runId: string;
+  /**
+   * Ends a park the client will not answer (park TTL, shutdown): interrupts the run, then rejects
+   * its waiting tool calls, tears it down and forgets its upstream session. Settles once the run
+   * has exited.
+   */
+  abandon(reason: string): Promise<void>;
 }
 
-/** Parked runs by `tool_use` id. Nothing here expires: the park TTL is the client-tools ticket's. */
+/** Parked runs by `tool_use` id. Nothing here expires: the conductor's parking holds the park TTL. */
 export interface ParkedRuns {
   get(toolUseId: string): ParkedRun | undefined;
   /** Registers the run under each of its `tool_use` ids. */

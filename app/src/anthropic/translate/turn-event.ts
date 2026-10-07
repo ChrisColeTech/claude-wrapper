@@ -15,8 +15,22 @@ export interface FailSignal {
   error: SurfaceError;
 }
 
-/** An API event or a control signal. The client-tool and output-limit tickets add `park` and `cut`. */
-export type TurnEvent = ApiEvent | FailSignal;
+/**
+ * The turn parked (spec section 7): the call's `message_stop` has just been relayed, and the run
+ * stays held open until a request answers these client `tool_use` ids. Always the turn's last event.
+ */
+export interface ParkSignal {
+  type: 'park';
+  toolUseIds: string[];
+}
+
+/** A control signal, inline in the turn stream. The output-limit ticket adds `cut`. */
+export type ControlSignal = FailSignal | ParkSignal;
+
+/** An API event or a control signal. */
+export type TurnEvent = ApiEvent | ControlSignal;
+
+export const isControlSignal = (event: TurnEvent): event is ControlSignal => event.type === 'fail' || event.type === 'park';
 
 export interface TranslatorLogger {
   debug(message: string, context?: unknown): void;

@@ -44,7 +44,12 @@ function goldenPlan(canonicalId: string): TurnPlan {
       timers: { startup: 20_000, stall: 90_000, lifetime: 1_800_000 }
     },
     continuation: { replay: { role: 'user', content: HELLO } },
-    startupChecks: { model: canonicalId, tools: [] }
+    startupChecks: { model: canonicalId, tools: [] },
+    bridgeTools: [],
+    runBound: {
+      model: `"${canonicalId}"`, max_tokens: '1024', system: '""', thinking: 'null', 'output_config.effort': 'null',
+      'output_config.format': 'null', tools: 'null', mcp_servers: 'null'
+    }
   };
 }
 
