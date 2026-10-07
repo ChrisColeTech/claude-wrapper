@@ -4,15 +4,15 @@
  * internal `call_start` for the passes that read a call's usage); (b) each call's block indices
  * are offset by the blocks already relayed in the turn, the built-in calls' result blocks
  * included (`surface-blocks`); (c) a call that stops with `tool_use` and whose `tool_use` blocks
- * are all built-in (or that relays none: a failed StructuredOutput answer, which pass 6 took out)
- * has its `message_delta` suppressed (its usage kept as an internal `usage` signal) and its
+ * are all built-in or connector calls (or that relays none: a failed StructuredOutput answer,
+ * which pass 6 took out) has its `message_delta` suppressed (its usage kept as an internal `usage` signal) and its
  * `message_stop` dropped, as upstream runs the calls itself and calls the model again; with a
  * client or any other call among them both are relayed and the turn ends there, where the park
  * rule (`park.ts`, the next pass) parks a client call; (d) a frame with a non-null
  * `parent_tool_use_id` is dropped; (e) any other call end is relayed verbatim as the turn's end,
- * and nothing after it is. A `user` frame's results for the run's built-in calls become internal
- * `server_tool_result` signals for the server-tool pass; a client call behind a built-in waits
- * for the built-in's result (`mixed-message`).
+ * and nothing after it is. A `user` frame's results for the run's built-in and connector calls
+ * become internal `server_tool_result` signals for the server-tool and connector passes; a client
+ * call behind one of them waits for its result (`mixed-message`).
  *
  * It also ends the turn with the `fail` signal, mapped by the run's failure reader: (i) a
  * `message_start` while the current upstream message still has an open block (its model call
@@ -20,6 +20,7 @@
  * whose category is deterministic. A plain `api_retry` is not a trigger: a failed call that had
  * no open block is retried as one more suppressed `message_start`.
  */
+import { isConnectorTool } from '../../upstream/connector-tools';
 import { ApiRetryFrame, Frame, ResultFrame, StreamEvent, UserFrame } from '../../upstream/frames';
 import { isWebTool } from '../../upstream/hook-policy';
 import { FailureReader } from '../failure';
@@ -28,6 +29,9 @@ import { MixedMessageHold } from './mixed-message';
 import { Pass } from './pass';
 import { BlockOffsets, serverToolResults } from './surface-blocks';
 import { ServerToolCalls, TurnEvent } from './turn-event';
+
+/** A call upstream runs itself, the model then called again: a built-in web tool or a connector's tool. */
+const runsUpstream = (name: unknown): boolean => isWebTool(name) || isConnectorTool(name);
 
 /** `is_error: true` or a subtype other than `success`. */
 const isFailedResult = (result: ResultFrame): boolean => result.is_error || result.subtype !== 'success';
@@ -73,7 +77,9 @@ class Flattener implements Pass<Frame, TurnEvent> {
   private onBlockStart(index: number, block: Record<string, unknown>): void {
     this.openBlocks.add(index);
     const name = block['name'];
-    if (block['type'] === 'tool_use' && isWebTool(name)) this.calls.note(String(block['id']), name);
+    if (block['type'] !== 'tool_use') return;
+    if (isWebTool(name)) this.calls.note(String(block['id']), name);
+    else if (isConnectorTool(name)) this.calls.note(String(block['id']), 'connector');
   }
 
   private onUser(frame: UserFrame): TurnEvent[] {
@@ -112,9 +118,9 @@ class Flattener implements Pass<Frame, TurnEvent> {
     return [event, ...this.blocks.start()];
   }
 
-  /** Rule (c): a call whose tool calls are all built-in is not the turn's end. */
+  /** Rule (c): a call whose tool calls upstream all runs itself is not the turn's end. */
   private onMessageDelta(event: Extract<StreamEvent, { type: 'message_delta' }>): TurnEvent[] {
-    this.continues = event.delta['stop_reason'] === 'tool_use' && this.callTools.every(isWebTool);
+    this.continues = event.delta['stop_reason'] === 'tool_use' && this.callTools.every(runsUpstream);
     return this.continues ? [{ type: 'usage', usage: event.usage }] : [event];
   }
 

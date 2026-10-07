@@ -69,7 +69,7 @@ describe('translator: a client tool call parks the turn', () => {
     expect(message.content).toEqual([{ type: 'text', text: recordedAnswer(SINGLE_CALL) }]);
   });
 
-  it.each([['WebSearch', 'web_search'], ['mcp__docs__search', 'mcp__docs__search']])(
+  it.each([['WebSearch', 'web_search'], ['mcp__docs__search', 'search']])(
     'never parks on a %s call, which is upstream’s own', (name, relayed) => {
       const events = translate(toolUseCall(name));
 
