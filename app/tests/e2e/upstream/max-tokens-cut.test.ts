@@ -16,11 +16,12 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { Frame } from '../../../src/upstream/frames';
-import { createSpawnRunner, Run, Runner } from '../../../src/upstream/runner';
+import { Runner } from '../../../src/upstream/runner';
 import { openStateDirectory, StateDirectory } from '../../../src/upstream/state-directory';
 import type { SurfaceHarness } from '../../mocks/anthropic/surface-harness';
 import { waitFor } from '../../mocks/shared/wait-for';
 import { describeUpstream, E2E_MODEL, removeStateRoot } from './harness';
+import { sessionOf, TeeingRunner, teeingRunner } from './teeing-runner';
 
 const CAP = 48;
 const RUN_EXIT_WAIT_MS = 60_000;
@@ -29,33 +30,6 @@ const request = {
   max_tokens: CAP,
   messages: [{ role: 'user' as const, content: 'Write a long, detailed essay on the history of the tangerine.' }]
 };
-
-/** The run with every frame upstream yields also kept in `frames`. */
-function teed(run: Run, frames: Frame[]): Run {
-  const source = run.frames[Symbol.asyncIterator]();
-  const iterator: AsyncIterator<Frame> = {
-    next: async () => {
-      const next = await source.next();
-      if (!next.done) frames.push(next.value);
-      return next;
-    }
-  };
-  return {
-    frames: { [Symbol.asyncIterator]: () => iterator },
-    send: message => run.send(message),
-    interrupt: () => run.interrupt(),
-    close: () => run.close(),
-    kill: () => run.kill(),
-    park: () => run.park(),
-    exited: run.exited
-  };
-}
-
-/** The production spawn runner, keeping every frame of every run. */
-function teeingRunner(frames: Frame[]): Runner {
-  const runner = createSpawnRunner();
-  return { startRun: spec => teed(runner.startRun(spec), frames) };
-}
 
 /** Built here, not imported at the top: a skipped file must not start the OpenAI surface's timers. */
 async function productionSurface(state: StateDirectory, runner: Runner): Promise<SurfaceHarness> {
@@ -83,24 +57,19 @@ function modelCalls(frames: Frame[]): { total: number; afterCap: number } {
   return { total, afterCap };
 }
 
-const sessionOf = (frames: Frame[]): string | undefined => {
-  const init = frames.find(frame => frame.type === 'system' && frame.subtype === 'init');
-  return init?.type === 'system' && init.subtype === 'init' ? init.session_id : undefined;
-};
-
 describeUpstream('scenario 4: the interrupt after a max_tokens cut, against the real CLI', () => {
   let root: string;
   let state: StateDirectory;
   let surface: SurfaceHarness;
-  let frames: Frame[];
+  let runner: TeeingRunner;
 
   const runsExited = () => waitFor(() => fs.readdirSync(state.runs).length === 0, RUN_EXIT_WAIT_MS);
 
   beforeEach(async () => {
     root = fs.mkdtempSync(path.join(os.tmpdir(), 'max-tokens-cut-e2e-'));
     state = openStateDirectory(root);
-    frames = [];
-    surface = await productionSurface(state, teeingRunner(frames));
+    runner = teeingRunner();
+    surface = await productionSurface(state, runner);
   });
 
   afterEach(async () => {
@@ -115,6 +84,7 @@ describeUpstream('scenario 4: the interrupt after a max_tokens cut, against the 
     expect(message.content.some(block => block.type === 'text' && block.text.length > 0)).toBe(true);
 
     await runsExited();
+    const frames = runner.runs.flatMap(run => run.frames);
     const calls = modelCalls(frames);
     console.info(`[scenario 4] upstream model calls: ${calls.total}, started after the cap: ${calls.afterCap}`);
     expect(calls.afterCap).toBeLessThanOrEqual(1);

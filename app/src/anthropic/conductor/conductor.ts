@@ -7,6 +7,7 @@
  * away) has its run interrupted and torn down (spec section 11); its `TurnSession` forgets its
  * upstream session. A turn that parked leaves its run held open in parking (spec section 7); the
  * request that answers its tool calls resumes it as a new turn of the same run.
+ * `handleCountTokens` measures a request with a run of its own (spec section 12).
  */
 import { randomUUID } from 'crypto';
 import { Request, Response } from 'express';
@@ -24,6 +25,7 @@ import { changedRunBound, ParkedContinuation, planTurn, resumedSession, TurnPlan
 import { createJsonSink, createSseSink, SinkOutcome, TurnSink } from '../respond';
 import { Sessions } from '../sessions';
 import { createTranslator } from '../translate';
+import { countTokens } from './count-tokens';
 import { ConductedRun, HeldRun } from './held-run';
 import { launchRun, StartingPlan } from './launch';
 import { createParking, Parking } from '../scheduler/parking';
@@ -48,6 +50,8 @@ export interface ConductorDeps {
 export interface Conductor {
   /** `POST /v1/messages`; rejects with the error to render when the turn fails before commit. */
   handleMessages(req: Request, res: Response): Promise<void>;
+  /** `POST /v1/messages/count_tokens`; rejects with the error to render when the count fails. */
+  handleCountTokens(req: Request, res: Response): Promise<void>;
 }
 
 /** One request's turn: where its answer goes. */
@@ -101,6 +105,12 @@ class SurfaceConductor implements Conductor {
     const { continuation } = turn;
     if ('parked' in continuation) return this.resume(exchange, turn, continuation);
     return this.start(exchange, runId, { ...turn, continuation });
+  }
+
+  handleCountTokens(req: Request, res: Response): Promise<void> {
+    const runId = randomUUID();
+    const log = withContext(this.logger, { requestId: anthropicRequestId(req) ?? mintRequestId(), runId });
+    return countTokens(this.deps, { req, res, runId }, log);
   }
 
   private plan(req: Request, runId: string, sessions = this.deps.sessions): TurnPlan {
