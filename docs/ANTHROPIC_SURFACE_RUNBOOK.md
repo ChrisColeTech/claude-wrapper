@@ -71,7 +71,7 @@ Redaction reads its account values from `.claude.json` in that `CLAUDE_CONFIG_DI
 
 On SIGTERM or SIGINT (and on `wrapper --stop`) the surface drains before the server closes. New requests get 529 `overloaded_error`. Streams in flight end with an SSE `error` event, `server shutting down`. Parked runs are interrupted. Every run goes down the teardown ladder (interrupt, close, SIGTERM, SIGKILL), and whatever is left after `CLAUDE_WRAPPER_SHUTDOWN_DRAIN_MS` is killed. `wrapper --stop` waits only 10 s for the process to exit, so with stuck runs it can report a failed stop while the drain finishes.
 
-The conversation map lives in memory: after a restart, every conversation's next turn is a replayed turn (served, but without upstream's cache).
+The conversation map lives in memory: after a restart, every conversation's next turn is a replayed turn: still served, by a fresh run with the history rendered into its prompt.
 
 ## Running the real-CLI scenarios
 
