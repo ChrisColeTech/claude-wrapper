@@ -43,6 +43,8 @@ export interface PlainRunOptions {
   system?: string;
   /** The one user message's text. */
   prompt?: string;
+  /** Further request fields (`thinking`, `output_config`), planned as the surface plans them. */
+  fields?: Record<string, unknown>;
   /** A scenario's own flags, appended after the planned ones (the spec's flags are the plan's). */
   extraFlags?: string[];
   /** Replaces the planned `--allowedTools` list (empty for a text turn) until the planner mounts tools. */
@@ -58,7 +60,8 @@ export function planPlainTurn(stateRoot: string, options: PlainRunOptions = {}):
     model: options.model ?? E2E_MODEL,
     max_tokens: options.maxTokens ?? 1024,
     ...(options.system === undefined ? {} : { system: options.system }),
-    messages: [{ role: 'user', content: options.prompt ?? 'Reply with the single word pong.' }]
+    messages: [{ role: 'user', content: options.prompt ?? 'Reply with the single word pong.' }],
+    ...options.fields
   };
   const context = {
     settings: EnvironmentManager.getAnthropicSettings(),
