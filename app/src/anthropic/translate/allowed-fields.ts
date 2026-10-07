@@ -77,11 +77,27 @@ const CONTENT_BLOCK = {
   }
 };
 
+/** A document's citation reaches the client only in a `citations_delta` (spec section 4.3). */
+const DOCUMENT_CITATION = { type: KEEP, cited_text: KEEP, document_index: KEEP, document_title: KEEP, file_id: KEEP };
+
+const CITATION = {
+  byType: {
+    char_location: { ...DOCUMENT_CITATION, start_char_index: KEEP, end_char_index: KEEP },
+    page_location: { ...DOCUMENT_CITATION, start_page_number: KEEP, end_page_number: KEEP },
+    content_block_location: { ...DOCUMENT_CITATION, start_block_index: KEEP, end_block_index: KEEP },
+    search_result_location: {
+      type: KEEP, cited_text: KEEP, search_result_index: KEEP, source: KEEP, title: KEEP,
+      start_block_index: KEEP, end_block_index: KEEP
+    },
+    web_search_result_location: { type: KEEP, cited_text: KEEP, encrypted_index: KEEP, title: KEEP, url: KEEP }
+  }
+};
+
 const DELTA = {
   byType: {
     text_delta: { type: KEEP, text: KEEP },
     input_json_delta: { type: KEEP, partial_json: KEEP },
-    citations_delta: { type: KEEP, citation: KEEP },
+    citations_delta: { type: KEEP, citation: CITATION },
     thinking_delta: { type: KEEP, thinking: KEEP },
     signature_delta: { type: KEEP, signature: KEEP }
   }
