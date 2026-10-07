@@ -4,7 +4,7 @@
  * turn, so CLI drift is visible. Control signals pass through untouched.
  */
 import { JsonObject } from '../../upstream/frames';
-import { ALLOWED_EVENT_FIELDS, FieldRule, Fields } from './allowed-fields';
+import { ALLOWED_EVENT_FIELDS, FieldFilter, FieldRule, Fields } from './allowed-fields';
 import { eachEvent, Pass } from './pass';
 import { ApiEvent, TranslatorLogger, TurnEvent } from './turn-event';
 
@@ -16,7 +16,7 @@ function isObject(value: unknown): value is JsonObject {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function fieldsFor(rule: Exclude<FieldRule, true>, value: JsonObject): Fields {
+function fieldsFor(rule: FieldFilter, value: JsonObject): Fields {
   if ('fields' in rule) return rule.fields;
   const type = value['type'];
   return (typeof type === 'string' && Object.hasOwn(rule.byType, type) ? rule.byType[type] : undefined) ?? TYPE_ONLY;
@@ -33,7 +33,9 @@ function filterObject(value: JsonObject, fields: Fields, path: string, drop: Dro
 }
 
 function filterValue(value: unknown, rule: FieldRule, path: string, drop: Drop): unknown {
-  if (rule === true || !isObject(value)) return value;
+  if (rule === true) return value;
+  if ('replaceWith' in rule) return rule.replaceWith;
+  if (!isObject(value)) return value;
   return filterObject(value, fieldsFor(rule, value), path, drop);
 }
 

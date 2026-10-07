@@ -23,12 +23,7 @@
         "service_tier": "standard",
         "inference_geo": "not_available"
       },
-      "diagnostics": {
-        "cache_miss_reason": {
-          "type": "system_changed",
-          "cache_missed_input_tokens": 607
-        }
-      }
+      "diagnostics": null
     }
   },
   {
