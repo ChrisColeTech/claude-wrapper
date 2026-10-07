@@ -10,8 +10,9 @@
  * whose category is deterministic. A plain `api_retry` is not a trigger: a failed call that had
  * no open block is retried as one more suppressed `message_start`.
  *
- * This ticket flattens a single model call. Offsetting block indices across calls (b) and the
- * `stop_reason: tool_use` rule (c) come with the server-tool and client-tool tickets.
+ * This ticket flattens a single model call. Offsetting block indices across calls (b) comes with
+ * the server-tool ticket; the `stop_reason: tool_use` rule (c) for client tools is the park rule
+ * (`park.ts`), the pass right after this one.
  */
 import { ApiRetryFrame, Frame, ResultFrame, StreamEvent } from '../../upstream/frames';
 import { FailureReader } from '../failure';

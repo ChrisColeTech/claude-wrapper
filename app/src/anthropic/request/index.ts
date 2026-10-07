@@ -8,8 +8,11 @@ export { planTurn } from './plan-turn';
 export { checkUpstreamEnv } from './child-environment';
 export { messageToSend, resumedSession } from './continuation';
 export { fingerprint } from './fingerprint';
+export { changedRunBound } from './run-bound';
+export type { RunBound } from './run-bound';
 export { withoutIgnoredContent } from './ignored-content';
 export type { ClientMessage } from './validate-messages';
 export type {
-  ContentBlock, Continuation, NormalisedMessage, RunContext, StartupChecks, TurnPlan, TurnTranslation
+  ContentBlock, Continuation, NormalisedMessage, ParkedContinuation, RunContext, RunContinuation, StartupChecks, TurnPlan,
+  TurnTranslation
 } from './turn-plan';

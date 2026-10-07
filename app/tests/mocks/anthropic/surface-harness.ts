@@ -2,7 +2,8 @@
  * Serves a fresh app on an ephemeral loopback port and hands out official SDK clients
  * pointed at it. One harness per test; `close()` in `afterEach`. A test that injects no runner
  * gets one that refuses to run anything, and one that injects no sessions gets an in-memory map
- * that deletes no transcript on disk.
+ * that deletes no transcript on disk. The control server (its own unless injected) is closed with
+ * the harness.
  */
 import Anthropic, { ClientOptions } from '@anthropic-ai/sdk';
 import { once } from 'events';
@@ -10,6 +11,7 @@ import { Express } from 'express';
 import { AddressInfo } from 'net';
 import { createServer } from '../../../src/api/server';
 import { SurfaceDeps } from '../../../src/anthropic/deps';
+import { createControlServer } from '../../../src/upstream/control-server';
 import { Runner } from '../../../src/upstream/runner';
 import { memorySessions } from './sessions';
 
@@ -30,11 +32,13 @@ export const REFUSING_RUNNER: Runner = {
 };
 
 export async function startSurface(deps: SurfaceDeps = {}): Promise<SurfaceHarness> {
-  return serveApp(createServer({ runner: REFUSING_RUNNER, sessions: memorySessions(deps.clock).sessions, ...deps }));
+  const controlServer = deps.controlServer ?? createControlServer({ logger: { debug: () => undefined, warn: () => undefined } });
+  const app = createServer({ runner: REFUSING_RUNNER, sessions: memorySessions(deps.clock).sessions, controlServer, ...deps });
+  return serveApp(app, () => controlServer.close());
 }
 
-/** Serves `app` on an ephemeral loopback port. */
-export async function serveApp(app: Express): Promise<SurfaceHarness> {
+/** Serves `app` on an ephemeral loopback port; `onClose` runs once the server has closed. */
+export async function serveApp(app: Express, onClose: () => Promise<void> = async () => undefined): Promise<SurfaceHarness> {
   const server = app.listen(0, '127.0.0.1');
   await once(server, 'listening');
   const { port } = server.address() as AddressInfo;
@@ -46,7 +50,7 @@ export async function serveApp(app: Express): Promise<SurfaceHarness> {
     close: () => new Promise<void>((resolve, reject) => {
       server.closeAllConnections();
       server.close((error) => (error ? reject(error) : resolve()));
-    })
+    }).then(onClose)
   };
 }
 

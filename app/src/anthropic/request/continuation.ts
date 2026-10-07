@@ -9,7 +9,7 @@ import { UserMessage } from '../../upstream/runner';
 import { Sessions } from '../sessions';
 import { fingerprint } from './fingerprint';
 import { renderReplay } from './render-replay';
-import { Continuation, NormalisedMessage } from './turn-plan';
+import { Continuation, NormalisedMessage, RunContinuation } from './turn-plan';
 
 function continuedSession(messages: readonly NormalisedMessage[], sessions: Sessions): string | null {
   const history = messages.slice(0, -1);
@@ -19,7 +19,7 @@ function continuedSession(messages: readonly NormalisedMessage[], sessions: Sess
 }
 
 /** `messages` has passed the turn-order checks: it opens and ends with a user message. */
-export function chooseContinuation(messages: readonly NormalisedMessage[], sessions: Sessions): Continuation {
+export function chooseContinuation(messages: readonly NormalisedMessage[], sessions: Sessions): RunContinuation {
   const sessionId = continuedSession(messages, sessions);
   const tail = messages[messages.length - 1];
   if (sessionId === null || !tail) return { replay: renderReplay(messages) };
@@ -31,7 +31,7 @@ export function resumedSession(continuation: Continuation): string | undefined {
   return 'resume' in continuation ? continuation.resume : undefined;
 }
 
-/** The one user message the run receives. */
-export function messageToSend(continuation: Continuation): UserMessage {
+/** The one user message a started run receives. */
+export function messageToSend(continuation: RunContinuation): UserMessage {
   return 'resume' in continuation ? continuation.message : continuation.replay;
 }

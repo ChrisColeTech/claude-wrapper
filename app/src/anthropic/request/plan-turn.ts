@@ -3,16 +3,20 @@
  * plan or the `SurfaceError` the client gets. Nothing here performs I/O. Each concern below
  * throws its `SurfaceError`; the first one is the answer.
  */
+import { ClientTool, CLIENT_TOOL_PREFIX } from '../../upstream/bridge';
 import { Catalogue } from '../catalogue';
 import { SurfaceError } from '../http/surface-error';
 import { Sessions } from '../sessions';
+import { clientTools } from './client-tools';
 import { chooseContinuation, resumedSession } from './continuation';
 import { Body, isObject } from './field-errors';
 import { withoutIgnoredContent } from './ignored-content';
 import { normaliseMessages } from './normalise';
+import { parkedAnswer } from './parked-answer';
+import { runBoundParameters } from './run-bound';
 import { buildRunSpec } from './run-spec';
 import { systemPrompt } from './system-prompt';
-import { RunContext, TurnPlan } from './turn-plan';
+import { Continuation, RunContext, TurnPlan } from './turn-plan';
 import { validateContentBlocks } from './validate-content-blocks';
 import { validateEffort } from './validate-effort';
 import { rejectExtraFields } from './validate-extra-fields';
@@ -35,6 +39,13 @@ function validateParameters(request: Body): void {
   validateServerTools(request['tools']);
 }
 
+/** The client tools the turn exposes: none under `tool_choice: none`, though they are validated all the same. */
+function bridgeTools(request: Body): ClientTool[] {
+  const tools = clientTools(request['tools']);
+  const choice = request['tool_choice'];
+  return isObject(choice) && choice['type'] === 'none' ? [] : tools;
+}
+
 function plan(request: unknown, catalogue: Catalogue, sessions: Sessions, context: RunContext): TurnPlan {
   if (!isObject(request)) throw SurfaceError.invalidRequest('The request body must be a JSON object');
   rejectExtraFields(request);
@@ -46,13 +57,17 @@ function plan(request: unknown, catalogue: Catalogue, sessions: Sessions, contex
   validateTurnOrder(messages);
   const system = systemPrompt(request['system']);
   validateParameters(request);
+  const tools = bridgeTools(request);
   const stopSequences = validateStopSequences(request['stop_sequences']) ?? [];
   const thinking = thinkingEnvironment(request['thinking'], model, maxTokens);
   const effort = validateEffort(request['output_config'], model);
-  const continuation = chooseContinuation(messages, sessions);
+  // A parked run's answer continues that run; anything else starts one, continued or replayed.
+  const answer = parkedAnswer(messages, clientMessages, sessions.parked);
+  const continuation: Continuation = answer && 'parked' in answer ? answer : chooseContinuation(messages, sessions);
   const resume = resumedSession(continuation);
+  const clientToolNames = tools.map(tool => tool.name);
   const runInputs = {
-    modelId: model.id, system, maxTokens, thinking,
+    modelId: model.id, system, maxTokens, thinking, clientToolNames,
     ...(effort === undefined ? {} : { effort }), ...(resume === undefined ? {} : { resume })
   };
   return {
@@ -62,8 +77,11 @@ function plan(request: unknown, catalogue: Catalogue, sessions: Sessions, contex
     runSpec: buildRunSpec(runInputs, context),
     continuation,
     translatorConfig: { stopSequences },
-    // A text turn mounts no tools, so upstream reports none.
-    startupChecks: { model: model.id, tools: [] }
+    // Upstream reports exactly the mounted tools: the bridge server's, prefixed.
+    startupChecks: { model: model.id, tools: clientToolNames.map(name => `${CLIENT_TOOL_PREFIX}${name}`) },
+    bridgeTools: tools,
+    runBound: runBoundParameters(request, model.id, system),
+    ...(answer && 'lostPark' in answer ? { lostPark: answer.lostPark } : {})
   };
 }
 

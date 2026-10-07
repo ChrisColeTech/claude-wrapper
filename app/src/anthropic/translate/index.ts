@@ -5,5 +5,6 @@
 export { createTranslator } from './translator';
 export { isControlSignal } from './turn-event';
 export type {
-  ApiEvent, ControlSignal, CutReason, CutSignal, FailSignal, Translator, TranslatorConfig, TranslatorLogger, TurnEvent
+  ApiEvent, ControlSignal, CutReason, CutSignal, FailSignal, ParkSignal, Translator, TranslatorConfig, TranslatorLogger,
+  TurnEvent
 } from './turn-event';
