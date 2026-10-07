@@ -7,6 +7,7 @@
  * away) has its run interrupted and torn down (spec section 11); its `TurnSession` forgets its
  * upstream session. A turn that parked leaves its run held open in parking (spec section 7); the
  * request that answers its tool calls resumes it as a new turn of the same run.
+ * `handleCountTokens` measures a request with a run of its own (spec section 12).
  */
 import { randomUUID } from 'crypto';
 import { Request, Response } from 'express';
@@ -24,6 +25,7 @@ import { changedRunBound, ParkedContinuation, planTurn, resumedSession, TurnPlan
 import { createJsonSink, createSseSink, SinkOutcome, TurnSink } from '../respond';
 import { Sessions } from '../sessions';
 import { createTranslator } from '../translate';
+import { countTokens } from './count-tokens';
 import { ConductedRun, HeldRun } from './held-run';
 import { launchRun, StartingPlan } from './launch';
 import { createParking, Parking } from './parking';
@@ -48,6 +50,8 @@ export interface ConductorDeps {
 export interface Conductor {
   /** `POST /v1/messages`; rejects with the error to render when the turn fails before commit. */
   handleMessages(req: Request, res: Response): Promise<void>;
+  /** `POST /v1/messages/count_tokens`; rejects with the error to render when the count fails. */
+  handleCountTokens(req: Request, res: Response): Promise<void>;
 }
 
 /** One request's turn: where its answer goes. */
@@ -103,6 +107,12 @@ class SurfaceConductor implements Conductor {
     return this.start(exchange, runId, { ...turn, continuation });
   }
 
+  handleCountTokens(req: Request, res: Response): Promise<void> {
+    const runId = randomUUID();
+    const log = withContext(this.logger, { requestId: anthropicRequestId(req) ?? mintRequestId(), runId });
+    return countTokens(this.deps, { req, res, runId }, log);
+  }
+
   private plan(req: Request, runId: string, sessions = this.deps.sessions): TurnPlan {
     const context = { settings: this.deps.settings, environment: process.env, state: this.deps.stateDirectory(), runId };
     const planned = planTurn(req.body, this.deps.catalogue, sessions, context);
@@ -149,15 +159,13 @@ class SurfaceConductor implements Conductor {
     const ignored = changedRunBound(held.conducted.runBound, turn.runBound);
     if (ignored.length > 0) log.debug('Run-bound parameters ignored on a resuming turn', { parameters: ignored });
     log.info('Parked run resumed', { sessionId: held.sessionId, toolUseIds: held.toolUseIds });
-    // A new request: its web tools' max_uses count afresh (the tools themselves are run-bound).
-    held.conducted.policy?.startTurn();
     const session = this.session(turn, log, held.sessionId);
     await this.serveTurn(held.conducted, turn, session, session.relay(this.sinkFor(exchange)), log);
   }
 
   /**
    * Serves one turn of `run` to its sink and acts on how it ended: done, parked, or ended early.
-   * The turn's own request sets what is not run-bound (its stop sequences).
+   * The turn's own request sets what is not run-bound (its stop sequences); the run, what is.
    */
   private async serveTurn(
     run: ConductedRun, turn: TurnPlan, session: TurnSession, sink: TurnSink, log: PumpLogger
@@ -165,7 +173,7 @@ class SurfaceConductor implements Conductor {
     const parked: { on?: string[] } = {};
     const translator = createTranslator({
       logger: log, failures: run.failures, redact: this.deps.redact, serverTools: run.serverTools,
-      now: () => this.deps.clock.now(), ...turn.translatorConfig
+      now: () => this.deps.clock.now(), ...turn.translatorConfig, structuredOutput: run.structuredOutput
     });
     run.pump.attach({ translator, sink, observers: [session], onPark: toolUseIds => { parked.on = toolUseIds; } });
     void run.pump.done.catch(() => undefined).then(() => session.exited());

@@ -2,10 +2,11 @@
  * The argument list of a run (spec section 10), in the table's order. Never passed: the flags the
  * spec rules out (`--fallback-model`, `--max-budget-usd`, `--append-system-prompt`, `--bare`,
  * `--dangerously-skip-permissions`, `--exclude-dynamic-system-prompt-sections`), and the
- * conditional ones (`--json-schema`, `--no-session-persistence`) until a turn needs them.
- * `--tools` names exactly the built-ins the declared server tools need; `--mcp-config` is a turn's
- * that mounts the bridge server, `--settings` one's that enables a built-in (its hook), `--effort`
- * the request's `output_config.effort`; `--resume` is a continued turn's.
+ * conditional ones until a turn needs them. `--tools` names exactly the built-ins the declared
+ * server tools need; `--mcp-config` is a turn's that mounts the bridge server, `--settings` one's
+ * that enables a built-in (its hook), `--effort` the request's `output_config.effort`,
+ * `--json-schema` its `output_config.format.schema`; `--resume` is a continued turn's,
+ * `--no-session-persistence` a `count_tokens` run's.
  */
 
 export interface FlagInputs {
@@ -24,8 +25,12 @@ export interface FlagInputs {
   settings?: string;
   /** `output_config.effort`, validated against the catalogue entry. */
   effort?: string;
+  /** `output_config.format.schema` as JSON text, passed verbatim. */
+  jsonSchema?: string;
   /** A continued turn's upstream session. */
   resume?: string;
+  /** A `count_tokens` run: upstream writes no transcript. */
+  noSessionPersistence?: boolean;
 }
 
 const STREAM_JSON = [
@@ -47,6 +52,8 @@ export function runFlags(inputs: FlagInputs): string[] {
     ...(inputs.settings === undefined ? [] : ['--settings', inputs.settings]),
     '--max-turns', String(inputs.maxTurns),
     ...(inputs.effort === undefined ? [] : ['--effort', inputs.effort]),
-    ...(inputs.resume === undefined ? [] : ['--resume', inputs.resume])
+    ...(inputs.jsonSchema === undefined ? [] : ['--json-schema', inputs.jsonSchema]),
+    ...(inputs.resume === undefined ? [] : ['--resume', inputs.resume]),
+    ...(inputs.noSessionPersistence ? ['--no-session-persistence'] : [])
   ];
 }

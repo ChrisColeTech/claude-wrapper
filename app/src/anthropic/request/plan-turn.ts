@@ -1,15 +1,18 @@
 /**
  * `planTurn` (spec section 16): one deep, pure function from a request body to a complete turn
  * plan or the `SurfaceError` the client gets. Nothing here performs I/O. Each concern below
- * throws its `SurfaceError`; the first one is the answer.
+ * throws its `SurfaceError`; the first one is the answer. `planCountTokens` plans a
+ * `count_tokens` body the same way, for the run that measures it (spec section 12).
  */
 import { ClientTool, CLIENT_TOOL_PREFIX } from '../../upstream/bridge';
-import { WEB_TOOLS } from '../../upstream/hook-policy';
+import { WEB_TOOLS, WebTool } from '../../upstream/hook-policy';
+import { STRUCTURED_OUTPUT_TOOL } from '../../upstream/structured-output';
 import { Catalogue } from '../catalogue';
 import { SurfaceError } from '../http/surface-error';
 import { Sessions } from '../sessions';
 import { clientTools } from './client-tools';
 import { chooseContinuation, resumedSession } from './continuation';
+import { measuringRun, NOTHING_TO_CONTINUE } from './count-run';
 import { Body, isObject } from './field-errors';
 import { withoutIgnoredContent } from './ignored-content';
 import { normaliseMessages } from './normalise';
@@ -17,10 +20,11 @@ import { parkedAnswer } from './parked-answer';
 import { runBoundParameters } from './run-bound';
 import { buildRunSpec } from './run-spec';
 import { systemPrompt } from './system-prompt';
-import { Continuation, RunContext, TurnPlan } from './turn-plan';
+import { Continuation, Endpoint, RunContext, TurnPlan } from './turn-plan';
 import { validateContentBlocks } from './validate-content-blocks';
 import { validateEffort } from './validate-effort';
 import { rejectExtraFields } from './validate-extra-fields';
+import { validateFormat } from './validate-format';
 import { validateMaxTokens } from './validate-max-tokens';
 import { validateMessages } from './validate-messages';
 import { resolveModel } from './validate-model';
@@ -48,11 +52,26 @@ function bridgeTools(request: Body): ClientTool[] {
   return isObject(choice) && choice['type'] === 'none' ? [] : tools;
 }
 
-function plan(request: unknown, catalogue: Catalogue, sessions: Sessions, context: RunContext): TurnPlan {
+/**
+ * What upstream must report on `system/init`: exactly the enabled tools, the built-ins first, then
+ * the bridge server's prefixed, plus `StructuredOutput` on a `--json-schema` run (upstream adds it
+ * even under `--tools ""`).
+ */
+function expectedTools(webTools: readonly WebTool[], clientToolNames: readonly string[], structuredOutput: boolean): string[] {
+  return [
+    ...webTools, ...clientToolNames.map(name => `${CLIENT_TOOL_PREFIX}${name}`),
+    ...(structuredOutput ? [STRUCTURED_OUTPUT_TOOL] : [])
+  ];
+}
+
+function plan(
+  request: unknown, catalogue: Catalogue, sessions: Sessions, context: RunContext, endpoint: Endpoint
+): TurnPlan {
   if (!isObject(request)) throw SurfaceError.invalidRequest('The request body must be a JSON object');
-  rejectExtraFields(request);
+  rejectExtraFields(request, endpoint);
   const model = resolveModel(request['model'], catalogue);
-  const maxTokens = validateMaxTokens(request['max_tokens'], model);
+  // A count has no `max_tokens`: its run is capped at one output token instead.
+  const maxTokens = endpoint === 'count_tokens' ? undefined : validateMaxTokens(request['max_tokens'], model);
   const clientMessages = validateMessages(request['messages']);
   validateContentBlocks(clientMessages);
   const messages = normaliseMessages(withoutIgnoredContent(clientMessages));
@@ -65,24 +84,24 @@ function plan(request: unknown, catalogue: Catalogue, sessions: Sessions, contex
   const stopSequences = validateStopSequences(request['stop_sequences']) ?? [];
   const thinking = thinkingEnvironment(request['thinking'], model, maxTokens);
   const effort = validateEffort(request['output_config'], model);
+  const schema = validateFormat(request['output_config']);
   // A parked run's answer continues that run; anything else starts one, continued or replayed.
   const answer = parkedAnswer(messages, clientMessages, sessions.parked);
   const continuation: Continuation = answer && 'parked' in answer ? answer : chooseContinuation(messages, sessions);
   const resume = resumedSession(continuation);
   const clientToolNames = tools.map(tool => tool.name);
   const runInputs = {
-    modelId: model.id, system, maxTokens, thinking, clientToolNames, webTools: enabled,
-    ...(effort === undefined ? {} : { effort }), ...(resume === undefined ? {} : { resume })
+    modelId: model.id, system, thinking, clientToolNames, webTools: enabled, ...(effort === undefined ? {} : { effort }),
+    ...(schema === undefined ? {} : { jsonSchema: JSON.stringify(schema) }), ...(resume === undefined ? {} : { resume })
   };
   return {
     model,
     messages,
     system,
-    runSpec: buildRunSpec(runInputs, context),
+    runSpec: buildRunSpec(maxTokens === undefined ? measuringRun(runInputs) : { ...runInputs, maxTokens }, context),
     continuation,
-    translatorConfig: { stopSequences },
-    // Upstream reports exactly the enabled tools: the built-ins, then the bridge server's, prefixed.
-    startupChecks: { model: model.id, tools: [...enabled, ...clientToolNames.map(name => `${CLIENT_TOOL_PREFIX}${name}`)] },
+    translatorConfig: { stopSequences, structuredOutput: schema !== undefined },
+    startupChecks: { model: model.id, tools: expectedTools(enabled, clientToolNames, schema !== undefined) },
     bridgeTools: tools,
     ...(hookPolicy ? { hookPolicy } : {}),
     runBound: runBoundParameters(request, model.id, system),
@@ -90,14 +109,26 @@ function plan(request: unknown, catalogue: Catalogue, sessions: Sessions, contex
   };
 }
 
-/** `sessions` is only looked up: whether the request continues an upstream session. */
-export function planTurn(
-  request: unknown, catalogue: Catalogue, sessions: Sessions, context: RunContext
-): TurnPlan | SurfaceError {
+function planned(planning: () => TurnPlan): TurnPlan | SurfaceError {
   try {
-    return plan(request, catalogue, sessions, context);
+    return planning();
   } catch (error) {
     if (error instanceof SurfaceError) return error;
     throw error;
   }
+}
+
+/** `sessions` is only looked up: whether the request continues an upstream session. */
+export function planTurn(
+  request: unknown, catalogue: Catalogue, sessions: Sessions, context: RunContext
+): TurnPlan | SurfaceError {
+  return planned(() => plan(request, catalogue, sessions, context, 'messages'));
+}
+
+/**
+ * A `count_tokens` body (spec section 12), planned as the Messages turn it describes would be,
+ * for a run that measures it. A count continues nothing: its history is always rendered.
+ */
+export function planCountTokens(request: unknown, catalogue: Catalogue, context: RunContext): TurnPlan | SurfaceError {
+  return planned(() => plan(request, catalogue, NOTHING_TO_CONTINUE, context, 'count_tokens'));
 }

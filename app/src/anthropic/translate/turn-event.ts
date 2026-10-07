@@ -120,6 +120,12 @@ export interface TranslatorConfig {
    */
   stopSequences?: readonly string[];
   /**
+   * The run was started with `--json-schema` (spec section 12): its `StructuredOutput` call is the
+   * answer, as one JSON text block, and prose text blocks are dropped. Run-bound: a turn that
+   * resumes a held-open run takes the run's value, not its own request's.
+   */
+  structuredOutput?: boolean;
+  /**
    * The run's built-in web tool calls, across its turns: a parked run's next turn may get the
    * result of a call the turn before it made, and the hook's denials are read here. Defaults to
    * the translator's own, which knows only this turn's calls and no denial.

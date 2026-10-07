@@ -2,15 +2,17 @@
  * Pass 2, the flattener (spec section 11, ADR 0003): the run's model calls become one turn stream.
  * (a) The turn's first `message_start` is relayed and every later one suppressed (kept as an
  * internal `call_start` for the passes that read a call's usage); (b) each call's block indices
- * are renumbered in turn, the built-in calls' result blocks placed between them (`surface-blocks`);
- * (c) a call that ends in `stop_reason: "tool_use"` with only built-in calls has its `message_delta`
- * suppressed (its usage kept as an internal `usage` signal) and its `message_stop` dropped, and the
- * run continues; with a client call among them both are relayed and the park rule (`park.ts`, the
- * next pass) parks; (d) a frame with a non-null `parent_tool_use_id` is dropped; (e) any other
- * `stop_reason` is relayed with its `message_stop` as the turn's end, and nothing after it is.
- * A `user` frame's results for the run's built-in calls become internal `server_tool_result`
- * signals for the server-tool pass; a client call behind a built-in waits for the built-in's
- * result (`mixed-message`).
+ * are offset by the blocks already relayed in the turn, the built-in calls' result blocks
+ * included (`surface-blocks`); (c) a call that stops with `tool_use` and whose `tool_use` blocks
+ * are all built-in (or that relays none: a failed StructuredOutput answer, which pass 6 took out)
+ * has its `message_delta` suppressed (its usage kept as an internal `usage` signal) and its
+ * `message_stop` dropped, as upstream runs the calls itself and calls the model again; with a
+ * client or any other call among them both are relayed and the turn ends there, where the park
+ * rule (`park.ts`, the next pass) parks a client call; (d) a frame with a non-null
+ * `parent_tool_use_id` is dropped; (e) any other call end is relayed verbatim as the turn's end,
+ * and nothing after it is. A `user` frame's results for the run's built-in calls become internal
+ * `server_tool_result` signals for the server-tool pass; a client call behind a built-in waits
+ * for the built-in's result (`mixed-message`).
  *
  * It also ends the turn with the `fail` signal, mapped by the run's failure reader: (i) a
  * `message_start` while the current upstream message still has an open block (its model call
@@ -24,7 +26,7 @@ import { FailureReader } from '../failure';
 import { SurfaceError } from '../http/surface-error';
 import { MixedMessageHold } from './mixed-message';
 import { Pass } from './pass';
-import { serverToolResults, SurfaceBlocks } from './surface-blocks';
+import { BlockOffsets, serverToolResults } from './surface-blocks';
 import { ServerToolCalls, TurnEvent } from './turn-event';
 
 /** `is_error: true` or a subtype other than `success`. */
@@ -35,10 +37,11 @@ class Flattener implements Pass<Frame, TurnEvent> {
   private ended = false;
   /** The current upstream message's blocks that have started and not stopped, as they arrive. */
   private readonly openBlocks = new Set<number>();
-  /** The tools the current call has called, as relayed. */
+  /** The tools the current call relayed `tool_use` blocks for (c). */
   private callTools: string[] = [];
-  private continuing = false;
-  private readonly blocks = new SurfaceBlocks();
+  /** The current call's end is suppressed (c): its `message_stop` does not end the turn. */
+  private continues = false;
+  private readonly blocks = new BlockOffsets();
   private readonly hold = new MixedMessageHold();
 
   constructor(private readonly failures: FailureReader, private readonly calls: ServerToolCalls) {}
@@ -109,15 +112,15 @@ class Flattener implements Pass<Frame, TurnEvent> {
     return [event, ...this.blocks.start()];
   }
 
-  /** Rule (c): a call whose tools are all built-ins is not the turn's end. */
+  /** Rule (c): a call whose tool calls are all built-in is not the turn's end. */
   private onMessageDelta(event: Extract<StreamEvent, { type: 'message_delta' }>): TurnEvent[] {
-    this.continuing = event.delta['stop_reason'] === 'tool_use' && this.callTools.length > 0 && this.callTools.every(isWebTool);
-    return this.continuing ? [{ type: 'usage', usage: event.usage }] : [event];
+    this.continues = event.delta['stop_reason'] === 'tool_use' && this.callTools.every(isWebTool);
+    return this.continues ? [{ type: 'usage', usage: event.usage }] : [event];
   }
 
   private onMessageStop(event: StreamEvent): TurnEvent[] {
-    if (this.continuing) {
-      this.continuing = false;
+    if (this.continues) {
+      this.continues = false;
       return [];
     }
     this.ended = true;

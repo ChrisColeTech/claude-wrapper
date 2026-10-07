@@ -25,8 +25,12 @@ export interface RunInputs {
   thinking: Readonly<Record<string, string>>;
   /** `output_config.effort`, passed as `--effort`. */
   effort?: string;
+  /** `output_config.format.schema` as JSON text, passed as `--json-schema`. */
+  jsonSchema?: string;
   /** A continued turn's upstream session, resumed with `--resume`. */
   resume?: string;
+  /** A `count_tokens` run (spec section 12): upstream writes no transcript. */
+  noSessionPersistence?: boolean;
 }
 
 /** The permission rule that admits each built-in; the hook enforces the request's limits on top. */
@@ -50,7 +54,9 @@ export function buildRunSpec(inputs: RunInputs, context: RunContext): RunSpec {
       ...(bridged ? { mcpConfig: path.join(runDir, MCP_CONFIG_FILE_NAME) } : {}),
       ...(hooked ? { settings: path.join(runDir, HOOK_SETTINGS_FILE_NAME) } : {}),
       ...(inputs.effort === undefined ? {} : { effort: inputs.effort }),
-      ...(inputs.resume === undefined ? {} : { resume: inputs.resume })
+      ...(inputs.jsonSchema === undefined ? {} : { jsonSchema: inputs.jsonSchema }),
+      ...(inputs.resume === undefined ? {} : { resume: inputs.resume }),
+      ...(inputs.noSessionPersistence ? { noSessionPersistence: true } : {})
     }),
     env: childEnvironment({ maxOutputTokens: inputs.maxTokens, thinking: inputs.thinking, settings, environment }),
     cwd: state.cwd,

@@ -28,6 +28,8 @@ export interface ConductedRun {
   readonly serverTools: ServerToolCalls;
   /** What the run was spawned with. */
   readonly runBound: RunBound;
+  /** Spawned with `--json-schema`: every turn's translator renders its StructuredOutput answer. */
+  readonly structuredOutput: boolean;
 }
 
 export interface HeldRunOptions {
@@ -57,10 +59,15 @@ export class HeldRun implements HeldOpen {
     return this.conducted.pump.sessionId;
   }
 
-  /** All or nothing; once they complete the park the run is active again (its lifetime timer runs). */
+  /**
+   * All or nothing; once they complete the park the run is active again (its lifetime timer runs)
+   * for a new request, whose web tools' `max_uses` count afresh (the tools themselves are run-bound).
+   */
   deliver(results: ToolResultBlock[]): DeliverOutcome {
     const outcome = this.bridge.deliver(results);
-    if (outcome.status === 'resumed') this.unpark();
+    if (outcome.status !== 'resumed') return outcome;
+    this.unpark();
+    this.conducted.policy?.startTurn();
     return outcome;
   }
 

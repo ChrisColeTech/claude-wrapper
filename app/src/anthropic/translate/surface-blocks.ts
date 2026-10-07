@@ -1,10 +1,10 @@
 /**
- * The flattener's block numbering (spec section 11, rule (b)): every model call upstream makes
- * restarts its block indices at 0, and the turn's one surface message numbers its blocks in the
- * order they are emitted, synthesised result blocks included. A block's surface index is fixed
- * when it starts. A result block is placed where no block is open: at once between blocks, else
- * right after the open block's `content_block_stop` (upstream runs a tool while its message still
- * streams), and never before the turn's `message_start`.
+ * The flattener's rule (b) (spec section 11): each model call upstream makes restarts its block
+ * indices at 0, so a call's indices are offset by the blocks already relayed in the turn, and the
+ * built-in calls' result blocks count among them. A result block is placed where no block is
+ * open: at once between blocks, else right after the open block's `content_block_stop` (upstream
+ * runs a tool while its message still streams), and never before the turn's `message_start`. A
+ * result placed inside a call moves that call's later blocks one place on.
  */
 import { JsonObject, StreamEvent, UserFrame } from '../../upstream/frames';
 import { ServerToolCalls, ServerToolResultSignal, TurnEvent } from './turn-event';
@@ -26,14 +26,19 @@ export function serverToolResults(frame: UserFrame, calls: ServerToolCalls): Pen
   });
 }
 
-export class SurfaceBlocks {
-  private next = 0;
-  /** The current model call's block indices, upstream's to the surface's. */
-  private readonly callIndices = new Map<number, number>();
-  private open: number | undefined;
+export class BlockOffsets {
+  /** Blocks relayed in the turn so far, result blocks included, and the current call's offset. */
+  private relayedBlocks = 0;
+  private offset = 0;
+  private open = false;
   private readonly pending: PendingResult[] = [];
   /** Until the turn's `message_start` is out, results wait. */
   private started = false;
+
+  /** A model call starts: its indices follow every block relayed so far. */
+  newCall(): void {
+    this.offset = this.relayedBlocks;
+  }
 
   /** The turn's `message_start` is out: results that came before it open the message. */
   start(): TurnEvent[] {
@@ -41,20 +46,15 @@ export class SurfaceBlocks {
     return this.flush();
   }
 
-  /** A new model call: its indices restart at 0. */
-  newCall(): void {
-    this.callIndices.clear();
-  }
-
-  /** One of the call's block events, renumbered. */
+  /** One of the call's block events, offset. */
   block(event: BlockEvent): TurnEvent[] {
+    const index = this.offset + event.index;
     if (event.type === 'content_block_start') {
-      this.callIndices.set(event.index, this.next);
-      this.open = this.next++;
+      this.relayedBlocks = Math.max(this.relayedBlocks, index + 1);
+      this.open = true;
     }
-    const index = this.callIndices.get(event.index) ?? event.index;
     if (event.type !== 'content_block_stop') return [{ ...event, index }];
-    this.open = undefined;
+    this.open = false;
     return [{ ...event, index }, ...this.flush()];
   }
 
@@ -65,7 +65,10 @@ export class SurfaceBlocks {
   }
 
   private flush(): TurnEvent[] {
-    if (!this.started || this.open !== undefined) return [];
-    return this.pending.splice(0).map(result => ({ ...result, index: this.next++ }));
+    if (!this.started || this.open) return [];
+    return this.pending.splice(0).map(result => {
+      this.offset += 1;
+      return { ...result, index: this.relayedBlocks++ };
+    });
   }
 }
