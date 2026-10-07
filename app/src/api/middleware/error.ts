@@ -23,6 +23,11 @@ export function errorHandler(
     return;
   }
 
+  renderOpenAIError(error, res);
+}
+
+/** The OpenAI surface's envelope: the wrapper's own errors, a JSON parse error, else a 500. */
+function renderOpenAIError(error: Error, res: Response): void {
   if (error instanceof AppError) {
     const errorResponse = createOpenAIErrorResponse(error);
     res.status(error.statusCode).json(errorResponse);
