@@ -1,9 +1,10 @@
 /**
- * Disk retention with the production sessions and state directory (spec section 14): at the
- * process's first turn every transcript in the runs' project directory is an orphan of an earlier
- * wrapper process and is deleted; an hourly sweep then deletes the transcripts last written longer
- * ago than the fingerprint expiry, as a backstop; the shutdown stops it. The state directory and
- * upstream's config directory are temporary; upstream is scripted.
+ * Disk retention with the production sessions and state directory (spec section 14): at wrapper
+ * start, before any turn, every transcript in the runs' project directory is an orphan of an
+ * earlier wrapper process and is deleted; an hourly sweep, also from wrapper start, then deletes
+ * the transcripts last written longer ago than the fingerprint expiry, as a backstop; the shutdown
+ * stops it. The state directory and upstream's config directory are temporary; upstream is
+ * scripted; the hourly sweep runs on a fake clock.
  */
 import * as fs from 'fs';
 import * as os from 'os';
@@ -81,26 +82,24 @@ describe('Anthropic surface: disk retention', () => {
     fs.rmSync(temp, { recursive: true, force: true });
   });
 
-  it("deletes an earlier process's transcripts at the process's first turn, and only then", async () => {
+  it("deletes an earlier process's transcripts at wrapper start, before any turn, and only then", async () => {
     transcript('orphan-1');
     fs.mkdirSync(at('orphan-1'));
     transcript('orphan-2');
     await serve();
+    expect(fs.readdirSync(project)).toHaveLength(3);
 
-    await turn();
+    surface.start();
     expect(fs.readdirSync(project)).toEqual([]);
     transcript('written-since');
-    await surface.shutdown();
-    await surface.close();
-    await serve();
     await turn();
 
     expect(fs.readdirSync(project)).toEqual(['written-since.jsonl']);
   });
 
-  it('sweeps the transcripts idle past the expiry every hour, until the shutdown', async () => {
+  it('sweeps the transcripts idle past the expiry every hour from wrapper start, until the shutdown', async () => {
     await serve();
-    await turn();
+    surface.start();
     transcript('stale', 25 * HOUR);
     transcript('fresh', HOUR);
 

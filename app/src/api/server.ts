@@ -94,7 +94,7 @@ function mountErrorHandling(app: Express): void {
   app.use(errorHandler);
 }
 
-/** Where an app keeps its Anthropic surface, for `shutdownAnthropicSurface`. */
+/** Where an app keeps its Anthropic surface, for `anthropicSurfaceOf` (it works through the lazy default app). */
 const ANTHROPIC_SURFACE = 'anthropic surface';
 
 /**
@@ -114,14 +114,15 @@ export function createServer(deps: SurfaceDeps = {}): Express {
 }
 
 /**
- * Drains the Anthropic surface of an app `createServer` built, the default export included (spec
- * section 14): new requests get 529, turns in flight their error, every upstream run goes down the
- * teardown ladder, and what is left at `deadlineMs` (the shutdown-drain setting by default) is
- * SIGKILLed. Resolves once every run has exited.
+ * The Anthropic surface of an app `createServer` built, the default export included, as the
+ * wrapper process drives it (spec section 14): `start()` when the wrapper starts (the transcript
+ * sweeps), `shutdown(deadlineMs?)` first in its shutdown (new requests 529, turns in flight their
+ * error, every run down the teardown ladder, SIGKILL at the deadline; resolves once every run has
+ * exited).
  */
-export function shutdownAnthropicSurface(app: Express, deadlineMs?: number): Promise<void> {
+export function anthropicSurfaceOf(app: Express): Pick<AnthropicSurface, 'start' | 'shutdown'> {
   const surface = app.get(ANTHROPIC_SURFACE) as AnthropicSurface | undefined;
-  return surface ? surface.shutdown(deadlineMs) : Promise.resolve();
+  return surface ?? { start: () => undefined, shutdown: async () => undefined };
 }
 
 /**

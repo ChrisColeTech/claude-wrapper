@@ -1,8 +1,8 @@
 /**
  * Disk retention (spec section 14). Forgetting a session deletes its transcript; beyond that, at
- * the process's first turn every transcript in the runs' project directory is an orphan of an
- * earlier wrapper process (the fingerprint map lives in memory only) and is deleted, and an hourly
- * sweep deletes the transcripts last written longer ago than the fingerprint expiry, a backstop so
+ * wrapper start every transcript in the runs' project directory is an orphan of an earlier wrapper
+ * process (the fingerprint map lives in memory only) and is deleted, and from then an hourly sweep
+ * deletes the transcripts last written longer ago than the fingerprint expiry, a backstop so
  * upstream's own 30-day sweep is never relied on. Every sweep is logged.
  */
 import { TranscriptDirectory } from '../upstream/transcripts';
@@ -20,9 +20,7 @@ export interface RetentionOptions {
 }
 
 export interface Retention {
-  /** Deletes every transcript: the orphans an earlier wrapper process left. */
-  sweepOrphans(): void;
-  /** Starts the hourly sweep; once. */
+  /** The wrapper has started: deletes every transcript (an earlier process's orphans), then sweeps hourly; once. */
   start(): void;
   /** Stops it (the shutdown). */
   stop(): void;
@@ -40,14 +38,11 @@ class TranscriptRetention implements Retention {
 
   constructor(private readonly options: RetentionOptions) {}
 
-  sweepOrphans(): void {
-    const sessions = this.options.transcripts.sweep();
-    (this.options.logger ?? defaultLogger).info('Upstream transcripts swept: orphans of an earlier process', { sessions });
-  }
-
   start(): void {
     if (this.started || this.stopped) return;
     this.started = true;
+    const sessions = this.options.transcripts.sweep();
+    (this.options.logger ?? defaultLogger).info('Upstream transcripts swept: orphans of an earlier process', { sessions });
     this.schedule();
   }
 

@@ -2,10 +2,8 @@
  * The Anthropic surface's injected dependencies (spec section 16, composition root),
  * passed through `createServer(deps)`. The OpenAI surface takes none.
  *
- * Every slot is optional: an omitted slot gets its production implementation once the
- * ticket that owns it lands. Until then each slot's type is a placeholder holding the
- * spec's method names; the owning ticket replaces the placeholder with its real interface
- * (re-exported or imported here) and leaves the slot name and `createServer`'s signature alone.
+ * Every slot is optional: the composition root gives an omitted slot its production
+ * implementation. A test injects what it needs (`tests/mocks/anthropic/surface-harness.ts`).
  */
 import { Clock } from '../utils/clock';
 import { ControlServer } from '../upstream/control-server';
@@ -44,8 +42,8 @@ export interface SurfaceDeps {
   clock?: Clock;
   /**
    * The working and per-run directories. Defaults to the process's own state directory, opened
-   * once per process at the first turn (opening one empties it). Tests with the replay runner
-   * pass plain paths; nothing is created on disk for them.
+   * once per process at the wrapper's start, else at the first turn (opening one empties it).
+   * Tests with the replay runner pass plain paths; nothing is created on disk for them.
    */
   stateDirectory?: StateDirectory;
   /**
