@@ -1,0 +1,452 @@
+{
+  "name": "sdk-parallel",
+  "recorded_at": "2026-10-04T14:37:27.556Z",
+  "marks": [
+    {
+      "t_ms": 0,
+      "label": "scenario",
+      "name": "sdk-parallel",
+      "driver": "sdk",
+      "prompt": "Call the get_weather tool for Paris and for Tokyo, both in the same response (two tool calls in parallel), then reply with one sentence comparing them.",
+      "client": "answer",
+      "CLIENT_DELAY_MS": 3000,
+      "cli": "/home/anas/.local/share/mise/installs/claude/latest/claude",
+      "cwd": "/tmp/claude-1000/-home-anas-Work-claude-wrapper/d3fca5e2-71dd-4306-bec0-29bbeb4844c8/scratchpad/spike-cwd"
+    },
+    {
+      "t_ms": 5,
+      "label": "spawn",
+      "command": "/home/anas/.local/share/mise/installs/claude/latest/claude",
+      "args": [
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "--input-format",
+        "stream-json",
+        "--max-budget-usd",
+        "1",
+        "--permission-prompts",
+        "none",
+        "--allowedTools",
+        "mcp__spike__get_weather",
+        "--tools",
+        "",
+        "--setting-sources=",
+        "--strict-mcp-config",
+        "--permission-mode",
+        "default",
+        "--include-partial-messages",
+        "--no-session-persistence"
+      ]
+    },
+    {
+      "t_ms": 730,
+      "label": "system/init",
+      "session_id": "bd20ec72-b529-4fba-ae20-0fcac731e3ae",
+      "claude_code_version": "2.1.289",
+      "tools": [
+        "mcp__spike__get_weather"
+      ],
+      "mcp_servers": [
+        {
+          "name": "spike",
+          "status": "connected",
+          "source": "sdk"
+        }
+      ],
+      "apiKeySource": "none",
+      "permissionMode": "default",
+      "model": "claude-fable-5-1"
+    },
+    {
+      "t_ms": 732,
+      "label": "system/status"
+    },
+    {
+      "t_ms": 3635,
+      "label": "stream message_start #1",
+      "id": "msg_011CfhNDra5mF6Usgr8YTiyt"
+    },
+    {
+      "t_ms": 3635,
+      "label": "stream content_block_start",
+      "index": 0,
+      "type": "tool_use",
+      "name": "mcp__spike__get_weather",
+      "id": "toolu_019FxL8BU44T7CyfkKRm2L9t"
+    },
+    {
+      "t_ms": 5146,
+      "label": "assistant tool_use frame",
+      "id": "toolu_019FxL8BU44T7CyfkKRm2L9t",
+      "name": "mcp__spike__get_weather",
+      "input": {
+        "city": "Paris"
+      }
+    },
+    {
+      "t_ms": 5149,
+      "label": "stream content_block_start",
+      "index": 1,
+      "type": "tool_use",
+      "name": "mcp__spike__get_weather",
+      "id": "toolu_01HmJvfskARcHbdt2vfMabdN"
+    },
+    {
+      "t_ms": 5155,
+      "label": "MCP handler parked on bridge",
+      "toolUseId": "toolu_019FxL8BU44T7CyfkKRm2L9t",
+      "early": false,
+      "metaKeys": [
+        "claudecode/toolUseId",
+        "progressToken"
+      ],
+      "extraKeys": [
+        "signal",
+        "sessionId",
+        "_meta",
+        "sendNotification",
+        "sendRequest",
+        "authInfo",
+        "requestId",
+        "requestInfo",
+        "taskId",
+        "taskStore",
+        "taskRequestedTtl",
+        "closeSSEStream",
+        "closeStandaloneSSEStream"
+      ]
+    },
+    {
+      "t_ms": 5155,
+      "label": "assistant tool_use frame",
+      "id": "toolu_01HmJvfskARcHbdt2vfMabdN",
+      "name": "mcp__spike__get_weather",
+      "input": {
+        "city": "Tokyo"
+      }
+    },
+    {
+      "t_ms": 5155,
+      "label": "stream message_delta",
+      "stop_reason": "tool_use",
+      "output_tokens": 113
+    },
+    {
+      "t_ms": 5155,
+      "label": "PARKED: surface would now end the turn with stop_reason=tool_use",
+      "toolUses": [
+        "toolu_019FxL8BU44T7CyfkKRm2L9t",
+        "toolu_01HmJvfskARcHbdt2vfMabdN"
+      ]
+    },
+    {
+      "t_ms": 5155,
+      "label": "stream message_stop"
+    },
+    {
+      "t_ms": 8157,
+      "label": "client delivered tool_result",
+      "toolUseId": "toolu_019FxL8BU44T7CyfkKRm2L9t",
+      "status": "partial"
+    },
+    {
+      "t_ms": 8157,
+      "label": "client delivered tool_result",
+      "toolUseId": "toolu_01HmJvfskARcHbdt2vfMabdN",
+      "status": "resumed"
+    },
+    {
+      "t_ms": 8157,
+      "label": "MCP handler returning client result",
+      "toolUseId": "toolu_019FxL8BU44T7CyfkKRm2L9t"
+    },
+    {
+      "t_ms": 8165,
+      "label": "cli emitted user/tool_result frame",
+      "tool_use_id": "toolu_019FxL8BU44T7CyfkKRm2L9t",
+      "content": "[{\"type\":\"text\",\"text\":\"{\\\"city\\\":\\\"Paris\\\",\\\"temp_c\\\":18,\\\"sky\\\":\\\"overcast\\\"}\"}]"
+    },
+    {
+      "t_ms": 8167,
+      "label": "MCP handler parked on bridge",
+      "toolUseId": "toolu_01HmJvfskARcHbdt2vfMabdN",
+      "early": false,
+      "metaKeys": [
+        "claudecode/toolUseId",
+        "progressToken"
+      ],
+      "extraKeys": [
+        "signal",
+        "sessionId",
+        "_meta",
+        "sendNotification",
+        "sendRequest",
+        "authInfo",
+        "requestId",
+        "requestInfo",
+        "taskId",
+        "taskStore",
+        "taskRequestedTtl",
+        "closeSSEStream",
+        "closeStandaloneSSEStream"
+      ]
+    },
+    {
+      "t_ms": 8167,
+      "label": "MCP handler returning client result",
+      "toolUseId": "toolu_01HmJvfskARcHbdt2vfMabdN"
+    },
+    {
+      "t_ms": 8169,
+      "label": "cli emitted user/tool_result frame",
+      "tool_use_id": "toolu_01HmJvfskARcHbdt2vfMabdN",
+      "content": "[{\"type\":\"text\",\"text\":\"{\\\"city\\\":\\\"Tokyo\\\",\\\"temp_c\\\":24,\\\"sky\\\":\\\"overcast\\\"}\"}]"
+    },
+    {
+      "t_ms": 8172,
+      "label": "system/status"
+    },
+    {
+      "t_ms": 11044,
+      "label": "stream message_start #2",
+      "id": "msg_011CfhNENY8hCdCzb8HFBUC6"
+    },
+    {
+      "t_ms": 11044,
+      "label": "stream content_block_start",
+      "index": 0,
+      "type": "text"
+    },
+    {
+      "t_ms": 11046,
+      "label": "assistant text frame",
+      "text": "Both cities are overcast right now, but Tokyo is noticeably warmer at 24°C compared to Paris's 18°C."
+    },
+    {
+      "t_ms": 11048,
+      "label": "stream message_delta",
+      "stop_reason": "end_turn",
+      "output_tokens": 44
+    },
+    {
+      "t_ms": 11048,
+      "label": "stream message_stop"
+    },
+    {
+      "t_ms": 11054,
+      "label": "result",
+      "subtype": "success",
+      "stop_reason": "end_turn",
+      "num_turns": 3,
+      "duration_ms": 10340,
+      "duration_api_ms": 7768,
+      "total_cost_usd": 0.013205250000000002,
+      "is_error": false,
+      "terminal_reason": "completed",
+      "result": "Both cities are overcast right now, but Tokyo is noticeably warmer at 24°C compared to Paris's 18°C.",
+      "session_id": "bd20ec72-b529-4fba-ae20-0fcac731e3ae",
+      "usage": {
+        "input_tokens": 34,
+        "output_tokens": 157,
+        "cache_read_input_tokens": 2165,
+        "cache_creation_input_tokens": 174
+      },
+      "permission_denials": []
+    },
+    {
+      "t_ms": 11910,
+      "label": "process exit",
+      "code": 0,
+      "signal": null
+    }
+  ],
+  "scenario": {
+    "driver": "sdk",
+    "prompt": "Call the get_weather tool for Paris and for Tokyo, both in the same response (two tool calls in parallel), then reply with one sentence comparing them.",
+    "client": "answer"
+  },
+  "init": {
+    "session_id": "bd20ec72-b529-4fba-ae20-0fcac731e3ae",
+    "claude_code_version": "2.1.289",
+    "tools": [
+      "mcp__spike__get_weather"
+    ],
+    "mcp_servers": [
+      {
+        "name": "spike",
+        "status": "connected",
+        "source": "sdk"
+      }
+    ],
+    "apiKeySource": "none",
+    "permissionMode": "default",
+    "model": "claude-fable-5-1"
+  },
+  "modelCalls": 2,
+  "assistantMessageIds": [
+    "msg_011CfhNDra5mF6Usgr8YTiyt",
+    "msg_011CfhNENY8hCdCzb8HFBUC6"
+  ],
+  "ids": {
+    "announcedOnAssistantFrames": [
+      "toolu_019FxL8BU44T7CyfkKRm2L9t",
+      "toolu_01HmJvfskARcHbdt2vfMabdN"
+    ],
+    "seenInMcpMeta": [
+      "toolu_019FxL8BU44T7CyfkKRm2L9t",
+      "toolu_01HmJvfskARcHbdt2vfMabdN"
+    ],
+    "inCliToolResultFrames": [
+      "toolu_019FxL8BU44T7CyfkKRm2L9t",
+      "toolu_01HmJvfskARcHbdt2vfMabdN"
+    ],
+    "allMatch": true
+  },
+  "timings_ms": {
+    "tool_use_frame": 5146,
+    "message_delta_tool_use": 5155,
+    "message_stop_first": 5155,
+    "mcp_call": 5155,
+    "parked": 5155,
+    "client_delivered": 8157,
+    "cli_tool_result_frame": 8165,
+    "second_message_start": 11044,
+    "result": 11054,
+    "exit": 11910
+  },
+  "derived_ms": {
+    "bridge_detect_overhead": 0,
+    "resume_overhead_delivered_to_cli_tool_result": 8,
+    "delivered_to_next_model_call": 2887
+  },
+  "stopReasons": [
+    "tool_use",
+    "end_turn"
+  ],
+  "results": [
+    {
+      "subtype": "success",
+      "stop_reason": "end_turn",
+      "num_turns": 3,
+      "duration_ms": 10340,
+      "duration_api_ms": 7768,
+      "total_cost_usd": 0.013205250000000002,
+      "is_error": false,
+      "terminal_reason": "completed",
+      "result": "Both cities are overcast right now, but Tokyo is noticeably warmer at 24°C compared to Paris's 18°C.",
+      "session_id": "bd20ec72-b529-4fba-ae20-0fcac731e3ae",
+      "usage": {
+        "input_tokens": 34,
+        "output_tokens": 157,
+        "cache_read_input_tokens": 2165,
+        "cache_creation_input_tokens": 174
+      },
+      "permission_denials": []
+    }
+  ],
+  "finalText": [
+    "Both cities are overcast right now, but Tokyo is noticeably warmer at 24°C compared to Paris's 18°C."
+  ],
+  "interrupt": null,
+  "controlFramesOnStdout": 0,
+  "resume": null,
+  "bridgeTrace": [
+    {
+      "at": 730,
+      "kind": "turn_started"
+    },
+    {
+      "at": 5147,
+      "kind": "client_tool_use_announced",
+      "id": "toolu_019FxL8BU44T7CyfkKRm2L9t",
+      "name": "get_weather"
+    },
+    {
+      "at": 5155,
+      "kind": "mcp_call_registered",
+      "toolUseId": "toolu_019FxL8BU44T7CyfkKRm2L9t",
+      "name": "mcp__spike__get_weather",
+      "early": false
+    },
+    {
+      "at": 5155,
+      "kind": "client_tool_use_announced",
+      "id": "toolu_01HmJvfskARcHbdt2vfMabdN",
+      "name": "get_weather"
+    },
+    {
+      "at": 5155,
+      "kind": "assistant_message_complete",
+      "stopReason": "tool_use"
+    },
+    {
+      "at": 5155,
+      "kind": "park",
+      "toolUses": [
+        {
+          "id": "toolu_019FxL8BU44T7CyfkKRm2L9t",
+          "name": "get_weather",
+          "input": {
+            "city": "Paris"
+          }
+        },
+        {
+          "id": "toolu_01HmJvfskARcHbdt2vfMabdN",
+          "name": "get_weather",
+          "input": {
+            "city": "Tokyo"
+          }
+        }
+      ]
+    },
+    {
+      "at": 8156,
+      "kind": "client_result_delivered_to_waiting_handler",
+      "toolUseId": "toolu_019FxL8BU44T7CyfkKRm2L9t",
+      "isError": false
+    },
+    {
+      "at": 8157,
+      "kind": "client_result_predelivered",
+      "toolUseId": "toolu_01HmJvfskARcHbdt2vfMabdN",
+      "isError": false
+    },
+    {
+      "at": 8157,
+      "kind": "resumed"
+    },
+    {
+      "at": 8167,
+      "kind": "mcp_call_served_from_predelivered",
+      "toolUseId": "toolu_01HmJvfskARcHbdt2vfMabdN",
+      "name": "mcp__spike__get_weather"
+    },
+    {
+      "at": 11054,
+      "kind": "turn_ended"
+    }
+  ],
+  "bridgeFinal": {
+    "phase": "done",
+    "assistantMessageDone": false,
+    "announced": [],
+    "waitingHandlers": [],
+    "predelivered": [],
+    "delivered": []
+  },
+  "five_hour_utilization": {
+    "five_hour": {
+      "utilization": 0.06,
+      "resetsAt": 1791141600
+    },
+    "seven_day": {
+      "utilization": 0.19,
+      "resetsAt": 1791460800
+    },
+    "seven_day_overage_included": {
+      "utilization": 0.36,
+      "resetsAt": 1791460800
+    }
+  }
+}

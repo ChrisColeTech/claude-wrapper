@@ -11,6 +11,8 @@ module.exports = {
     "<rootDir>/tests/unit/**/*.test.ts",
     "<rootDir>/tests/mocks/**/*.test.ts"
   ],
+  // Refuses to run while a fixture carries a live account value
+  globalSetup: "<rootDir>/tests/setup/upstream-fixtures-guard.ts",
   setupFilesAfterEnv: ["<rootDir>/tests/setup.ts"],
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/src/$1",

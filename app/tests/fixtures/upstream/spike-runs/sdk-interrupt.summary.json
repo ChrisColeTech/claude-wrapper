@@ -1,0 +1,341 @@
+{
+  "name": "sdk-interrupt",
+  "recorded_at": "2026-10-04T14:29:50.267Z",
+  "marks": [
+    {
+      "t_ms": 0,
+      "label": "scenario",
+      "name": "sdk-interrupt",
+      "driver": "sdk",
+      "prompt": "Use the get_weather tool for Paris, then reply with one short sentence about the weather there. Do not call any other tool.",
+      "client": "never",
+      "afterParkMs": 3000,
+      "action": "interrupt",
+      "CLIENT_DELAY_MS": 3000,
+      "cli": "/home/anas/.local/share/mise/installs/claude/latest/claude",
+      "cwd": "/tmp/claude-1000/-home-anas-Work-claude-wrapper/d3fca5e2-71dd-4306-bec0-29bbeb4844c8/scratchpad/spike-cwd"
+    },
+    {
+      "t_ms": 4,
+      "label": "spawn",
+      "command": "/home/anas/.local/share/mise/installs/claude/latest/claude",
+      "args": [
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "--input-format",
+        "stream-json",
+        "--max-budget-usd",
+        "1",
+        "--permission-prompts",
+        "none",
+        "--allowedTools",
+        "mcp__spike__get_weather",
+        "--tools",
+        "",
+        "--setting-sources=",
+        "--strict-mcp-config",
+        "--permission-mode",
+        "default",
+        "--include-partial-messages",
+        "--no-session-persistence"
+      ]
+    },
+    {
+      "t_ms": 643,
+      "label": "system/init",
+      "session_id": "57338979-04bd-4a2c-8d89-521262c18e70",
+      "claude_code_version": "2.1.289",
+      "tools": [
+        "mcp__spike__get_weather"
+      ],
+      "mcp_servers": [
+        {
+          "name": "spike",
+          "status": "connected",
+          "source": "sdk"
+        }
+      ],
+      "apiKeySource": "none",
+      "permissionMode": "default",
+      "model": "claude-fable-5-1"
+    },
+    {
+      "t_ms": 647,
+      "label": "system/status"
+    },
+    {
+      "t_ms": 7526,
+      "label": "stream message_start #1",
+      "id": "msg_011CfhMe8ow8ipgaBGYA91YX"
+    },
+    {
+      "t_ms": 7526,
+      "label": "stream content_block_start",
+      "index": 0,
+      "type": "tool_use",
+      "name": "mcp__spike__get_weather",
+      "id": "toolu_01SYC8YWFHQDduvhQdQ3ELhQ"
+    },
+    {
+      "t_ms": 8855,
+      "label": "assistant tool_use frame",
+      "id": "toolu_01SYC8YWFHQDduvhQdQ3ELhQ",
+      "name": "mcp__spike__get_weather",
+      "input": {
+        "city": "Paris"
+      }
+    },
+    {
+      "t_ms": 8866,
+      "label": "MCP handler parked on bridge",
+      "toolUseId": "toolu_01SYC8YWFHQDduvhQdQ3ELhQ",
+      "early": false,
+      "metaKeys": [
+        "claudecode/toolUseId",
+        "progressToken"
+      ],
+      "extraKeys": [
+        "signal",
+        "sessionId",
+        "_meta",
+        "sendNotification",
+        "sendRequest",
+        "authInfo",
+        "requestId",
+        "requestInfo",
+        "taskId",
+        "taskStore",
+        "taskRequestedTtl",
+        "closeSSEStream",
+        "closeStandaloneSSEStream"
+      ]
+    },
+    {
+      "t_ms": 8867,
+      "label": "stream message_delta",
+      "stop_reason": "tool_use",
+      "output_tokens": 57
+    },
+    {
+      "t_ms": 8867,
+      "label": "PARKED: surface would now end the turn with stop_reason=tool_use",
+      "toolUses": [
+        "toolu_01SYC8YWFHQDduvhQdQ3ELhQ"
+      ]
+    },
+    {
+      "t_ms": 8867,
+      "label": "stream message_stop"
+    },
+    {
+      "t_ms": 11869,
+      "label": "client never answered; interrupting the run first"
+    },
+    {
+      "t_ms": 11872,
+      "label": "MCP handler: upstream aborted the call",
+      "toolUseId": "toolu_01SYC8YWFHQDduvhQdQ3ELhQ"
+    },
+    {
+      "t_ms": 11872,
+      "label": "interrupt() resolved",
+      "still_queued": []
+    },
+    {
+      "t_ms": 11876,
+      "label": "cli emitted user/tool_result frame",
+      "tool_use_id": "toolu_01SYC8YWFHQDduvhQdQ3ELhQ",
+      "content": "\"The user doesn't want to proceed with this tool use. The tool use was rejected (eg. if it was a file edit, the new_string was NOT written to the file). STOP what you are doing and wait for the user t"
+    },
+    {
+      "t_ms": 11879,
+      "label": "result",
+      "subtype": "error_during_execution",
+      "stop_reason": "tool_use",
+      "num_turns": 3,
+      "duration_ms": 11258,
+      "duration_api_ms": 8823,
+      "total_cost_usd": 0.00409225,
+      "is_error": true,
+      "errors": [
+        "[ede_diagnostic] result_type=user last_content_type=n/a stop_reason=tool_use"
+      ],
+      "terminal_reason": "aborted_tools",
+      "session_id": "57338979-04bd-4a2c-8d89-521262c18e70",
+      "usage": {
+        "input_tokens": 2,
+        "output_tokens": 57,
+        "cache_read_input_tokens": 1013,
+        "cache_creation_input_tokens": 0
+      },
+      "permission_denials": []
+    },
+    {
+      "t_ms": 12752,
+      "label": "process exit",
+      "code": 1,
+      "signal": null
+    },
+    {
+      "t_ms": 12753,
+      "label": "iterator threw",
+      "error": "Error: Claude Code returned an error result: [ede_diagnostic] result_type=user last_content_type=n/a stop_reason=tool_use"
+    }
+  ],
+  "scenario": {
+    "driver": "sdk",
+    "prompt": "Use the get_weather tool for Paris, then reply with one short sentence about the weather there. Do not call any other tool.",
+    "client": "never",
+    "afterParkMs": 3000,
+    "action": "interrupt"
+  },
+  "init": {
+    "session_id": "57338979-04bd-4a2c-8d89-521262c18e70",
+    "claude_code_version": "2.1.289",
+    "tools": [
+      "mcp__spike__get_weather"
+    ],
+    "mcp_servers": [
+      {
+        "name": "spike",
+        "status": "connected",
+        "source": "sdk"
+      }
+    ],
+    "apiKeySource": "none",
+    "permissionMode": "default",
+    "model": "claude-fable-5-1"
+  },
+  "modelCalls": 1,
+  "assistantMessageIds": [
+    "msg_011CfhMe8ow8ipgaBGYA91YX"
+  ],
+  "ids": {
+    "announcedOnAssistantFrames": [
+      "toolu_01SYC8YWFHQDduvhQdQ3ELhQ"
+    ],
+    "seenInMcpMeta": [
+      "toolu_01SYC8YWFHQDduvhQdQ3ELhQ"
+    ],
+    "inCliToolResultFrames": [
+      "toolu_01SYC8YWFHQDduvhQdQ3ELhQ"
+    ],
+    "allMatch": true
+  },
+  "timings_ms": {
+    "tool_use_frame": 8855,
+    "message_delta_tool_use": 8867,
+    "message_stop_first": 8867,
+    "mcp_call": 8866,
+    "parked": 8867,
+    "client_delivered": null,
+    "cli_tool_result_frame": 11876,
+    "second_message_start": null,
+    "result": 11879,
+    "exit": 12752
+  },
+  "derived_ms": {
+    "bridge_detect_overhead": 0,
+    "resume_overhead_delivered_to_cli_tool_result": null,
+    "delivered_to_next_model_call": null
+  },
+  "stopReasons": [
+    "tool_use"
+  ],
+  "results": [
+    {
+      "subtype": "error_during_execution",
+      "stop_reason": "tool_use",
+      "num_turns": 3,
+      "duration_ms": 11258,
+      "duration_api_ms": 8823,
+      "total_cost_usd": 0.00409225,
+      "is_error": true,
+      "errors": [
+        "[ede_diagnostic] result_type=user last_content_type=n/a stop_reason=tool_use"
+      ],
+      "terminal_reason": "aborted_tools",
+      "session_id": "57338979-04bd-4a2c-8d89-521262c18e70",
+      "usage": {
+        "input_tokens": 2,
+        "output_tokens": 57,
+        "cache_read_input_tokens": 1013,
+        "cache_creation_input_tokens": 0
+      },
+      "permission_denials": []
+    }
+  ],
+  "finalText": [],
+  "interrupt": {
+    "still_queued": []
+  },
+  "controlFramesOnStdout": 0,
+  "resume": null,
+  "bridgeTrace": [
+    {
+      "at": 643,
+      "kind": "turn_started"
+    },
+    {
+      "at": 8855,
+      "kind": "client_tool_use_announced",
+      "id": "toolu_01SYC8YWFHQDduvhQdQ3ELhQ",
+      "name": "get_weather"
+    },
+    {
+      "at": 8866,
+      "kind": "mcp_call_registered",
+      "toolUseId": "toolu_01SYC8YWFHQDduvhQdQ3ELhQ",
+      "name": "mcp__spike__get_weather",
+      "early": false
+    },
+    {
+      "at": 8867,
+      "kind": "assistant_message_complete",
+      "stopReason": "tool_use"
+    },
+    {
+      "at": 8867,
+      "kind": "park",
+      "toolUses": [
+        {
+          "id": "toolu_01SYC8YWFHQDduvhQdQ3ELhQ",
+          "name": "get_weather",
+          "input": {
+            "city": "Paris"
+          }
+        }
+      ]
+    },
+    {
+      "at": 11879,
+      "kind": "turn_ended"
+    }
+  ],
+  "bridgeFinal": {
+    "phase": "done",
+    "assistantMessageDone": true,
+    "announced": [
+      "toolu_01SYC8YWFHQDduvhQdQ3ELhQ"
+    ],
+    "pending": [
+      "toolu_01SYC8YWFHQDduvhQdQ3ELhQ"
+    ],
+    "delivered": []
+  },
+  "five_hour_utilization": {
+    "five_hour": {
+      "utilization": 0.05,
+      "resetsAt": 1791141600
+    },
+    "seven_day": {
+      "utilization": 0.19,
+      "resetsAt": 1791460800
+    },
+    "seven_day_overage_included": {
+      "utilization": 0.36,
+      "resetsAt": 1791460800
+    }
+  }
+}
