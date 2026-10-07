@@ -3,16 +3,16 @@
  * (the whole message reached the client, and upstream's `result` is a success, which is when
  * upstream has written its transcript) records the session under the fingerprint of the
  * transcript exchanged: the request's messages plus the message the client got. Any other end
- * (a rejection, a post-commit failure, a disconnect, an error `result`, a run that ended before
- * its `result`) is an error turn: the session is forgotten at once, so the client's retry is a
- * replayed turn, and forgotten again once the run has exited, since upstream writes its
+ * (a rejection, a post-commit failure, a disconnect, a cut, an error `result`, a run that ended
+ * before its `result`) is an error turn: the session is forgotten at once, so the client's retry
+ * is a replayed turn, and forgotten again once the run has exited, since upstream writes its
  * transcript up to its exit.
  */
 import { Frame, ResultFrame } from '../../upstream/frames';
 import { fingerprint, NormalisedMessage } from '../request';
 import { accumulate, SinkOutcome, TurnSink } from '../respond';
 import { Sessions } from '../sessions';
-import { ApiEvent, TurnEvent } from '../translate';
+import { ApiEvent, isControlSignal, TurnEvent } from '../translate';
 import { FrameObserver, PumpLogger } from './run-pump';
 
 export interface TurnSessionOptions {
@@ -40,8 +40,8 @@ export class TurnSession implements FrameObserver {
   relay(sink: TurnSink): TurnSink {
     return {
       push: (event: TurnEvent) => {
-        // The output-limits ticket's `cut` makes this an error turn here.
-        if (event.type !== 'fail') this.events.push(event);
+        if (event.type === 'cut') this.cut();
+        else if (!isControlSignal(event)) this.events.push(event);
         sink.push(event);
       },
       outcome: sink.outcome
@@ -77,6 +77,14 @@ export class TurnSession implements FrameObserver {
     if (result === null) return this.errorTurn('no result');
     if (result && !isClean(result)) return this.errorTurn('error result');
     if (outcome && result) this.record();
+  }
+
+  /**
+   * The surface cut the turn at an output limit (ADR 0004): upstream holds more than the client
+   * got, or is about to, so the turn is an error turn whatever `result` says.
+   */
+  private cut(): void {
+    if (this.decision === undefined) this.errorTurn('cut');
   }
 
   private record(): void {

@@ -86,7 +86,8 @@ export function createConductor(deps: ConductorDeps): Conductor {
       // The session records the answer as the client got it, redacted: that is what it echoes back.
       const sink = session.relay(sinkFor(req, res, requestId));
       const pump = pumpRun(deps.runner.startRun(turn.runSpec), messageToSend(turn.continuation), {
-        translator: createTranslator({ logger: log, redact: deps.redact }), sink, checks: turn.startupChecks,
+        translator: createTranslator({ logger: log, redact: deps.redact, ...turn.translatorConfig }), sink,
+        checks: turn.startupChecks,
         clock: deps.clock, logger: log, observers: [session]
       });
       pump.done.catch(error => log.warn('Upstream run pump failed', { error: String(error) }))

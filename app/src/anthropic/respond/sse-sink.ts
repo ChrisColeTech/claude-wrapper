@@ -9,7 +9,7 @@
 import { ServerResponse } from 'http';
 import { Clock, TimerHandle } from '../../utils/clock';
 import { SurfaceError } from '../http/surface-error';
-import { TurnEvent } from '../translate';
+import { isControlSignal, TurnEvent } from '../translate';
 import { Settlement, TurnSink } from './sink';
 
 export interface SseSinkOptions {
@@ -40,6 +40,7 @@ class SseSink implements TurnSink {
       this.fail(event.error);
       return;
     }
+    if (isControlSignal(event)) return;
     if (!this.res.headersSent) this.res.writeHead(200, SSE_HEADERS);
     this.write(event.type, event);
     if (event.type === 'message_stop') this.end({ kind: 'completed' });

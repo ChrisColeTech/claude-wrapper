@@ -11,5 +11,5 @@ export { fingerprint } from './fingerprint';
 export { withoutIgnoredContent } from './ignored-content';
 export type { ClientMessage } from './validate-messages';
 export type {
-  ContentBlock, Continuation, NormalisedMessage, RunContext, StartupChecks, TurnPlan
+  ContentBlock, Continuation, NormalisedMessage, RunContext, StartupChecks, TurnPlan, TurnTranslation
 } from './turn-plan';

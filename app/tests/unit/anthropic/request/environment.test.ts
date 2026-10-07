@@ -1,6 +1,7 @@
 /**
  * The child environment (spec section 10): an allowlist built from scratch. From the wrapper's
- * environment only the base variables are copied; the always-set ones follow; the operator's
+ * environment only the base variables are copied; the always-set ones follow, then the request's
+ * thinking variables (Haiku 4.5 without `thinking` gets thinking switched off); the operator's
  * `upstream.env` is merged last, except the two variables refused even from the operator.
  */
 import { checkUpstreamEnv, planTurn, TurnPlan } from '../../../../src/anthropic/request';
@@ -65,7 +66,8 @@ describe('planTurn: the child environment', () => {
       CLAUDE_CODE_MCP_TOOL_IDLE_TIMEOUT: '660000',
       MCP_TOOL_TIMEOUT: '660000',
       MCP_CONNECT_TIMEOUT_MS: '5000',
-      CLAUDE_CODE_MAX_WEB_SEARCHES_PER_SESSION: '200'
+      CLAUDE_CODE_MAX_WEB_SEARCHES_PER_SESSION: '200',
+      CLAUDE_CODE_DISABLE_THINKING: '1'
     });
   });
 
@@ -73,22 +75,24 @@ describe('planTurn: the child environment', () => {
     const plan = planTurn(REQUEST, shippedCatalogue, NO_SESSIONS, runContext({ environment: {} }));
 
     expect(Object.keys(envOf(plan)).sort()).toEqual([
-      'CLAUDE_CODE_MAX_OUTPUT_TOKENS', 'CLAUDE_CODE_MAX_WEB_SEARCHES_PER_SESSION', 'CLAUDE_CODE_MCP_TOOL_IDLE_TIMEOUT',
+      'CLAUDE_CODE_DISABLE_THINKING', 'CLAUDE_CODE_MAX_OUTPUT_TOKENS', 'CLAUDE_CODE_MAX_WEB_SEARCHES_PER_SESSION', 'CLAUDE_CODE_MCP_TOOL_IDLE_TIMEOUT',
       'MCP_CONNECT_TIMEOUT_MS', 'MCP_TOOL_TIMEOUT'
     ]);
   });
 
-  it('merges the operator’s upstream.env last, over the base and the always-set variables', () => {
+  it('merges the operator’s upstream.env last, over the base, the always-set and the thinking variables', () => {
     const settings = loadAnthropicSettings({
       CLAUDE_WRAPPER_UPSTREAM_ENV: JSON.stringify({
-        ANTHROPIC_API_KEY: 'sk-ant-operator', DISABLE_TELEMETRY: '1', PATH: '/opt/claude/bin', MCP_CONNECT_TIMEOUT_MS: '8000'
+        ANTHROPIC_API_KEY: 'sk-ant-operator', DISABLE_TELEMETRY: '1', PATH: '/opt/claude/bin', MCP_CONNECT_TIMEOUT_MS: '8000',
+        CLAUDE_CODE_DISABLE_THINKING: '0'
       })
     });
 
     const plan = planTurn(REQUEST, shippedCatalogue, NO_SESSIONS, runContext({ settings, environment: POLLUTED }));
 
     expect(envOf(plan)).toEqual(expect.objectContaining({
-      ANTHROPIC_API_KEY: 'sk-ant-operator', DISABLE_TELEMETRY: '1', PATH: '/opt/claude/bin', MCP_CONNECT_TIMEOUT_MS: '8000'
+      ANTHROPIC_API_KEY: 'sk-ant-operator', DISABLE_TELEMETRY: '1', PATH: '/opt/claude/bin', MCP_CONNECT_TIMEOUT_MS: '8000',
+      CLAUDE_CODE_DISABLE_THINKING: '0'
     }));
     expect(envOf(plan)).not.toHaveProperty('CLAUDE_CODE_OAUTH_TOKEN');
   });

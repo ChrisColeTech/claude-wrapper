@@ -1,9 +1,10 @@
 /**
  * `stop_sequences` (spec sections 4.1 and 12): a non-empty list of non-empty strings, else a 400
- * in the real API's schema wording. The scan that honours them belongs to the output-limits
- * ticket; until it lands, a valid list is an honest 400 rather than a silently ignored stop.
+ * in the real API's schema wording. A valid list goes to the turn's translator, whose scan cuts
+ * the turn at the first match; it is not run-bound, so it travels with the plan, not the run spec.
  */
 import { SurfaceError } from '../../../../src/anthropic/http/surface-error';
+import { TurnPlan } from '../../../../src/anthropic/request';
 import { invalidRequest, planDefault, rejectionOf } from '../../../mocks/anthropic/plan-context';
 
 const VALID = { model: 'opus', max_tokens: 1024, messages: [{ role: 'user', content: 'Hello' }] };
@@ -37,9 +38,14 @@ describe('planTurn validates stop_sequences (spec section 4.1)', () => {
     expect(planDefault(withStops(null))).not.toBeInstanceOf(SurfaceError);
   });
 
-  it('rejects a valid list until the stop-sequence scan exists, rather than ignoring it', () => {
-    expect(rejectionOf(withStops(['END', '\n\nHuman:']))).toEqual(
-      invalidRequest('stop_sequences: not supported on this surface yet')
-    );
+  it("hands a valid list to the turn's translator, and nothing to the run", () => {
+    const plan = planDefault(withStops(['END', '\n\nHuman:'])) as TurnPlan;
+
+    expect(plan.translatorConfig).toEqual({ stopSequences: ['END', '\n\nHuman:'] });
+    expect(plan.runSpec).toEqual((planDefault(VALID) as TurnPlan).runSpec);
+  });
+
+  it('hands the translator an empty list when there are none', () => {
+    expect((planDefault(VALID) as TurnPlan).translatorConfig).toEqual({ stopSequences: [] });
   });
 });
