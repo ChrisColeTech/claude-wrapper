@@ -3,4 +3,7 @@
  * frames in, the turn stream out (API events with the control signals inline).
  */
 export { createTranslator } from './translator';
-export type { ApiEvent, FailSignal, Translator, TranslatorConfig, TranslatorLogger, TurnEvent } from './turn-event';
+export { isControlSignal } from './turn-event';
+export type {
+  ApiEvent, ControlSignal, CutReason, CutSignal, FailSignal, Translator, TranslatorConfig, TranslatorLogger, TurnEvent
+} from './turn-event';

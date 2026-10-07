@@ -14,6 +14,7 @@ import { buildRunSpec } from './run-spec';
 import { systemPrompt } from './system-prompt';
 import { RunContext, TurnPlan } from './turn-plan';
 import { validateContentBlocks } from './validate-content-blocks';
+import { validateEffort } from './validate-effort';
 import { rejectExtraFields } from './validate-extra-fields';
 import { validateMaxTokens } from './validate-max-tokens';
 import { validateMessages } from './validate-messages';
@@ -22,6 +23,7 @@ import { validatePlainFields } from './validate-plain-fields';
 import { validateSampling } from './validate-sampling';
 import { validateServerTools } from './validate-server-tools';
 import { validateStopSequences } from './validate-stop-sequences';
+import { thinkingEnvironment } from './validate-thinking';
 import { validateToolChoice } from './validate-tool-choice';
 import { validateTurnOrder } from './validate-turn-order';
 
@@ -31,10 +33,6 @@ function validateParameters(request: Body): void {
   validateSampling(request);
   validateToolChoice(request['tool_choice']);
   validateServerTools(request['tools']);
-  if (validateStopSequences(request['stop_sequences'])) {
-    // The output-limits ticket's scan honours them; until it lands, an honest 400.
-    throw SurfaceError.invalidRequest('stop_sequences: not supported on this surface yet');
-  }
 }
 
 function plan(request: unknown, catalogue: Catalogue, sessions: Sessions, context: RunContext): TurnPlan {
@@ -48,14 +46,22 @@ function plan(request: unknown, catalogue: Catalogue, sessions: Sessions, contex
   validateTurnOrder(messages);
   const system = systemPrompt(request['system']);
   validateParameters(request);
+  const stopSequences = validateStopSequences(request['stop_sequences']) ?? [];
+  const thinking = thinkingEnvironment(request['thinking'], model, maxTokens);
+  const effort = validateEffort(request['output_config'], model);
   const continuation = chooseContinuation(messages, sessions);
   const resume = resumedSession(continuation);
+  const runInputs = {
+    modelId: model.id, system, maxTokens, thinking,
+    ...(effort === undefined ? {} : { effort }), ...(resume === undefined ? {} : { resume })
+  };
   return {
     model,
     messages,
     system,
-    runSpec: buildRunSpec({ modelId: model.id, system, maxTokens, ...(resume === undefined ? {} : { resume }) }, context),
+    runSpec: buildRunSpec(runInputs, context),
     continuation,
+    translatorConfig: { stopSequences },
     // A text turn mounts no tools, so upstream reports none.
     startupChecks: { model: model.id, tools: [] }
   };

@@ -107,8 +107,8 @@ export function createConductor(deps: ConductorDeps): Conductor {
       const sink = session.relay(sinkFor(req, res, requestId));
       const failures = failureReader(req, turn, sink, log);
       const pump = pumpRun(deps.runner.startRun(turn.runSpec), messageToSend(turn.continuation), {
-        translator: createTranslator({ logger: log, failures, redact: deps.redact }), failures, sink,
-        checks: turn.startupChecks, clock: deps.clock, logger: log, observers: [session]
+        translator: createTranslator({ logger: log, failures, redact: deps.redact, ...turn.translatorConfig }),
+        failures, sink, checks: turn.startupChecks, clock: deps.clock, logger: log, observers: [session]
       });
       pump.done.catch(error => log.warn('Upstream run pump failed', { error: String(error) }))
         .then(() => session.exited());

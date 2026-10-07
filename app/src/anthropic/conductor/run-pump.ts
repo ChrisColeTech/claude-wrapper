@@ -4,8 +4,8 @@
  * once `result` is in, and the frames are read to the end after the response has ended, so
  * `result` and the exit are logged without the client waiting for them. A run that ends before
  * the turn did fails the turn, mapped by the run's failure reader: at once when the runner
- * ended the run (a timer, an oversized line), else once upstream has exited. This is the run's
- * only reader of its frames.
+ * ended the run (a timer, an oversized line), else once upstream has exited. A turn the
+ * translator cut at an output limit stops the run. This is the run's only reader of its frames.
  */
 import { Frame, ResultFrame, SystemInitFrame } from '../../upstream/frames';
 import { Run, RunFailure, UserMessage } from '../../upstream/runner';
@@ -127,8 +127,12 @@ class Pump implements RunPump {
     this.options.sink.push({ type: 'fail', error });
   }
 
+  /** A `cut` ends the turn at once: the run is interrupted before upstream calls the model again. */
   private toSink(events: TurnEvent[]): void {
-    events.forEach(event => this.options.sink.push(event));
+    events.forEach(event => {
+      this.options.sink.push(event);
+      if (event.type === 'cut') this.stop();
+    });
   }
 }
 

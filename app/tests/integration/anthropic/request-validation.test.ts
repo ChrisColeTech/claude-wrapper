@@ -51,7 +51,11 @@ describe('Anthropic surface: request validation through the SDK', () => {
       [{ top_k: 40 }, 'top_k: not supported on this surface; leave it out'],
       [{ container: 'container_011' }, 'container: containers are not supported on this surface'],
       [{ stop_sequences: [] }, 'stop_sequences: List should have at least 1 item after validation, not 0'],
-      [{ stop_sequences: ['END'] }, 'stop_sequences: not supported on this surface yet'],
+      [{ thinking: { type: 'enabled', budget_tokens: 2048 } }, '"thinking.type.enabled" is not supported for this model. ' +
+        'Use "thinking.type.adaptive" and "output_config.effort" to control thinking behavior.'],
+      [{ model: 'haiku', thinking: { type: 'enabled', budget_tokens: 1024 }, max_tokens: 1024 },
+        '`max_tokens` must be greater than `thinking.budget_tokens`.'],
+      [{ model: 'haiku', output_config: { effort: 'low' } }, 'output_config.effort is not supported for this model.'],
       [{ service_tier: 'priority' }, "service_tier: Input should be 'auto' or 'standard_only'"],
       [{ session_id: 'abc' }, 'session_id: Extra inputs are not permitted']
     ])('rejects %p', async (fields, message) => {
