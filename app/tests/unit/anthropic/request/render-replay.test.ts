@@ -1,7 +1,8 @@
 /**
  * Renderer goldens (spec section 5): a replayed turn is one user message that opens with the
  * `<conversation_history>` block of `<turn>` children (text verbatim, `tool_use` and
- * `tool_result` as their tags, thinking dropped, images inside a tool result as real blocks),
+ * `tool_result` as their tags, thinking dropped, images and documents, and the images inside a
+ * tool result, as real blocks with no whitespace-only text block between them),
  * carrying the one sentence that says whose turns they are, then the final user message's blocks
  * verbatim, except its `tool_result` blocks: upstream holds no call they answer (a fresh run has
  * no `tool_use` of its own) and the API rejects an orphan result, so they are rendered as their
@@ -18,6 +19,15 @@ const assistant = (...content: object[]) => ({ role: 'assistant', content }) as 
 const OPENING = '<conversation_history>\n' +
   'These are the earlier turns of this conversation, and the assistant turns in it are your own replies.\n';
 const IMAGE = { type: 'image', source: { type: 'base64', media_type: 'image/png', data: 'iVBORw0KGgo=' } };
+const PDF = {
+  type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: 'JVBERi0xLjQ=' },
+  title: 'Tangerine', context: 'A one-page memo.', citations: { enabled: false }
+};
+const CONTENT_DOCUMENT = { type: 'document', source: { type: 'content', content: [text('Part one.'), text('Part two.')] } };
+const TEXT_DOCUMENT = {
+  type: 'document', source: { type: 'text', media_type: 'text/plain', data: 'The codeword is saffron-5' },
+  title: 'Saffron memo', citations: { enabled: true }
+};
 
 describe('renderReplay', () => {
   it("sends a lone user message's blocks verbatim, with no history block", () => {
@@ -164,6 +174,62 @@ describe('renderReplay', () => {
     expect((rendered.content[0] as { text: string }).text).toContain(
       '<turn role="user">\na "quoted" <tag> & more\n</turn>\n' +
       '<turn role="assistant">\n<tool_use id="toolu_&quot;1&quot;" name="f&lt;&amp;&gt;">{"q":"\\"x\\""}</tool_use>\n</turn>\n');
+  });
+
+  it('renders images and documents in earlier turns as real blocks in place, every field kept', () => {
+    const rendered = renderReplay([
+      user(text('Read these.'), IMAGE, PDF, CONTENT_DOCUMENT),
+      assistant(text('Done.')),
+      user(text('And this one?'), TEXT_DOCUMENT)
+    ]);
+
+    expect(rendered).toEqual({
+      role: 'user',
+      content: [
+        { type: 'text', text: OPENING + '<turn role="user">\nRead these.\n' },
+        IMAGE,
+        PDF,
+        CONTENT_DOCUMENT,
+        { type: 'text', text: '\n</turn>\n<turn role="assistant">\nDone.\n</turn>\n</conversation_history>' },
+        { type: 'text', text: 'And this one?' },
+        TEXT_DOCUMENT
+      ]
+    });
+  });
+
+  it('opens a turn on a real block and closes one after it without a whitespace-only text block between them', () => {
+    const rendered = renderReplay([
+      user(TEXT_DOCUMENT),
+      assistant(text('Read.')),
+      user(IMAGE),
+      assistant(text('Orange.')),
+      user(text('Both again?'))
+    ]);
+
+    expect(rendered.content).toEqual([
+      { type: 'text', text: OPENING + '<turn role="user">\n' },
+      TEXT_DOCUMENT,
+      { type: 'text', text: '\n</turn>\n<turn role="assistant">\nRead.\n</turn>\n<turn role="user">\n' },
+      IMAGE,
+      { type: 'text', text: '\n</turn>\n<turn role="assistant">\nOrange.\n</turn>\n</conversation_history>' },
+      { type: 'text', text: 'Both again?' }
+    ]);
+  });
+
+  it("joins a tool result's adjacent images without a whitespace-only text block between them", () => {
+    const rendered = renderReplay([
+      user(text('Two screenshots?')),
+      assistant({ type: 'tool_use', id: 'toolu_01', name: 'screenshot', input: {} }),
+      user({ type: 'tool_result', tool_use_id: 'toolu_01', content: [IMAGE, IMAGE] }, text('Compare them.'))
+    ]);
+
+    expect(rendered.content.slice(1)).toEqual([
+      { type: 'text', text: '<tool_result tool_use_id="toolu_01" is_error="false">' },
+      IMAGE,
+      IMAGE,
+      { type: 'text', text: '</tool_result>' },
+      text('Compare them.')
+    ]);
   });
 
   it('answers 400 naming a block kind the history cannot render yet, rather than dropping it', () => {

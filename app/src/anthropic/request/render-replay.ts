@@ -15,7 +15,11 @@ const OPENING = '<conversation_history>\n' +
   'These are the earlier turns of this conversation, and the assistant turns in it are your own replies.\n';
 const CLOSING = '</conversation_history>';
 
-/** Content blocks from parts: consecutive text joins into one text block, real blocks stay in place. */
+/**
+ * Content blocks from parts: consecutive text joins into one text block, real blocks stay in
+ * place. A text run of whitespace only (the line break between two adjacent real blocks) is no
+ * block at all: the API rejects a text block without non-whitespace text.
+ */
 class ContentBuilder {
   private readonly content: ContentBlock[] = [];
   private text = '';
@@ -30,7 +34,7 @@ class ContentBuilder {
   }
 
   flush(): void {
-    if (this.text !== '') this.content.push({ type: 'text', text: this.text });
+    if (this.text.trim() !== '') this.content.push({ type: 'text', text: this.text });
     this.text = '';
   }
 
