@@ -30,7 +30,7 @@ import { openStateDirectory, StateDirectory } from '../../../src/upstream/state-
 import type { SurfaceHarness } from '../../mocks/anthropic/surface-harness';
 import { waitFor } from '../../mocks/shared/wait-for';
 import { describeUpstream, E2E_MODEL, productionSurface, removeStateRoot } from './harness';
-import { TeeingRunner, teeingRunner } from './teeing-runner';
+import { recordFrames, TeeingRunner, teeingRunner } from './teeing-runner';
 
 const URL_ = process.env['UPSTREAM_E2E_CONNECTOR_URL'] ?? 'https://mcp.deepwiki.com/mcp';
 const NAME = process.env['UPSTREAM_E2E_CONNECTOR_NAME'] ?? 'deepwiki';
@@ -53,15 +53,6 @@ function connector(name: string, url: string, token?: string): Pick<BetaParams, 
     mcp_servers: [{ type: 'url', url, name, ...(token ? { authorization_token: token } : {}) }],
     tools: [{ type: 'mcp_toolset', mcp_server_name: name }]
   };
-}
-
-/** Writes a run's frames as upstream wrote them, when a record directory is set. */
-function record(name: string, frames: readonly Frame[]): void {
-  const dir = process.env['UPSTREAM_E2E_RECORD_DIR'];
-  if (!dir) return;
-  fs.mkdirSync(dir, { recursive: true });
-  const lines = frames.map(frame => JSON.stringify(frame.type === 'unknown' ? frame.raw : frame));
-  fs.writeFileSync(path.join(dir, `${name}.jsonl`), lines.join('\n') + '\n');
 }
 
 const initOf = (frames: readonly Frame[]) =>
@@ -94,7 +85,7 @@ describeUpstream('connectors through the surface against the real CLI (spec sect
     }).finalMessage();
     await waitFor(() => fs.readdirSync(state.runs).length === 0, RUN_EXIT_WAIT_MS);
     const [run] = runner.runs;
-    record('connector-round-trip', run?.frames ?? []);
+    recordFrames('connector-round-trip', run?.frames ?? []);
 
     const init = initOf(run?.frames ?? []);
     expect(init?.mcp_servers).toContainEqual(expect.objectContaining({ name: NAME, status: 'connected' }));
@@ -116,7 +107,7 @@ describeUpstream('connectors through the surface against the real CLI (spec sect
       model: E2E_MODEL, max_tokens: 64, messages: [{ role: 'user', content: 'Reply with the word pong.' }], ...connector('dead', DEAD_URL)
     }).then(() => undefined, (error: unknown) => error as InstanceType<typeof Anthropic.APIError>);
     await waitFor(() => fs.readdirSync(state.runs).length === 0, RUN_EXIT_WAIT_MS);
-    record('connector-not-connected', runner.runs[0]?.frames ?? []);
+    recordFrames('connector-not-connected', runner.runs[0]?.frames ?? []);
 
     expect(failure?.status).toBe(400);
     expect((failure?.error as { error: { message: string } }).error.message)

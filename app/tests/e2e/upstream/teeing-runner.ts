@@ -1,8 +1,10 @@
 /**
  * The production spawn runner, noting each run's spec and keeping every frame upstream yields, so
  * a real-CLI scenario can check what the surface spawned and what upstream said behind the
- * response. Real CLI only: use it behind `describeUpstream`.
+ * response, and record it (`recordFrames`). Real CLI only: use it behind `describeUpstream`.
  */
+import * as fs from 'fs';
+import * as path from 'path';
 import { Frame } from '../../../src/upstream/frames';
 import { createSpawnRunner, Run, Runner, RunSpec } from '../../../src/upstream/runner';
 
@@ -60,4 +62,18 @@ export const modelCallStarts = (frames: readonly Frame[]): number =>
 export function sessionOf(frames: readonly Frame[]): string | undefined {
   const init = frames.find(frame => frame.type === 'system' && frame.subtype === 'init');
   return init?.type === 'system' && init.subtype === 'init' ? init.session_id : undefined;
+}
+
+/**
+ * Writes a run's frames as upstream wrote them, one per line, to `<name>.jsonl` in
+ * `UPSTREAM_E2E_RECORD_DIR` when that is set; the file's path, else undefined. A recording carries
+ * the account's values until it is scrubbed (`npm run fixtures:scrub`) into the fixtures.
+ */
+export function recordFrames(name: string, frames: readonly Frame[]): string | undefined {
+  const dir = process.env['UPSTREAM_E2E_RECORD_DIR'];
+  if (!dir) return undefined;
+  fs.mkdirSync(dir, { recursive: true });
+  const file = path.join(dir, `${name}.jsonl`);
+  fs.writeFileSync(file, frames.map(frame => JSON.stringify(frame.type === 'unknown' ? frame.raw : frame)).join('\n') + '\n');
+  return file;
 }
