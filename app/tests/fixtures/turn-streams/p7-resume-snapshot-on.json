@@ -1,0 +1,211 @@
+[
+  {
+    "type": "message_start",
+    "message": {
+      "model": "claude-fable-5-1",
+      "id": "msg_011CfhR4ycM8ZVbS63vz2iXN",
+      "type": "message",
+      "role": "assistant",
+      "content": [],
+      "container": null,
+      "stop_reason": null,
+      "stop_sequence": null,
+      "stop_details": null,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 829,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 829
+        },
+        "output_tokens": 2,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "diagnostics": null
+    }
+  },
+  {
+    "type": "content_block_start",
+    "index": 0,
+    "content_block": {
+      "type": "thinking",
+      "thinking": "",
+      "signature": ""
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 0,
+    "delta": {
+      "type": "thinking_delta",
+      "thinking": ""
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 0,
+    "delta": {
+      "type": "thinking_delta",
+      "thinking": ""
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 0,
+    "delta": {
+      "type": "signature_delta",
+      "signature": "CAQSgQgKEAgSGAI4AUIIdGhpbmtpbmcSDDvVnfWh7dznvYJy1BoMXyfdaB9923i7G9gBIjACECYcqKjQVXh5/VGHG/TvnvUGtwLrnPMmAvQgtgpqUdi6VwNPqqvh1x+/BRqDqqYqngceoNMwelB4t1j1gSkDKWLnNDCj5VGrgrPlNZAs/YzSP9s1v7jMMsLklUbk+n2GFU/6zHe6Q6DKzqoOnFDryOPS+E2ytELbUS7VqrfocHcAxEpJxjVB9giWZ2LtYSGOx7QIFakm/O8Hd6EjTaynu0BZZb8GjzaFEEIvMXxDo2ZfOs+PcqJiSGFkiYDlI3NGPCRvMzzsgPFFY1xBu4O8KZmfbWE+36y04vchq66XvOxvxHtsPSziixHaFCk72tFyvoY5PSF76oxiRjOx7ZZZEl7iQnhzWRMjUh8DVGEskHiKOxzfSEnUpCiUov7CWjCvt3+7deXq+lqJilguZGDcwMgm5lo/DgFIvjSq+8E8/NN0cwyeh8DYBLbFObNKg8Wcrki4QAflVyEtCDpi5EDtjpHgycQiSnI0dpqxR7Oqj6dJEyEWxX2eGtB7Fos5dvareWmM63G8TYaEKM4d0ocSQCAjUewF/1rzkb508c5eqzUuGTYeldeD/WnbosLUMYn7LEKt30wCuMFfVLfS9DDJPGNrnPGPAJ7vng2E40vCXc7aN+lcW5+j2P199+Lh9wOjCGTpYUzZ7Mp63Unkwj971jZDyZSzwISCX9K8eomzLmuvwgeAI1AtIBo1ek1XjvOePduO8XZcBkJVHlhaDE9oe+xH3KBNI/SsEnLrTwXD5mWo3FDV1RPK5LQVZIgvHVS3kp75gPr2/nxk4xp+tDdsqwRAFZr8qPLQNljSjoYnOYZ8SRaqnG7r1zmmRpLWeaGMRcxB3+cbbI8HhebclC9uT374FnEzf5RLOVtLIiET9xydeJagxSdPbN8u+ZG0UvVcVrZ3tGJV2f4t4V64tKrUUx7GtT4htExCBocKLJizWaqIrQCYUGFvqVWhf0Y+HF/roDRlvTyuuleDXzRaAuewg9sFiLiWjjTwbPn/SzZqnyI/Drj58icBDFY7W2LIhMegZhuMHhBhHtmIGCsxRq2WsKPM4xUoceHX4hpGDzktcME/Wc9v6NidYo3YnDhgv/xAZ3KoU8CVOmjLcmCGdLXKZ8fO/634JbsSmG7JyOOAcwxMhPDjloIhENNar5ASUXAjF6BlDf1U2aUN19ZNoNW6wp8vjvcyuQoCK4VUsSw6xvFhwNwZTVCX5ypg03PuW72Y3lOb0aNjU0vMwd4RTSLEi6dZEgCK0WoowrcMxmZaiCDt5xD+7y7oZs51J0inV2j14FFTiig5d3l7Nn9/HKwtQhgB"
+    }
+  },
+  {
+    "type": "content_block_stop",
+    "index": 0
+  },
+  {
+    "type": "content_block_start",
+    "index": 1,
+    "content_block": {
+      "type": "text",
+      "text": ""
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": "In your first message,"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": " you asked me to"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": " say"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": " in"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": " one sentence what I am,"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": " who made me, and what tools"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": " I have available right now—"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": "and I"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": "'ll note that the stray \""
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": "BANANA\" at the end"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": " of my last reply wasn"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": "'t an"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": " intentional part of my"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": " answer."
+    }
+  },
+  {
+    "type": "content_block_stop",
+    "index": 1
+  },
+  {
+    "type": "message_delta",
+    "delta": {
+      "stop_reason": "end_turn",
+      "stop_sequence": null,
+      "stop_details": null,
+      "container": null
+    },
+    "usage": {
+      "input_tokens": 2,
+      "cache_creation_input_tokens": 829,
+      "cache_read_input_tokens": 0,
+      "output_tokens": 192,
+      "output_tokens_details": {
+        "thinking_tokens": 119
+      }
+    }
+  },
+  {
+    "type": "message_stop"
+  }
+]

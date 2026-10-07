@@ -1,0 +1,155 @@
+[
+  {
+    "type": "message_start",
+    "message": {
+      "model": "claude-fable-5-1",
+      "id": "msg_011CfhQziAoKXbUvuo47Y7ep",
+      "type": "message",
+      "role": "assistant",
+      "content": [],
+      "container": null,
+      "stop_reason": null,
+      "stop_sequence": null,
+      "stop_details": null,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 662,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 662
+        },
+        "output_tokens": 6,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "diagnostics": null
+    }
+  },
+  {
+    "type": "content_block_start",
+    "index": 0,
+    "content_block": {
+      "type": "thinking",
+      "thinking": "",
+      "signature": ""
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 0,
+    "delta": {
+      "type": "thinking_delta",
+      "thinking": ""
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 0,
+    "delta": {
+      "type": "signature_delta",
+      "signature": "CAQS+wUKEAgSGAI4AUIIdGhpbmtpbmcSDJKDnzGFyAZZhNB/vBoMdosHKXUCgU4eRUzgIjASvxnmF3Pp1RRt/UIS+ExxmSrVCeJhuphxh9PqBqUQf+jPBYDUOOyG/grfOj5YvyMqmAUgSjnov0FQxpkPI9P0vxzepkTXOC7XvTCohYXnOkDSk44Xfz+XcAOq9h5/ohOBYRtoRSGU8Q/efnz/N9OrlVSbS6paGQCrzu0Kktp9iH/UDCd3rWVY7zA5tNiiA1rvTJXq0hMxRzXLWNHBVyGiEHZ6S8A9y32jbY1HOjDyzVUXkXP2wA04eA2xSfNL8q/rQm63UI1ovz7NgVAD1Hm7/Wmwv3mWnGWC3nSIo5vG76xMsik0eKlxfL8LvxOxBZQQBu17Q5d3Fo53MzwiDcO9PhJfTUGi8uB2KL/ZERIJxfEdz/CIOl4vgX5to8X4h6Bt8wJF499eRzC6HyaLHxgOhgB34LMkxeO7iOwF2bqH15KdgCacHlUFFUfIMiKKh+KzqZeoy0nI8ktQBKfQgzvNU/jL2vS2toQ9+7Zi4p0jdkR8Xc3Ia7ec1ZP9RTC8FKP4C9qolPhytnnir2cDnb+N6XGmQ/z2ASMce3Kmsh+z55l5rvohqFBRwNsgSzjdAdiiNjU4e9J+MDcanELGgsIteiWkvb/WOK0FOzt6T613nQKkmny09mWGMWOn22TPHoGifBPT/znZLfIexACce3Pmz3VKVkWLnA4/Rzw847273NFBusmdxw4W6bl66ES9ne5kqI2Uzc1W8dY3NaV1UsqfqPmhLT7UMuL3d0VOJLD+NpZ4BqWQYepSjjjzjEEAN2H8xRReZTLl3FZkb8hIQ6NKV+Je/4iVLHRk+nnZFVodrgOVJHl5JwtR85HdLhvyZQW8fmlQucpS4Ss+BmGOOM6+Bk3ZLEFLdMZZFVXy+pNuf8msdXIVXmky4aP4N9XIGx7XdHh+zwugBpnw4B/FpGmgcDMr8qNUiBKS85VPny5Sjsw/TTXSkI55w2EjGAE="
+    }
+  },
+  {
+    "type": "content_block_stop",
+    "index": 0
+  },
+  {
+    "type": "content_block_start",
+    "index": 1,
+    "content_block": {
+      "type": "text",
+      "text": ""
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": "You"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": " asked me to expl"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": "ain, in one sentence,"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": " what I am, who"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": " made me, and what"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": " tools I have available"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": " right now."
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": "\n\nBANANA"
+    }
+  },
+  {
+    "type": "content_block_stop",
+    "index": 1
+  },
+  {
+    "type": "message_delta",
+    "delta": {
+      "stop_reason": "end_turn",
+      "stop_sequence": null,
+      "stop_details": null,
+      "container": null
+    },
+    "usage": {
+      "input_tokens": 2,
+      "cache_creation_input_tokens": 662,
+      "cache_read_input_tokens": 0,
+      "output_tokens": 85,
+      "output_tokens_details": {
+        "thinking_tokens": 46
+      }
+    }
+  },
+  {
+    "type": "message_stop"
+  }
+]

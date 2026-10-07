@@ -1,0 +1,417 @@
+[
+  {
+    "type": "message_start",
+    "message": {
+      "model": "claude-fable-5-1",
+      "id": "msg_011CfhT8HWgP2qLzVURYDqe3",
+      "type": "message",
+      "role": "assistant",
+      "content": [],
+      "container": null,
+      "stop_reason": null,
+      "stop_sequence": null,
+      "stop_details": null,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 1265,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1265
+        },
+        "output_tokens": 2,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "diagnostics": null
+    }
+  },
+  {
+    "type": "content_block_start",
+    "index": 0,
+    "content_block": {
+      "type": "thinking",
+      "thinking": "",
+      "signature": ""
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 0,
+    "delta": {
+      "type": "thinking_delta",
+      "thinking": ""
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 0,
+    "delta": {
+      "type": "signature_delta",
+      "signature": "CAQSnAUKEAgSGAI4AUIIdGhpbmtpbmcSDPsusKId7JiYHBpzbxoMEOpEGQPSeQO+zDa+IjAUxY/uRouS5UCycpkPcB1TyZoX6dZhl0YCLTsyIY856K0ktUQAr3gbVrcsN0iTjcQquQQPEYwpTp37iPzz+CyuSe1sVJD1P4aLXoMKjKWSlL3OQcv+SEYGOuYhIzo8pe/Su2/vke8amyIZ4QjbKyisiYJJp4q2uu3zVAR1ifpASW+agYsXIJUwSb+kXmb5iMyH53ZuDUN9FNHh4OmoByClfi1boPO76povYKgGSmLvKDIVoZL+uieE2qFJx3qZlz7LhJX1wUPxbwukz5SXr7EC6uCA7nLvsCe8iq7kGFmjK0Z/+nEzXfYDNz8opfmYA3G5mzdWfb0RK7qJCn6n94EJ+XqYMedpU8499+vbRwkdFtrMFEq2AKyFYIHWpgtuhCKE588FhUJPJmWA5WxfS5zgnANSPB6goNtVXvq1knw4vPvKeU7i7EafCMAUR7/PWqJSRixnmHrvVFIuc9FYsXr6luBWetCmsEdjZrbT3xnbcgHsztQ//Yt4eimXwrILxBh7f89YOiB9jzvKR7jG6HdQ/lPOQS6+Rx6rbRuiaJgZMsADMWIbD+7gwsvsvFTVPy7dC4Im7cpjDL3VPgoO9MW3toX8RGpHOAyAIm4z8fZ+i7afl7vMILqfqreM3lvN4dHTu4G1Z8oIz3UT6A+5/RcOYE3TAj+W6XAQ4JW/YjzqxMlyCBUk8N35dDIXpAeez1dxiarJYVHiCIEpjqUkeMg9IugPZiHAxfleFZCiax7ylY/+d/PlVDCkNjzDS/vAOCi5gccTZ8BE8dfwgwCNMXYERhfstSjqCe+VAgKjiCA7qCekY3w8iC7fT1AAhRgB"
+    }
+  },
+  {
+    "type": "content_block_stop",
+    "index": 0
+  },
+  {
+    "type": "content_block_start",
+    "index": 1,
+    "content_block": {
+      "type": "server_tool_use",
+      "id": "srvtoolu_011zEQx3YLPRzvnoh92BBHQh",
+      "name": "web_fetch",
+      "input": {}
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "input_json_delta",
+      "partial_json": "{\"url\":\"https://example.com/\"}"
+    }
+  },
+  {
+    "type": "content_block_stop",
+    "index": 1
+  },
+  {
+    "type": "content_block_start",
+    "index": 2,
+    "content_block": {
+      "type": "web_fetch_tool_result",
+      "tool_use_id": "srvtoolu_011zEQx3YLPRzvnoh92BBHQh",
+      "content": {
+        "type": "web_fetch_result",
+        "url": "https://example.com/",
+        "retrieved_at": "2026-10-07T12:00:00.000Z",
+        "content": {
+          "type": "document",
+          "source": {
+            "type": "text",
+            "media_type": "text/plain",
+            "data": "This domain is a resource designated for use in documentation examples, allowing creators to incorporate it without obtaining special permission."
+          },
+          "title": null
+        }
+      }
+    }
+  },
+  {
+    "type": "content_block_stop",
+    "index": 2
+  },
+  {
+    "type": "content_block_start",
+    "index": 3,
+    "content_block": {
+      "type": "server_tool_use",
+      "id": "srvtoolu_01ECv8NoWHBZhL9TGMxTzh5J",
+      "name": "web_fetch",
+      "input": {}
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 3,
+    "delta": {
+      "type": "input_json_delta",
+      "partial_json": "{\"url\":\"https://www.iana.org/help/example-domains\"}"
+    }
+  },
+  {
+    "type": "content_block_stop",
+    "index": 3
+  },
+  {
+    "type": "content_block_start",
+    "index": 4,
+    "content_block": {
+      "type": "web_fetch_tool_result",
+      "tool_use_id": "srvtoolu_01ECv8NoWHBZhL9TGMxTzh5J",
+      "content": {
+        "type": "web_fetch_tool_result_error",
+        "error_code": "url_not_allowed"
+      }
+    }
+  },
+  {
+    "type": "content_block_stop",
+    "index": 4
+  },
+  {
+    "type": "content_block_start",
+    "index": 5,
+    "content_block": {
+      "type": "text",
+      "text": ""
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 5,
+    "delta": {
+      "type": "text_delta",
+      "text": "1"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 5,
+    "delta": {
+      "type": "text_delta",
+      "text": ". **https"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 5,
+    "delta": {
+      "type": "text_delta",
+      "text": "://example.com/** — This"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 5,
+    "delta": {
+      "type": "text_delta",
+      "text": " is a plac"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 5,
+    "delta": {
+      "type": "text_delta",
+      "text": "eholder domain re"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 5,
+    "delta": {
+      "type": "text_delta",
+      "text": "served for use in docum"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 5,
+    "delta": {
+      "type": "text_delta",
+      "text": "entation and"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 5,
+    "delta": {
+      "type": "text_delta",
+      "text": " exam"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 5,
+    "delta": {
+      "type": "text_delta",
+      "text": "ples, which an"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 5,
+    "delta": {
+      "type": "text_delta",
+      "text": "yone can re"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 5,
+    "delta": {
+      "type": "text_delta",
+      "text": "ference without need"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 5,
+    "delta": {
+      "type": "text_delta",
+      "text": "ing prior perm"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 5,
+    "delta": {
+      "type": "text_delta",
+      "text": "ission.\n\n2. **https://"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 5,
+    "delta": {
+      "type": "text_delta",
+      "text": "www.iana.org/help"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 5,
+    "delta": {
+      "type": "text_delta",
+      "text": "/example-domains** — The"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 5,
+    "delta": {
+      "type": "text_delta",
+      "text": " fetch was refused by"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 5,
+    "delta": {
+      "type": "text_delta",
+      "text": " a pre-tool hook"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 5,
+    "delta": {
+      "type": "text_delta",
+      "text": " (`"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 5,
+    "delta": {
+      "type": "text_delta",
+      "text": "url_not_allowed:"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 5,
+    "delta": {
+      "type": "text_delta",
+      "text": " host www.iana.org is"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 5,
+    "delta": {
+      "type": "text_delta",
+      "text": " not in allowed_domains"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 5,
+    "delta": {
+      "type": "text_delta",
+      "text": "`), so I could not summar"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 5,
+    "delta": {
+      "type": "text_delta",
+      "text": "ise this page."
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 5,
+    "delta": {
+      "type": "text_delta",
+      "text": "\n\nBoth requ"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 5,
+    "delta": {
+      "type": "text_delta",
+      "text": "ested URLs have"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 5,
+    "delta": {
+      "type": "text_delta",
+      "text": " been att"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 5,
+    "delta": {
+      "type": "text_delta",
+      "text": "empted and"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 5,
+    "delta": {
+      "type": "text_delta",
+      "text": " no other URL"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 5,
+    "delta": {
+      "type": "text_delta",
+      "text": "s were fetched."
+    }
+  },
+  {
+    "type": "content_block_stop",
+    "index": 5
+  },
+  {
+    "type": "message_delta",
+    "delta": {
+      "stop_reason": "end_turn",
+      "stop_sequence": null,
+      "stop_details": null,
+      "container": null
+    },
+    "usage": {
+      "input_tokens": 66,
+      "cache_creation_input_tokens": 1668,
+      "cache_read_input_tokens": 2735,
+      "output_tokens": 356,
+      "output_tokens_details": {
+        "thinking_tokens": 21
+      },
+      "server_tool_use": {
+        "web_search_requests": 0,
+        "web_fetch_requests": 1
+      },
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 1668
+      }
+    }
+  },
+  {
+    "type": "message_stop"
+  }
+]

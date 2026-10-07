@@ -1,0 +1,187 @@
+[
+  {
+    "type": "message_start",
+    "message": {
+      "model": "claude-fable-5-1",
+      "id": "msg_011Cfh2GYgo7HH5oQiZ9yLG9",
+      "type": "message",
+      "role": "assistant",
+      "content": [],
+      "container": null,
+      "stop_reason": null,
+      "stop_sequence": null,
+      "stop_details": null,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 4326,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 2,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "diagnostics": null
+    }
+  },
+  {
+    "type": "content_block_start",
+    "index": 0,
+    "content_block": {
+      "type": "thinking",
+      "thinking": "",
+      "signature": ""
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 0,
+    "delta": {
+      "type": "thinking_delta",
+      "thinking": ""
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 0,
+    "delta": {
+      "type": "thinking_delta",
+      "thinking": ""
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 0,
+    "delta": {
+      "type": "thinking_delta",
+      "thinking": ""
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 0,
+    "delta": {
+      "type": "signature_delta",
+      "signature": "CAQSqAoKEAgSGAI4AUIIdGhpbmtpbmcSDDQO7p7PkNx7KPmoPBoMGYyIzjhTcAqxLIDrIjCKH9UXa4P2K2kGFYQj5FHcJA1XdTODMJZ3jYt6lMRBFbhiU0UfVUYDQvdCkut9KCUqxQmaX9Z/g5/PZWUW3hFRvP0DhPvwg2B7huhis6C2c08ON/uLkqm1c5kh5VsbwUqOJIcrOKUdVrHKrvPmdnKhO+qjf5H1LmwmJXSdQDF5YbmFm4f5LYHU6b/eDTdAeg1mUVItOQqGnfVWxiecCqcoe8J6+z8i6Dqbk92IjALpEULV2bQMI9iHhSJ2iBrtyUDkQmC09WOaeqG3xVo0ES9rbze0hZuGNR0MW+VBmeAn4KaiBqau1NyVMmJnCoNLK+1fqhIkEupSpFPz6gXG4iqWBPUEWSjO5AKPaJiQ/xSvMXdKbsvq+2biOEDZXGGaspeSsRPXkP2R8rvkQhU7CojhRyT4pdpkqoO89eUMo3k8h0iSIvS3mYM+X1hkg/QfNbDDsJm6FYeLDDhdkaTl9B/9XrbTzV1DZHId8Fh/a2cVLxw56wiNL7Epwyku0ak10Iq70apbMbbDjD6E1rB59gXAfX6kjn25MkgTfEmXKyXdmKCVECyJfyXiM+pGyK4fXIxm2lYF4APnF7lMaMb56OaYUIhfmujsEwWEp4CQTYVyJ8Qar1QVIm+Pi4MvGw1xOmIEDh3NBVBcQUvVWsSJgx4CshiL4aRKTgnLsHhGlGjKDyu0LBzjno8eHMjq84/L85W+T2nKOFimJl49WrfwznOKxR2NDNhaWwhVKkCfigCEwgKz51W/Ir5m1HoztKgs68chQoq/TT5lJZle/NM+g/AJCd0tsQ9uzEUv80Ac+WzN3c8e+AGYKCH6vkEpT2013ymdbo774RA2bIiLbozes6ODN4lWQ74rjeH7AWPvsdE+i8YHqlhP6je0cPzfE//g1Es3iftG+3111pEmLbmTgsckMP7sPhg5RMepEEJVs/dzjlTz1j+vcZIHIYLIOAkYdQXfQHOpOIK1KYqFXxAHwVcweh/G1kqEJBXKMO/Yyr3FQHNRZpM6UKbMl3L5//vORiRqwU0Z5LRW0c7auWYf1mLH7rE2hXKhty4bpdnxKJ/sbFEaJiFHHNF4vC0z0NMNgAUcpexnB5B5d49MbJhR5CgyetdSKlfyNx2V6AakQ7TdU4AmPqzhX0K15sdl7WuTFAg2J9jQ/MUxwXxkjTU4wj21q8Nd6SgePkpUSxu4UxPy2FkgRvulLHINgsqr+LnZ7G1iMPTLw2wVyzIwpzMHGEmfKsT3NDwg4M8+EYiLECLWrAV9pQqFqNSp/ewuwMABT/m7+JOemam+EvhTKGxljdlOLx+WaJD4Aly8aSB11Svwy+2JuQlbE+Z46DhAB4Jq2GG1kLyK3bIbeHwwMJi8MrjYSmJ/AdtFN61T+06o+DrJUm5fi0KrB4rpZ4X1hyrUDvUrY5jPxoSaAW1pzkwvGqa3kLtH+zYVeswvsdjxleJ638QAa8Gcp3RFdz6/j2eeTLSleu5qoNSIqRXCVjzVBP1bDTv3O/iblPQfcUsrPs9oG8tSpZRNeLCQFnh2pVMdljzUMQeT71bYPIuGFsGPWo2lndj8VGxD1WSCYuPA3VoWehEB0U7cn+COrH/FLV38OvjemGE4IphMs9aVXgmn6VDaWFHrXIaMfGnhPmaXz2Tsr6yfRMmxsXpylQkt0C4VOa4K9Hh1qzIMUkXy0Stab8s7F5anvWac+qsYAQ=="
+    }
+  },
+  {
+    "type": "content_block_stop",
+    "index": 0
+  },
+  {
+    "type": "content_block_start",
+    "index": 1,
+    "content_block": {
+      "type": "text",
+      "text": ""
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": "NONE\n\nNo"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": " tool"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": " definitions were"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": " provided in this session, so I"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": " c"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": "annot read"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": " files, run commands, or write"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": " to"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": " memory right"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 1,
+    "delta": {
+      "type": "text_delta",
+      "text": " now."
+    }
+  },
+  {
+    "type": "content_block_stop",
+    "index": 1
+  },
+  {
+    "type": "message_delta",
+    "delta": {
+      "stop_reason": "end_turn",
+      "stop_sequence": null,
+      "stop_details": null,
+      "container": null
+    },
+    "usage": {
+      "input_tokens": 2,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 4326,
+      "output_tokens": 252,
+      "output_tokens_details": {
+        "thinking_tokens": 213
+      }
+    }
+  },
+  {
+    "type": "message_stop"
+  }
+]

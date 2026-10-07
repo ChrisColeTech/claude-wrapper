@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { AppError, createOpenAIErrorResponse, isOperationalError } from '../../utils/errors';
 import { logger } from '../../utils/logger';
+import { isAnthropicRequest, renderAnthropicError } from '../../anthropic/http';
 
 export function errorHandler(
   error: Error, 
@@ -16,6 +17,17 @@ export function errorHandler(
     userAgent: req.get('User-Agent')
   });
 
+  // The Anthropic surface renders its own envelope, whatever the error
+  if (isAnthropicRequest(req)) {
+    renderAnthropicError(error, req, res);
+    return;
+  }
+
+  renderOpenAIError(error, res);
+}
+
+/** The OpenAI surface's envelope: the wrapper's own errors, a JSON parse error, else a 500. */
+function renderOpenAIError(error: Error, res: Response): void {
   if (error instanceof AppError) {
     const errorResponse = createOpenAIErrorResponse(error);
     res.status(error.statusCode).json(errorResponse);

@@ -1,0 +1,1525 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Claude Wrapper: Anthropic surface",
+    "version": "1.0.0",
+    "description": "The Anthropic Messages API, served by claude-wrapper on the operator's Claude Code login. Point an official Anthropic SDK at the wrapper (`ANTHROPIC_BASE_URL`, or the client's base URL option) and call it unmodified. The surface is a pure model endpoint: no request ever runs Claude Code's file or shell tools.\n\n**Headers.** `anthropic-version` is required on the two `/v1/messages` endpoints; on `/v1/models` its presence selects this surface. Every response, success or error, streaming or not, carries `request-id`, and every error body carries the same `request_id`. When the operator set the wrapper's `API_KEY`, send it as `x-api-key` or `Authorization: Bearer`; with no `API_KEY` the surface is open and any key the SDK sends is accepted. The key is a gate only: upstream runs on the operator's own Claude Code login.\n\n**Errors** use the API envelope `{type: \"error\", error: {type, message}, request_id}`. Before a turn's first `message_start` a failure is an HTTP status; after it, one SSE `error` event, then the stream closes.\n\n**Fidelity.** Where upstream cannot do what the real API does, the surface answers a 400 rather than ignoring a parameter. The README lists the known deviations from the real API; the ones a field is subject to are restated on it here."
+  },
+  "tags": [
+    {"name": "Messages", "description": "A turn, and the count of its input tokens."},
+    {"name": "Models", "description": "The catalogue: the models this surface serves."}
+  ],
+  "security": [{"ApiKey": []}, {"BearerAuth": []}, {}],
+  "paths": {
+    "/v1/messages": {
+      "post": {
+        "tags": ["Messages"],
+        "operationId": "createMessage",
+        "summary": "Create a message",
+        "description": "One turn on upstream, answered as one API message: JSON, or server-sent events with `stream: true`. The status and headers commit at the turn's first `message_start`; a failure before it is one of the error statuses below, a failure after it is one SSE `error` event carrying the same error types.",
+        "parameters": [
+          {"$ref": "#/components/parameters/AnthropicVersion"},
+          {"$ref": "#/components/parameters/AnthropicBeta"}
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Up to 32 MB of JSON.",
+          "content": {
+            "application/json": {
+              "schema": {"$ref": "#/components/schemas/MessageCreateParams"},
+              "example": {
+                "model": "claude-sonnet-5-5",
+                "max_tokens": 1024,
+                "messages": [{"role": "user", "content": "Hello, Claude"}]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The turn.",
+            "headers": {"request-id": {"$ref": "#/components/headers/RequestId"}},
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Message"},
+                "example": {
+                  "id": "msg_01XFDUDYJgAACzvnptvVoYEL",
+                  "type": "message",
+                  "role": "assistant",
+                  "model": "claude-sonnet-5-5",
+                  "content": [{"type": "text", "text": "Hello! How can I help?", "citations": null}],
+                  "stop_reason": "end_turn",
+                  "stop_sequence": null,
+                  "stop_details": null,
+                  "container": null,
+                  "diagnostics": null,
+                  "usage": {
+                    "input_tokens": 512,
+                    "output_tokens": 9,
+                    "cache_creation_input_tokens": 0,
+                    "cache_read_input_tokens": 0,
+                    "service_tier": "standard"
+                  }
+                }
+              },
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "description": "Server-sent events; each event's data is a `MessageStreamEvent`."
+                },
+                "example": "event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"id\":\"msg_01XFDUDYJgAACzvnptvVoYEL\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\"claude-sonnet-5-5\",\"content\":[],\"stop_reason\":null,\"stop_sequence\":null,\"usage\":{\"input_tokens\":512,\"output_tokens\":1}}}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"Hello!\"}}\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0}\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\",\"stop_sequence\":null},\"usage\":{\"input_tokens\":512,\"output_tokens\":9}}\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"}\n"
+              }
+            }
+          },
+          "400": {"$ref": "#/components/responses/BadRequest"},
+          "401": {"$ref": "#/components/responses/Unauthorized"},
+          "404": {"$ref": "#/components/responses/NotFound"},
+          "413": {"$ref": "#/components/responses/RequestTooLarge"},
+          "429": {"$ref": "#/components/responses/RateLimited"},
+          "500": {"$ref": "#/components/responses/ServerError"},
+          "504": {"$ref": "#/components/responses/Timeout"},
+          "529": {"$ref": "#/components/responses/Overloaded"}
+        }
+      }
+    },
+    "/v1/messages/count_tokens": {
+      "post": {
+        "tags": ["Messages"],
+        "operationId": "countMessageTokens",
+        "summary": "Count tokens in a message",
+        "description": "Measured, not estimated: the request is planned like a turn and run on upstream with a one-token output cap, persisting no session, and the count is read from that run's first `message_delta`. It is exact for what upstream sends, which includes the context upstream adds of its own (about 500 tokens) and, for a request with history, the history rendered into the prompt. Each count costs one minimal model call and takes a run slot.",
+        "parameters": [
+          {"$ref": "#/components/parameters/AnthropicVersion"},
+          {"$ref": "#/components/parameters/AnthropicBeta"}
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {"$ref": "#/components/schemas/CountTokensParams"},
+              "example": {"model": "claude-sonnet-5-5", "messages": [{"role": "user", "content": "Hello, Claude"}]}
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The count.",
+            "headers": {"request-id": {"$ref": "#/components/headers/RequestId"}},
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/CountTokensResponse"},
+                "example": {"input_tokens": 509}
+              }
+            }
+          },
+          "400": {"$ref": "#/components/responses/BadRequest"},
+          "401": {"$ref": "#/components/responses/Unauthorized"},
+          "404": {"$ref": "#/components/responses/NotFound"},
+          "413": {"$ref": "#/components/responses/RequestTooLarge"},
+          "429": {"$ref": "#/components/responses/RateLimited"},
+          "500": {"$ref": "#/components/responses/ServerError"},
+          "504": {"$ref": "#/components/responses/Timeout"},
+          "529": {"$ref": "#/components/responses/Overloaded"}
+        }
+      }
+    },
+    "/v1/models": {
+      "get": {
+        "tags": ["Models"],
+        "operationId": "listModels",
+        "summary": "List models",
+        "description": "The catalogue, newest first. Without `anthropic-version` this path is the OpenAI surface's model list (see the other definition).",
+        "parameters": [
+          {"$ref": "#/components/parameters/AnthropicVersionSelector"},
+          {"$ref": "#/components/parameters/Limit"},
+          {"$ref": "#/components/parameters/AfterId"},
+          {"$ref": "#/components/parameters/BeforeId"}
+        ],
+        "responses": {
+          "200": {
+            "description": "One page of the catalogue.",
+            "headers": {"request-id": {"$ref": "#/components/headers/RequestId"}},
+            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ModelList"}}}
+          },
+          "400": {"$ref": "#/components/responses/BadRequest"},
+          "401": {"$ref": "#/components/responses/Unauthorized"}
+        }
+      }
+    },
+    "/v1/models/{model_id}": {
+      "get": {
+        "tags": ["Models"],
+        "operationId": "getModel",
+        "summary": "Get a model",
+        "description": "One catalogue entry, by canonical id or alias, always under its canonical id.",
+        "parameters": [
+          {"$ref": "#/components/parameters/AnthropicVersionSelector"},
+          {"$ref": "#/components/parameters/ModelId"}
+        ],
+        "responses": {
+          "200": {
+            "description": "The model.",
+            "headers": {"request-id": {"$ref": "#/components/headers/RequestId"}},
+            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ModelInfo"}}}
+          },
+          "401": {"$ref": "#/components/responses/Unauthorized"},
+          "404": {"$ref": "#/components/responses/NotFound"}
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "ApiKey": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-api-key",
+        "description": "The wrapper's `API_KEY`, when the operator set one. It never reaches upstream."
+      },
+      "BearerAuth": {"type": "http", "scheme": "bearer", "description": "The same key as a bearer token."}
+    },
+    "parameters": {
+      "AnthropicVersion": {
+        "name": "anthropic-version",
+        "in": "header",
+        "required": true,
+        "description": "Required. `2023-06-01`, or the deprecated `2023-01-01`; missing or any other value is a 400.",
+        "schema": {"type": "string", "enum": ["2023-06-01", "2023-01-01"], "default": "2023-06-01"}
+      },
+      "AnthropicVersionSelector": {
+        "name": "anthropic-version",
+        "in": "header",
+        "required": true,
+        "description": "Its presence selects this surface; the value is not checked. Without it, `GET /v1/models` is the OpenAI surface's listing and `GET /v1/models/{model_id}` is not served.",
+        "schema": {"type": "string", "default": "2023-06-01"}
+      },
+      "AnthropicBeta": {
+        "name": "anthropic-beta",
+        "in": "header",
+        "required": false,
+        "description": "Comma-separated beta names. Every value is accepted and ignored, except `mcp-client-2025-11-20`, which enables `mcp_servers` and `mcp_toolset`.",
+        "schema": {"type": "string"}
+      },
+      "Limit": {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "description": "Models per page.",
+        "schema": {"type": "integer", "minimum": 1, "maximum": 1000, "default": 20}
+      },
+      "AfterId": {
+        "name": "after_id",
+        "in": "query",
+        "required": false,
+        "description": "The page after this model (an id or alias in the catalogue; any other value is a 400).",
+        "schema": {"type": "string"}
+      },
+      "BeforeId": {
+        "name": "before_id",
+        "in": "query",
+        "required": false,
+        "description": "The page before this model (an id or alias in the catalogue; any other value is a 400).",
+        "schema": {"type": "string"}
+      },
+      "ModelId": {
+        "name": "model_id",
+        "in": "path",
+        "required": true,
+        "description": "A canonical id or an alias.",
+        "schema": {"type": "string"}
+      }
+    },
+    "headers": {
+      "RequestId": {
+        "description": "Minted per request: `req_` and 24 base62 characters.",
+        "schema": {"type": "string", "pattern": "^req_[0-9A-Za-z]{24}$"}
+      },
+      "ShouldRetry": {
+        "description": "`false` on every 4xx and on the 500s retrying cannot fix (an operator-side failure, for instance). Absent otherwise, so the SDK's own retry rules apply.",
+        "schema": {"type": "string", "enum": ["false"]}
+      },
+      "RetryAfter": {
+        "description": "Seconds until upstream's rate-limit window resets, when known.",
+        "schema": {"type": "integer"}
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "`invalid_request_error`. A request the surface refuses before any run starts (an unknown or beta-only field, an unsupported block, parameter or tool type, a rule of the real API), `anthropic-version` missing or unknown, invalid JSON or a wrong content type, or upstream's own 400 (the billing gate included, relayed verbatim).",
+        "headers": {
+          "request-id": {"$ref": "#/components/headers/RequestId"},
+          "x-should-retry": {"$ref": "#/components/headers/ShouldRetry"}
+        },
+        "content": {
+          "application/json": {
+            "schema": {"$ref": "#/components/schemas/ErrorResponse"},
+            "example": {
+              "type": "error",
+              "error": {
+                "type": "invalid_request_error",
+                "message": "temperature: only 1.0 is supported on this surface; leave it out or send 1.0"
+              },
+              "request_id": "req_011CZ3x9Ab8cDe5fGh7iJk2L"
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "`authentication_error`. The operator set the wrapper's `API_KEY`, and `x-api-key` or the bearer token is missing or wrong.",
+        "headers": {
+          "request-id": {"$ref": "#/components/headers/RequestId"},
+          "x-should-retry": {"$ref": "#/components/headers/ShouldRetry"}
+        },
+        "content": {
+          "application/json": {
+            "schema": {"$ref": "#/components/schemas/ErrorResponse"},
+            "example": {
+              "type": "error",
+              "error": {"type": "authentication_error", "message": "Invalid API key."},
+              "request_id": "req_011CZ3x9Ab8cDe5fGh7iJk2L"
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "`not_found_error`. The model is not in the catalogue (`model: <name>`), or there is no such path or method under `/v1/messages` (\"The requested resource could not be found.\").",
+        "headers": {
+          "request-id": {"$ref": "#/components/headers/RequestId"},
+          "x-should-retry": {"$ref": "#/components/headers/ShouldRetry"}
+        },
+        "content": {
+          "application/json": {
+            "schema": {"$ref": "#/components/schemas/ErrorResponse"},
+            "example": {
+              "type": "error",
+              "error": {"type": "not_found_error", "message": "model: claude-unknown"},
+              "request_id": "req_011CZ3x9Ab8cDe5fGh7iJk2L"
+            }
+          }
+        }
+      },
+      "RequestTooLarge": {
+        "description": "`request_too_large`. The body is over 32 MB, or upstream answered 413.",
+        "headers": {
+          "request-id": {"$ref": "#/components/headers/RequestId"},
+          "x-should-retry": {"$ref": "#/components/headers/ShouldRetry"}
+        },
+        "content": {
+          "application/json": {
+            "schema": {"$ref": "#/components/schemas/ErrorResponse"},
+            "example": {
+              "type": "error",
+              "error": {"type": "request_too_large", "message": "Request exceeds the maximum size of 32 MB."},
+              "request_id": "req_011CZ3x9Ab8cDe5fGh7iJk2L"
+            }
+          }
+        }
+      },
+      "RateLimited": {
+        "description": "`rate_limit_error`. Upstream's rate limit: after upstream reports the operator's window rejected, every request until it resets gets this before any run; or a run hit the limit.",
+        "headers": {
+          "request-id": {"$ref": "#/components/headers/RequestId"},
+          "x-should-retry": {"$ref": "#/components/headers/ShouldRetry"},
+          "retry-after": {"$ref": "#/components/headers/RetryAfter"}
+        },
+        "content": {
+          "application/json": {
+            "schema": {"$ref": "#/components/schemas/ErrorResponse"},
+            "example": {
+              "type": "error",
+              "error": {"type": "rate_limit_error", "message": "Upstream rate limit reached"},
+              "request_id": "req_011CZ3x9Ab8cDe5fGh7iJk2L"
+            }
+          }
+        }
+      },
+      "ServerError": {
+        "description": "`api_error`. A failure the client cannot fix: the operator's Claude Code login or billing (with `x-should-retry: false` and a message naming the upstream login), the Claude Code binary missing, an upstream server error, or a run that exited or hit its turn limit.",
+        "headers": {
+          "request-id": {"$ref": "#/components/headers/RequestId"},
+          "x-should-retry": {"$ref": "#/components/headers/ShouldRetry"}
+        },
+        "content": {
+          "application/json": {
+            "schema": {"$ref": "#/components/schemas/ErrorResponse"},
+            "example": {
+              "type": "error",
+              "error": {
+                "type": "api_error",
+                "message": "The upstream Claude Code login failed (authentication_failed, HTTP 401). The wrapper's operator must fix it; your API key and request are not the cause."
+              },
+              "request_id": "req_011CZ3x9Ab8cDe5fGh7iJk2L"
+            }
+          }
+        }
+      },
+      "Timeout": {
+        "description": "`timeout_error`. A run's startup, stall or lifetime timer fired before the response committed, or upstream answered 504.",
+        "headers": {
+          "request-id": {"$ref": "#/components/headers/RequestId"},
+          "x-should-retry": {"$ref": "#/components/headers/ShouldRetry"}
+        },
+        "content": {
+          "application/json": {
+            "schema": {"$ref": "#/components/schemas/ErrorResponse"},
+            "example": {
+              "type": "error",
+              "error": {"type": "timeout_error", "message": "upstream timed out (stall timer)"},
+              "request_id": "req_011CZ3x9Ab8cDe5fGh7iJk2L"
+            }
+          }
+        }
+      },
+      "Overloaded": {
+        "description": "`overloaded_error`. The wrapper is at its cap on runs, or shutting down, or upstream is overloaded.",
+        "headers": {
+          "request-id": {"$ref": "#/components/headers/RequestId"},
+          "x-should-retry": {"$ref": "#/components/headers/ShouldRetry"}
+        },
+        "content": {
+          "application/json": {
+            "schema": {"$ref": "#/components/schemas/ErrorResponse"},
+            "example": {
+              "type": "error",
+              "error": {
+                "type": "overloaded_error",
+                "message": "Overloaded: the wrapper is running its limit of 4 upstream runs"
+              },
+              "request_id": "req_011CZ3x9Ab8cDe5fGh7iJk2L"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "MessageCreateParams": {
+        "type": "object",
+        "required": ["model", "max_tokens", "messages"],
+        "properties": {
+          "model": {
+            "type": "string",
+            "description": "A catalogue model, by canonical id or alias (`GET /v1/models`). An unknown name is 404 `not_found_error` (`model: <name>`) before any run. The response's `model` is the canonical id that ran.",
+            "example": "claude-sonnet-5-5"
+          },
+          "max_tokens": {
+            "type": "integer",
+            "description": "1 to the model's `max_tokens` (`0` is a 400). It caps each model call upstream makes: when a call reaches it, the turn ends there with `stop_reason: max_tokens`. A turn with web or connector calls makes several model calls, so it can emit more than this in total.",
+            "minimum": 1
+          },
+          "messages": {
+            "type": "array",
+            "items": {"$ref": "#/components/schemas/MessageParam"},
+            "minItems": 1,
+            "description": "Consecutive messages of one role are merged. The first must be `user`, and so must the last (assistant prefill is a 400). A history that matches what the surface served continues that upstream session and sends only the new message; any other history (edited, truncated, regenerated, or after a wrapper restart) is rendered into the prompt of a fresh run."
+          },
+          "system": {
+            "oneOf": [{"type": "string"}, {"type": "array", "items": {"$ref": "#/components/schemas/TextBlockParam"}}],
+            "description": "Becomes the whole upstream system prompt in place of Claude Code's; text blocks are joined with a blank line. Upstream still prepends one line of its own and adds context of its own (see the README's operator warning). A NUL character is a 400."
+          },
+          "stream": {"type": "boolean", "description": "Server-sent events when true."},
+          "tools": {"type": "array", "items": {"$ref": "#/components/schemas/Tool"}},
+          "tool_choice": {"$ref": "#/components/schemas/ToolChoice"},
+          "temperature": {
+            "type": "number",
+            "description": "Only `1.0`: upstream has no sampling control, so any other value is a 400, on every model."
+          },
+          "top_p": {
+            "type": "number",
+            "minimum": 0.99,
+            "maximum": 1,
+            "description": "Only 0.99 or more; lower is a 400, on every model."
+          },
+          "top_k": {"type": "integer", "description": "Not supported: any value is a 400."},
+          "stop_sequences": {
+            "type": "array",
+            "items": {"type": "string", "minLength": 1},
+            "minItems": 1,
+            "description": "Emulated: the text is scanned and the turn ends at the first match with `stop_reason: stop_sequence` and `stop_sequence` set. That turn's `output_tokens` is an estimate."
+          },
+          "metadata": {
+            "type": "object",
+            "properties": {"user_id": {"type": "string", "nullable": true}},
+            "additionalProperties": false,
+            "description": "Accepted and ignored; `user_id` is never a session key."
+          },
+          "thinking": {"$ref": "#/components/schemas/ThinkingConfig"},
+          "output_config": {"$ref": "#/components/schemas/OutputConfig"},
+          "service_tier": {
+            "type": "string",
+            "enum": ["auto", "standard_only"],
+            "description": "Validated and ignored; `usage.service_tier` relays upstream's."
+          },
+          "cache_control": {"$ref": "#/components/schemas/CacheControl"},
+          "container": {
+            "type": "string",
+            "description": "Not supported: any non-null value is a 400.",
+            "nullable": true
+          },
+          "inference_geo": {
+            "type": "string",
+            "description": "Accepted and ignored; `usage.inference_geo` relays upstream's."
+          },
+          "diagnostics": {
+            "type": "object",
+            "description": "Accepted and ignored; the response's `diagnostics` is null."
+          },
+          "mcp_servers": {
+            "type": "array",
+            "items": {"$ref": "#/components/schemas/McpServer"},
+            "description": "Beta: needs `anthropic-beta: mcp-client-2025-11-20` (without it, a 400 \"Extra inputs are not permitted\"). Off unless the operator lists the server's host in `CLAUDE_WRAPPER_CONNECTOR_HOSTS`; otherwise a 400 naming that setting. Each server needs exactly one `mcp_toolset` in `tools`."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Every field is validated before any run starts, and `null` reads as absent for every optional field. Unknown and beta-only top-level fields (`context_management`, `speed`, `fallbacks`, `output_format`, ...) are a 400 \"<field>: Extra inputs are not permitted\"."
+      },
+      "CountTokensParams": {
+        "type": "object",
+        "required": ["model", "messages"],
+        "properties": {
+          "model": {
+            "type": "string",
+            "description": "A catalogue model, by canonical id or alias (`GET /v1/models`). An unknown name is 404 `not_found_error` (`model: <name>`) before any run. The response's `model` is the canonical id that ran.",
+            "example": "claude-sonnet-5-5"
+          },
+          "messages": {
+            "type": "array",
+            "items": {"$ref": "#/components/schemas/MessageParam"},
+            "minItems": 1,
+            "description": "Consecutive messages of one role are merged. The first must be `user`, and so must the last (assistant prefill is a 400). A history that matches what the surface served continues that upstream session and sends only the new message; any other history (edited, truncated, regenerated, or after a wrapper restart) is rendered into the prompt of a fresh run."
+          },
+          "system": {
+            "oneOf": [{"type": "string"}, {"type": "array", "items": {"$ref": "#/components/schemas/TextBlockParam"}}],
+            "description": "Becomes the whole upstream system prompt in place of Claude Code's; text blocks are joined with a blank line. Upstream still prepends one line of its own and adds context of its own (see the README's operator warning). A NUL character is a 400."
+          },
+          "tools": {"type": "array", "items": {"$ref": "#/components/schemas/Tool"}},
+          "tool_choice": {"$ref": "#/components/schemas/ToolChoice"},
+          "thinking": {"$ref": "#/components/schemas/ThinkingConfig"},
+          "output_config": {"$ref": "#/components/schemas/OutputConfig"},
+          "cache_control": {"$ref": "#/components/schemas/CacheControl"},
+          "mcp_servers": {
+            "type": "array",
+            "items": {"$ref": "#/components/schemas/McpServer"},
+            "description": "Beta: needs `anthropic-beta: mcp-client-2025-11-20` (without it, a 400 \"Extra inputs are not permitted\"). Off unless the operator lists the server's host in `CLAUDE_WRAPPER_CONNECTOR_HOSTS`; otherwise a 400 naming that setting. Each server needs exactly one `mcp_toolset` in `tools`."
+          }
+        },
+        "additionalProperties": false,
+        "description": "The Messages body without the fields that only shape the output: `max_tokens`, `stream`, `stop_sequences`, the sampling fields, `metadata`, `service_tier`, `inference_geo`, `diagnostics` and `container` are a 400 \"Extra inputs are not permitted\", as is any unknown field."
+      },
+      "MessageParam": {
+        "type": "object",
+        "required": ["role", "content"],
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": ["user", "assistant"],
+            "description": "A `system` role inside `messages` is a 400."
+          },
+          "content": {
+            "oneOf": [
+              {"type": "string", "description": "One text block.", "minLength": 1},
+              {"type": "array", "items": {"$ref": "#/components/schemas/ContentBlockParam"}, "minItems": 1}
+            ]
+          }
+        }
+      },
+      "ContentBlockParam": {
+        "oneOf": [
+          {"$ref": "#/components/schemas/TextBlockParam"},
+          {"$ref": "#/components/schemas/ImageBlockParam"},
+          {"$ref": "#/components/schemas/DocumentBlockParam"},
+          {"$ref": "#/components/schemas/ToolUseBlockParam"},
+          {"$ref": "#/components/schemas/ToolResultBlockParam"},
+          {"$ref": "#/components/schemas/ThinkingBlockParam"},
+          {"$ref": "#/components/schemas/RedactedThinkingBlockParam"},
+          {"$ref": "#/components/schemas/ServerToolUseBlockParam"},
+          {"$ref": "#/components/schemas/WebSearchToolResultBlockParam"},
+          {"$ref": "#/components/schemas/WebFetchToolResultBlockParam"},
+          {"$ref": "#/components/schemas/McpToolUseBlockParam"},
+          {"$ref": "#/components/schemas/McpToolResultBlockParam"}
+        ],
+        "discriminator": {
+          "propertyName": "type",
+          "mapping": {
+            "text": "#/components/schemas/TextBlockParam",
+            "image": "#/components/schemas/ImageBlockParam",
+            "document": "#/components/schemas/DocumentBlockParam",
+            "tool_use": "#/components/schemas/ToolUseBlockParam",
+            "tool_result": "#/components/schemas/ToolResultBlockParam",
+            "thinking": "#/components/schemas/ThinkingBlockParam",
+            "redacted_thinking": "#/components/schemas/RedactedThinkingBlockParam",
+            "server_tool_use": "#/components/schemas/ServerToolUseBlockParam",
+            "web_search_tool_result": "#/components/schemas/WebSearchToolResultBlockParam",
+            "web_fetch_tool_result": "#/components/schemas/WebFetchToolResultBlockParam",
+            "mcp_tool_use": "#/components/schemas/McpToolUseBlockParam",
+            "mcp_tool_result": "#/components/schemas/McpToolResultBlockParam"
+          }
+        },
+        "description": "Any other block type (`search_result`, `mcp_tool_listing`, the tool-change blocks, ...) is a 400 naming it. Nothing is dropped silently."
+      },
+      "TextBlockParam": {
+        "type": "object",
+        "required": ["type", "text"],
+        "properties": {
+          "type": {"type": "string", "enum": ["text"]},
+          "text": {"type": "string", "description": "Must not be empty.", "minLength": 1},
+          "citations": {
+            "type": "array",
+            "items": {"type": "object"},
+            "description": "Accepted on an assistant turn the client replays; not rendered into a replayed turn.",
+            "nullable": true
+          },
+          "cache_control": {
+            "type": "object",
+            "required": ["type"],
+            "properties": {"type": {"type": "string", "enum": ["ephemeral"]}, "ttl": {"type": "string"}},
+            "description": "Accepted anywhere a request may carry it, and ignored: upstream manages its own prompt cache."
+          }
+        }
+      },
+      "ImageBlockParam": {
+        "type": "object",
+        "required": ["type", "source"],
+        "properties": {
+          "type": {"type": "string", "enum": ["image"]},
+          "source": {"$ref": "#/components/schemas/Base64ImageSource"},
+          "cache_control": {
+            "type": "object",
+            "required": ["type"],
+            "properties": {"type": {"type": "string", "enum": ["ephemeral"]}, "ttl": {"type": "string"}},
+            "description": "Accepted anywhere a request may carry it, and ignored: upstream manages its own prompt cache."
+          }
+        },
+        "description": "A `base64` source only. A `url` source is a 400 naming the block (the API behind Claude Code cannot download it), and so is a `file` source (the Files API is out of scope)."
+      },
+      "Base64ImageSource": {
+        "type": "object",
+        "required": ["type", "media_type", "data"],
+        "properties": {
+          "type": {"type": "string", "enum": ["base64"]},
+          "media_type": {"type": "string", "enum": ["image/jpeg", "image/png", "image/gif", "image/webp"]},
+          "data": {"type": "string", "description": "Base64-encoded image bytes.", "format": "byte"}
+        }
+      },
+      "DocumentBlockParam": {
+        "type": "object",
+        "required": ["type", "source"],
+        "properties": {
+          "type": {"type": "string", "enum": ["document"]},
+          "source": {
+            "oneOf": [
+              {"$ref": "#/components/schemas/Base64PdfSource"},
+              {"$ref": "#/components/schemas/PlainTextSource"},
+              {"$ref": "#/components/schemas/ContentBlockSource"}
+            ]
+          },
+          "title": {"type": "string", "nullable": true},
+          "context": {"type": "string", "nullable": true},
+          "citations": {"type": "object", "properties": {"enabled": {"type": "boolean"}}, "nullable": true},
+          "cache_control": {
+            "type": "object",
+            "required": ["type"],
+            "properties": {"type": {"type": "string", "enum": ["ephemeral"]}, "ttl": {"type": "string"}},
+            "description": "Accepted anywhere a request may carry it, and ignored: upstream manages its own prompt cache."
+          }
+        },
+        "description": "A base64 PDF, plain text or content source. Citations must be enabled on every document in the conversation or on none; otherwise upstream's 400 is relayed, and its message indexes upstream's own messages rather than yours. Citations reach the answer through `citations_delta` events (and the text blocks a non-streaming response accumulates). `url` and `file` sources are a 400 naming the block."
+      },
+      "Base64PdfSource": {
+        "type": "object",
+        "required": ["type", "media_type", "data"],
+        "properties": {
+          "type": {"type": "string", "enum": ["base64"]},
+          "media_type": {"type": "string", "enum": ["application/pdf"]},
+          "data": {"type": "string", "description": "Base64-encoded PDF bytes.", "format": "byte"}
+        }
+      },
+      "PlainTextSource": {
+        "type": "object",
+        "required": ["type", "media_type", "data"],
+        "properties": {
+          "type": {"type": "string", "enum": ["text"]},
+          "media_type": {"type": "string", "enum": ["text/plain"]},
+          "data": {"type": "string"}
+        }
+      },
+      "ContentBlockSource": {
+        "type": "object",
+        "required": ["type", "content"],
+        "properties": {
+          "type": {"type": "string", "enum": ["content"]},
+          "content": {
+            "oneOf": [
+              {"type": "string"},
+              {
+                "type": "array",
+                "items": {
+                  "oneOf": [
+                    {"$ref": "#/components/schemas/TextBlockParam"},
+                    {"$ref": "#/components/schemas/ImageBlockParam"}
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      },
+      "ToolUseBlockParam": {
+        "type": "object",
+        "required": ["type", "id", "name", "input"],
+        "properties": {
+          "type": {"type": "string", "enum": ["tool_use"]},
+          "id": {"type": "string"},
+          "name": {"type": "string"},
+          "input": {"type": "object"},
+          "cache_control": {
+            "type": "object",
+            "required": ["type"],
+            "properties": {"type": {"type": "string", "enum": ["ephemeral"]}, "ttl": {"type": "string"}},
+            "description": "Accepted anywhere a request may carry it, and ignored: upstream manages its own prompt cache."
+          }
+        },
+        "description": "A client tool call from an earlier assistant turn, sent back as received."
+      },
+      "ToolResultBlockParam": {
+        "type": "object",
+        "required": ["type", "tool_use_id"],
+        "properties": {
+          "type": {"type": "string", "enum": ["tool_result"]},
+          "tool_use_id": {"type": "string"},
+          "content": {
+            "oneOf": [
+              {"type": "string"},
+              {
+                "type": "array",
+                "items": {
+                  "oneOf": [
+                    {"$ref": "#/components/schemas/TextBlockParam"},
+                    {"$ref": "#/components/schemas/ImageBlockParam"}
+                  ]
+                }
+              }
+            ]
+          },
+          "is_error": {"type": "boolean"},
+          "cache_control": {
+            "type": "object",
+            "required": ["type"],
+            "properties": {"type": {"type": "string", "enum": ["ephemeral"]}, "ttl": {"type": "string"}},
+            "description": "Accepted anywhere a request may carry it, and ignored: upstream manages its own prompt cache."
+          }
+        },
+        "description": "At the head of the last user message, these answer the `tool_use` blocks of a parked turn and continue that same upstream run. Every id of that assistant message needs a result (a partial set is the real API's 400, and the run stays parked), and nothing may follow the results in that message (a 400). Results naming ids that no parked run holds (the park TTL expired, or the wrapper restarted) are rendered as text into a replayed turn's prompt instead. Content: text and base64 images; `search_result`, `document`, `tool_reference` and `browser_state` items are a 400."
+      },
+      "ThinkingBlockParam": {
+        "type": "object",
+        "required": ["type"],
+        "properties": {
+          "type": {"type": "string", "enum": ["thinking"]},
+          "thinking": {"type": "string"},
+          "signature": {"type": "string"}
+        },
+        "description": "Accepted and dropped."
+      },
+      "RedactedThinkingBlockParam": {
+        "type": "object",
+        "required": ["type"],
+        "properties": {"type": {"type": "string", "enum": ["redacted_thinking"]}, "data": {"type": "string"}},
+        "description": "Accepted and dropped."
+      },
+      "ServerToolUseBlockParam": {
+        "type": "object",
+        "required": ["type", "id", "name", "input"],
+        "properties": {
+          "type": {"type": "string", "enum": ["server_tool_use"]},
+          "id": {"type": "string"},
+          "name": {"type": "string", "enum": ["web_search", "web_fetch"]},
+          "input": {"type": "object"}
+        },
+        "description": "Replayed exactly as the surface sent it; never validated."
+      },
+      "WebSearchToolResultBlockParam": {
+        "type": "object",
+        "required": ["type", "tool_use_id", "content"],
+        "properties": {
+          "type": {"type": "string", "enum": ["web_search_tool_result"]},
+          "tool_use_id": {"type": "string"},
+          "content": {"description": "As received."}
+        },
+        "description": "Replayed exactly as the surface sent it; never validated."
+      },
+      "WebFetchToolResultBlockParam": {
+        "type": "object",
+        "required": ["type", "tool_use_id", "content"],
+        "properties": {
+          "type": {"type": "string", "enum": ["web_fetch_tool_result"]},
+          "tool_use_id": {"type": "string"},
+          "content": {"description": "As received."}
+        },
+        "description": "Replayed exactly as the surface sent it; never validated."
+      },
+      "McpToolUseBlockParam": {
+        "type": "object",
+        "required": ["type", "id", "name", "server_name", "input"],
+        "properties": {
+          "type": {"type": "string", "enum": ["mcp_tool_use"]},
+          "id": {"type": "string"},
+          "name": {"type": "string"},
+          "server_name": {"type": "string"},
+          "input": {"type": "object"}
+        },
+        "description": "Beta. Replayed exactly as the surface sent it; never validated."
+      },
+      "McpToolResultBlockParam": {
+        "type": "object",
+        "required": ["type", "tool_use_id"],
+        "properties": {
+          "type": {"type": "string", "enum": ["mcp_tool_result"]},
+          "tool_use_id": {"type": "string"},
+          "is_error": {"type": "boolean"},
+          "content": {"description": "As received."}
+        },
+        "description": "Beta. Replayed exactly as the surface sent it; never validated."
+      },
+      "Tool": {
+        "oneOf": [
+          {"$ref": "#/components/schemas/CustomTool"},
+          {"$ref": "#/components/schemas/WebSearchTool"},
+          {"$ref": "#/components/schemas/WebFetchTool"},
+          {"$ref": "#/components/schemas/McpToolset"}
+        ],
+        "description": "Any other tool type (`code_execution_*`, `bash_*`, `text_editor_*`, `computer_*`, `memory_*`, `tool_search_*`, `browser_*`, ...) is a 400 naming it: the surface never runs Claude Code's host tools."
+      },
+      "CustomTool": {
+        "type": "object",
+        "required": ["name", "input_schema"],
+        "properties": {
+          "type": {"type": "string", "enum": ["custom"], "nullable": true},
+          "name": {
+            "type": "string",
+            "description": "Unique among the client tools. Up to 115 characters: upstream prefixes `mcp__client__` and the API caps the result at 128, so a longer name is a 400 naming the tool's index.",
+            "pattern": "^[a-zA-Z0-9_-]{1,115}$"
+          },
+          "description": {"type": "string"},
+          "input_schema": {
+            "type": "object",
+            "required": ["type"],
+            "properties": {"type": {"type": "string", "enum": ["object"]}},
+            "description": "JSON Schema, passed to upstream verbatim.",
+            "additionalProperties": true
+          },
+          "strict": {"type": "boolean", "description": "Accepted; not passed on."},
+          "cache_control": {
+            "type": "object",
+            "required": ["type"],
+            "properties": {"type": {"type": "string", "enum": ["ephemeral"]}, "ttl": {"type": "string"}},
+            "description": "Accepted anywhere a request may carry it, and ignored: upstream manages its own prompt cache."
+          }
+        },
+        "description": "A client tool. Upstream calls it through the wrapper's bridge server: the turn ends with upstream's own `tool_use` block and `stop_reason: tool_use`, the run stays held open, and the `tool_result` blocks on your next request continue it. Several calls in one message come back together; answer them in any order."
+      },
+      "WebSearchTool": {
+        "type": "object",
+        "required": ["type", "name"],
+        "properties": {
+          "type": {"type": "string", "enum": ["web_search_20250305", "web_search_20260209", "web_search_20260318"]},
+          "name": {"type": "string", "enum": ["web_search"]},
+          "max_uses": {
+            "type": "integer",
+            "description": "Enforced by the wrapper: later searches in the request get `max_uses_exceeded`.",
+            "minimum": 1
+          },
+          "allowed_domains": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "Enforced by the wrapper. Not together with `blocked_domains` (a 400).",
+            "nullable": true
+          },
+          "blocked_domains": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "Enforced by the wrapper.",
+            "nullable": true
+          },
+          "user_location": {"type": "object", "description": "Accepted and ignored.", "nullable": true},
+          "cache_control": {
+            "type": "object",
+            "required": ["type"],
+            "properties": {"type": {"type": "string", "enum": ["ephemeral"]}, "ttl": {"type": "string"}},
+            "description": "Accepted anywhere a request may carry it, and ignored: upstream manages its own prompt cache."
+          }
+        },
+        "description": "Served by Claude Code's WebSearch. Each search arrives as a `server_tool_use` block and a `web_search_tool_result` block with real URLs and titles. No citations are synthesised, `encrypted_content` is an opaque token and `page_age` is null. `response_inclusion`, `allowed_callers`, `strict`, `defer_loading`, `user_location` and `cache_control` are accepted and ignored."
+      },
+      "WebFetchTool": {
+        "type": "object",
+        "required": ["type", "name"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["web_fetch_20250910", "web_fetch_20260209", "web_fetch_20260309", "web_fetch_20260318"]
+          },
+          "name": {"type": "string", "enum": ["web_fetch"]},
+          "max_uses": {"type": "integer", "description": "Enforced by the wrapper.", "minimum": 1},
+          "allowed_domains": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "Enforced by the wrapper: a host matches itself and its subdomains. Not together with `blocked_domains` (a 400).",
+            "nullable": true
+          },
+          "blocked_domains": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "Enforced by the wrapper.",
+            "nullable": true
+          },
+          "citations": {"type": "object", "description": "Accepted and ignored.", "nullable": true},
+          "max_content_tokens": {"type": "integer", "description": "Accepted and ignored.", "nullable": true},
+          "cache_control": {
+            "type": "object",
+            "required": ["type"],
+            "properties": {"type": {"type": "string", "enum": ["ephemeral"]}, "ttl": {"type": "string"}},
+            "description": "Accepted anywhere a request may carry it, and ignored: upstream manages its own prompt cache."
+          }
+        },
+        "description": "Served by Claude Code's WebFetch, which fetches the URL from the machine the wrapper runs on. The result document is upstream's extraction of the page (converted to Markdown, extracted by a separate model call, truncated, cached for 15 minutes, upgraded to HTTPS, cross-host redirects not followed), not the page itself. Unless the operator turned it off (`CLAUDE_WRAPPER_WEB_FETCH_PUBLIC_ONLY=false`), a URL whose host is not a public address (loopback, private, link-local and the other special ranges, `localhost`, or a name that resolves to one) is denied with `url_not_allowed`. `citations`, `max_content_tokens`, `use_cache`, `response_inclusion` and `url_sources` are accepted and ignored."
+      },
+      "McpToolset": {
+        "type": "object",
+        "required": ["type", "mcp_server_name"],
+        "properties": {
+          "type": {"type": "string", "enum": ["mcp_toolset"]},
+          "mcp_server_name": {
+            "type": "string",
+            "description": "A server declared in `mcp_servers`; each server takes exactly one toolset."
+          },
+          "default_config": {
+            "type": "object",
+            "properties": {
+              "enabled": {"type": "boolean"},
+              "defer_loading": {"type": "boolean", "description": "Accepted and ignored."}
+            }
+          },
+          "configs": {
+            "type": "object",
+            "additionalProperties": {"$ref": "#/components/schemas/McpToolConfig"},
+            "description": "Per tool. A tool disabled here while `default_config` leaves the rest enabled needs the server's `tool_configuration.allowed_tools`; otherwise a 400."
+          },
+          "cache_control": {
+            "type": "object",
+            "required": ["type"],
+            "properties": {"type": {"type": "string", "enum": ["ephemeral"]}, "ttl": {"type": "string"}},
+            "description": "Accepted anywhere a request may carry it, and ignored: upstream manages its own prompt cache."
+          }
+        },
+        "description": "Beta (`mcp-client-2025-11-20`), with `mcp_servers`. `enabled: false` is honoured; `defer_loading` is ignored. A pinned `tools` listing is a 400."
+      },
+      "McpToolConfig": {
+        "type": "object",
+        "properties": {
+          "enabled": {"type": "boolean"},
+          "defer_loading": {"type": "boolean", "description": "Accepted and ignored."}
+        }
+      },
+      "ToolChoice": {
+        "type": "object",
+        "required": ["type"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["auto", "none", "any", "tool"],
+            "description": "`any` and `tool` are a 400 on every model: upstream cannot force a tool call."
+          },
+          "name": {"type": "string"},
+          "disable_parallel_tool_use": {"type": "boolean", "description": "Accepted and ignored."}
+        },
+        "description": "`auto`, or absent, is the default. `none` hides every tool for the turn, client and server tools alike."
+      },
+      "ThinkingConfig": {
+        "type": "object",
+        "required": ["type"],
+        "properties": {
+          "type": {"type": "string", "enum": ["adaptive", "enabled", "disabled", "between_tools"]},
+          "budget_tokens": {
+            "type": "integer",
+            "description": "`enabled` only: at least 1024 and less than `max_tokens`.",
+            "minimum": 1024
+          },
+          "display": {"type": "string", "description": "Ignored: thinking text is always empty."}
+        },
+        "description": "Validated per catalogue model, as the real API validates it. The 5.x models take `adaptive` (their default); the other types are a 400. Haiku 4.5: absent or `disabled` turns its thinking off, `enabled` with `budget_tokens` sets the budget, and `adaptive` is a 400. `between_tools` is a 400 on every model. Thinking blocks are relayed with empty text and a signature."
+      },
+      "OutputConfig": {
+        "type": "object",
+        "properties": {
+          "effort": {
+            "type": "string",
+            "enum": ["low", "medium", "high", "xhigh", "max"],
+            "description": "Passed to upstream after checking the model supports it; unsupported is a 400 (Haiku 4.5 supports none)."
+          },
+          "format": {
+            "type": "object",
+            "required": ["type", "schema"],
+            "properties": {
+              "type": {"type": "string", "enum": ["json_schema"]},
+              "schema": {"type": "object", "additionalProperties": true}
+            },
+            "additionalProperties": false,
+            "description": "Structured output: the answer is one JSON text block that the SDKs' `parse()` helpers accept. Prose text blocks are dropped. A stop sequence can cut inside the JSON. A schema upstream refuses at startup is a 400 `output_config.format.schema <reason>`."
+          }
+        },
+        "additionalProperties": false,
+        "description": "`task_budget` and any other key is a 400 (\"Extra inputs are not permitted\")."
+      },
+      "CacheControl": {
+        "type": "object",
+        "required": ["type"],
+        "properties": {"type": {"type": "string", "enum": ["ephemeral"]}, "ttl": {"type": "string"}},
+        "description": "Accepted anywhere a request may carry it, and ignored: upstream manages its own prompt cache."
+      },
+      "McpServer": {
+        "type": "object",
+        "required": ["type", "url", "name"],
+        "properties": {
+          "type": {"type": "string", "enum": ["url"]},
+          "url": {
+            "type": "string",
+            "description": "`https` only. Its host, or host:port, must be in the operator's `CLAUDE_WRAPPER_CONNECTOR_HOSTS`.",
+            "format": "uri"
+          },
+          "name": {
+            "type": "string",
+            "description": "Unique. Letters, digits, `_` and `-`, without `__`; `client` is reserved.",
+            "pattern": "^[a-zA-Z0-9_-]+$"
+          },
+          "authorization_token": {
+            "type": "string",
+            "description": "Sent upstream only in the run's private MCP config file, kept out of every log, and removed when the run ends.",
+            "nullable": true
+          },
+          "tool_configuration": {
+            "type": "object",
+            "properties": {
+              "enabled": {"type": "boolean", "description": "`false`: the server is not mounted."},
+              "allowed_tools": {"type": "array", "items": {"type": "string"}, "nullable": true}
+            },
+            "nullable": true
+          }
+        },
+        "description": "A connector. Upstream connects to it from the wrapper's machine and calls it itself; the client gets `mcp_tool_use` and `mcp_tool_result` blocks. Every server must report connected when the run starts, else the turn is a 400 naming it."
+      },
+      "Message": {
+        "type": "object",
+        "required": ["id", "type", "role", "content", "model", "stop_reason", "stop_sequence", "usage"],
+        "properties": {
+          "id": {"type": "string"},
+          "type": {"type": "string", "enum": ["message"]},
+          "role": {"type": "string", "enum": ["assistant"]},
+          "content": {"type": "array", "items": {"$ref": "#/components/schemas/ContentBlock"}},
+          "model": {"type": "string", "description": "The canonical id of the model upstream ran."},
+          "stop_reason": {
+            "type": "string",
+            "enum": ["end_turn", "max_tokens", "stop_sequence", "tool_use", "refusal"],
+            "description": "Never `pause_turn`.",
+            "nullable": true
+          },
+          "stop_sequence": {"type": "string", "nullable": true},
+          "stop_details": {"type": "object", "nullable": true},
+          "container": {"type": "object", "description": "Always null.", "nullable": true},
+          "diagnostics": {"type": "object", "description": "Always null.", "nullable": true},
+          "usage": {"$ref": "#/components/schemas/Usage"}
+        },
+        "description": "One turn, even when upstream made several model calls (a web search between two, for instance)."
+      },
+      "ContentBlock": {
+        "oneOf": [
+          {"$ref": "#/components/schemas/TextBlock"},
+          {"$ref": "#/components/schemas/ThinkingBlock"},
+          {"$ref": "#/components/schemas/RedactedThinkingBlock"},
+          {"$ref": "#/components/schemas/ToolUseBlock"},
+          {"$ref": "#/components/schemas/ServerToolUseBlock"},
+          {"$ref": "#/components/schemas/WebSearchToolResultBlock"},
+          {"$ref": "#/components/schemas/WebFetchToolResultBlock"},
+          {"$ref": "#/components/schemas/McpToolUseBlock"},
+          {"$ref": "#/components/schemas/McpToolResultBlock"}
+        ],
+        "discriminator": {
+          "propertyName": "type",
+          "mapping": {
+            "text": "#/components/schemas/TextBlock",
+            "thinking": "#/components/schemas/ThinkingBlock",
+            "redacted_thinking": "#/components/schemas/RedactedThinkingBlock",
+            "tool_use": "#/components/schemas/ToolUseBlock",
+            "server_tool_use": "#/components/schemas/ServerToolUseBlock",
+            "web_search_tool_result": "#/components/schemas/WebSearchToolResultBlock",
+            "web_fetch_tool_result": "#/components/schemas/WebFetchToolResultBlock",
+            "mcp_tool_use": "#/components/schemas/McpToolUseBlock",
+            "mcp_tool_result": "#/components/schemas/McpToolResultBlock"
+          }
+        }
+      },
+      "TextBlock": {
+        "type": "object",
+        "required": ["type", "text"],
+        "properties": {
+          "type": {"type": "string", "enum": ["text"]},
+          "text": {"type": "string"},
+          "citations": {"type": "array", "items": {"$ref": "#/components/schemas/Citation"}, "nullable": true}
+        }
+      },
+      "Citation": {
+        "type": "object",
+        "required": ["type", "cited_text"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "char_location",
+              "page_location",
+              "content_block_location",
+              "search_result_location",
+              "web_search_result_location"
+            ]
+          },
+          "cited_text": {"type": "string"},
+          "document_index": {"type": "integer"},
+          "document_title": {"type": "string", "nullable": true},
+          "file_id": {"type": "string", "nullable": true},
+          "start_char_index": {"type": "integer"},
+          "end_char_index": {"type": "integer"},
+          "start_page_number": {"type": "integer"},
+          "end_page_number": {"type": "integer"},
+          "start_block_index": {"type": "integer"},
+          "end_block_index": {"type": "integer"}
+        },
+        "description": "A document citation, relayed from upstream. Web search results carry none."
+      },
+      "ThinkingBlock": {
+        "type": "object",
+        "required": ["type", "thinking", "signature"],
+        "properties": {
+          "type": {"type": "string", "enum": ["thinking"]},
+          "thinking": {"type": "string", "description": "Always empty: thinking display is omitted."},
+          "signature": {"type": "string"}
+        }
+      },
+      "RedactedThinkingBlock": {
+        "type": "object",
+        "required": ["type", "data"],
+        "properties": {"type": {"type": "string", "enum": ["redacted_thinking"]}, "data": {"type": "string"}}
+      },
+      "ToolUseBlock": {
+        "type": "object",
+        "required": ["type", "id", "name", "input"],
+        "properties": {
+          "type": {"type": "string", "enum": ["tool_use"]},
+          "id": {
+            "type": "string",
+            "description": "Upstream's own id; answer it with a `tool_result` of the same `tool_use_id`."
+          },
+          "name": {"type": "string", "description": "Your tool's name."},
+          "input": {"type": "object"}
+        }
+      },
+      "ServerToolUseBlock": {
+        "type": "object",
+        "required": ["type", "id", "name", "input"],
+        "properties": {
+          "type": {"type": "string", "enum": ["server_tool_use"]},
+          "id": {"type": "string", "pattern": "^srvtoolu_"},
+          "name": {"type": "string", "enum": ["web_search", "web_fetch"]},
+          "input": {"type": "object", "description": "Exactly `{query}` or `{url}`."}
+        }
+      },
+      "WebSearchToolResultBlock": {
+        "type": "object",
+        "required": ["type", "tool_use_id", "content"],
+        "properties": {
+          "type": {"type": "string", "enum": ["web_search_tool_result"]},
+          "tool_use_id": {"type": "string"},
+          "content": {
+            "oneOf": [
+              {"type": "array", "items": {"$ref": "#/components/schemas/WebSearchResult"}},
+              {"$ref": "#/components/schemas/WebSearchToolResultError"}
+            ]
+          }
+        },
+        "description": "Every result across the call's searches, emitted complete in one `content_block_start`."
+      },
+      "WebSearchResult": {
+        "type": "object",
+        "required": ["type", "url", "title", "encrypted_content"],
+        "properties": {
+          "type": {"type": "string", "enum": ["web_search_result"]},
+          "url": {"type": "string"},
+          "title": {"type": "string"},
+          "encrypted_content": {
+            "type": "string",
+            "description": "An opaque token the wrapper mints; replay it as received."
+          },
+          "page_age": {"type": "string", "description": "Always null.", "nullable": true}
+        }
+      },
+      "WebSearchToolResultError": {
+        "type": "object",
+        "required": ["type", "error_code"],
+        "properties": {
+          "type": {"type": "string", "enum": ["web_search_tool_result_error"]},
+          "error_code": {"type": "string", "enum": ["max_uses_exceeded", "invalid_tool_input", "unavailable"]}
+        }
+      },
+      "WebFetchToolResultBlock": {
+        "type": "object",
+        "required": ["type", "tool_use_id", "content"],
+        "properties": {
+          "type": {"type": "string", "enum": ["web_fetch_tool_result"]},
+          "tool_use_id": {"type": "string"},
+          "content": {
+            "oneOf": [
+              {"$ref": "#/components/schemas/WebFetchResult"},
+              {"$ref": "#/components/schemas/WebFetchToolResultError"}
+            ]
+          }
+        }
+      },
+      "WebFetchResult": {
+        "type": "object",
+        "required": ["type", "url", "content"],
+        "properties": {
+          "type": {"type": "string", "enum": ["web_fetch_result"]},
+          "url": {"type": "string"},
+          "retrieved_at": {"type": "string", "description": "The wrapper's time.", "format": "date-time"},
+          "content": {
+            "type": "object",
+            "required": ["type", "source"],
+            "properties": {
+              "type": {"type": "string", "enum": ["document"]},
+              "source": {
+                "type": "object",
+                "required": ["type", "media_type", "data"],
+                "properties": {
+                  "type": {"type": "string", "enum": ["text"]},
+                  "media_type": {"type": "string", "enum": ["text/plain"]},
+                  "data": {"type": "string", "description": "What upstream's model received from the page."}
+                }
+              },
+              "title": {"type": "string", "description": "Always null.", "nullable": true}
+            }
+          }
+        }
+      },
+      "WebFetchToolResultError": {
+        "type": "object",
+        "required": ["type", "error_code"],
+        "properties": {
+          "type": {"type": "string", "enum": ["web_fetch_tool_result_error"]},
+          "error_code": {
+            "type": "string",
+            "enum": ["url_not_accessible", "url_not_allowed", "max_uses_exceeded", "invalid_tool_input", "unavailable"]
+          }
+        }
+      },
+      "McpToolUseBlock": {
+        "type": "object",
+        "required": ["type", "id", "name", "server_name", "input"],
+        "properties": {
+          "type": {"type": "string", "enum": ["mcp_tool_use"]},
+          "id": {"type": "string"},
+          "name": {"type": "string", "description": "The tool's name on its server."},
+          "server_name": {"type": "string"},
+          "input": {"type": "object"}
+        },
+        "description": "Beta: a connector call upstream made itself."
+      },
+      "McpToolResultBlock": {
+        "type": "object",
+        "required": ["type", "tool_use_id", "is_error", "content"],
+        "properties": {
+          "type": {"type": "string", "enum": ["mcp_tool_result"]},
+          "tool_use_id": {"type": "string"},
+          "is_error": {"type": "boolean"},
+          "content": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["type", "text"],
+              "properties": {"type": {"type": "string", "enum": ["text"]}, "text": {"type": "string"}}
+            },
+            "description": "Text items only; other item types are dropped."
+          }
+        },
+        "description": "Beta."
+      },
+      "Usage": {
+        "type": "object",
+        "required": ["input_tokens", "output_tokens"],
+        "properties": {
+          "input_tokens": {"type": "integer"},
+          "output_tokens": {"type": "integer"},
+          "cache_creation_input_tokens": {"type": "integer", "nullable": true},
+          "cache_read_input_tokens": {"type": "integer", "nullable": true},
+          "server_tool_use": {
+            "type": "object",
+            "properties": {"web_search_requests": {"type": "integer"}, "web_fetch_requests": {"type": "integer"}},
+            "description": "Present when the turn used web search or fetch; counts the searches and fetches that ran.",
+            "nullable": true
+          },
+          "output_tokens_details": {
+            "type": "object",
+            "properties": {"thinking_tokens": {"type": "integer"}},
+            "nullable": true
+          },
+          "cache_creation": {
+            "type": "object",
+            "properties": {
+              "ephemeral_5m_input_tokens": {"type": "integer"},
+              "ephemeral_1h_input_tokens": {"type": "integer"}
+            },
+            "nullable": true
+          },
+          "service_tier": {"type": "string", "description": "Upstream's.", "nullable": true},
+          "inference_geo": {"type": "string", "description": "Upstream's.", "nullable": true}
+        },
+        "description": "Real counts summed across the turn's model calls. The side calls upstream makes for web search and fetch are not counted, as on the real API."
+      },
+      "MessageDeltaUsage": {
+        "type": "object",
+        "required": ["output_tokens"],
+        "properties": {
+          "input_tokens": {"type": "integer"},
+          "output_tokens": {"type": "integer"},
+          "cache_creation_input_tokens": {"type": "integer", "nullable": true},
+          "cache_read_input_tokens": {"type": "integer", "nullable": true},
+          "server_tool_use": {
+            "type": "object",
+            "properties": {"web_search_requests": {"type": "integer"}, "web_fetch_requests": {"type": "integer"}},
+            "description": "Present when the turn used web search or fetch; counts the searches and fetches that ran.",
+            "nullable": true
+          },
+          "output_tokens_details": {
+            "type": "object",
+            "properties": {"thinking_tokens": {"type": "integer"}},
+            "nullable": true
+          },
+          "cache_creation": {
+            "type": "object",
+            "properties": {
+              "ephemeral_5m_input_tokens": {"type": "integer"},
+              "ephemeral_1h_input_tokens": {"type": "integer"}
+            },
+            "description": "Only on a turn of several model calls: every call's breakdown summed. The SDKs read `cache_creation` from `message_start` alone, so their message keeps the first call's."
+          }
+        },
+        "description": "The turn's summed usage. After a stop-sequence cut, `output_tokens` for the cut call is an estimate."
+      },
+      "MessageStreamEvent": {
+        "oneOf": [
+          {"$ref": "#/components/schemas/MessageStartEvent"},
+          {"$ref": "#/components/schemas/ContentBlockStartEvent"},
+          {"$ref": "#/components/schemas/ContentBlockDeltaEvent"},
+          {"$ref": "#/components/schemas/ContentBlockStopEvent"},
+          {"$ref": "#/components/schemas/MessageDeltaEvent"},
+          {"$ref": "#/components/schemas/MessageStopEvent"},
+          {"$ref": "#/components/schemas/PingEvent"},
+          {"$ref": "#/components/schemas/ErrorResponse"}
+        ],
+        "discriminator": {
+          "propertyName": "type",
+          "mapping": {
+            "message_start": "#/components/schemas/MessageStartEvent",
+            "content_block_start": "#/components/schemas/ContentBlockStartEvent",
+            "content_block_delta": "#/components/schemas/ContentBlockDeltaEvent",
+            "content_block_stop": "#/components/schemas/ContentBlockStopEvent",
+            "message_delta": "#/components/schemas/MessageDeltaEvent",
+            "message_stop": "#/components/schemas/MessageStopEvent",
+            "ping": "#/components/schemas/PingEvent",
+            "error": "#/components/schemas/ErrorResponse"
+          }
+        },
+        "description": "The data of one server-sent event; the SSE `event:` name equals its `type`. One `message_start` per turn, contiguous block indices, the final `message_delta` with the summed usage, then `message_stop` and the stream closes. A `ping` follows every 15 seconds without an event. A failure after the first `message_start` is one `error` event, then the stream closes."
+      },
+      "MessageStartEvent": {
+        "type": "object",
+        "required": ["type", "message"],
+        "properties": {
+          "type": {"type": "string", "enum": ["message_start"]},
+          "message": {"$ref": "#/components/schemas/Message"}
+        }
+      },
+      "ContentBlockStartEvent": {
+        "type": "object",
+        "required": ["type", "index", "content_block"],
+        "properties": {
+          "type": {"type": "string", "enum": ["content_block_start"]},
+          "index": {"type": "integer"},
+          "content_block": {"$ref": "#/components/schemas/ContentBlock"}
+        }
+      },
+      "ContentBlockDeltaEvent": {
+        "type": "object",
+        "required": ["type", "index", "delta"],
+        "properties": {
+          "type": {"type": "string", "enum": ["content_block_delta"]},
+          "index": {"type": "integer"},
+          "delta": {
+            "oneOf": [
+              {"$ref": "#/components/schemas/TextDelta"},
+              {"$ref": "#/components/schemas/InputJsonDelta"},
+              {"$ref": "#/components/schemas/CitationsDelta"},
+              {"$ref": "#/components/schemas/ThinkingDelta"},
+              {"$ref": "#/components/schemas/SignatureDelta"}
+            ],
+            "discriminator": {
+              "propertyName": "type",
+              "mapping": {
+                "text_delta": "#/components/schemas/TextDelta",
+                "input_json_delta": "#/components/schemas/InputJsonDelta",
+                "citations_delta": "#/components/schemas/CitationsDelta",
+                "thinking_delta": "#/components/schemas/ThinkingDelta",
+                "signature_delta": "#/components/schemas/SignatureDelta"
+              }
+            }
+          }
+        }
+      },
+      "ContentBlockStopEvent": {
+        "type": "object",
+        "required": ["type", "index"],
+        "properties": {"type": {"type": "string", "enum": ["content_block_stop"]}, "index": {"type": "integer"}}
+      },
+      "MessageDeltaEvent": {
+        "type": "object",
+        "required": ["type", "delta", "usage"],
+        "properties": {
+          "type": {"type": "string", "enum": ["message_delta"]},
+          "delta": {
+            "type": "object",
+            "properties": {
+              "stop_reason": {
+                "type": "string",
+                "enum": ["end_turn", "max_tokens", "stop_sequence", "tool_use", "refusal"],
+                "description": "Never `pause_turn`.",
+                "nullable": true
+              },
+              "stop_sequence": {"type": "string", "nullable": true},
+              "stop_details": {"type": "object", "nullable": true},
+              "container": {"type": "object", "nullable": true}
+            }
+          },
+          "usage": {"$ref": "#/components/schemas/MessageDeltaUsage"}
+        }
+      },
+      "MessageStopEvent": {
+        "type": "object",
+        "required": ["type"],
+        "properties": {"type": {"type": "string", "enum": ["message_stop"]}}
+      },
+      "PingEvent": {
+        "type": "object",
+        "required": ["type"],
+        "properties": {"type": {"type": "string", "enum": ["ping"]}}
+      },
+      "TextDelta": {
+        "type": "object",
+        "required": ["type", "text"],
+        "properties": {"type": {"type": "string", "enum": ["text_delta"]}, "text": {"type": "string"}}
+      },
+      "InputJsonDelta": {
+        "type": "object",
+        "required": ["type", "partial_json"],
+        "properties": {"type": {"type": "string", "enum": ["input_json_delta"]}, "partial_json": {"type": "string"}}
+      },
+      "CitationsDelta": {
+        "type": "object",
+        "required": ["type", "citation"],
+        "properties": {
+          "type": {"type": "string", "enum": ["citations_delta"]},
+          "citation": {"$ref": "#/components/schemas/Citation"}
+        }
+      },
+      "ThinkingDelta": {
+        "type": "object",
+        "required": ["type", "thinking"],
+        "properties": {
+          "type": {"type": "string", "enum": ["thinking_delta"]},
+          "thinking": {"type": "string", "description": "Always empty."}
+        }
+      },
+      "SignatureDelta": {
+        "type": "object",
+        "required": ["type", "signature"],
+        "properties": {"type": {"type": "string", "enum": ["signature_delta"]}, "signature": {"type": "string"}}
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "required": ["type", "error", "request_id"],
+        "properties": {
+          "type": {"type": "string", "enum": ["error"]},
+          "error": {
+            "type": "object",
+            "required": ["type", "message"],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "invalid_request_error",
+                  "authentication_error",
+                  "not_found_error",
+                  "request_too_large",
+                  "rate_limit_error",
+                  "api_error",
+                  "timeout_error",
+                  "overloaded_error"
+                ]
+              },
+              "message": {"type": "string"}
+            }
+          },
+          "request_id": {"type": "string", "description": "The same id as the `request-id` header."}
+        }
+      },
+      "CountTokensResponse": {
+        "type": "object",
+        "required": ["input_tokens"],
+        "properties": {
+          "input_tokens": {
+            "type": "integer",
+            "description": "`input_tokens` plus both cache counters of the measuring run's first `message_delta`."
+          }
+        }
+      },
+      "ModelInfo": {
+        "type": "object",
+        "required": ["id", "type", "display_name", "created_at"],
+        "properties": {
+          "id": {"type": "string", "example": "claude-sonnet-5-5"},
+          "type": {"type": "string", "enum": ["model"]},
+          "display_name": {"type": "string"},
+          "created_at": {"type": "string", "description": "The model's release date.", "format": "date-time"},
+          "max_input_tokens": {"type": "integer", "nullable": true},
+          "max_tokens": {
+            "type": "integer",
+            "description": "The largest `max_tokens` a request may ask for.",
+            "nullable": true
+          },
+          "capabilities": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Honest to this surface: `batch`, `code_execution`, `context_management` and `citations` unsupported; `image_input`, `pdf_input` and `structured_outputs` supported; `effort` and `thinking` per model. The per-model checks on Messages read these.",
+            "nullable": true
+          }
+        },
+        "description": "A catalogue entry. The shipped catalogue serves Claude Fable 5.1 (`fable`), Opus 5.5 (`opus`), Sonnet 5.5 (`sonnet`) and Haiku 4.5 (`haiku`); the operator can replace it."
+      },
+      "ModelList": {
+        "type": "object",
+        "required": ["data", "first_id", "last_id", "has_more"],
+        "properties": {
+          "data": {"type": "array", "items": {"$ref": "#/components/schemas/ModelInfo"}, "description": "Newest first."},
+          "first_id": {"type": "string", "nullable": true},
+          "last_id": {"type": "string", "nullable": true},
+          "has_more": {"type": "boolean", "description": "Whether more models follow this page."}
+        }
+      }
+    }
+  }
+}

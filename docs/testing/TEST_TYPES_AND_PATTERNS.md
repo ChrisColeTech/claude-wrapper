@@ -111,7 +111,8 @@ mock.validateAndCleanup = jest.fn(() => {
 ### 7. Externalized Mock Architecture
 - Create reusable mock classes in dedicated files
 - Test your mocks to ensure reliability
-- Use consistent naming: `{module}-mock.ts` and `{module}-mock.test.ts`
+- Use consistent naming: `{module}-mock.ts` and `{module}-mock.test.ts` for a mock of one module
+- **Test harnesses** are a second category with descriptive names, not `-mock`: a harness builds or drives something real for a test rather than standing in for a module. The Anthropic surface's helpers under `tests/mocks/{anthropic,upstream,shared}/` are harnesses: `surface-harness.ts` (serves a real app), `scripted-runner.ts` and `scripted-process.ts` (hand-driven upstream runs through the real run core), `recordings.ts` and the other `*-recordings.ts` (fixture readers and oracles), `turn-frames.ts`, `plan-context.ts`, `sink-server.ts`, `fake-clock.ts`. A harness needs a test of its own only when it holds logic of its own, as `fake-clock.ts` does
 - Implement standard mock patterns:
 
 ```typescript
@@ -202,6 +203,7 @@ testMatch: [
 - Avoid file system operations
 - Don't make network calls
 - Mock databases and external APIs
+- Exception, from the Anthropic surface's testing decisions (spec, Testing Decisions): a module whose seam *is* local I/O is unit-tested at that seam. The sinks (`respond/*-sink.test.ts`) and the control server (`upstream/control-server.test.ts`) run against a loopback HTTP server on `127.0.0.1:0`; the state directory, the per-run directory, the transcript store and sweep, and the catalogue loader (`upstream/{state-directory,run-directory,transcripts,transcript-sweep}.test.ts`, `catalogue/load.test.ts`) run in a fresh `os.tmpdir()` directory removed afterwards. Nothing else: no external network, never the home directory, never the real CLI
 
 **Incorrect Dynamic Import Mocking**:
 - Don't rely on `jest.mock()` for dynamic imports (`await import()`)

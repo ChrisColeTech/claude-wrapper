@@ -1,0 +1,11 @@
+{
+  "name": "spike-06-client-tool-round-trip",
+  "private": true,
+  "description": "PROTOTYPE, THROWAWAY. Spike for wayfinder ticket 06: can a client tool call round-trip through a held-open upstream run?",
+  "type": "module",
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "0.3.289",
+    "@modelcontextprotocol/sdk": "1.32.0",
+    "zod": "4.6.5"
+  }
+}

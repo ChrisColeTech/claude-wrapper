@@ -1,0 +1,2 @@
+[claude-code:unrecognized_model] {"model":"zzz","query_source":"sdk"}
+exit=1

@@ -1,0 +1,193 @@
+{
+  "tag": "run1",
+  "recorded_at": "2026-10-04T15:12:26.055Z",
+  "version": "2.1.289 (Claude Code)",
+  "prefix": "mcp__client__",
+  "prefixLength": 13,
+  "cwd": "/tmp/claude-1000/-home-anas-Work-claude-wrapper/23127712-bc1f-4f65-ab20-57491898aa91/scratchpad/probe-17/cwd",
+  "args": [
+    "-p",
+    "--input-format",
+    "stream-json",
+    "--output-format",
+    "stream-json",
+    "--verbose",
+    "--include-partial-messages",
+    "--tools",
+    "",
+    "--setting-sources=",
+    "--strict-mcp-config",
+    "--permission-mode",
+    "default",
+    "--permission-prompts",
+    "none",
+    "--max-budget-usd",
+    "1",
+    "--no-session-persistence",
+    "--mcp-config",
+    "{\"mcpServers\":{\"client\":{\"type\":\"http\",\"url\":\"http://127.0.0.1:39431/mcp\",\"alwaysLoad\":true}}}",
+    "--allowedTools",
+    "mcp__client__len064_012345678901234567890123456789012345678901234567890123456,mcp__client__len100_012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012,mcp__client__len115_012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567,mcp__client__len128_0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890,mcp__client__has-hyphens-in-name,mcp__client__twin_shared_prefix_012345678901234567890123456789012345678901234_alpha,mcp__client__twin_shared_prefix_012345678901234567890123456789012345678901234_bravo"
+  ],
+  "prompt": "You have 7 tools from the \"client\" MCP server. Call each of the following tools exactly once, with input {\"label\": \"x\"}, all in a single response. Then reply with exactly the word: done\n\nTools:\n1. mcp__client__len064_012345678901234567890123456789012345678901234567890123456\n2. mcp__client__len100_012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012\n3. mcp__client__len115_012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567\n4. mcp__client__len128_0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890\n5. mcp__client__has-hyphens-in-name\n6. mcp__client__twin_shared_prefix_012345678901234567890123456789012345678901234_alpha\n7. mcp__client__twin_shared_prefix_012345678901234567890123456789012345678901234_bravo",
+  "init": {
+    "tools": [
+      "mcp__client__has-hyphens-in-name",
+      "mcp__client__len064_012345678901234567890123456789012345678901234567890123456",
+      "mcp__client__len100_012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012",
+      "mcp__client__len115_012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567",
+      "mcp__client__len128_0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890",
+      "mcp__client__twin_shared_prefix_012345678901234567890123456789012345678901234_alpha",
+      "mcp__client__twin_shared_prefix_012345678901234567890123456789012345678901234_bravo"
+    ],
+    "mcp_servers": [
+      {
+        "name": "client",
+        "status": "connected",
+        "source": "dynamic"
+      }
+    ],
+    "claude_code_version": "2.1.289",
+    "model": "claude-fable-5-1",
+    "permissionMode": "default",
+    "apiKeySource": "none"
+  },
+  "systemFrames": [
+    {
+      "type": "system",
+      "subtype": "status",
+      "status": "requesting",
+      "session_id": "21697438-b123-4b5e-94b9-de6de9a8d71f",
+      "uuid": "425ad889-c22c-4c82-9aad-9fa53ae8469f"
+    }
+  ],
+  "toolUseBlocks": [],
+  "streamToolUseStarts": [],
+  "toolResults": [],
+  "mcpListServed": [
+    [
+      "len064_012345678901234567890123456789012345678901234567890123456",
+      "len100_012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012",
+      "len115_012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567",
+      "len128_0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890",
+      "has-hyphens-in-name",
+      "twin_shared_prefix_012345678901234567890123456789012345678901234_alpha",
+      "twin_shared_prefix_012345678901234567890123456789012345678901234_bravo"
+    ]
+  ],
+  "mcpCalls": [],
+  "results": [
+    {
+      "subtype": "success",
+      "is_error": true,
+      "api_error_status": 400,
+      "stop_reason": "stop_sequence",
+      "num_turns": 1,
+      "total_cost_usd": 0,
+      "duration_ms": 577,
+      "permission_denials": [],
+      "result": "API Error: 400 tools.4.custom.name: String should have at most 128 characters",
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation_input_tokens": 0
+      }
+    }
+  ],
+  "rateLimits": [],
+  "five_hour_before": null,
+  "five_hour_after": null,
+  "exit": {
+    "code": 1,
+    "signal": null,
+    "t_ms": 3376
+  },
+  "stderr": "",
+  "table": [
+    {
+      "key": "len064",
+      "clientName": "len064_012345678901234567890123456789012345678901234567890123456",
+      "clientLength": 64,
+      "upstreamName": "mcp__client__len064_012345678901234567890123456789012345678901234567890123456",
+      "upstreamLength": 77,
+      "initTools": "exact",
+      "modelCalledAs": [],
+      "mcpReceivedAs": [],
+      "toolResultIsError": [],
+      "denied": false
+    },
+    {
+      "key": "len100",
+      "clientName": "len100_012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012",
+      "clientLength": 100,
+      "upstreamName": "mcp__client__len100_012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012",
+      "upstreamLength": 113,
+      "initTools": "exact",
+      "modelCalledAs": [],
+      "mcpReceivedAs": [],
+      "toolResultIsError": [],
+      "denied": false
+    },
+    {
+      "key": "len115",
+      "clientName": "len115_012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567",
+      "clientLength": 115,
+      "upstreamName": "mcp__client__len115_012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567",
+      "upstreamLength": 128,
+      "initTools": "exact",
+      "modelCalledAs": [],
+      "mcpReceivedAs": [],
+      "toolResultIsError": [],
+      "denied": false
+    },
+    {
+      "key": "len128",
+      "clientName": "len128_0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890",
+      "clientLength": 128,
+      "upstreamName": "mcp__client__len128_0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890",
+      "upstreamLength": 141,
+      "initTools": "exact",
+      "modelCalledAs": [],
+      "mcpReceivedAs": [],
+      "toolResultIsError": [],
+      "denied": false
+    },
+    {
+      "key": "hyphen",
+      "clientName": "has-hyphens-in-name",
+      "clientLength": 19,
+      "upstreamName": "mcp__client__has-hyphens-in-name",
+      "upstreamLength": 32,
+      "initTools": "exact",
+      "modelCalledAs": [],
+      "mcpReceivedAs": [],
+      "toolResultIsError": [],
+      "denied": false
+    },
+    {
+      "key": "twinA",
+      "clientName": "twin_shared_prefix_012345678901234567890123456789012345678901234_alpha",
+      "clientLength": 70,
+      "upstreamName": "mcp__client__twin_shared_prefix_012345678901234567890123456789012345678901234_alpha",
+      "upstreamLength": 83,
+      "initTools": "exact",
+      "modelCalledAs": [],
+      "mcpReceivedAs": [],
+      "toolResultIsError": [],
+      "denied": false
+    },
+    {
+      "key": "twinB",
+      "clientName": "twin_shared_prefix_012345678901234567890123456789012345678901234_bravo",
+      "clientLength": 70,
+      "upstreamName": "mcp__client__twin_shared_prefix_012345678901234567890123456789012345678901234_bravo",
+      "upstreamLength": 83,
+      "initTools": "exact",
+      "modelCalledAs": [],
+      "mcpReceivedAs": [],
+      "toolResultIsError": [],
+      "denied": false
+    }
+  ]
+}

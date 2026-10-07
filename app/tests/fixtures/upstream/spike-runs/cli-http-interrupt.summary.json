@@ -1,0 +1,395 @@
+{
+  "name": "cli-http-interrupt",
+  "recorded_at": "2026-10-04T14:30:29.653Z",
+  "marks": [
+    {
+      "t_ms": 0,
+      "label": "scenario",
+      "name": "cli-http-interrupt",
+      "driver": "cli",
+      "prompt": "Use the get_weather tool for Paris, then reply with one short sentence about the weather there. Do not call any other tool.",
+      "client": "never",
+      "afterParkMs": 3000,
+      "action": "interrupt",
+      "CLIENT_DELAY_MS": 3000,
+      "cli": "/home/anas/.local/share/mise/installs/claude/latest/claude",
+      "cwd": "/tmp/claude-1000/-home-anas-Work-claude-wrapper/d3fca5e2-71dd-4306-bec0-29bbeb4844c8/scratchpad/spike-cwd"
+    },
+    {
+      "t_ms": 5,
+      "label": "mcp http server listening",
+      "port": 45613
+    },
+    {
+      "t_ms": 5,
+      "label": "spawn",
+      "command": "/home/anas/.local/share/mise/installs/claude/latest/claude",
+      "args": [
+        "-p",
+        "--input-format",
+        "stream-json",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "--include-partial-messages",
+        "--tools",
+        "",
+        "--permission-mode",
+        "default",
+        "--permission-prompts",
+        "none",
+        "--setting-sources=",
+        "--strict-mcp-config",
+        "--mcp-config",
+        "{\"mcpServers\":{\"spike\":{\"type\":\"http\",\"url\":\"http://127.0.0.1:45613/mcp\",\"alwaysLoad\":true}}}",
+        "--allowedTools",
+        "mcp__spike__get_weather",
+        "--max-budget-usd",
+        "1",
+        "--no-session-persistence"
+      ]
+    },
+    {
+      "t_ms": 9,
+      "label": "wrote user message to stdin"
+    },
+    {
+      "t_ms": 516,
+      "label": "mcp session initialized",
+      "id": "768e43aa-8626-441f-9e3f-bb8cb66d484a"
+    },
+    {
+      "t_ms": 527,
+      "label": "mcp tools/list served"
+    },
+    {
+      "t_ms": 591,
+      "label": "system/init",
+      "session_id": "c4d121ce-6347-4c9d-b2b8-18689e2cf0d8",
+      "claude_code_version": "2.1.289",
+      "tools": [
+        "mcp__spike__get_weather"
+      ],
+      "mcp_servers": [
+        {
+          "name": "spike",
+          "status": "connected",
+          "source": "dynamic"
+        }
+      ],
+      "apiKeySource": "none",
+      "permissionMode": "default",
+      "model": "claude-fable-5-1"
+    },
+    {
+      "t_ms": 593,
+      "label": "system/status"
+    },
+    {
+      "t_ms": 3821,
+      "label": "stream message_start #1",
+      "id": "msg_011CfhMh2u56gAKCbKd8vY7J"
+    },
+    {
+      "t_ms": 3821,
+      "label": "stream content_block_start",
+      "index": 0,
+      "type": "text"
+    },
+    {
+      "t_ms": 5537,
+      "label": "assistant text frame",
+      "text": "I'll fetch the current weather for Paris now."
+    },
+    {
+      "t_ms": 5537,
+      "label": "stream content_block_start",
+      "index": 1,
+      "type": "tool_use",
+      "name": "mcp__spike__get_weather",
+      "id": "toolu_01J5RVQguX7yyFkAmqwfLJNv"
+    },
+    {
+      "t_ms": 5539,
+      "label": "assistant tool_use frame",
+      "id": "toolu_01J5RVQguX7yyFkAmqwfLJNv",
+      "name": "mcp__spike__get_weather",
+      "input": {
+        "city": "Paris"
+      }
+    },
+    {
+      "t_ms": 5546,
+      "label": "mcp tools/call received",
+      "name": "get_weather",
+      "args": {
+        "city": "Paris"
+      },
+      "_meta": {
+        "progressToken": 2,
+        "claudecode/toolUseId": "toolu_01J5RVQguX7yyFkAmqwfLJNv"
+      }
+    },
+    {
+      "t_ms": 5546,
+      "label": "MCP handler parked on bridge",
+      "toolUseId": "toolu_01J5RVQguX7yyFkAmqwfLJNv",
+      "early": false,
+      "metaKeys": [
+        "progressToken",
+        "claudecode/toolUseId"
+      ],
+      "extraKeys": [
+        "signal"
+      ]
+    },
+    {
+      "t_ms": 5549,
+      "label": "stream message_delta",
+      "stop_reason": "tool_use",
+      "output_tokens": 74
+    },
+    {
+      "t_ms": 5549,
+      "label": "PARKED: surface would now end the turn with stop_reason=tool_use",
+      "toolUses": [
+        "toolu_01J5RVQguX7yyFkAmqwfLJNv"
+      ]
+    },
+    {
+      "t_ms": 5549,
+      "label": "stream message_stop"
+    },
+    {
+      "t_ms": 8550,
+      "label": "client never answered; interrupting the run first"
+    },
+    {
+      "t_ms": 8550,
+      "label": "wrote control_request interrupt to stdin"
+    },
+    {
+      "t_ms": 8553,
+      "label": "cli control_response",
+      "subtype": "success",
+      "request_id": "spike-interrupt-1",
+      "snippet": "{\"type\":\"control_response\",\"response\":{\"subtype\":\"success\",\"request_id\":\"spike-interrupt-1\",\"response\":{\"still_queued\":[]}}}"
+    },
+    {
+      "t_ms": 8556,
+      "label": "cli emitted user/tool_result frame",
+      "tool_use_id": "toolu_01J5RVQguX7yyFkAmqwfLJNv",
+      "content": "\"The user doesn't want to proceed with this tool use. The tool use was rejected (eg. if it was a file edit, the new_string was NOT written to the file). STOP what you are doing and wait for the user t"
+    },
+    {
+      "t_ms": 8559,
+      "label": "result",
+      "subtype": "error_during_execution",
+      "stop_reason": "tool_use",
+      "num_turns": 3,
+      "duration_ms": 7996,
+      "duration_api_ms": 4609,
+      "total_cost_usd": 0.0049285,
+      "is_error": true,
+      "errors": [
+        "[ede_diagnostic] result_type=user last_content_type=n/a stop_reason=tool_use"
+      ],
+      "terminal_reason": "aborted_tools",
+      "session_id": "c4d121ce-6347-4c9d-b2b8-18689e2cf0d8",
+      "usage": {
+        "input_tokens": 2,
+        "output_tokens": 74,
+        "cache_read_input_tokens": 4834,
+        "cache_creation_input_tokens": 0
+      },
+      "permission_denials": []
+    },
+    {
+      "t_ms": 8563,
+      "label": "mcp tools/call aborted by upstream",
+      "name": "get_weather"
+    },
+    {
+      "t_ms": 8563,
+      "label": "MCP handler: upstream aborted the call",
+      "toolUseId": "toolu_01J5RVQguX7yyFkAmqwfLJNv"
+    },
+    {
+      "t_ms": 9559,
+      "label": "closing stdin to end the run"
+    },
+    {
+      "t_ms": 10051,
+      "label": "rejected pending MCP calls (after interrupt)"
+    },
+    {
+      "t_ms": 10481,
+      "label": "process exit",
+      "code": 1,
+      "signal": null
+    }
+  ],
+  "scenario": {
+    "driver": "cli",
+    "prompt": "Use the get_weather tool for Paris, then reply with one short sentence about the weather there. Do not call any other tool.",
+    "client": "never",
+    "afterParkMs": 3000,
+    "action": "interrupt"
+  },
+  "init": {
+    "session_id": "c4d121ce-6347-4c9d-b2b8-18689e2cf0d8",
+    "claude_code_version": "2.1.289",
+    "tools": [
+      "mcp__spike__get_weather"
+    ],
+    "mcp_servers": [
+      {
+        "name": "spike",
+        "status": "connected",
+        "source": "dynamic"
+      }
+    ],
+    "apiKeySource": "none",
+    "permissionMode": "default",
+    "model": "claude-fable-5-1"
+  },
+  "modelCalls": 1,
+  "assistantMessageIds": [
+    "msg_011CfhMh2u56gAKCbKd8vY7J"
+  ],
+  "ids": {
+    "announcedOnAssistantFrames": [
+      "toolu_01J5RVQguX7yyFkAmqwfLJNv"
+    ],
+    "seenInMcpMeta": [
+      "toolu_01J5RVQguX7yyFkAmqwfLJNv"
+    ],
+    "inCliToolResultFrames": [
+      "toolu_01J5RVQguX7yyFkAmqwfLJNv"
+    ],
+    "allMatch": true
+  },
+  "timings_ms": {
+    "tool_use_frame": 5539,
+    "message_delta_tool_use": 5549,
+    "message_stop_first": 5549,
+    "mcp_call": 5546,
+    "parked": 5549,
+    "client_delivered": null,
+    "cli_tool_result_frame": 8556,
+    "second_message_start": null,
+    "result": 8559,
+    "exit": 10481
+  },
+  "derived_ms": {
+    "bridge_detect_overhead": 0,
+    "resume_overhead_delivered_to_cli_tool_result": null,
+    "delivered_to_next_model_call": null
+  },
+  "stopReasons": [
+    "tool_use"
+  ],
+  "results": [
+    {
+      "subtype": "error_during_execution",
+      "stop_reason": "tool_use",
+      "num_turns": 3,
+      "duration_ms": 7996,
+      "duration_api_ms": 4609,
+      "total_cost_usd": 0.0049285,
+      "is_error": true,
+      "errors": [
+        "[ede_diagnostic] result_type=user last_content_type=n/a stop_reason=tool_use"
+      ],
+      "terminal_reason": "aborted_tools",
+      "session_id": "c4d121ce-6347-4c9d-b2b8-18689e2cf0d8",
+      "usage": {
+        "input_tokens": 2,
+        "output_tokens": 74,
+        "cache_read_input_tokens": 4834,
+        "cache_creation_input_tokens": 0
+      },
+      "permission_denials": []
+    }
+  ],
+  "finalText": [
+    "I'll fetch the current weather for Paris now."
+  ],
+  "interrupt": null,
+  "controlFramesOnStdout": 1,
+  "resume": null,
+  "bridgeTrace": [
+    {
+      "at": 591,
+      "kind": "turn_started"
+    },
+    {
+      "at": 5539,
+      "kind": "client_tool_use_announced",
+      "id": "toolu_01J5RVQguX7yyFkAmqwfLJNv",
+      "name": "get_weather"
+    },
+    {
+      "at": 5546,
+      "kind": "mcp_call_registered",
+      "toolUseId": "toolu_01J5RVQguX7yyFkAmqwfLJNv",
+      "name": "mcp__spike__get_weather",
+      "early": false
+    },
+    {
+      "at": 5549,
+      "kind": "assistant_message_complete",
+      "stopReason": "tool_use"
+    },
+    {
+      "at": 5549,
+      "kind": "park",
+      "toolUses": [
+        {
+          "id": "toolu_01J5RVQguX7yyFkAmqwfLJNv",
+          "name": "get_weather",
+          "input": {
+            "city": "Paris"
+          }
+        }
+      ]
+    },
+    {
+      "at": 8559,
+      "kind": "turn_ended"
+    },
+    {
+      "at": 10051,
+      "kind": "pending_rejected",
+      "toolUseId": "toolu_01J5RVQguX7yyFkAmqwfLJNv"
+    },
+    {
+      "at": 10051,
+      "kind": "abandoned",
+      "reason": "client never answered"
+    }
+  ],
+  "bridgeFinal": {
+    "phase": "abandoned",
+    "assistantMessageDone": true,
+    "announced": [
+      "toolu_01J5RVQguX7yyFkAmqwfLJNv"
+    ],
+    "pending": [],
+    "delivered": []
+  },
+  "five_hour_utilization": {
+    "five_hour": {
+      "utilization": 0.05,
+      "resetsAt": 1791141600
+    },
+    "seven_day": {
+      "utilization": 0.19,
+      "resetsAt": 1791460800
+    },
+    "seven_day_overage_included": {
+      "utilization": 0.36,
+      "resetsAt": 1791460800
+    }
+  }
+}

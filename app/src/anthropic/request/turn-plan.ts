@@ -1,0 +1,107 @@
+/**
+ * The request module's types (spec section 16): what `planTurn` takes beside the request, and
+ * the `TurnPlan` it returns.
+ */
+import { AnthropicSettings } from '../../config/anthropic-settings';
+import { ClientTool, ToolResultBlock } from '../../upstream/bridge';
+import { JsonObject } from '../../upstream/frames';
+import { HookPolicySpec } from '../../upstream/hook-policy';
+import { McpHttpServerEntry } from '../../upstream/mcp-config';
+import { RunSpec, UserMessage } from '../../upstream/runner';
+import { StateDirectory } from '../../upstream/state-directory';
+import { ModelInfo } from '../catalogue';
+import { ParkedRun } from '../sessions';
+import { RunBound } from './run-bound';
+
+/** The endpoint a request body was sent to: a turn, or a measurement of one (spec section 12). */
+export type Endpoint = 'messages' | 'count_tokens';
+
+/** A content block as the client sent it; `type` is all this module reads of most kinds. */
+export type ContentBlock = JsonObject & { type: string };
+
+/** A message after normalisation: same-role neighbours merged, string content as one text block. */
+export interface NormalisedMessage {
+  role: 'user' | 'assistant';
+  content: ContentBlock[];
+}
+
+/** What a run needs from the wrapper beside the request body. Read only; the planner performs no I/O. */
+export interface RunContext {
+  /** Timers, park TTL, `--max-turns` and `upstream.env` come from here. */
+  settings: AnthropicSettings;
+  /** The wrapper's own environment: only the base variables are copied into the child's. */
+  environment: Readonly<Record<string, string | undefined>>;
+  state: StateDirectory;
+  /** Names this run's private directory, `<state.runs>/<runId>`. */
+  runId: string;
+  /** The request's `anthropic-beta` values; `mcp-client-2025-11-20` unlocks connectors (spec section 9). None: no beta. */
+  betas?: readonly string[];
+}
+
+/** How a turn that starts a run reaches upstream (spec section 5). */
+export type RunContinuation =
+  /** A replayed turn: a fresh run receives this one message, any history rendered into it. */
+  | { replay: UserMessage }
+  /** A continued turn: the run resumes upstream session `resume` and receives only the new message. */
+  | { resume: string; message: UserMessage };
+
+/**
+ * A resuming turn (spec section 7): the request answers the parked run's `tool_use` ids, so no
+ * run is started; `results` go to the parked run's bridge server, and it continues.
+ */
+export interface ParkedContinuation {
+  parked: ParkedRun;
+  results: ToolResultBlock[];
+}
+
+export type Continuation = RunContinuation | ParkedContinuation;
+
+/** What the conductor checks on `system/init` before relaying anything; a mismatch fails the turn. */
+export interface StartupChecks {
+  /** `init.model` must equal it: the canonical id. */
+  model: string;
+  /**
+   * `init.tools` must equal it, but for the connectors' tools, which only their servers know:
+   * any tool named under a connector's `mcp__<name>__` is expected.
+   */
+  tools: string[];
+  /** The connectors mounted: `init.mcp_servers` must report each `connected` (spec section 9). */
+  connectors: string[];
+}
+
+/** What the turn's translator applies beside the run (spec section 12): not run-bound, so per turn. */
+export interface TurnTranslation {
+  /** The request's `stop_sequences`; empty when it has none. */
+  stopSequences: readonly string[];
+  /** The run is started with `--json-schema`: its `StructuredOutput` call is the answer. Run-bound. */
+  structuredOutput: boolean;
+}
+
+export interface TurnPlan {
+  /** The catalogue entry the request's `model` resolved to. */
+  model: ModelInfo;
+  messages: NormalisedMessage[];
+  /** Exactly the client's `system`: a string as is, text blocks joined with a blank line, else ''. */
+  system: string;
+  /** The whole spawn contract: argument list, child environment, working and per-run directories, timers. */
+  runSpec: RunSpec;
+  continuation: Continuation;
+  translatorConfig: TurnTranslation;
+  startupChecks: StartupChecks;
+  /** The client tools the bridge server serves this turn's run; none (or `tool_choice: none`): not mounted. */
+  bridgeTools: ClientTool[];
+  /**
+   * The connectors' entries in the run's MCP config file, by name (spec section 9), written beside
+   * the bridge server's when the run is mounted. They carry the clients' tokens: never log a plan.
+   */
+  connectors: Record<string, McpHttpServerEntry>;
+  /**
+   * The built-in web tools the run enables and the limits its `PreToolUse` hook enforces; absent
+   * when it enables none (no web tool declared, or `tool_choice: none`): no hook, no settings file.
+   */
+  hookPolicy?: HookPolicySpec;
+  /** What the run is spawned with and a resuming turn cannot change. */
+  runBound: RunBound;
+  /** The `tool_result` ids of a replayed turn whose results named no parked run (spec section 7): a lost park. */
+  lostPark?: string[];
+}

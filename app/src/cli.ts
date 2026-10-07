@@ -246,7 +246,8 @@ class CliRunner {
     }
 
     // Import and start server directly
-    const app = await import('./api/server');
+    const { anthropicSurfaceOf, createServer } = await import('./api/server');
+    const app = createServer();
     const { signalHandler } = await import('./process/signals');
     
     const wslInfo = WSLHelper.getWSLInfo();
@@ -296,12 +297,14 @@ class CliRunner {
     console.log(`\n🐛 Debug mode enabled - server will run in foreground`);
     console.log(`📝 Press Ctrl+C to stop the server`);
 
-    const server = app.default.listen(parseInt(port), '0.0.0.0', () => {
+    const server = app.listen(parseInt(port), '0.0.0.0', () => {
       console.log(`✅ Server listening on port ${port}`);
     });
 
-    // Setup graceful shutdown
+    // Setup graceful shutdown; the Anthropic surface starts with the wrapper and drains first
     signalHandler.setupGracefulShutdown(server);
+    const { attachAnthropicSurface } = await import('./process/surface-drain');
+    attachAnthropicSurface(signalHandler, anthropicSurfaceOf(app));
     
     // Keep the process alive (don't exit)
     return new Promise(() => {

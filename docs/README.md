@@ -123,6 +123,12 @@ Options:
 | `GET` | `/health` | Service health check |
 | `GET` | `/docs` | Swagger UI |
 | `GET` | `/swagger.json` | OpenAPI 3.0 specification JSON schema |
+| `POST` | `/v1/messages` | Anthropic surface: one turn |
+| `POST` | `/v1/messages/count_tokens` | Anthropic surface: count input tokens |
+| `GET` | `/v1/models/:id` | Anthropic surface: one model (with `anthropic-version`) |
+| `GET` | `/docs/anthropic-openapi.json` | Anthropic surface: OpenAPI 3.0 document |
+
+The Anthropic surface serves the Anthropic Messages API for the official Anthropic SDKs. Before exposing it, read its section in the [README](../README.md#anthropic-surface), which holds the operator warning and the known deviations. The [runbook](ANTHROPIC_SURFACE_RUNBOOK.md) covers its settings, its real-CLI test scenarios and fixture scrubbing.
 
 ## API Documentation
 

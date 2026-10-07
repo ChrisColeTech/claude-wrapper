@@ -1,6 +1,7 @@
 import { EnvironmentConfig } from '../types';
 import { API_CONSTANTS, LOG_LEVELS } from './constants';
 import { SECURITY_ENV_VARS } from './security-constants';
+import { AnthropicSettings, loadAnthropicSettings } from './anthropic-settings';
 
 export class EnvironmentManager {
   private static config: EnvironmentConfig | null = null;
@@ -43,6 +44,11 @@ export class EnvironmentManager {
     
     console.warn(`Invalid ${key} environment variable: ${value}, using default: ${defaultValue}`);
     return defaultValue;
+  }
+
+  /** The Anthropic surface's operator settings, read from the environment on each call. */
+  static getAnthropicSettings(): AnthropicSettings {
+    return loadAnthropicSettings(process.env);
   }
 
   static isProduction(): boolean {

@@ -1,0 +1,2085 @@
+[
+  {
+    "type": "message_start",
+    "message": {
+      "model": "claude-fable-5-1",
+      "id": "msg_011CfhT5T3acBhFN8zw96STz",
+      "type": "message",
+      "role": "assistant",
+      "content": [],
+      "container": null,
+      "stop_reason": null,
+      "stop_sequence": null,
+      "stop_details": null,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 623,
+        "cache_read_input_tokens": 654,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 623
+        },
+        "output_tokens": 22,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "diagnostics": null
+    }
+  },
+  {
+    "type": "content_block_start",
+    "index": 0,
+    "content_block": {
+      "type": "server_tool_use",
+      "id": "srvtoolu_019sREq77RdDCKkaCpmSwAfh",
+      "name": "web_search",
+      "input": {}
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 0,
+    "delta": {
+      "type": "input_json_delta",
+      "partial_json": "{\"query\":\"latest Claude Code release notes\"}"
+    }
+  },
+  {
+    "type": "content_block_stop",
+    "index": 0
+  },
+  {
+    "type": "content_block_start",
+    "index": 1,
+    "content_block": {
+      "type": "web_search_tool_result",
+      "tool_use_id": "srvtoolu_019sREq77RdDCKkaCpmSwAfh",
+      "content": [
+        {
+          "type": "web_search_result",
+          "url": "https://releasebot.io/updates/anthropic/claude-code",
+          "title": "Claude Code Updates & Release Notes",
+          "encrypted_content": "eyJ1cmwiOiJodHRwczovL3JlbGVhc2Vib3QuaW8vdXBkYXRlcy9hbnRocm9waWMvY2xhdWRlLWNvZGUiLCJ0aXRsZSI6IkNsYXVkZSBDb2RlIFVwZGF0ZXMgJiBSZWxlYXNlIE5vdGVzIn0=",
+          "page_age": null
+        },
+        {
+          "type": "web_search_result",
+          "url": "https://releasebot.io/updates/anthropic/claude",
+          "title": "Claude Updates by Anthropic - October 2026 - Releasebot",
+          "encrypted_content": "eyJ1cmwiOiJodHRwczovL3JlbGVhc2Vib3QuaW8vdXBkYXRlcy9hbnRocm9waWMvY2xhdWRlIiwidGl0bGUiOiJDbGF1ZGUgVXBkYXRlcyBieSBBbnRocm9waWMgLSBPY3RvYmVyIDIwMjYgLSBSZWxlYXNlYm90In0=",
+          "page_age": null
+        },
+        {
+          "type": "web_search_result",
+          "url": "https://claudelog.com/faqs/claude-code-release-notes/",
+          "title": "claude-code-release-notes",
+          "encrypted_content": "eyJ1cmwiOiJodHRwczovL2NsYXVkZWxvZy5jb20vZmFxcy9jbGF1ZGUtY29kZS1yZWxlYXNlLW5vdGVzLyIsInRpdGxlIjoiY2xhdWRlLWNvZGUtcmVsZWFzZS1ub3RlcyJ9",
+          "page_age": null
+        },
+        {
+          "type": "web_search_result",
+          "url": "https://claude.com/docs/cowork/changelog",
+          "title": "Changelog - Claude.ai Documentation",
+          "encrypted_content": "eyJ1cmwiOiJodHRwczovL2NsYXVkZS5jb20vZG9jcy9jb3dvcmsvY2hhbmdlbG9nIiwidGl0bGUiOiJDaGFuZ2Vsb2cgLSBDbGF1ZGUuYWkgRG9jdW1lbnRhdGlvbiJ9",
+          "page_age": null
+        },
+        {
+          "type": "web_search_result",
+          "url": "https://www.gradually.ai/en/changelogs/claude-code/",
+          "title": "Claude Code Changelog (September 2026)",
+          "encrypted_content": "eyJ1cmwiOiJodHRwczovL3d3dy5ncmFkdWFsbHkuYWkvZW4vY2hhbmdlbG9ncy9jbGF1ZGUtY29kZS8iLCJ0aXRsZSI6IkNsYXVkZSBDb2RlIENoYW5nZWxvZyAoU2VwdGVtYmVyIDIwMjYpIn0=",
+          "page_age": null
+        },
+        {
+          "type": "web_search_result",
+          "url": "https://www.builder.io/blog/claude-code-updates",
+          "title": "Every Claude Code Update From March 2026, Explained",
+          "encrypted_content": "eyJ1cmwiOiJodHRwczovL3d3dy5idWlsZGVyLmlvL2Jsb2cvY2xhdWRlLWNvZGUtdXBkYXRlcyIsInRpdGxlIjoiRXZlcnkgQ2xhdWRlIENvZGUgVXBkYXRlIEZyb20gTWFyY2ggMjAyNiwgRXhwbGFpbmVkIn0=",
+          "page_age": null
+        },
+        {
+          "type": "web_search_result",
+          "url": "https://claude-world.com/changelog/",
+          "title": "Claude Code Changelog Archive",
+          "encrypted_content": "eyJ1cmwiOiJodHRwczovL2NsYXVkZS13b3JsZC5jb20vY2hhbmdlbG9nLyIsInRpdGxlIjoiQ2xhdWRlIENvZGUgQ2hhbmdlbG9nIEFyY2hpdmUifQ==",
+          "page_age": null
+        },
+        {
+          "type": "web_search_result",
+          "url": "https://claudelog.com/claude-code-changelog/",
+          "title": "ClaudeLog - Claude Code Docs, Guides, Tutorials & Best Practices",
+          "encrypted_content": "eyJ1cmwiOiJodHRwczovL2NsYXVkZWxvZy5jb20vY2xhdWRlLWNvZGUtY2hhbmdlbG9nLyIsInRpdGxlIjoiQ2xhdWRlTG9nIC0gQ2xhdWRlIENvZGUgRG9jcywgR3VpZGVzLCBUdXRvcmlhbHMgJiBCZXN0IFByYWN0aWNlcyJ9",
+          "page_age": null
+        },
+        {
+          "type": "web_search_result",
+          "url": "https://releasebot.io/updates/anthropic",
+          "title": "Anthropic Release Notes - October 2026 Latest Updates - Releasebot",
+          "encrypted_content": "eyJ1cmwiOiJodHRwczovL3JlbGVhc2Vib3QuaW8vdXBkYXRlcy9hbnRocm9waWMiLCJ0aXRsZSI6IkFudGhyb3BpYyBSZWxlYXNlIE5vdGVzIC0gT2N0b2JlciAyMDI2IExhdGVzdCBVcGRhdGVzIC0gUmVsZWFzZWJvdCJ9",
+          "page_age": null
+        },
+        {
+          "type": "web_search_result",
+          "url": "https://clockedcode.com/blog/claude-code-changelog",
+          "title": "Claude Code Changelog: Every Release Explained in Plain English",
+          "encrypted_content": "eyJ1cmwiOiJodHRwczovL2Nsb2NrZWRjb2RlLmNvbS9ibG9nL2NsYXVkZS1jb2RlLWNoYW5nZWxvZyIsInRpdGxlIjoiQ2xhdWRlIENvZGUgQ2hhbmdlbG9nOiBFdmVyeSBSZWxlYXNlIEV4cGxhaW5lZCBpbiBQbGFpbiBFbmdsaXNoIn0=",
+          "page_age": null
+        }
+      ]
+    }
+  },
+  {
+    "type": "content_block_stop",
+    "index": 1
+  },
+  {
+    "type": "content_block_start",
+    "index": 2,
+    "content_block": {
+      "type": "thinking",
+      "thinking": "",
+      "signature": ""
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 2,
+    "delta": {
+      "type": "thinking_delta",
+      "thinking": ""
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 2,
+    "delta": {
+      "type": "signature_delta",
+      "signature": "CAQS5AUKEAgSGAI4AUIIdGhpbmtpbmcSDKXNRngHrxcxB/Cc1xoMYAoaTIExYPTHoImfIjDXTGJkbJjnAH5wl00uQ0JLze1pXZ49tyCXHmagvtmxc1McRhpd2qgTl7WF7YnGtBcqgQU2zTHq8YPfsUUlCnKQLELb18X6mOYszHNOnmLmeJdCjZHNYvWcFVblM1bC5VMDKbrorAlVR1nnZBiNsPufaNYhr8NaaorHSS1Ll0kMmf5qCblJVZOqjge5uFV2/WnXlliLaiOCAOh6RWN0B9MH/+jpN5yKLn1Xj5w/d+pa2hDxV0N45BjucZlCoKp+Gx8Gu9PDjMLQiTaB4NJZ1YpGYMmD/eP37EJwnuugssp+4Ync5wWu0w0i2ZJiWj0kbEPm3zQWHprCWlBD1rbP9K1mwscdZC8AWGTmkbPteIYlldDi1J8ses29MRNg1TGiuY21KHNZP9no3K+AerBfV1QCF7g6/IKwe2q4Fr4dPGuWCl7aejBRSE+AFqmyFd2nVihc+M9lnQr9e+GCF8JjJxg7FEOjYTblysUJHFs9GlhasSucJm4rlCr5BcDKNL0CbJinlLNj2rUHvLVbyeMRKN5u08a9+hdkwmhoaVqZbka5/4qrrALRRGfBMiwQISwbU+2VDK2t2/bwkrgE5BBeEq3wBQa7aEKTRG64ig56hBIROYAWjads/VxQzKDZXe7PrXcofZv+cfG95HjOBrP4k5jFUxssfiHCQyANFi+p517E4Cnmv2mfGi0u/DcVCPgi7oZox5wPml4ajR5+kI4lWMi5ubM8NRKHYMrtzUIPVgy1suSO48DY7TlW97H/I0Vl6+uyr6YD+BBWxSyHfa+u+BqtM9N9eB0UDgavRrIQexi+dkUFGxgLSc/lR4aoZ9CB0z/oZuV3UVquSdHv9hf9N8ApRBbXndqxTZA1BwqW40PrUdzh2V6V4dUFBq7LHhBHsWK/9bkfE2eZJKhQR/kT+lqsQ0whwRgB"
+    }
+  },
+  {
+    "type": "content_block_stop",
+    "index": 2
+  },
+  {
+    "type": "content_block_start",
+    "index": 3,
+    "content_block": {
+      "type": "text",
+      "text": ""
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 3,
+    "delta": {
+      "type": "text_delta",
+      "text": "The"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 3,
+    "delta": {
+      "type": "text_delta",
+      "text": " first search is complete;"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 3,
+    "delta": {
+      "type": "text_delta",
+      "text": " the"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 3,
+    "delta": {
+      "type": "text_delta",
+      "text": " only rem"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 3,
+    "delta": {
+      "type": "text_delta",
+      "text": "aining item is the second search"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 3,
+    "delta": {
+      "type": "text_delta",
+      "text": ", which can"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 3,
+    "delta": {
+      "type": "text_delta",
+      "text": " now run."
+    }
+  },
+  {
+    "type": "content_block_stop",
+    "index": 3
+  },
+  {
+    "type": "content_block_start",
+    "index": 4,
+    "content_block": {
+      "type": "server_tool_use",
+      "id": "srvtoolu_01S5rGiUVb1zKFSAySPaovAY",
+      "name": "web_search",
+      "input": {}
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 4,
+    "delta": {
+      "type": "input_json_delta",
+      "partial_json": "{\"query\":\"anthropics/claude-code CHANGELOG.md GitHub\"}"
+    }
+  },
+  {
+    "type": "content_block_stop",
+    "index": 4
+  },
+  {
+    "type": "content_block_start",
+    "index": 5,
+    "content_block": {
+      "type": "web_search_tool_result",
+      "tool_use_id": "srvtoolu_01S5rGiUVb1zKFSAySPaovAY",
+      "content": [
+        {
+          "type": "web_search_result",
+          "url": "https://raw.githubusercontent.com/anthropics/claude-code/main/CHANGELOG.md",
+          "title": "https://raw.githubusercontent.com/anthropics/claud...",
+          "encrypted_content": "eyJ1cmwiOiJodHRwczovL3Jhdy5naXRodWJ1c2VyY29udGVudC5jb20vYW50aHJvcGljcy9jbGF1ZGUtY29kZS9tYWluL0NIQU5HRUxPRy5tZCIsInRpdGxlIjoiaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL2FudGhyb3BpY3MvY2xhdWQuLi4ifQ==",
+          "page_age": null
+        },
+        {
+          "type": "web_search_result",
+          "url": "https://www.threads.com/@george_sl_liu/post/DN5rIrJE0aU/claude-code-1094-release-change-log-httpsgithubcomanthropicsclaude-codeblobmainc",
+          "title": "Claude Code 1.0.94 release change log https://github.com/anthropics/claude-code/blob/main/CHANGELOG.md 🤓",
+          "encrypted_content": "eyJ1cmwiOiJodHRwczovL3d3dy50aHJlYWRzLmNvbS9AZ2VvcmdlX3NsX2xpdS9wb3N0L0RONXJJckpFMGFVL2NsYXVkZS1jb2RlLTEwOTQtcmVsZWFzZS1jaGFuZ2UtbG9nLWh0dHBzZ2l0aHViY29tYW50aHJvcGljc2NsYXVkZS1jb2RlYmxvYm1haW5jIiwidGl0bGUiOiJDbGF1ZGUgQ29kZSAxLjAuOTQgcmVsZWFzZSBjaGFuZ2UgbG9nIGh0dHBzOi8vZ2l0aHViLmNvbS9hbnRocm9waWNzL2NsYXVkZS1jb2RlL2Jsb2IvbWFpbi9DSEFOR0VMT0cubWQg8J+kkyJ9",
+          "page_age": null
+        },
+        {
+          "type": "web_search_result",
+          "url": "https://www.threads.com/@george_sl_liu/post/DTcXQ0lkwnt/claude-code-change-log",
+          "title": "Claude Code 2.1.6 change log https://github.com/anthropics/claude-code/blob/main/CHANGELOG.md",
+          "encrypted_content": "eyJ1cmwiOiJodHRwczovL3d3dy50aHJlYWRzLmNvbS9AZ2VvcmdlX3NsX2xpdS9wb3N0L0RUY1hRMGxrd250L2NsYXVkZS1jb2RlLWNoYW5nZS1sb2ciLCJ0aXRsZSI6IkNsYXVkZSBDb2RlIDIuMS42IGNoYW5nZSBsb2cgaHR0cHM6Ly9naXRodWIuY29tL2FudGhyb3BpY3MvY2xhdWRlLWNvZGUvYmxvYi9tYWluL0NIQU5HRUxPRy5tZCJ9",
+          "page_age": null
+        },
+        {
+          "type": "web_search_result",
+          "url": "https://www.threads.com/@george_sl_liu/post/DPbd8sYE4f6/claude-code-208-change-log-httpsgithubcomanthropicsclaude-codeblobmainchangelogm",
+          "title": "Claude Code 2.0.8 change log https://github.com/anthropics/claude-code/blob/main/CHANGELOG.md",
+          "encrypted_content": "eyJ1cmwiOiJodHRwczovL3d3dy50aHJlYWRzLmNvbS9AZ2VvcmdlX3NsX2xpdS9wb3N0L0RQYmQ4c1lFNGY2L2NsYXVkZS1jb2RlLTIwOC1jaGFuZ2UtbG9nLWh0dHBzZ2l0aHViY29tYW50aHJvcGljc2NsYXVkZS1jb2RlYmxvYm1haW5jaGFuZ2Vsb2dtIiwidGl0bGUiOiJDbGF1ZGUgQ29kZSAyLjAuOCBjaGFuZ2UgbG9nIGh0dHBzOi8vZ2l0aHViLmNvbS9hbnRocm9waWNzL2NsYXVkZS1jb2RlL2Jsb2IvbWFpbi9DSEFOR0VMT0cubWQifQ==",
+          "page_age": null
+        },
+        {
+          "type": "web_search_result",
+          "url": "https://code.claude.com/docs/en/changelog?46f68bc1_page=2&b7eea976_page=6&d7430fcd_page=6",
+          "title": "Claude Code changelog - Claude Code Docs",
+          "encrypted_content": "eyJ1cmwiOiJodHRwczovL2NvZGUuY2xhdWRlLmNvbS9kb2NzL2VuL2NoYW5nZWxvZz80NmY2OGJjMV9wYWdlPTImYjdlZWE5NzZfcGFnZT02JmQ3NDMwZmNkX3BhZ2U9NiIsInRpdGxlIjoiQ2xhdWRlIENvZGUgY2hhbmdlbG9nIC0gQ2xhdWRlIENvZGUgRG9jcyJ9",
+          "page_age": null
+        },
+        {
+          "type": "web_search_result",
+          "url": "https://x.com/oikon48/status/1999696531088101645",
+          "title": "Oikon on X: \"Claude Code CHANGELOG .md https://t.co/0PE3yIPNzw\" / X",
+          "encrypted_content": "eyJ1cmwiOiJodHRwczovL3guY29tL29pa29uNDgvc3RhdHVzLzE5OTk2OTY1MzEwODgxMDE2NDUiLCJ0aXRsZSI6Ik9pa29uIG9uIFg6IFwiQ2xhdWRlIENvZGUgQ0hBTkdFTE9HIC5tZCBodHRwczovL3QuY28vMFBFM3lJUE56d1wiIC8gWCJ9",
+          "page_age": null
+        },
+        {
+          "type": "web_search_result",
+          "url": "https://agent-safehouse.dev/docs/agent-investigations/claude-code",
+          "title": "Claude Code -- Sandbox Analysis Report",
+          "encrypted_content": "eyJ1cmwiOiJodHRwczovL2FnZW50LXNhZmVob3VzZS5kZXYvZG9jcy9hZ2VudC1pbnZlc3RpZ2F0aW9ucy9jbGF1ZGUtY29kZSIsInRpdGxlIjoiQ2xhdWRlIENvZGUgLS0gU2FuZGJveCBBbmFseXNpcyBSZXBvcnQifQ==",
+          "page_age": null
+        },
+        {
+          "type": "web_search_result",
+          "url": "https://deepwiki.com/anthropics/claude-code/1.2-feature-evolution-and-release-history",
+          "title": "Feature Evolution & Release History",
+          "encrypted_content": "eyJ1cmwiOiJodHRwczovL2RlZXB3aWtpLmNvbS9hbnRocm9waWNzL2NsYXVkZS1jb2RlLzEuMi1mZWF0dXJlLWV2b2x1dGlvbi1hbmQtcmVsZWFzZS1oaXN0b3J5IiwidGl0bGUiOiJGZWF0dXJlIEV2b2x1dGlvbiAmIFJlbGVhc2UgSGlzdG9yeSJ9",
+          "page_age": null
+        }
+      ]
+    }
+  },
+  {
+    "type": "content_block_stop",
+    "index": 5
+  },
+  {
+    "type": "content_block_start",
+    "index": 6,
+    "content_block": {
+      "type": "text",
+      "text": ""
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "Both sear"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "ches completed without"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": " ref"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "usal; nothing further"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": " is needed. The first search ("
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "lat"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "est Cla"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "ude Code release notes) retur"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "ned [rele"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "asebot.io/"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "upd"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "ates/anthropic"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "/claude-code](https://"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "releasebot.io/upd"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "ates/anthropic/cla"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "ude-code), [releaseb"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "ot.io/updates/an"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "thropic/claude](https"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "://releasebot.io/"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "updates/anthropic/"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "claude), [claudel"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "og.com/fa"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "qs/claude-code-"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "release-notes](https://cla"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "udelog.com/faq"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "s/claude-code-release"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "-notes/), [claude"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": ".com/docs/c"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "owork/changelog](https"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "://claude.com/docs"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "/cowork/changelog"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "), [gradually.ai"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "/en/changelogs/"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "claude-code](https://www"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": ".gradually.ai/"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "en/changelogs/cla"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "ude-code/), [builder"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": ".io/blog/claude"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "-code-updates](https://"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "www.builder.io/bl"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "og/claude-code-upd"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "ates), [claude-world."
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "com/changelog](https://"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "claude-world.com/chang"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "elog/), [claudel"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "og.com/claude-code"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "-changelog](https://cla"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "udelog.com/claude"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "-code-changelog/),"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": " [releasebot.io/"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "updates/anthropic]("
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "https://releasebot.io"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "/updates/anthropic"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "), and [clocked"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "code.com/blog/"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "claude-code-changelog"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "](https://clockedcode"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": ".com/blog/claude"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "-code-changelog)."
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": " The second search (anthropics"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "/claude-code CHAN"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "GELOG.md on"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": " GitHub) returned ["
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "raw.githubusercont"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "ent.com/anthropics"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "/claude-code/main/"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "CHANGELOG."
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "md](https://raw.gith"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "ubusercontent.com/"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "anthropics/claude-"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "code/main/CHANG"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "ELOG.md), three"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": " Threads posts linking to ["
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "github.com/anthropics"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "/claude-code/blob"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "/main/CHANGEL"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "OG.md](https://github"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": ".com/anthropics/"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "claude-code/blob/"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "main/CHANGELO"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "G.md) ([1"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "]("
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "https://www.threads.com"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "/@"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "george_s"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "l_li"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "u/post"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "/DN"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "5"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "r"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "IrJ"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "E0a"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "U/claude-code-1"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "094-release-change"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "-log-htt"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "ps"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "githubcoman"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "thropics"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "claude-code"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "blobmainc"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "), [2](https://www."
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "threads.com/@george_"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "sl_liu/post/"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "DTc"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "X"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "Q0l"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "kwnt"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "/claude-code-change"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "-log), [3](https://"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "www.threads.com/@"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "george_sl_liu/"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "post/DPb"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "d8s"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "Y"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "E"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "4"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "f6/claude-code-"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "208-change-log-http"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "sgithubcomanth"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "ropicsclaude-cod"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "eblobmainchangel"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "ogm)), [code.cla"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "ude.com/docs/en"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "/changelog](https://code"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": ".claude.com/docs"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "/en/changelog?46"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "f"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "68"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "b"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "c1"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "_"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "page=2"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "&b"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "7e"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "ea"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "976"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "_page=6&d7430"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "fc"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "d_page=6), ["
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "x.com/oikon"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "48/status/1999"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "696"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "531"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "088101"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "645"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "](https://x.com/o"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "ikon48/status/1999"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "696531088101645), [ag"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "ent-saf"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "ehouse.dev/doc"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "s/agent-invest"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "igations/claude-code]("
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "https://agent-safehou"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "se.dev/docs/"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "agent-investigations/cla"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "ude-code), and [deep"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "wiki.com/anth"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "ropics/claude-code/"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "1.2"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "-feature-ev"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "olution-and-release-history"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "](https://deepwiki"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": ".com/anthropics/"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "claude-code/1.2"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "-feature-evolution-"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "and-release-history)."
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "\n\nSources:\n- https://rele"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "asebot.io/updates"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "/anthropic/claude"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "-code\n- https://releas"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "ebot.io/updates/"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "anthropic/claude"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "\n- https://claudelog."
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "com/faqs/claude"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "-code-release-notes/"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "\n- https://claude.com"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "/docs/cowork/"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "changelog\n- https://www"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": ".gradually.ai/"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "en/changelogs/cla"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "ude-code/\n- https://"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "www.builder.io/bl"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "og/claude-code-upd"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "ates\n- https://claude-"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "world.com/changelog/"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "\n- https://claudelog"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": ".com/claude-code-"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "changelog/\n- https://"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "releasebot.io/upd"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "ates/anthropic\n-"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": " https://clockedcode."
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "com/blog/claude-"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "code-changelog\n- https"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "://raw.githubuserc"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "ontent.com/anthrop"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "ics/claude-code/main"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "/CHANGELOG"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": ".md\n- https://github."
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "com/anthropics/cla"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "ude-code/blob/main"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "/CHANGELOG"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": ".md\n- https://code."
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "claude.com/docs/"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "en/changelog"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "\n- https://x.com/o"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "ikon48/status/1999"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "696531088101645\n- https"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "://agent-safehouse"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": ".dev/docs/ag"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "ent-investigations/claude"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "-code\n- https://deep"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "wiki.com/anth"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "ropics/claude-code/"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "1.2-feature-ev"
+    }
+  },
+  {
+    "type": "content_block_delta",
+    "index": 6,
+    "delta": {
+      "type": "text_delta",
+      "text": "olution-and-release-history"
+    }
+  },
+  {
+    "type": "content_block_stop",
+    "index": 6
+  },
+  {
+    "type": "message_delta",
+    "delta": {
+      "stop_reason": "end_turn",
+      "stop_sequence": null,
+      "stop_details": null,
+      "container": null
+    },
+    "usage": {
+      "input_tokens": 66,
+      "cache_creation_input_tokens": 2968,
+      "cache_read_input_tokens": 4288,
+      "output_tokens": 1603,
+      "output_tokens_details": {
+        "thinking_tokens": 34
+      },
+      "server_tool_use": {
+        "web_search_requests": 2,
+        "web_fetch_requests": 0
+      },
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 2968
+      }
+    }
+  },
+  {
+    "type": "message_stop"
+  }
+]

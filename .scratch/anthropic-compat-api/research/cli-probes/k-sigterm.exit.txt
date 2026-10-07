@@ -1,0 +1,1 @@
+SIGTERM sent at 1.5s; exit code 143

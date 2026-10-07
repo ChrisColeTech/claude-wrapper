@@ -8,6 +8,7 @@
 import { SIGNAL_CONFIG, PROCESS_CONFIG } from '../config/constants';
 import { logger } from '../utils/logger';
 import { pidManager } from './pid';
+import { shutdownBudgetMs } from './shutdown-budget';
 
 /**
  * Shutdown step information
@@ -123,7 +124,7 @@ export class SignalHandler implements ISignalHandler {
     // Set overall shutdown timeout
     this.shutdownTimer = setTimeout(() => {
       this.forceShutdown('Shutdown timeout exceeded');
-    }, PROCESS_CONFIG.DEFAULT_SHUTDOWN_TIMEOUT_MS);
+    }, shutdownBudgetMs(this.shutdownSteps));
 
     try {
       await this.executeShutdownSteps();

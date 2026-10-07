@@ -6,6 +6,7 @@
 
 import { logger } from './utils/logger';
 import { signalHandler } from './process/signals';
+import { attachAnthropicSurface } from './process/surface-drain';
 
 /**
  * Parse daemon arguments
@@ -59,7 +60,8 @@ async function startDaemon(): Promise<void> {
   }
 
   // Import server AFTER setting environment variables
-  const { default: app } = await import('./api/server');
+  const { anthropicSurfaceOf, createServer } = await import('./api/server');
+  const app = createServer();
 
   // Start server
   const server = app.listen(options.port, '0.0.0.0', () => {
@@ -73,8 +75,9 @@ async function startDaemon(): Promise<void> {
     }
   });
 
-  // Setup graceful shutdown using new signal handler
+  // Setup graceful shutdown using new signal handler; the Anthropic surface starts with the wrapper and drains first
   signalHandler.setupGracefulShutdown(server);
+  attachAnthropicSurface(signalHandler, anthropicSurfaceOf(app));
 }
 
 // Only run if this is the main module

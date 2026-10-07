@@ -9,6 +9,8 @@
   },
   "files": [
     "dist/**/*",
+    "catalogue/**/*",
+    "bin/hook-client.js",
     "README.md",
     "LICENSE"
   ],
@@ -38,10 +40,12 @@
     "lint:fix": "eslint src tests --ext .ts --fix",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist",
+    "fixtures:scrub": "ts-node tests/scripts/scrub-upstream-fixtures.ts",
     "clean:logs": "rm -rf tests/logs/pass/* tests/logs/fail/* tests/logs/verbose/*",
     "precommit": "npm run build && npm run test:ci && npm run lint && npm run typecheck"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.0",
     "@types/swagger-jsdoc": "^6.0.4",
     "@types/swagger-ui-express": "^4.1.8",
     "@types/uuid": "^10.0.0",
@@ -56,6 +60,8 @@
     "uuid": "^11.1.0"
   },
   "devDependencies": {
+    "@anthropic-ai/sdk": "0.131.0",
+    "@apidevtools/swagger-parser": "10.0.3",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
     "@types/inquirer": "^9.0.8",
