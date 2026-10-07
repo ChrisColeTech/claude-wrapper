@@ -8,10 +8,10 @@ import Anthropic from '@anthropic-ai/sdk';
 import { jsonSchemaOutputFormat } from '@anthropic-ai/sdk/helpers/json-schema';
 import { ANTHROPIC_SETTING_ENV } from '../../../src/config/anthropic-settings';
 import { createReplayRunner, ReplayRunner } from '../../../src/upstream/runner';
-import { Frame } from '../../../src/upstream/frames';
 import { STATE } from '../../mocks/anthropic/plan-context';
 import { envelopeOf, rejectionOf, SurfaceHarness, startSurface } from '../../mocks/anthropic/surface-harness';
-import { frameOf, initFrame, MESSAGE_START, MESSAGE_STOP, resultFrame, streamEvent } from '../../mocks/anthropic/turn-frames';
+import { structuredAnswer as answer } from '../../mocks/anthropic/structured-output-frames';
+import { initFrame, resultFrame } from '../../mocks/anthropic/turn-frames';
 import { waitFor } from '../../mocks/shared/wait-for';
 import { loadRecording, recordedStdout } from '../../mocks/upstream/recordings';
 import { createScriptedRunner, ScriptedRun, ScriptedRunner } from '../../mocks/upstream/scripted-runner';
@@ -78,18 +78,6 @@ describe('Anthropic surface: structured output, scripted upstream', () => {
     await waitFor(() => run.process.writtenLines().length >= 1);
     return run;
   }
-
-  /** One StructuredOutput call answering `json`, with its `tool_result` (`isError` for a schema miss). */
-  const answer = (id: string, json: string, isError = false): Frame[] => [
-    ...[MESSAGE_START,
-      { type: 'content_block_start', index: 0, content_block: { type: 'tool_use', id, name: 'StructuredOutput', input: {} } },
-      { type: 'content_block_delta', index: 0, delta: { type: 'input_json_delta', partial_json: json } },
-      { type: 'content_block_stop', index: 0 }].map(event => streamEvent(event)),
-    frameOf({ type: 'user', parent_tool_use_id: null, session_id: 'session-1', message: { role: 'user', content: [
-      { type: 'tool_result', tool_use_id: id, content: 'checked', ...(isError ? { is_error: true } : {}) }] } }),
-    ...[{ type: 'message_delta', delta: { stop_reason: 'tool_use', stop_sequence: null }, usage: { output_tokens: 9 } },
-      MESSAGE_STOP].map(event => streamEvent(event))
-  ];
 
   beforeEach(async () => {
     jest.spyOn(console, 'error').mockImplementation(() => undefined);

@@ -22,6 +22,8 @@ export interface ConductedRun {
   readonly bridge: Bridge | undefined;
   /** What the run was spawned with. */
   readonly runBound: RunBound;
+  /** Spawned with `--json-schema`: every turn's translator renders its StructuredOutput answer. */
+  readonly structuredOutput: boolean;
 }
 
 export interface HeldRunOptions {

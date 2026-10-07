@@ -52,7 +52,9 @@ export async function launchRun(
     });
     void pump.done.catch(error => log.warn('Upstream run pump failed', { error: String(error) }))
       .then(() => mounted?.release());
-    return { runId, run, pump, failures, bridge, runBound: turn.runBound };
+    return {
+      runId, run, pump, failures, bridge, runBound: turn.runBound, structuredOutput: turn.translatorConfig.structuredOutput
+    };
   } catch (error) {
     mounted?.release();
     throw error;
