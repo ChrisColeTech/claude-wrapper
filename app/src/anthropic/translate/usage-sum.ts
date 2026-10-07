@@ -9,6 +9,7 @@
  * internal signal, so none leaves the translator.
  */
 import { JsonObject } from '../../upstream/frames';
+import { isObject } from '../../utils/json-object';
 import { Pass } from './pass';
 import { isInternalSignal, TurnEvent } from './turn-event';
 
@@ -25,7 +26,6 @@ const SUMMED: Readonly<Record<string, readonly string[] | null>> = {
 /** The fields of `usage.cache_creation`, summed the same way. */
 const CACHE_CREATION = ['ephemeral_5m_input_tokens', 'ephemeral_1h_input_tokens'];
 
-const isObject = (value: unknown): value is JsonObject => typeof value === 'object' && value !== null && !Array.isArray(value);
 const numberOf = (value: unknown): number => (typeof value === 'number' ? value : 0);
 
 function addFields(into: JsonObject, from: JsonObject, fields: readonly string[]): JsonObject {

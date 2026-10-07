@@ -3,7 +3,8 @@
  * capability present as `{supported: boolean}` with its sub-keys. Later validations read these
  * flags, so a malformed file is refused at start rather than at the first request.
  */
-import { fail, isObject, objectAt } from './checks';
+import { isObject } from '../../utils/json-object';
+import { fail, objectAt } from './checks';
 
 const FLAGS = ['batch', 'citations', 'code_execution', 'image_input', 'pdf_input', 'structured_outputs'] as const;
 const EFFORT_LEVELS = ['low', 'medium', 'high', 'max'] as const;

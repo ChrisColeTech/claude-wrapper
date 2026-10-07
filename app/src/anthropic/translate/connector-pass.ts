@@ -10,12 +10,11 @@
  */
 import { isConnectorTool, splitConnectorTool } from '../../upstream/connector-tools';
 import { JsonObject } from '../../upstream/frames';
+import { isObject } from '../../utils/json-object';
 import { eachEvent, Pass } from './pass';
 import { ApiEvent, ServerToolResultSignal, TranslatorLogger, TurnEvent } from './turn-event';
 
 type BlockStart = Extract<ApiEvent, { type: 'content_block_start' }>;
-
-const isObject = (value: unknown): value is JsonObject => typeof value === 'object' && value !== null && !Array.isArray(value);
 
 function useBlock(event: BlockStart): TurnEvent {
   const block = event.content_block;

@@ -8,6 +8,7 @@
  * Its values are the operator's personal data: read here, they are never logged, and neither
  * is the file's text (a JSON parser's message quotes it).
  */
+import { isObject } from '../utils/json-object';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
@@ -32,9 +33,6 @@ export function accountFilePath(env: Environment, home: string = os.homedir()): 
 export function cliAccountFile(upstreamEnv: Readonly<Record<string, string>>): string {
   return accountFilePath({ HOME: process.env['HOME'], ...upstreamEnv });
 }
-
-const isObject = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
 
 /** The OAuth account's email, display name and full name that `file` holds, trimmed, when present. */
 export function readAccountValues(file: string): AccountRead {

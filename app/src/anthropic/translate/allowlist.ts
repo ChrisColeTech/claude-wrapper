@@ -4,6 +4,7 @@
  * turn, so CLI drift is visible. Control signals pass through untouched.
  */
 import { JsonObject } from '../../upstream/frames';
+import { isObject } from '../../utils/json-object';
 import { ALLOWED_EVENT_FIELDS, FieldFilter, FieldRule, Fields } from './allowed-fields';
 import { eachEvent, Pass } from './pass';
 import { ApiEvent, isControlSignal, TranslatorLogger, TurnEvent } from './turn-event';
@@ -11,10 +12,6 @@ import { ApiEvent, isControlSignal, TranslatorLogger, TurnEvent } from './turn-e
 type Drop = (path: string) => void;
 
 const TYPE_ONLY: Fields = { type: true };
-
-function isObject(value: unknown): value is JsonObject {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
 
 function fieldsFor(rule: FieldFilter, value: JsonObject): Fields {
   if ('fields' in rule) return rule.fields;

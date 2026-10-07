@@ -4,12 +4,6 @@
  */
 import { SurfaceError } from '../surface-error';
 
-export type Body = Record<string, unknown>;
-
-export function isObject(value: unknown): value is Body {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
 export function fieldRequired(path: string): SurfaceError {
   return SurfaceError.invalidRequest(`${path}: Field required`);
 }

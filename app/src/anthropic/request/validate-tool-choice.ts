@@ -4,8 +4,9 @@
  * message on every catalogue model, Haiku 4.5 included: upstream has no way to force a tool call.
  * `disable_parallel_tool_use` is accepted and ignored. `null` reads as absent.
  */
+import { isObject } from '../../utils/json-object';
 import { SurfaceError } from '../surface-error';
-import { fieldInvalid, fieldRequired, isObject } from './field-errors';
+import { fieldInvalid, fieldRequired } from './field-errors';
 
 const TYPES: readonly unknown[] = ['auto', 'any', 'tool', 'none'];
 

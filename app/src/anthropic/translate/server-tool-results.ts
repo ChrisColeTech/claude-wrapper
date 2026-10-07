@@ -8,11 +8,10 @@
  */
 import { JsonObject } from '../../upstream/frames';
 import { DenialCode } from '../../upstream/hook-policy';
+import { isObject } from '../../utils/json-object';
 import { ServerToolResultSignal } from './turn-event';
 
 type ResultInput = Pick<ServerToolResultSignal, 'block' | 'toolUseResult'>;
-
-const isObject = (value: unknown): value is JsonObject => typeof value === 'object' && value !== null && !Array.isArray(value);
 
 const failed = ({ block }: ResultInput): boolean => block['is_error'] === true;
 

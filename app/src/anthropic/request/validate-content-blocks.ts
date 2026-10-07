@@ -7,8 +7,9 @@
  * sources (no Files API), `search_result`, `mcp_tool_listing`, the tool-change blocks and every
  * other type are rejected. What a served block carries beyond this is its feature ticket's.
  */
+import { JsonObject, isObject } from '../../utils/json-object';
 import { SurfaceError } from '../surface-error';
-import { Body, fieldInvalid, fieldRequired, isObject } from './field-errors';
+import { fieldInvalid, fieldRequired } from './field-errors';
 import { ClientMessage } from './validate-messages';
 
 const SERVED_BLOCKS: ReadonlySet<string> = new Set([
@@ -29,7 +30,7 @@ const SOURCE_REASONS: { readonly [source: string]: string } = {
 const notSupported = (path: string, what: string): SurfaceError =>
   SurfaceError.invalidRequest(`${path}: ${what} are not supported on this surface`);
 
-function validateSource(block: Body, type: string, path: string): void {
+function validateSource(block: JsonObject, type: string, path: string): void {
   const source = block['source'];
   if (source === undefined) throw fieldRequired(`${path}.source`);
   if (!isObject(source)) throw fieldInvalid(`${path}.source`, 'a valid dictionary');
@@ -57,13 +58,13 @@ function validateToolResultContent(content: unknown, path: string): void {
   content.forEach((item: unknown, index) => {
     const itemPath = `${path}.${index}`;
     const type = typeOf(item, itemPath);
-    if (type === 'image') validateSource(item as Body, type, itemPath);
+    if (type === 'image') validateSource(item as JsonObject, type, itemPath);
     else if (type !== 'text') throw notSupported(itemPath, `"${type}" blocks inside a tool_result`);
   });
 }
 
 /** A tool result names the call it answers and says whether it is an error: the bridge server passes both on. */
-function validateToolResult(block: Body, path: string): void {
+function validateToolResult(block: JsonObject, path: string): void {
   const id = block['tool_use_id'];
   if (id === undefined) throw fieldRequired(`${path}.tool_use_id`);
   if (typeof id !== 'string') throw fieldInvalid(`${path}.tool_use_id`, 'a valid string');
@@ -74,7 +75,7 @@ function validateToolResult(block: Body, path: string): void {
   validateToolResultContent(block['content'], `${path}.content`);
 }
 
-function validateBlock(block: Body & { type: string }, path: string): void {
+function validateBlock(block: JsonObject & { type: string }, path: string): void {
   const { type } = block;
   if (!SERVED_BLOCKS.has(type)) throw notSupported(path, `"${type}" blocks`);
   if (Object.hasOwn(SERVED_SOURCES, type)) validateSource(block, type, path);

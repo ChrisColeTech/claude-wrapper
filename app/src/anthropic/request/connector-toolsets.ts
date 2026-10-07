@@ -8,9 +8,10 @@
  * surface never emits) is a 400.
  */
 import { connectorRule } from '../../upstream/connector-tools';
+import { JsonObject, isObject } from '../../utils/json-object';
 import { SurfaceError } from '../surface-error';
 import { DeclaredServer, optionalBoolean } from './connector-servers';
-import { Body, fieldInvalid, fieldRequired, isObject } from './field-errors';
+import { fieldInvalid, fieldRequired } from './field-errors';
 
 interface DeclaredToolset {
   /** The client's index in `tools`. */
@@ -42,7 +43,7 @@ function overrides(configs: unknown, at: string): Map<string, boolean> {
   return enabled;
 }
 
-function declaredToolset(toolset: Body, index: number): DeclaredToolset {
+function declaredToolset(toolset: JsonObject, index: number): DeclaredToolset {
   const server = toolset['mcp_server_name'];
   if (server === undefined || server === null) throw fieldRequired(`${path(index)}.mcp_server_name`);
   if (typeof server !== 'string') throw fieldInvalid(`${path(index)}.mcp_server_name`, 'a valid string');

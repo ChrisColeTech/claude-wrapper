@@ -8,8 +8,9 @@
  * `tool_choice: none` disables them, though they are validated all the same.
  */
 import { HookPolicySpec, WebTool, WebToolLimits } from '../../upstream/hook-policy';
+import { JsonObject, isObject } from '../../utils/json-object';
 import { SurfaceError } from '../surface-error';
-import { Body, fieldInvalid, fieldRequired, isObject } from './field-errors';
+import { fieldInvalid, fieldRequired } from './field-errors';
 
 const KINDS: readonly { prefix: string; name: string; tool: WebTool }[] = [
   { prefix: 'web_search_', name: 'web_search', tool: 'WebSearch' },
@@ -39,7 +40,7 @@ function domains(value: unknown, path: string): readonly string[] | undefined {
   return value.length > 0 ? (value as string[]) : undefined;
 }
 
-function limits(tool: Body, path: string): WebToolLimits {
+function limits(tool: JsonObject, path: string): WebToolLimits {
   const uses = maxUses(tool['max_uses'], path);
   const allowed = domains(tool['allowed_domains'], `${path}.allowed_domains`);
   const blocked = domains(tool['blocked_domains'], `${path}.blocked_domains`);

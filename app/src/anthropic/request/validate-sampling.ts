@@ -5,19 +5,20 @@
  * field and the accepted value. Stricter than the real API on Haiku 4.5, deliberately: accepting
  * `temperature: 0` there would misreport what ran. `null` reads as absent.
  */
+import { JsonObject } from '../../utils/json-object';
 import { SurfaceError } from '../surface-error';
-import { Body, fieldInvalid } from './field-errors';
+import { fieldInvalid } from './field-errors';
 
 const present = (value: unknown): boolean => value !== undefined && value !== null;
 
-function numberField(body: Body, field: string): number | undefined {
+function numberField(body: JsonObject, field: string): number | undefined {
   const value = body[field];
   if (!present(value)) return undefined;
   if (typeof value !== 'number' || !Number.isFinite(value)) throw fieldInvalid(field, 'a valid number');
   return value;
 }
 
-export function validateSampling(body: Body): void {
+export function validateSampling(body: JsonObject): void {
   const temperature = numberField(body, 'temperature');
   if (temperature !== undefined && temperature !== 1) {
     throw SurfaceError.invalidRequest('temperature: only 1.0 is supported on this surface; leave it out or send 1.0');

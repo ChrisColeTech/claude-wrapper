@@ -5,9 +5,10 @@
  * capabilities gets no per-model check. `null` reads as absent. The applied level cannot be read
  * back from upstream's frames.
  */
+import { isObject } from '../../utils/json-object';
 import { EffortCapability, ModelInfo } from '../catalogue';
 import { SurfaceError } from '../surface-error';
-import { fieldInvalid, isObject } from './field-errors';
+import { fieldInvalid } from './field-errors';
 
 const LEVELS = ['low', 'medium', 'high', 'xhigh', 'max'] as const;
 type EffortLevel = typeof LEVELS[number];

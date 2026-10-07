@@ -12,6 +12,7 @@
  */
 import { JsonObject } from '../../upstream/frames';
 import { isWebTool, WebTool } from '../../upstream/hook-policy';
+import { isObject } from '../../utils/json-object';
 import { Pass } from './pass';
 import { fetchContent, searchContent, searchCount } from './server-tool-results';
 import { ApiEvent, ServerToolCalls, ServerToolResultSignal, TurnEvent } from './turn-event';
@@ -33,7 +34,7 @@ function filteredInput(tool: WebTool, json: string): JsonObject {
     return {};
   }
   const field = INPUT_FIELDS[tool];
-  const value = typeof input === 'object' && input !== null ? (input as JsonObject)[field] : undefined;
+  const value = isObject(input) ? input[field] : undefined;
   return value === undefined ? {} : { [field]: value };
 }
 

@@ -5,8 +5,9 @@
  * request's. A NUL character is still refused: the rule dates from when the prompt was an
  * argument, and how upstream and the API take one in a prompt file is unverified.
  */
+import { isObject } from '../../utils/json-object';
 import { SurfaceError } from '../surface-error';
-import { fieldInvalid, fieldRequired, isObject } from './field-errors';
+import { fieldInvalid, fieldRequired } from './field-errors';
 
 function blockText(block: unknown, index: number): string {
   const path = `system.${index}`;

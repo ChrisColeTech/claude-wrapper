@@ -7,13 +7,11 @@
  * real block inside), or `<web_fetch_error code="…"/>`. The blocks are taken exactly as the client
  * sent them: `encrypted_content` is never read, and a missing field renders empty.
  */
+import { isObject } from '../../utils/json-object';
 import { attribute, callTag } from './history-markup';
 import { ContentBlock } from './turn-plan';
 
 type HistoryPart = string | ContentBlock;
-
-const isObject = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
 
 const INPUT_FIELDS: Readonly<Record<string, string>> = { web_search: 'query', web_fetch: 'url' };
 

@@ -8,6 +8,7 @@
  * built-in the request did not enable, is denied: the gate fails closed. Every decision is kept
  * by `tool_use_id`, for the translator's result blocks and the run's audit.
  */
+import { isObject } from '../../utils/json-object';
 import { logger as wrapperLogger } from '../../utils/logger';
 import { Frame } from '../frames';
 import { auditFrame, AuditState } from './audit';
@@ -46,12 +47,9 @@ interface ToolCall {
   input: Record<string, unknown>;
 }
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
-
 function callOf(input: unknown): ToolCall | undefined {
-  if (!isRecord(input) || typeof input['tool_name'] !== 'string' || typeof input['tool_use_id'] !== 'string') return undefined;
-  if (!isRecord(input['tool_input'])) return undefined;
+  if (!isObject(input) || typeof input['tool_name'] !== 'string' || typeof input['tool_use_id'] !== 'string') return undefined;
+  if (!isObject(input['tool_input'])) return undefined;
   return { tool: input['tool_name'] as WebTool, id: input['tool_use_id'], input: input['tool_input'] };
 }
 

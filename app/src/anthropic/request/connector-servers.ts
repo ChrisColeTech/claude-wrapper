@@ -7,8 +7,9 @@
  * back by splitting on `__` (renaming it would change `server_name` in the response).
  */
 import { BRIDGE_SERVER_NAME } from '../../upstream/bridge';
+import { isObject } from '../../utils/json-object';
 import { SurfaceError } from '../surface-error';
-import { fieldInvalid, fieldRequired, isObject } from './field-errors';
+import { fieldInvalid, fieldRequired } from './field-errors';
 
 export interface DeclaredServer {
   /** The client's index in `mcp_servers`. */

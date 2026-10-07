@@ -4,13 +4,14 @@
  * session key), `service_tier` (its enum validated; the response relays upstream's tier),
  * `inference_geo`, `diagnostics` and a top-level `cache_control`. `null` reads as absent.
  */
+import { JsonObject, isObject } from '../../utils/json-object';
 import { SurfaceError } from '../surface-error';
-import { Body, fieldInvalid, isObject } from './field-errors';
+import { fieldInvalid } from './field-errors';
 import { extraInputs } from './validate-extra-fields';
 
 const SERVICE_TIERS: readonly unknown[] = ['auto', 'standard_only'];
 
-function present(body: Body, field: string): unknown {
+function present(body: JsonObject, field: string): unknown {
   const value = body[field];
   return value === null ? undefined : value;
 }
@@ -26,12 +27,12 @@ function checkMetadata(metadata: unknown): void {
   }
 }
 
-function checkObject(body: Body, field: string): void {
+function checkObject(body: JsonObject, field: string): void {
   const value = present(body, field);
   if (value !== undefined && !isObject(value)) throw fieldInvalid(field, 'a valid dictionary');
 }
 
-export function validatePlainFields(body: Body): void {
+export function validatePlainFields(body: JsonObject): void {
   const stream = present(body, 'stream');
   if (stream !== undefined && typeof stream !== 'boolean') throw fieldInvalid('stream', 'a valid boolean');
   checkMetadata(present(body, 'metadata'));

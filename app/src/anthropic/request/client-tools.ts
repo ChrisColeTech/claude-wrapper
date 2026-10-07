@@ -9,8 +9,9 @@
  */
 import { JsonObject } from '../../upstream/frames';
 import { ClientTool } from '../../upstream/bridge';
+import { isObject } from '../../utils/json-object';
 import { SurfaceError } from '../surface-error';
-import { Body, fieldInvalid, fieldRequired, isObject } from './field-errors';
+import { fieldInvalid, fieldRequired } from './field-errors';
 
 /** The real API's limit and pattern; the surface's own ceiling is 115 (128 less the prefix). */
 const API_NAME_LIMIT = 128;
@@ -19,7 +20,7 @@ const NAME_PATTERN = /^[a-zA-Z0-9_-]{1,128}$/;
 const tooLong = (path: string, limit: number) =>
   SurfaceError.invalidRequest(`${path}: String should have at most ${limit} characters`);
 
-const isClientTool = (tool: Body): boolean => tool['type'] === undefined || tool['type'] === null || tool['type'] === 'custom';
+const isClientTool = (tool: JsonObject): boolean => tool['type'] === undefined || tool['type'] === null || tool['type'] === 'custom';
 
 function validateName(value: unknown, path: string): string {
   if (value === undefined) throw fieldRequired(path);
@@ -40,7 +41,7 @@ function validateSchema(value: unknown, path: string): JsonObject {
   return value as JsonObject;
 }
 
-function clientTool(tool: Body, index: number): ClientTool {
+function clientTool(tool: JsonObject, index: number): ClientTool {
   const path = `tools.${index}.custom`;
   const name = validateName(tool['name'], `${path}.name`);
   const description = tool['description'];
@@ -54,7 +55,7 @@ function clientTool(tool: Body, index: number): ClientTool {
 /** The request's client tools, in order; `tools` has passed the tool-type checks. */
 export function clientTools(tools: unknown): ClientTool[] {
   if (!Array.isArray(tools)) return [];
-  const declared = tools.flatMap((tool: Body, index) => (isClientTool(tool) ? [clientTool(tool, index)] : []));
+  const declared = tools.flatMap((tool: JsonObject, index) => (isClientTool(tool) ? [clientTool(tool, index)] : []));
   const names = new Set(declared.map(tool => tool.name));
   if (names.size !== declared.length) throw SurfaceError.invalidRequest('tools: Tool names must be unique.');
   return declared;

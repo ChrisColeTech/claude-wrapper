@@ -13,9 +13,10 @@
  * `display` is ignored: upstream always omits thinking text. An entry without capabilities (an
  * operator's file may say `null`) gets no per-model check: the request's type is served as asked.
  */
+import { isObject } from '../../utils/json-object';
 import { ModelInfo, ThinkingCapability } from '../catalogue';
 import { SurfaceError } from '../surface-error';
-import { fieldInvalid, fieldRequired, isObject } from './field-errors';
+import { fieldInvalid, fieldRequired } from './field-errors';
 
 const TYPES: readonly unknown[] = ['adaptive', 'between_tools', 'disabled', 'enabled'];
 const MIN_BUDGET_TOKENS = 1024;

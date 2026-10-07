@@ -7,7 +7,7 @@
  * its neighbours merge. The client's own objects are never changed.
  */
 import { JsonObject } from '../../upstream/frames';
-import { isObject } from './field-errors';
+import { isObject } from '../../utils/json-object';
 import { ContentBlock } from './turn-plan';
 import { ClientMessage } from './validate-messages';
 

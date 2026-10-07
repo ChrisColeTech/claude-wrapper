@@ -6,9 +6,7 @@
  * `JSON.stringify`, `util.inspect` (what the console prints), `Object.keys` and spreading all
  * leave it out. Nothing else in the body changes.
  */
-const isObject = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
-
+import { isObject } from '../../utils/json-object';
 export function hideConnectorTokens(body: unknown): void {
   const servers = isObject(body) ? body['mcp_servers'] : undefined;
   if (!Array.isArray(servers)) return;

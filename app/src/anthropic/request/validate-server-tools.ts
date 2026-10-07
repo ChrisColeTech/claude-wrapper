@@ -6,8 +6,9 @@
  * a 400 naming the type at the client's index. A web tool with both domain lists is a 400, as on
  * the real API. An `mcp_toolset` is served too: its gate and rules are the connectors' (`connectors.ts`).
  */
+import { JsonObject, isObject } from '../../utils/json-object';
 import { SurfaceError } from '../surface-error';
-import { Body, fieldInvalid, isObject } from './field-errors';
+import { fieldInvalid } from './field-errors';
 
 const WEB_TOOL_TYPES: ReadonlySet<unknown> = new Set([
   'web_search_20250305', 'web_search_20260209', 'web_search_20260318',
@@ -16,7 +17,7 @@ const WEB_TOOL_TYPES: ReadonlySet<unknown> = new Set([
 
 const present = (value: unknown): boolean => value !== undefined && value !== null;
 
-function validateWebTool(tool: Body, path: string): void {
+function validateWebTool(tool: JsonObject, path: string): void {
   if (present(tool['allowed_domains']) && present(tool['blocked_domains'])) {
     throw SurfaceError.invalidRequest(`${path}: use either allowed_domains or blocked_domains, not both`);
   }

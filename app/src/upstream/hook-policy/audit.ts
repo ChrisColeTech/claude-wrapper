@@ -7,6 +7,7 @@
  * fails to start or times out). Both are logged at error by name and id, never with the input:
  * the response has closed by `result`, so neither fails the turn.
  */
+import { isObject } from '../../utils/json-object';
 import { isConnectorTool } from '../connector-tools';
 import { Frame, JsonObject } from '../frames';
 import { DenialCode, isWebTool } from './types';
@@ -23,7 +24,7 @@ export interface AuditLogger {
 }
 
 const blocksOf = (content: unknown): JsonObject[] =>
-  (Array.isArray(content) ? content.filter((block): block is JsonObject => typeof block === 'object' && block !== null) : []);
+  (Array.isArray(content) ? content.filter(isObject) : []);
 
 function onAnnounced(content: unknown, state: AuditState): void {
   for (const block of blocksOf(content)) {
