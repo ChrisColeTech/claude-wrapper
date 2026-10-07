@@ -2,14 +2,15 @@
  * The surface-side failure table through the official SDK (spec section 13), one test per row:
  * the error class the SDK raises, the status, `error.type` and `x-should-retry`. The rows of a
  * run the runner ended itself (a CLI that cannot be started, a timer firing) are this ticket's;
- * the others are checked here as the section's whole checklist. The run-cap and rate-limit
- * admission rows belong to the scheduler (process lifecycle ticket).
+ * the others are checked here as the section's whole checklist, the scheduler's run-cap and
+ * rate-limit admission rows included.
  */
 import Anthropic from '@anthropic-ai/sdk';
 import { STATE } from '../../mocks/anthropic/plan-context';
 import { envelopeOf, rejectionOf, SurfaceHarness, startSurface } from '../../mocks/anthropic/surface-harness';
 import { createFakeClock, FakeClock } from '../../mocks/shared/fake-clock';
 import { createScriptedRunner, ScriptedRunner } from '../../mocks/upstream/scripted-runner';
+import { initFrame, rateLimitEvent, resultFrame } from '../../mocks/anthropic/turn-frames';
 
 type ApiError = InstanceType<typeof Anthropic.APIError>;
 type SdkError = abstract new (...args: never[]) => ApiError;
@@ -123,6 +124,33 @@ describe('Anthropic surface: the surface-side failure table through the SDK', ()
     upstream.exit(null, 'SIGTERM');
   });
 
-  it.todo('run cap or wrapper shutdown: 529 overloaded_error (the scheduler, process lifecycle ticket)');
-  it.todo('rate-limit admission after a rejected rate_limit_event: 429 rate_limit_error with retry-after (the scheduler)');
+  it('run cap: 529 overloaded_error at once, nothing spawned', async () => {
+    const running = [1, 2, 3, 4].map(() => rejectionOf(surface.client().messages.create(request())));
+    const runs = await Promise.all(running.map(() => runner.nextRun()));
+    let spawned = 0;
+    void runner.nextRun().then(() => { spawned += 1; });
+
+    const error = await rejectionOf(surface.client().messages.create(request()));
+
+    expectRow(error, Anthropic.InternalServerError, 529, 'overloaded_error', null);
+    expect(spawned).toBe(0);
+    runs.forEach(({ process: upstream }) => upstream.exit(1));
+    await Promise.all(running);
+  });
+
+  it('rate-limit admission after a rejected rate_limit_event: 429 rate_limit_error with retry-after', async () => {
+    const created = surface.client().messages.create(request());
+    const { process: upstream } = await runner.nextRun();
+    upstream.frames(initFrame(), rateLimitEvent('rejected', 90), resultFrame({ is_error: true, api_error_status: 429 }));
+    upstream.exit(1);
+    await rejectionOf(created);
+    let spawned = 0;
+    void runner.nextRun().then(() => { spawned += 1; });
+
+    const error = await rejectionOf(surface.client().messages.create(request()));
+
+    expectRow(error, Anthropic.RateLimitError, 429, 'rate_limit_error', null);
+    expect(error.headers?.get('retry-after')).toBe('90');
+    expect(spawned).toBe(0);
+  });
 });

@@ -8,7 +8,7 @@ import { Bridge, DeliverOutcome, ToolResultBlock } from '../../upstream/bridge';
 import { Run } from '../../upstream/runner';
 import { FailureReader } from '../failure';
 import { RunBound } from '../request';
-import { HeldOpen } from './parking';
+import { HeldOpen } from '../scheduler/parking';
 import { PumpLogger, RunPump } from './run-pump';
 
 /** One run the conductor drives, across the turns of a tool loop. */

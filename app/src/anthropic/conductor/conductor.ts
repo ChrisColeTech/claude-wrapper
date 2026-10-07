@@ -26,7 +26,7 @@ import { Sessions } from '../sessions';
 import { createTranslator } from '../translate';
 import { ConductedRun, HeldRun } from './held-run';
 import { launchRun, StartingPlan } from './launch';
-import { createParking, Parking } from './parking';
+import { createParking, Parking } from '../scheduler/parking';
 import { PumpLogger } from './run-pump';
 import { TurnSession } from './turn-session';
 

@@ -7,8 +7,8 @@
  * rejected), or the run ends on its own (what is left of it is abandoned). A partial answer
  * leaves it parked with its TTL running.
  *
- * This is the held-run registry the scheduler's `registerParked` adopts (spec section 16): the run
- * cap's parked count and the shutdown's abandonment of every parked run belong here.
+ * This is the scheduler's held-run registry (spec section 16): its count is the run cap's parked
+ * count, and the shutdown abandons every run still parked.
  */
 import { DeliverOutcome, ToolResultBlock } from '../../upstream/bridge';
 import { Clock, TimerHandle } from '../../utils/clock';
@@ -30,6 +30,10 @@ export interface Parking<R extends HeldOpen = HeldOpen> {
   park(run: R): void;
   /** Hands `results` to `parked`; when they complete its park it is taken out of parking and returned. */
   deliver(parked: ParkedRun, results: ToolResultBlock[]): Delivery<R>;
+  /** Abandons every parked run (the shutdown): each is interrupted before its waiting calls are rejected. */
+  abandonAll(reason: string): void;
+  /** Runs parked now. */
+  readonly count: number;
 }
 
 export interface ParkingLogger {
@@ -50,6 +54,10 @@ class ParkingLot<R extends HeldOpen> implements Parking<R> {
 
   constructor(private readonly options: ParkingOptions) {}
 
+  get count(): number {
+    return this.held.size;
+  }
+
   park(run: R): void {
     const { clock, ttlMs, registry, logger } = this.options;
     this.held.set(run, { run, ttl: clock.setTimeout(() => this.expire(run), ttlMs) });
@@ -65,6 +73,14 @@ class ParkingLot<R extends HeldOpen> implements Parking<R> {
     if (outcome.status !== 'resumed') return outcome;
     this.release(parked);
     return { status: 'resumed', run: entry.run };
+  }
+
+  abandonAll(reason: string): void {
+    for (const { run } of [...this.held.values()]) {
+      this.release(run);
+      this.options.logger.info('Parked run abandoned', { runId: run.runId, toolUseIds: run.toolUseIds, reason });
+      void run.abandon(reason);
+    }
   }
 
   private expire(run: R): void {

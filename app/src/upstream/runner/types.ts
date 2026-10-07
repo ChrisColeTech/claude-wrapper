@@ -82,6 +82,8 @@ export interface Run {
   interrupt(): Promise<ControlResponse>;
   /** Ends stdin; if upstream has not exited 2 s later, SIGTERM, then SIGKILL 5 s after that. */
   close(): Promise<RunExit>;
+  /** SIGKILL at once, the scheduler's last resort; a run that has exited is not signalled. */
+  kill(): Promise<RunExit>;
   /** Stops the lifetime timer until the returned `unpark` is called (park time is excluded). */
   park(): () => void;
   /** Always settles, also after a failure (the runner closes the run itself). */
