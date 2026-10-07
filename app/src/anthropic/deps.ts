@@ -8,11 +8,10 @@
  * (re-exported or imported here) and leaves the slot name and `createServer`'s signature alone.
  */
 import { Clock } from '../utils/clock';
+import { Runner } from '../upstream/runner';
 
-/** Placeholder until the upstream runner (ticket 27): `startRun(spec) → Run`. */
-export interface Runner {
-  startRun(spec: unknown): unknown;
-}
+/** The upstream runner: `startRun(spec) → Run` (the spawn runner in production, replay in tests). */
+export type { Runner };
 
 /** Placeholder until the catalogue (ticket 25): `resolve(name) → entry | null`, `list(page)`. */
 export interface Catalogue {
