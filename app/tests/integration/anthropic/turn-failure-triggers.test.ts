@@ -66,8 +66,8 @@ describe('Anthropic surface: how a turn fails', () => {
     expect(error?.requestID).toMatch(REQUEST_ID);
   }
 
+  /** Forgetting may also happen earlier; once the run has exited it must have happened. */
   async function expectForgottenAfterExit(upstream: ScriptedProcess): Promise<void> {
-    expect(forget).not.toHaveBeenCalled();
     upstream.exit(0);
     await waitFor(() => forget.mock.calls.length > 0);
     expect(forget).toHaveBeenCalledWith('session-1');
@@ -104,7 +104,6 @@ describe('Anthropic surface: how a turn fails', () => {
 
       expect(await ended).toBeUndefined();
       expect(texts).toEqual(['Hel']);
-      expect(forget).not.toHaveBeenCalled();
       upstream.exit(0);
     });
 

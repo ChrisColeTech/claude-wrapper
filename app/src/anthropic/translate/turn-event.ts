@@ -30,6 +30,11 @@ export interface TranslatorConfig {
    * errors. Defaults to one of its own, without the retry cap or the client's model.
    */
   failures?: FailureReader;
+  /**
+   * The armed strings (spec section 6): each is replaced with `[redacted]` in text and tool-input
+   * deltas. Not run-bound, so every turn gets the surface's list; none redacts nothing.
+   */
+  redact?: readonly string[];
 }
 
 export interface Translator {

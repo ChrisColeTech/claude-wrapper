@@ -32,6 +32,8 @@ export interface ConductorDeps {
   settings: AnthropicSettings;
   /** The wrapper's state directory, opened on first use. */
   stateDirectory: () => StateDirectory;
+  /** The strings redaction is armed with, applied to every turn's output. */
+  redact: readonly string[];
   logger?: PumpLogger;
 }
 
@@ -110,8 +112,8 @@ export function createConductor(deps: ConductorDeps): Conductor {
       const sink = sinkFor(req, res, requestId);
       const failures = failureReader(req, turn, sink, log);
       const pump = pumpRun(deps.runner.startRun(turn.runSpec), turn.continuation.replay, {
-        translator: createTranslator({ logger: log, failures }), failures, sink, checks: turn.startupChecks,
-        clock: deps.clock, logger: log
+        translator: createTranslator({ logger: log, failures, redact: deps.redact }), failures, sink,
+        checks: turn.startupChecks, clock: deps.clock, logger: log
       });
       pump.done.catch(error => log.warn('Upstream run pump failed', { error: String(error) }));
 
