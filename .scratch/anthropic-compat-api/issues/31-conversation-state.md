@@ -24,3 +24,4 @@ Spec: [spec.md](../spec.md), section 5, ADR 0002
 - The E2E criterion is ticked on the test being written (`app/tests/e2e/upstream/conversation.test.ts`); its run against the real CLI is still pending.
 - Error-turn eviction covers an upstream error, a post-commit failure, a mid-stream disconnect and a run ended before `result`; the cut case is deferred to ticket 36, since cuts do not exist yet.
 - The deferred cut-case eviction is now done by ticket 36 (merge c57c04a): a `max_tokens` or stop-sequence cut interrupts the run and forgets the session.
+- The record-at-`result` gap (a fast follow-up turn arriving before the session was recorded) is closed by ticket 42 (merge 8809cb5): a clean turn records its session at response end, and an error `result` undoes that.
