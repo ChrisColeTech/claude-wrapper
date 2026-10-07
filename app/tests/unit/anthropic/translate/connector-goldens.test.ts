@@ -4,8 +4,8 @@
  * result an `mcp_tool_result`. Frames in, the turn stream out, compared with
  * `tests/fixtures/turn-streams/<fixture>.json` and checked against oracles the translator never
  * reads: the recording's `assistant` frames (the calls), its `user` frames (their results),
- * `result.usage`, and the beta SDK's accumulator. The fixtures are derived from bridge runs until
- * e2e scenario 9 records a real connector run.
+ * `result.usage`, and the beta SDK's accumulator. The fixture is e2e scenario 9's real round trip,
+ * whose connector result came back as a string.
  *
  * After a deliberate change to the turn stream, rewrite the goldens and review the diff:
  *   UPDATE_TURN_STREAM_GOLDENS=1 npm run test:unit -- tests/unit/anthropic/translate/connector-goldens
@@ -27,7 +27,7 @@ const NEVER_RELAYED = ['caller', 'wire_tool_inputs', 'iterations', 'estimated_to
 const COUNTERS = ['input_tokens', 'output_tokens', 'cache_creation_input_tokens', 'cache_read_input_tokens'];
 
 function golden(name: string, events: TurnEvent[]): unknown {
-  const file = path.join(GOLDENS, `${path.basename(name, '.wire.ndjson')}.json`);
+  const file = path.join(GOLDENS, path.basename(name).replace(/\.(wire\.ndjson|jsonl)$/, '.json'));
   if (UPDATE) fs.writeFileSync(file, JSON.stringify(events, null, 2) + '\n');
   return JSON.parse(fs.readFileSync(file, 'utf8'));
 }

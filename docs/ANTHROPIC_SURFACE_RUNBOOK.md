@@ -153,4 +153,4 @@ Re-scrub after saving any new recording: e2e output from `UPSTREAM_E2E_RECORD_DI
 3. Add one row per new file to the index in `app/tests/fixtures/upstream/README.md`. The index test fails on a fixture without a row.
 4. Commit the scrubbed recording and its row together.
 
-The scrub knows only the account's email and names. Before committing, check a new recording for anything else private, such as a connector `authorization_token` or an internal URL. When a recording replaces a derived fixture (`app/tests/fixtures/upstream/derived/`), follow the fixture README's "Derived fixtures" paragraph. Turn-stream goldens that change deliberately are regenerated with `UPDATE_TURN_STREAM_GOLDENS=1` on the golden test that owns them.
+The scrub knows only the account's email and names. Before committing, check a new recording for anything else private, such as a connector `authorization_token` or an internal URL. Turn-stream goldens that change deliberately are regenerated with `UPDATE_TURN_STREAM_GOLDENS=1` on the golden test that owns them.

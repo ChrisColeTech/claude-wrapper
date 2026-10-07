@@ -17,9 +17,9 @@
  * (a prompt that makes the model call one of that server's tools), `UPSTREAM_E2E_DEAD_CONNECTOR_URL`
  * (default `https://127.0.0.1:9/mcp`, a port nothing listens on), `UPSTREAM_E2E_MODEL`,
  * `CLAUDE_COMMAND`. With `UPSTREAM_E2E_RECORD_DIR` set, each run's frames are written there as
- * `connector-round-trip.jsonl` and `connector-not-connected.jsonl`: the real recordings the
- * derived connector fixtures stand in for. Scrub them (`npm run fixtures:scrub`) before any becomes
- * a fixture, and never commit one carrying a token.
+ * `connector-round-trip.jsonl` and `connector-not-connected.jsonl`; the fixtures of those names
+ * under `tests/fixtures/upstream/e2e-runs/` are the first run's (2026-10-07). Scrub a new recording
+ * (`npm run fixtures:scrub`) before it becomes a fixture, and never commit one carrying a token.
  */
 import type Anthropic from '@anthropic-ai/sdk';
 import * as fs from 'fs';
