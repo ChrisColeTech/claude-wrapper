@@ -86,7 +86,10 @@ export interface Run {
   kill(): Promise<RunExit>;
   /** Stops the lifetime timer until the returned `unpark` is called (park time is excluded). */
   park(): () => void;
-  /** Always settles, also after a failure (the runner closes the run itself). */
+  /**
+   * Always settles, also after a failure: the runner sends a run it ended down the teardown ladder
+   * itself (interrupt, up to 5 s for `result`, then `close()`'s steps).
+   */
   readonly exited: Promise<RunExit>;
 }
 

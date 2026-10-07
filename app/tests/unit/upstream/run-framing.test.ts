@@ -61,7 +61,7 @@ describe('run framing', () => {
     expect(frames[0]).toEqual({ type: 'unknown', raw: expect.any(String) });
   });
 
-  it('fails the run on a line over 16 MB and ends its input', async () => {
+  it('fails the run on a line over 16 MB and interrupts it', async () => {
     const { proc, run } = startScripted();
 
     proc.frames({ type: 'system', subtype: 'init', session_id: 's1' });
@@ -81,7 +81,7 @@ describe('run framing', () => {
     expect(seen).toEqual([{ type: 'system', subtype: 'init', session_id: 's1' }]);
     expect(failure).toBeInstanceOf(RunFailure);
     expect((failure as RunFailure).reason).toEqual({ kind: 'line_too_long', limitBytes: MAX_LINE_BYTES });
-    expect(proc.inputEnded()).toBe(true);
+    expect(proc.writtenLines()).toEqual([expect.objectContaining({ type: 'control_request', request: { subtype: 'interrupt' } })]);
 
     proc.exit(0);
     await expect(run.exited).resolves.toEqual(expect.objectContaining({
