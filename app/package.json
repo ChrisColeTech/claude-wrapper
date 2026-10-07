@@ -10,6 +10,7 @@
   "files": [
     "dist/**/*",
     "catalogue/**/*",
+    "bin/hook-client.js",
     "README.md",
     "LICENSE"
   ],

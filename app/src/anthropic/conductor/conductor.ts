@@ -144,13 +144,16 @@ class SurfaceConductor implements Conductor {
 
   /**
    * Serves one turn of `run` to its sink and acts on how it ended: done, parked, or ended early.
-   * The turn's own request sets what is not run-bound (its stop sequences).
+   * The turn's own request sets what is not run-bound (its stop sequences); the run, what is.
    */
   private async serveTurn(
     run: ConductedRun, turn: TurnPlan, session: TurnSession, sink: TurnSink, log: PumpLogger
   ): Promise<void> {
     const parked: { on?: string[] } = {};
-    const translator = createTranslator({ logger: log, failures: run.failures, redact: this.deps.redact, ...turn.translatorConfig });
+    const translator = createTranslator({
+      logger: log, failures: run.failures, redact: this.deps.redact, serverTools: run.serverTools,
+      now: () => this.deps.clock.now(), ...turn.translatorConfig, structuredOutput: run.structuredOutput
+    });
     run.pump.attach({ translator, sink, observers: [session], onPark: toolUseIds => { parked.on = toolUseIds; } });
     run.atExit(() => session.exited());
     const outcome = await sink.outcome;

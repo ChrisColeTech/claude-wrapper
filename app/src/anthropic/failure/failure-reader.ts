@@ -10,6 +10,7 @@ import { RunExit, RunFailureReason } from '../../upstream/runner';
 import { Clock, systemClock, TimerHandle } from '../../utils/clock';
 import { SurfaceError } from '../http/surface-error';
 import { FailureEvidence } from './failure-evidence';
+import { jsonSchemaRejection } from './json-schema-rejection';
 import { isBillingGate, mapUpstreamFailure } from './map-upstream-failure';
 import { retryAfterSeconds } from './retry-after';
 import { runFailureError } from './run-failure-error';
@@ -89,7 +90,7 @@ class Reader implements FailureReader {
         return runFailureError(trigger.reason);
       case 'exit':
         if (trigger.exit.failure) return runFailureError(trigger.exit.failure);
-        return this.map({ ...this.evidence.signal(), exit: trigger.exit });
+        return jsonSchemaRejection(trigger.exit.stderr) ?? this.map({ ...this.evidence.signal(), exit: trigger.exit });
     }
   }
 

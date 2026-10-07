@@ -21,10 +21,9 @@ const WEB_TOOLS = [
 ];
 
 describe('planTurn validates tool types (spec sections 4.4, 8)', () => {
-  it('accepts client tools, typed or not, beside the web tools', () => {
+  it.each(WEB_TOOLS)('accepts client tools, typed or not, beside the web tool %s', (type, name) => {
     const tools = [
-      CLIENT_TOOL, { ...CLIENT_TOOL, name: 'b', type: 'custom' }, { ...CLIENT_TOOL, name: 'c', type: null },
-      ...WEB_TOOLS.map(([type, name]) => ({ type, name }))
+      CLIENT_TOOL, { ...CLIENT_TOOL, name: 'b', type: 'custom' }, { ...CLIENT_TOOL, name: 'c', type: null }, { type, name }
     ];
 
     expect(planDefault(withTools(tools))).not.toBeInstanceOf(SurfaceError);

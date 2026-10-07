@@ -41,11 +41,11 @@ describe('planTurn validates stop_sequences (spec section 4.1)', () => {
   it("hands a valid list to the turn's translator, and nothing to the run", () => {
     const plan = planDefault(withStops(['END', '\n\nHuman:'])) as TurnPlan;
 
-    expect(plan.translatorConfig).toEqual({ stopSequences: ['END', '\n\nHuman:'] });
+    expect(plan.translatorConfig).toEqual({ stopSequences: ['END', '\n\nHuman:'], structuredOutput: false });
     expect(plan.runSpec).toEqual((planDefault(VALID) as TurnPlan).runSpec);
   });
 
   it('hands the translator an empty list when there are none', () => {
-    expect((planDefault(VALID) as TurnPlan).translatorConfig).toEqual({ stopSequences: [] });
+    expect((planDefault(VALID) as TurnPlan).translatorConfig).toEqual({ stopSequences: [], structuredOutput: false });
   });
 });

@@ -73,7 +73,11 @@ const CONTENT_BLOCK = {
     text: { type: KEEP, text: KEEP, citations: KEEP },
     thinking: { type: KEEP, thinking: KEEP, signature: KEEP },
     redacted_thinking: { type: KEEP, data: KEEP },
-    tool_use: { type: KEEP, id: KEEP, name: KEEP, input: KEEP }
+    tool_use: { type: KEEP, id: KEEP, name: KEEP, input: KEEP },
+    // The server tool blocks are the surface's own (the server-tool pass); `caller` is dropped as on tool_use.
+    server_tool_use: { type: KEEP, id: KEEP, name: KEEP, input: KEEP },
+    web_search_tool_result: { type: KEEP, tool_use_id: KEEP, content: KEEP },
+    web_fetch_tool_result: { type: KEEP, tool_use_id: KEEP, content: KEEP }
   }
 };
 

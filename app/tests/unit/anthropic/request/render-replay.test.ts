@@ -235,12 +235,12 @@ describe('renderReplay', () => {
   it('answers 400 naming a block kind the history cannot render yet, rather than dropping it', () => {
     const render = () => renderReplay([
       user(text('Search for it.')),
-      assistant({ type: 'server_tool_use', id: 'srvtoolu_1', name: 'web_search', input: { query: 'x' } }),
+      assistant({ type: 'container_upload', file_id: 'file_1' }),
       user(text('And?'))
     ]);
 
     expect(render).toThrow(SurfaceError);
-    expect(render).toThrow('messages: server_tool_use blocks in earlier turns are not supported yet');
+    expect(render).toThrow('messages: container_upload blocks in earlier turns are not supported yet');
   });
 
   it('answers 400 naming a block kind inside a tool result the rendering cannot carry', () => {
