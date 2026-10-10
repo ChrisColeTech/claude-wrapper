@@ -1,15 +1,15 @@
 # Claude Wrapper
 
-[![CI Status](https://github.com/ChrisColeTech/claude-wrapper/workflows/Continuous%20Integration/badge.svg)](https://github.com/ChrisColeTech/claude-wrapper/actions)
-[![NPM Version](https://img.shields.io/npm/v/claude-wrapper.svg)](https://www.npmjs.com/package/claude-wrapper)
-[![NPM Downloads](https://img.shields.io/npm/dm/claude-wrapper.svg)](https://www.npmjs.com/package/claude-wrapper)
-[![GitHub Stars](https://img.shields.io/github/stars/ChrisColeTech/claude-wrapper.svg)](https://github.com/ChrisColeTech/claude-wrapper/stargazers)
+[![CI Status](https://github.com/anaslaham/claude-wrapper/workflows/Continuous%20Integration/badge.svg)](https://github.com/anaslaham/claude-wrapper/actions)
+[![NPM Version](https://img.shields.io/npm/v/@anaslaham/claude-wrapper.svg)](https://www.npmjs.com/package/@anaslaham/claude-wrapper)
+[![NPM Downloads](https://img.shields.io/npm/dm/@anaslaham/claude-wrapper.svg)](https://www.npmjs.com/package/@anaslaham/claude-wrapper)
+[![GitHub Stars](https://img.shields.io/github/stars/anaslaham/claude-wrapper.svg)](https://github.com/anaslaham/claude-wrapper/stargazers)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-[![Node Version](https://img.shields.io/node/v/claude-wrapper.svg)](https://nodejs.org/)
-[![Platform Support](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-blue.svg)](https://github.com/ChrisColeTech/claude-wrapper)
+[![Node Version](https://img.shields.io/node/v/@anaslaham/claude-wrapper.svg)](https://nodejs.org/)
+[![Platform Support](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-blue.svg)](https://github.com/anaslaham/claude-wrapper)
 [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/ChrisColeTech/claude-wrapper/pulls)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/anaslaham/claude-wrapper/pulls)
 
 **OpenAI-compatible HTTP API wrapper for Claude Code CLI with Session Management**
 
@@ -38,13 +38,13 @@ This approach gives you **maximum flexibility** with Claude's tool capabilities.
 
 ```bash
 # Install globally from npm
-npm install -g claude-wrapper
+npm install -g @anaslaham/claude-wrapper
 ```
 
 After installation, you can use the CLI with either:
 
 - `wrapper` (recommended short command)
-- `claude-wrapper` (full package name)
+- `claude-wrapper` (full command name)
 
 ## 🚀 Quick Start
 
@@ -350,6 +350,6 @@ MIT License - see [LICENSE](LICENSE) file for details.
 ---
 
 ⭐ **Star this repository** if you find it useful!  
-🐛 **Report issues** or suggest features at [GitHub Issues](https://github.com/ChrisColeTech/claude-wrapper/issues)
+🐛 **Report issues** or suggest features at [GitHub Issues](https://github.com/anaslaham/claude-wrapper/issues)
 
-**Get started today** - `npm install -g claude-wrapper` and run `wrapper` to transform your Claude CLI into a powerful HTTP API!
+**Get started today** - `npm install -g @anaslaham/claude-wrapper` and run `wrapper` to transform your Claude CLI into a powerful HTTP API!

@@ -1,11 +1,11 @@
 {
-  "name": "claude-wrapper",
+  "name": "@anaslaham/claude-wrapper",
   "version": "1.1.27",
   "description": "OpenAI-compatible HTTP API wrapper for Claude Code CLI with Session Management",
   "main": "dist/cli.js",
   "bin": {
-    "claude-wrapper": "./dist/cli.js",
-    "wrapper": "./dist/cli.js"
+    "claude-wrapper": "dist/cli.js",
+    "wrapper": "dist/cli.js"
   },
   "files": [
     "dist/**/*",
@@ -16,11 +16,11 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ChrisColeTech/claude-wrapper.git"
+    "url": "git+https://github.com/anaslaham/claude-wrapper.git"
   },
-  "homepage": "https://github.com/ChrisColeTech/claude-wrapper#readme",
+  "homepage": "https://github.com/anaslaham/claude-wrapper#readme",
   "bugs": {
-    "url": "https://github.com/ChrisColeTech/claude-wrapper/issues"
+    "url": "https://github.com/anaslaham/claude-wrapper/issues"
   },
   "scripts": {
     "build": "tsc > build.log 2>&1",
