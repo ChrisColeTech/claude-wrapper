@@ -1,21 +1,13 @@
 import { ClaudeRequest, IClaudeClient } from '../types';
-import { ClaudeResolver } from './claude-resolver/index';
+import { ClaudeResolver } from './claude-resolver';
 import { ClaudeCliError } from '../utils/errors';
 import { logger } from '../utils/logger';
 
 export class ClaudeClient implements IClaudeClient {
-  private static instanceCount = 0;
-  private instanceId: string;
   private resolver: ClaudeResolver;
 
   constructor() {
-    this.instanceId = `client-${++ClaudeClient.instanceCount}`;
-    this.resolver = ClaudeResolver.getInstance();
-    
-    logger.debug('ClaudeClient instance created', { 
-      instanceId: this.instanceId,
-      totalInstances: ClaudeClient.instanceCount 
-    });
+    this.resolver = new ClaudeResolver();
   }
 
   async execute(request: ClaudeRequest): Promise<string> {
@@ -33,11 +25,11 @@ export class ClaudeClient implements IClaudeClient {
         useJsonOutput
       });
       
-      const result = await this.resolver.executeCommand(
+      const result = await this.resolver.executeClaudeCommandWithSession(
         prompt, 
         request.model, 
         sessionId, 
-        false
+        useJsonOutput
       );
       
       logger.info('Claude execution completed successfully', {
@@ -66,7 +58,7 @@ export class ClaudeClient implements IClaudeClient {
     }
   }
 
-  messagesToPrompt(messages: any[], tools?: any[]): string {
+  private messagesToPrompt(messages: any[], tools?: any[]): string {
     let prompt = '';
     
     // Add tools if provided
@@ -82,13 +74,13 @@ export class ClaudeClient implements IClaudeClient {
         ? JSON.stringify(message.content)
         : String(message.content);
       
-      // Send raw content without prefixes to save tokens
+      // Preserve conversation roles when flattening messages for the CLI.
       if (message.role === 'system') {
         prompt += `${content}\n\n`;
       } else if (message.role === 'user') {
-        prompt += `${content}\n\n`;
+        prompt += `User:\n${content}\n\n`;
       } else if (message.role === 'assistant') {
-        prompt += `${content}\n\n`;
+        prompt += `Assistant:\n${content}\n\n`;
       }
     }
     

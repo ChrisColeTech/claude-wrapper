@@ -170,14 +170,13 @@ export class MockStreamingManager implements IStreamingManager {
  */
 export class MockCoreWrapper implements ICoreWrapper {
   public handleChatCompletionCalls: OpenAIRequest[] = [];
-  public handleStreamingChatCompletionCalls: OpenAIRequest[] = [];
   public shouldThrowError: boolean = false;
   public errorToThrow: Error | null = null;
   public mockResponse: OpenAIResponse = {
     id: 'chatcmpl-mock123',
     object: 'chat.completion',
     created: 1234567890,
-    model: 'sonnet',
+    model: 'gpt-3.5-turbo',
     choices: [{
       index: 0,
       message: { role: 'assistant', content: 'Mock response content' },
@@ -198,39 +197,19 @@ export class MockCoreWrapper implements ICoreWrapper {
     return this.mockResponse;
   }
 
-  async handleStreamingChatCompletion(request: OpenAIRequest): Promise<NodeJS.ReadableStream> {
-    this.handleStreamingChatCompletionCalls.push(request);
-    if (this.shouldThrowError && this.errorToThrow) {
-      throw this.errorToThrow;
-    }
-    
-    // Create a mock readable stream
-    const { Readable } = require('stream');
-    const mockStream = new Readable({
-      read() {
-        this.push('{"type":"assistant","message":{"content":[{"type":"text","text":"test"}]}}\n');
-        this.push('{"type":"assistant","message":{"content":[{"type":"text","text":"content"}]}}\n');
-        this.push(null);
-      }
-    });
-    
-    return mockStream;
-  }
-
   setMockResponse(response: OpenAIResponse) {
     this.mockResponse = response;
   }
 
   reset() {
     this.handleChatCompletionCalls = [];
-    this.handleStreamingChatCompletionCalls = [];
     this.shouldThrowError = false;
     this.errorToThrow = null;
     this.mockResponse = {
       id: 'chatcmpl-mock123',
       object: 'chat.completion',
       created: 1234567890,
-      model: 'sonnet',
+      model: 'gpt-3.5-turbo',
       choices: [{
         index: 0,
         message: { role: 'assistant', content: 'Mock response content' },
@@ -251,7 +230,7 @@ export class MockCoreWrapper implements ICoreWrapper {
 export class StreamingTestDataFactory {
   static createValidRequest(): OpenAIRequest {
     return {
-      model: 'sonnet',
+      model: 'gpt-3.5-turbo',
       messages: [
         { role: 'user', content: 'Test message' }
       ],
@@ -264,7 +243,7 @@ export class StreamingTestDataFactory {
       id: 'chatcmpl-test123',
       object: 'chat.completion',
       created: Math.floor(Date.now() / 1000),
-      model: 'sonnet',
+      model: 'gpt-3.5-turbo',
       choices: [{
         index: 0,
         message: { role: 'assistant', content: 'Test response content' },
@@ -278,7 +257,7 @@ export class StreamingTestDataFactory {
     };
   }
 
-  static createStreamingResponse(id: string = 'test-id', model: string = 'sonnet'): OpenAIStreamingResponse {
+  static createStreamingResponse(id: string = 'test-id', model: string = 'gpt-3.5-turbo'): OpenAIStreamingResponse {
     return {
       id,
       object: 'chat.completion.chunk',

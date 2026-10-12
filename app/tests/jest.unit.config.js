@@ -4,7 +4,6 @@ module.exports = {
   testEnvironment: "node",
   rootDir: "../",
   reporters: [
-    "default",
     ["<rootDir>/tests/scripts/custom-reporter.js", {}],
     ["<rootDir>/tests/scripts/verbose-reporter.js", {}]
   ],
@@ -12,6 +11,7 @@ module.exports = {
     "<rootDir>/tests/unit/**/*.test.ts",
     "<rootDir>/tests/mocks/**/*.test.ts"
   ],
+  setupFiles: ["<rootDir>/tests/setup/real-cli-guard.js"],
   setupFilesAfterEnv: ["<rootDir>/tests/setup.ts"],
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/src/$1",

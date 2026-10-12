@@ -1,6 +1,15 @@
 import { Request, Response, NextFunction } from 'express';
 import { logger } from '../../utils/logger';
 import { v4 as uuidv4 } from 'uuid';
+import { isAnthropicMessagesPath } from '../anthropic';
+
+function sanitizedHeaders(headers: Request['headers']): Request['headers'] {
+  const sanitized = { ...headers };
+  if (sanitized.authorization) sanitized.authorization = '[REDACTED]';
+  if (sanitized['x-api-key']) sanitized['x-api-key'] = '[REDACTED]';
+  if (sanitized.cookie) sanitized.cookie = '[REDACTED]';
+  return sanitized;
+}
 
 declare global {
   namespace Express {
@@ -20,7 +29,7 @@ export function requestLoggingMiddleware(req: Request, res: Response, next: Next
   const requestInfo = {
     method: req.method,
     url: req.originalUrl,
-    headers: req.headers,
+    headers: sanitizedHeaders(req.headers),
     query: req.query,
     userAgent: req.get('user-agent'),
     ip: req.ip,
@@ -28,7 +37,7 @@ export function requestLoggingMiddleware(req: Request, res: Response, next: Next
   };
 
   // Log request body for non-GET requests (but be careful with large bodies)
-  if (req.method !== 'GET' && req.body) {
+  if (req.method !== 'GET' && req.body && !isAnthropicMessagesPath(req.path)) {
     const bodySize = JSON.stringify(req.body).length;
     if (bodySize < 10000) { // Only log small bodies
       (requestInfo as any)['body'] = req.body;
@@ -97,7 +106,9 @@ function logResponse(req: Request, res: Response, body: any, isStreaming: boolea
   };
 
   // Log response body for small responses or streaming info
-  if (isStreaming) {
+  if (isAnthropicMessagesPath(req.path)) {
+    (responseInfo as any)['body'] = '[REDACTED]';
+  } else if (isStreaming) {
     (responseInfo as any)['streamingData'] = 'SSE streaming response';
     (responseInfo as any)['firstChunk'] = body ? body.substring(0, 200) + '...' : null;
   } else if (body && typeof body === 'string' && body.length < 5000) {
@@ -135,8 +146,8 @@ export function errorLoggingMiddleware(error: Error, req: Request, _res: Respons
     requestId: req.requestId,
     method: req.method,
     url: req.originalUrl,
-    headers: req.headers,
-    body: req.body
+    headers: sanitizedHeaders(req.headers),
+    body: isAnthropicMessagesPath(req.path) ? '[REDACTED]' : req.body
   };
 
   logger.error(`Unhandled error in ${req.method} ${req.originalUrl}`, error, errorInfo);

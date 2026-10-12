@@ -12,17 +12,29 @@ export class EnvironmentManager {
     return this.config;
   }
 
-  static resetConfig(): void {
-    this.config = null;
-  }
-
   private static loadConfig(): EnvironmentConfig {
     return {
       port: this.getNumberFromEnv('PORT', API_CONSTANTS.DEFAULT_PORT),
       timeout: this.getNumberFromEnv('TIMEOUT', API_CONSTANTS.DEFAULT_TIMEOUT),
       claudeCommand: process.env['CLAUDE_COMMAND'],
+      claudeCommandArgs: this.getStringArrayFromEnv('CLAUDE_COMMAND_ARGS'),
       logLevel: this.getLogLevelFromEnv('LOG_LEVEL', 'info'),
     };
+  }
+
+  private static getStringArrayFromEnv(key: string): string[] {
+    const value = process.env[key];
+    if (!value) return [];
+
+    try {
+      const parsed: unknown = JSON.parse(value);
+      if (Array.isArray(parsed) && parsed.every(item => typeof item === 'string')) {
+        return parsed;
+      }
+    } catch {
+      // Fall through to the configuration error below.
+    }
+    throw new Error(`${key} must be a JSON array of strings`);
   }
 
   private static getNumberFromEnv(key: string, defaultValue: number): number {
@@ -74,9 +86,5 @@ export class EnvironmentManager {
 
   static getRequiredApiKey(): boolean {
     return process.env[SECURITY_ENV_VARS.REQUIRE_API_KEY] === 'true';
-  }
-
-  static isMockMode(): boolean {
-    return process.env['MOCK_MODE'] === 'true' || process.env['MOCK_MODE'] === '1';
   }
 }

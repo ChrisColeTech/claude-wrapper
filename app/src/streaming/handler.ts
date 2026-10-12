@@ -9,9 +9,9 @@ import {
 import { StreamingFormatter } from './formatter';
 import { StreamingManager } from './manager';
 import { CoreWrapper } from '../core/wrapper';
-import { EnvironmentManager } from '../config/env';
 import { 
   SSE_CONFIG, 
+  STREAMING_CONFIG, 
   API_CONSTANTS
 } from '../config/constants';
 import { logger } from '../utils/logger';
@@ -83,9 +83,6 @@ export class StreamingHandler implements IStreamingHandler {
       // Close connection
       this.manager.closeConnection(requestId);
       
-      // Explicitly end the response after streaming is complete
-      response.end();
-      
       const totalTime = Date.now() - startTime;
       logger.info('Streaming response completed', { 
         requestId, 
@@ -108,26 +105,29 @@ export class StreamingHandler implements IStreamingHandler {
     const requestId = this.generateRequestId();
     
     try {
-      // Check if we're in mock mode
-      if (EnvironmentManager.isMockMode()) {
-        logger.debug('Streaming: Using mock mode streaming', { requestId });
-        yield* this.createMockStreamingResponse(requestId, request);
-        return;
-      }
-      
       // Send initial chunk with role
       yield this.formatter.formatInitialChunk(requestId, request.model);
       
-      // Get real streaming response from Claude CLI
-      logger.debug('Streaming: About to call handleStreamingChatCompletion', { requestId });
+      // Simulate streaming by processing request and chunking response
+      logger.debug('Streaming: About to call handleChatCompletion', { requestId });
       
-      // Create modified request with stream=false for core wrapper
-      const modifiedRequest = { ...request, stream: false };
-      const streamingResponse = await this.coreWrapper.handleStreamingChatCompletion(modifiedRequest);
-      logger.debug('Streaming: Got streaming response', { requestId });
+      // Create a clean request object without streaming
+      const nonStreamingRequest: OpenAIRequest = {
+        model: request.model,
+        messages: request.messages,
+        stream: false,
+        ...(request.tools && { tools: request.tools }),
+        ...(request.temperature && { temperature: request.temperature }),
+        ...(request.max_tokens && { max_tokens: request.max_tokens }),
+        ...(request.session_id && { session_id: request.session_id })
+      };
+      
+      const fullResponse = await this.coreWrapper.handleChatCompletion(nonStreamingRequest);
+      logger.debug('Streaming: handleChatCompletion completed', { requestId });
 
-      // Process streaming JSON chunks
-      yield* this.processStreamingResponse(requestId, request.model, streamingResponse);
+      // Extract content and stream it in chunks
+      const content = fullResponse.choices[0]?.message?.content || '';
+      yield* this.chunkContent(requestId, request.model, content);
       
       // Send final chunk
       yield this.formatter.createFinalChunk(requestId, request.model);
@@ -140,100 +140,26 @@ export class StreamingHandler implements IStreamingHandler {
   }
 
   /**
-   * Process real streaming JSON chunks from Claude CLI
+   * Chunk content into streaming pieces
    */
-  private async* processStreamingResponse(
-    requestId: string,
-    model: string,
-    stream: NodeJS.ReadableStream
-  ): AsyncGenerator<string, void, unknown> {
-    const readline = require('readline');
-    const rl = readline.createInterface({
-      input: stream,
-      crlfDelay: Infinity
-    });
+  private async* chunkContent(requestId: string, model: string, content: string): AsyncGenerator<string, void, unknown> {
+    // Split content into words for natural streaming
+    const words = content.split(' ');
+    let currentChunk = '';
     
-    let isComplete = false;
-    
-    // Handle stream events for proper cleanup
-    const cleanup = () => {
-      if (!rl.closed) {
-        rl.close();
+    for (let i = 0; i < words.length; i++) {
+      currentChunk += (i > 0 ? ' ' : '') + words[i];
+      
+      // Send chunk when it reaches reasonable size or we're at the end
+      if (currentChunk.length >= STREAMING_CONFIG.MAX_CHUNK_SIZE || i === words.length - 1) {
+        yield this.formatter.createContentChunk(requestId, model, currentChunk);
+        currentChunk = '';
+        
+        // Small delay to simulate real streaming
+        await this.delay(STREAMING_CONFIG.CHUNK_TIMEOUT_MS);
       }
-    };
-    
-    // Set up event listeners
-    stream.on('end', () => {
-      logger.debug('Claude CLI stream ended', { requestId });
-      cleanup();
-    });
-    
-    stream.on('close', () => {
-      logger.debug('Claude CLI stream closed', { requestId });
-      cleanup();
-    });
-    
-    stream.on('error', (error) => {
-      logger.error('Claude CLI stream error', error, { requestId });
-      cleanup();
-    });
-    
-    // Add timeout safety net (30 seconds)
-    const timeout = setTimeout(() => {
-      logger.warn('Streaming timeout reached, closing connection', { requestId });
-      cleanup();
-    }, 30000);
-    
-    try {
-      for await (const line of rl) {
-        if (line.trim()) {
-          logger.info('Received streaming line', { line: line.trim() });
-          try {
-            // Parse streaming JSON chunk from Claude CLI
-            const chunk = JSON.parse(line);
-            logger.info('Parsed streaming chunk', { chunk });
-            
-            // Check if this is a completion signal from Claude CLI
-            if (chunk.type === 'result' && chunk.subtype === 'success') {
-              logger.info('Claude CLI completion detected', { requestId });
-              isComplete = true;
-              break;
-            }
-            
-            // Extract content from Claude's streaming format
-            const content = this.extractContentFromStreamChunk(chunk);
-            logger.info('Extracted content from chunk', { content });
-            
-            if (content) {
-              yield this.formatter.createContentChunk(requestId, model, content);
-            }
-          } catch (parseError) {
-            logger.warn('Failed to parse streaming chunk', { line, error: parseError });
-          }
-        }
-      }
-    } finally {
-      clearTimeout(timeout);
-      cleanup();
-      logger.debug('Streaming processing completed', { requestId, isComplete });
     }
   }
-
-  /**
-   * Extract content from Claude's stream-json format
-   */
-  private extractContentFromStreamChunk(chunk: any): string | null {
-    // Handle Claude CLI's stream-json format
-    if (chunk.type === 'assistant' && chunk.message?.content) {
-      for (const contentBlock of chunk.message.content) {
-        if (contentBlock.type === 'text' && contentBlock.text) {
-          return contentBlock.text;
-        }
-      }
-    }
-    return null;
-  }
-
 
   /**
    * Setup SSE headers for streaming
@@ -250,38 +176,18 @@ export class StreamingHandler implements IStreamingHandler {
   }
 
   /**
-   * Create mock streaming response for testing
-   */
-  private async* createMockStreamingResponse(requestId: string, request: OpenAIRequest): AsyncGenerator<string, void, unknown> {
-    // Send initial chunk with role
-    yield this.formatter.formatInitialChunk(requestId, request.model);
-    
-    // Create mock content
-    const promptText = request.messages.map(m => m.content).join(' ');
-    const mockContent = `Mock streaming response for: "${promptText.substring(0, 50)}${promptText.length > 50 ? '...' : ''}"`;
-    
-    // Break content into chunks for streaming effect
-    const chunkSize = 20;
-    for (let i = 0; i < mockContent.length; i += chunkSize) {
-      const chunk = mockContent.substring(i, i + chunkSize);
-      yield this.formatter.createContentChunk(requestId, request.model, chunk);
-      
-      // Small delay for realistic streaming feel
-      await new Promise(resolve => setTimeout(resolve, 50));
-    }
-    
-    // Send final chunk
-    yield this.formatter.createFinalChunk(requestId, request.model);
-    yield this.formatter.formatDone();
-  }
-
-  /**
    * Generate unique request ID
    */
   private generateRequestId(): string {
     return `${API_CONSTANTS.DEFAULT_REQUEST_ID_PREFIX}${Math.random().toString(36).substring(2, 15)}`;
   }
 
+  /**
+   * Delay helper for streaming timing
+   */
+  private delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
 
   /**
    * Cleanup resources

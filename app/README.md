@@ -34,6 +34,9 @@ This approach gives you **maximum flexibility** with Claude's tool capabilities.
 ## 📦 Installation
 
 ```bash
+# Install Claude Code first
+npm install -g @anthropic-ai/claude-code
+
 # Install globally from npm
 npm install -g claude-wrapper
 ```
@@ -84,7 +87,6 @@ Options:
   -H, --health-monitoring enable health monitoring system
   -s, --stop           stop background server
   -t, --status         check background server status
-  -m, --mock           enable mock mode for testing (instant responses)
   -h, --help           display help for command
 ```
 
@@ -102,39 +104,12 @@ wrapper --api-key my-secure-key
 wrapper -k my-secure-key           # shorthand
 ```
 
-### Mock Mode for Testing
-
-**Mock mode provides instant responses for performance testing and development:**
-
-```bash
-# Enable mock mode for testing
-wrapper --mock
-wrapper -m                         # shorthand
-
-# Combine with other options
-wrapper --mock --debug             # mock mode with debug output
-wrapper --mock --port 9999         # mock mode on custom port
-```
-
-Mock mode returns realistic Claude CLI responses instantly without making actual API calls, perfect for:
-- Performance testing and load testing
-- Development and debugging
-- CI/CD pipeline testing
-- Offline development environments
-
-**Mock Mode Features:**
-- Instant response generation (no API delays)
-- Realistic Claude CLI JSON response format
-- Streaming support with word-by-word content deltas
-- Automatic token calculation based on prompt length
-- Unique session ID generation for each request
-- Compatible with all existing endpoints and authentication
-
 ## 📡 API Endpoints
 
 | Method   | Endpoint                    | Description                                   |
 | -------- | --------------------------- | --------------------------------------------- |
 | `POST`   | `/v1/chat/completions`      | Main chat completions with session support    |
+| `POST`   | `/v1/messages`              | Minimal Anthropic Messages API                |
 | `GET`    | `/v1/models`                | List available Claude models (sonnet, opus)   |
 | `GET`    | `/v1/sessions`              | List all active sessions                      |
 | `GET`    | `/v1/sessions/stats`        | Get session statistics                        |
@@ -145,6 +120,31 @@ Mock mode returns realistic Claude CLI responses instantly without making actual
 | `GET`    | `/health`                   | Service health check                          |
 | `GET`    | `/docs`                     | Swagger UI                                    |
 | `GET`    | `/swagger.json`             | OpenAPI 3.0 specification JSON schema         |
+
+### Anthropic Messages API
+
+`POST /v1/messages` supports text-only messages, optional text system prompts,
+JSON responses, and Anthropic SSE response envelopes. Set
+`anthropic-version: 2023-06-01`. When API protection is enabled, clients may use
+either `x-api-key` or `Authorization: Bearer <key>`.
+
+```bash
+curl http://localhost:8000/v1/messages \
+  -H "content-type: application/json" \
+  -H "anthropic-version: 2023-06-01" \
+  -H "x-api-key: $API_KEY" \
+  -d '{"model":"sonnet","max_tokens":256,"messages":[{"role":"user","content":"Hello"}]}'
+```
+
+This initial compatibility endpoint does not support tools, image/document
+blocks, thinking, structured output, stop sequences, generation controls, or
+native incremental CLI output. `max_tokens` is required for protocol
+compatibility but is not currently enforced by the underlying CLI. Streaming
+requests open the SSE connection immediately, then emit the text block after
+the CLI response is complete.
+
+When overriding Claude discovery, `CLAUDE_COMMAND` must be a single executable
+path. Supply fixed arguments as a JSON array in `CLAUDE_COMMAND_ARGS`.
 
 ## 🚀 CLI Usage
 
@@ -179,6 +179,26 @@ wrapper -t                         # shorthand
 wrapper --stop
 wrapper -s                         # shorthand
 ```
+
+### Multiple Working Directories
+
+Each working directory has independent daemon state. Use a different port for
+each project and manage an instance from the directory where it was started:
+
+```bash
+cd project-a
+wrapper --port 8101 --no-interactive
+
+cd ../project-b
+wrapper --port 8102 --no-interactive
+
+cd ../project-a
+wrapper --status
+wrapper --stop
+```
+
+Claude inherits the project's working directory. Foreground `--debug` instances
+are stopped with Ctrl+C. Stop daemons created by older versions before upgrading.
 
 ## 📚 Documentation
 

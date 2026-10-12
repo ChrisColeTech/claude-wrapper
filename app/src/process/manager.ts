@@ -10,6 +10,7 @@ import { logger } from '../utils/logger';
 import { pidManager, IPidManager } from './pid';
 import { daemonManager, IDaemonManager, DaemonOptions } from './daemon';
 import { signalHandler, ISignalHandler } from './signals';
+import { instanceState, InstanceState } from './instance-state';
 
 /**
  * Process status information
@@ -30,7 +31,6 @@ export interface ProcessManagerOptions {
   verbose?: boolean;
   debug?: boolean;
   interactive?: boolean;
-  mock?: boolean;
 }
 
 /**
@@ -71,7 +71,8 @@ export class ProcessManager implements IProcessManager {
   constructor(
     customPidManager?: IPidManager,
     customDaemonManager?: IDaemonManager,
-    customSignalHandler?: ISignalHandler
+    customSignalHandler?: ISignalHandler,
+    private readonly state: InstanceState = instanceState
   ) {
     this.pidManager = customPidManager || pidManager;
     this.daemonManager = customDaemonManager || daemonManager;
@@ -110,7 +111,6 @@ export class ProcessManager implements IProcessManager {
         ...(options.apiKey && { apiKey: options.apiKey }),
         ...(options.verbose && { verbose: options.verbose }),
         ...(options.debug && { debug: options.debug }),
-        ...(options.mock !== undefined && { mock: options.mock }),
       };
 
       // Start daemon
@@ -312,10 +312,8 @@ export class ProcessManager implements IProcessManager {
    */
   private saveCurrentPort(port: string): void {
     try {
-      const { tmpdir } = require('os');
       const { writeFileSync } = require('fs');
-      const portFilePath = require('path').join(tmpdir(), 'claude-wrapper-port');
-      writeFileSync(portFilePath, port);
+      writeFileSync(this.state.portFilePath, port);
     } catch (error) {
       // Non-fatal error - just log it
       logger.debug('Failed to save current port', { error: error instanceof Error ? error.message : 'Unknown error' });
@@ -327,12 +325,9 @@ export class ProcessManager implements IProcessManager {
    */
   private loadCurrentPort(): string | null {
     try {
-      const { tmpdir } = require('os');
       const { readFileSync, existsSync } = require('fs');
-      const portFilePath = require('path').join(tmpdir(), 'claude-wrapper-port');
-      
-      if (existsSync(portFilePath)) {
-        const portContent = readFileSync(portFilePath, 'utf8');
+      if (existsSync(this.state.portFilePath)) {
+        const portContent = readFileSync(this.state.portFilePath, 'utf8');
         return portContent.trim();
       }
       return null;

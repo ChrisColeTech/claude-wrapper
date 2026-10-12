@@ -41,13 +41,23 @@ describe('Session Signal Mock', () => {
     it('should simulate session manager shutdown timeout', async () => {
       const timeout = 100;
       SessionSignalMockSetup.simulateShutdownTimeout(timeout);
-      
-      const startTime = Date.now();
-      await sessionManagerMock.shutdown();
-      const endTime = Date.now();
-      
-      expect(endTime - startTime).toBeGreaterThanOrEqual(timeout);
-      expect(sessionManagerMock.isShuttingDown).toBe(true);
+
+      jest.useFakeTimers();
+      try {
+        let resolved = false;
+        const shutdown = sessionManagerMock.shutdown().then(() => {
+          resolved = true;
+        });
+
+        await jest.advanceTimersByTimeAsync(timeout - 1);
+        expect(resolved).toBe(false);
+
+        await jest.advanceTimersByTimeAsync(1);
+        await shutdown;
+        expect(sessionManagerMock.isShuttingDown).toBe(true);
+      } finally {
+        jest.useRealTimers();
+      }
     });
 
     it('should return empty sessions array', () => {

@@ -7,6 +7,7 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { logger } from '../utils/logger';
+import { anthropicError, isAnthropicMessagesPath } from '../api/anthropic';
 
 /**
  * Authentication error types
@@ -131,10 +132,11 @@ export function createAuthMiddleware(
         return next();
       }
 
-      // Get Authorization header
+      // Anthropic clients conventionally send x-api-key; OpenAI clients use Bearer.
       const authHeader = req.get('Authorization');
+      const anthropicApiKey = isAnthropicMessagesPath(req.path) ? req.get('x-api-key') : undefined;
       
-      if (!authHeader) {
+      if (!authHeader && !anthropicApiKey) {
         logger.warn(`Missing Authorization header for protected path: ${req.path}`);
         throw new AuthenticationError(
           AuthErrorType.MISSING_TOKEN,
@@ -143,8 +145,8 @@ export function createAuthMiddleware(
         );
       }
 
-      // Extract bearer token
-      const token = validator.extractToken(authHeader);
+      // Extract bearer token, or use the Anthropic API key directly.
+      const token = anthropicApiKey || (authHeader ? validator.extractToken(authHeader) : null);
       
       if (!token) {
         logger.warn(`Malformed Authorization header for path: ${req.path}`);
@@ -162,7 +164,7 @@ export function createAuthMiddleware(
         logger.warn(`Invalid bearer token for path: ${req.path}`);
         throw new AuthenticationError(
           AuthErrorType.INVALID_TOKEN,
-          'Invalid bearer token. Check your API key.',
+          authHeader ? 'Invalid bearer token. Check your API key.' : 'Invalid API key.',
           401
         );
       }
@@ -179,26 +181,34 @@ export function createAuthMiddleware(
           method: req?.method || 'unknown'
         });
 
-        res.status(error.statusCode).json({
-          error: {
-            message: error.message,
-            type: 'authentication_error',
-            code: error.type
-          }
-        });
+        if (isAnthropicMessagesPath(req?.path || '')) {
+          res.status(error.statusCode).json(anthropicError('authentication_error', error.message));
+        } else {
+          res.status(error.statusCode).json({
+            error: {
+              message: error.message,
+              type: 'authentication_error',
+              code: error.type
+            }
+          });
+        }
       } else {
         logger.error(`Unexpected authentication error: ${error}`, error instanceof Error ? error : undefined, {
           path: req?.path || 'unknown',
           method: req?.method || 'unknown'
         });
 
-        res.status(500).json({
-          error: {
-            message: 'Internal authentication error',
-            type: 'internal_error',
-            code: 'auth_processing_error'
-          }
-        });
+        if (isAnthropicMessagesPath(req?.path || '')) {
+          res.status(500).json(anthropicError('api_error', 'Internal authentication error'));
+        } else {
+          res.status(500).json({
+            error: {
+              message: 'Internal authentication error',
+              type: 'internal_error',
+              code: 'auth_processing_error'
+            }
+          });
+        }
       }
     }
   };

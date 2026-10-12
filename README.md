@@ -37,6 +37,9 @@ This approach gives you **maximum flexibility** with Claude's tool capabilities.
 ## 📦 Installation
 
 ```bash
+# Install Claude Code first
+npm install -g @anthropic-ai/claude-code
+
 # Install globally from npm
 npm install -g claude-wrapper
 ```
@@ -81,7 +84,6 @@ Options:
   -v, --version        output the version number
   -p, --port <port>    port to run server on (default: 8000)
   -d, --debug          enable debug mode (runs in foreground)
-  -m, --mock           enable mock mode (simulates Claude CLI responses)
   -k, --api-key <key>  set API key for endpoint protection
   -n, --no-interactive disable interactive API key setup
   -P, --production     enable production server management features
@@ -155,15 +157,26 @@ wrapper --stop
 wrapper -s                         # shorthand
 ```
 
-## 🎭 Mock Mode
+### Multiple Working Directories
 
-Develop and test without Claude CLI dependency! Mock mode provides ultra-fast simulation (300x faster) with complete API compatibility.
+Each working directory has independent daemon state. Start every project on a
+different port, then run `--status` or `--stop` from that same directory:
 
 ```bash
-wrapper --mock    # Enable mock mode
+cd project-a
+wrapper --port 8101 --no-interactive
+
+cd ../project-b
+wrapper --port 8102 --no-interactive
+
+cd ../project-a
+wrapper --status
+wrapper --stop
 ```
 
-📖 **[Mock Mode Guide](docs/MOCK_MODE.md)** - Complete documentation and configuration.
+Claude inherits the project's working directory. Foreground `--debug` instances
+are stopped with Ctrl+C. Stop any daemon created by versions before this feature
+before upgrading, because older releases used one global PID file.
 
 ## 📚 Documentation
 

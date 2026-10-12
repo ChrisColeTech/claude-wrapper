@@ -18,8 +18,7 @@ describe('E2E Health Tests', () => {
       service: 'claude-wrapper',
       version: expect.any(String),
       description: expect.any(String),
-      timestamp: expect.any(String),
-      mock_mode: expect.any(Boolean)
+      timestamp: expect.any(String)
     });
   });
 

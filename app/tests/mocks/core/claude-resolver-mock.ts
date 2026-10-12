@@ -129,22 +129,15 @@ export class ClaudeResolverMock {
       });
     }
 
-    // Docker commands (cross-platform)
-    Object.assign(baseCommands, {
-      'docker run --rm anthropic/claude --version': { stdout: 'Claude CLI v1.0.0', stderr: '' },
-      'podman run --rm anthropic/claude --version': { stdout: 'Claude CLI v1.0.0', stderr: '' }
-    });
-
     // Version testing commands
     Object.assign(baseCommands, {
       '/usr/local/bin/claude --version': { stdout: 'Claude CLI v1.0.0 (@anthropic-ai)', stderr: '' },
-      'C:\\Users\\user\\AppData\\Roaming\\npm\\claude.cmd --version': { stdout: 'Claude CLI v1.0.0', stderr: '' },
-      'docker run --rm anthropic/claude --version': { stdout: 'Claude CLI v1.0.0', stderr: '' }
+      'C:\\Users\\user\\AppData\\Roaming\\npm\\claude.cmd --version': { stdout: 'Claude CLI v1.0.0', stderr: '' }
     });
 
     // Alias scenarios
     Object.assign(baseCommands, {
-      'bash -i -c "which claude"': { stdout: 'claude: aliased to docker run --rm anthropic/claude', stderr: '' },
+      'bash -i -c "which claude"': { stdout: 'claude: aliased to /opt/claude/bin/claude', stderr: '' },
       'zsh -i -c "which claude"': { stdout: 'claude: aliased to /usr/local/bin/claude-wrapper', stderr: '' }
     });
 
@@ -193,21 +186,11 @@ export class ClaudeResolverMock {
   }
 
   /**
-   * Create Docker command results
-   */
-  static createDockerCommands(): Record<string, MockExecResult> {
-    return {
-      'docker run --rm anthropic/claude --version': { stdout: 'Claude CLI v1.0.0', stderr: '' },
-      'podman run --rm anthropic/claude --version': { stdout: 'Claude CLI v1.0.0', stderr: '' }
-    };
-  }
-
-  /**
    * Create shell alias scenarios
    */
   static createAliasScenarios(): Record<string, MockExecResult> {
     return {
-      'bash -i -c "which claude"': { stdout: 'claude: aliased to docker run --rm anthropic/claude', stderr: '' },
+      'bash -i -c "which claude"': { stdout: 'claude: aliased to /opt/claude/bin/claude', stderr: '' },
       'zsh -i -c "which claude"': { stdout: 'claude: aliased to /usr/local/bin/claude-wrapper', stderr: '' }
     };
   }
@@ -219,8 +202,7 @@ export class ClaudeResolverMock {
     return {
       'which claude': { stdout: '', stderr: 'claude: command not found', error: new Error('Command not found') },
       'command -v claude': { stdout: '', stderr: '', error: new Error('Command not found') },
-      'where claude': { stdout: '', stderr: 'INFO: Could not find files for the given pattern(s).', error: new Error('Command not found') },
-      'docker run --rm anthropic/claude --version': { stdout: '', stderr: 'Unable to find image', error: new Error('Docker not available') }
+      'where claude': { stdout: '', stderr: 'INFO: Could not find files for the given pattern(s).', error: new Error('Command not found') }
     };
   }
 
@@ -229,11 +211,6 @@ export class ClaudeResolverMock {
    */
   static createTimeoutScenarios(): Record<string, MockExecResult> {
     return {
-      'docker run --rm anthropic/claude --version': {
-        stdout: '',
-        stderr: '',
-        error: new Error('timeout')
-      },
       '/usr/local/bin/claude --version': {
         stdout: '',
         stderr: '',

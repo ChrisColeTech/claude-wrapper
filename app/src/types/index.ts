@@ -21,6 +21,7 @@ export interface OpenAIRequest {
   stream?: boolean;
   temperature?: number;
   max_tokens?: number;
+  session_id?: string;
   tools?: any[];
 }
 
@@ -62,7 +63,6 @@ export interface ClaudeRequest {
 export interface IClaudeClient {
   execute(request: ClaudeRequest): Promise<string>;
   executeWithSession(request: ClaudeRequest, sessionId: string | null, useJsonOutput: boolean): Promise<string>;
-  messagesToPrompt(messages: any[], tools?: any[]): string;
 }
 
 export interface IClaudeResolver {
@@ -78,7 +78,6 @@ export interface IResponseValidator {
 
 export interface ICoreWrapper {
   handleChatCompletion(request: OpenAIRequest): Promise<OpenAIResponse>;
-  handleStreamingChatCompletion(request: OpenAIRequest): Promise<NodeJS.ReadableStream>;
 }
 
 // Configuration Types
@@ -86,6 +85,7 @@ export interface EnvironmentConfig {
   port: number;
   timeout: number;
   claudeCommand: string | undefined;
+  claudeCommandArgs?: string[];
   logLevel: 'debug' | 'info' | 'warn' | 'error';
 }
 
@@ -96,21 +96,44 @@ export interface ClaudeWrapperError {
   details?: any;
 }
 
-// Optimized Session Types
-export interface OptimizedSessionInfo {
-  system_prompt_hash: string;
-  claude_session_id: string;
-  system_prompt_content: string;
-  last_used: Date;
+// Session Management Types (Phase 3A)
+export interface SessionInfo {
+  session_id: string;
+  messages: OpenAIMessage[];
   created_at: Date;
+  last_accessed: Date;
+  expires_at: Date;
 }
 
-export interface OptimizedSessionStats {
+export interface SessionStorage {
+  store(session: SessionInfo): Promise<void>;
+  get(sessionId: string): Promise<SessionInfo | null>;
+  update(session: SessionInfo): Promise<void>;
+  delete(sessionId: string): Promise<void>;
+  list(): Promise<SessionInfo[]>;
+  cleanup(): Promise<number>;
+}
+
+export interface ISessionManager {
+  getOrCreateSession(sessionId: string): SessionInfo;
+  processMessages(messages: OpenAIMessage[], sessionId?: string | null): [OpenAIMessage[], string | null];
+  listSessions(): SessionInfo[];
+  deleteSession(sessionId: string): void;
+  getSessionCount(): number;
+}
+
+export interface ISessionCleanup {
+  startCleanupTask(): void;
+  shutdown(): void;
+  isRunning(): boolean;
+}
+
+export interface SessionStats {
   totalSessions: number;
   activeSessions: number;
-  averageSystemPromptLength: number;
+  expiredSessions: number;
+  averageMessageCount: number;
   oldestSessionAge: number;
-  sessionType: string;
 }
 
 // Streaming Types (Phase 4A)

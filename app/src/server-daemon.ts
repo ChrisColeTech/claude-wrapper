@@ -10,9 +10,9 @@ import { signalHandler } from './process/signals';
 /**
  * Parse daemon arguments
  */
-function parseDaemonArgs(): { port: number; apiKey?: string; verbose?: boolean; debug?: boolean; mock?: boolean } {
+function parseDaemonArgs(): { port: number; apiKey?: string; verbose?: boolean; debug?: boolean } {
   const args = process.argv.slice(2);
-  const result: { port: number; apiKey?: string; verbose?: boolean; debug?: boolean; mock?: boolean } = {
+  const result: { port: number; apiKey?: string; verbose?: boolean; debug?: boolean } = {
     port: 8000
   };
 
@@ -34,9 +34,6 @@ function parseDaemonArgs(): { port: number; apiKey?: string; verbose?: boolean; 
       case '--debug':
         result.debug = true;
         break;
-      case '--mock':
-        result.mock = true;
-        break;
     }
   }
 
@@ -51,8 +48,6 @@ async function startDaemon(): Promise<void> {
   const options = parseDaemonArgs();
   
   // Set environment variables BEFORE importing server (critical for middleware configuration)
-  process.env['PORT'] = options.port.toString();
-  
   if (options.apiKey) {
     process.env['API_KEY'] = options.apiKey;
   }
@@ -62,19 +57,21 @@ async function startDaemon(): Promise<void> {
   if (options.debug) {
     process.env['DEBUG_MODE'] = 'true';
   }
-  if (options.mock) {
-    process.env['MOCK_MODE'] = 'true';
-  }
-
-  // Reset config cache to ensure environment variables are re-read
-  const { EnvironmentManager } = await import('./config/env');
-  EnvironmentManager.resetConfig();
 
   // Import server AFTER setting environment variables
-  const { startServer } = await import('./api/server');
+  const { default: app } = await import('./api/server');
 
-  // Start server with Claude CLI initialization
-  const server = await startServer();
+  // Start server
+  const server = app.listen(options.port, '0.0.0.0', () => {
+    // Only log in verbose/debug mode for daemon
+    if (options.verbose || options.debug) {
+      logger.info(`🚀 Claude Wrapper daemon running on port ${options.port}`);
+      logger.info(`📡 API available at http://localhost:${options.port}/v1/chat/completions`);
+      logger.info(`📊 Health check at http://localhost:${options.port}/health`);
+      logger.info(`📚 Swagger UI at http://localhost:${options.port}/docs`);
+      logger.info(`📋 OpenAPI spec at http://localhost:${options.port}/swagger.json`);
+    }
+  });
 
   // Setup graceful shutdown using new signal handler
   signalHandler.setupGracefulShutdown(server);

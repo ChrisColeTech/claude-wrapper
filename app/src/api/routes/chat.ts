@@ -1,21 +1,22 @@
 import { Router, Request, Response } from 'express';
-import { sharedCoreWrapper } from '../../core/shared-wrapper';
+import { CoreWrapper } from '../../core/wrapper';
 import { StreamingHandler } from '../../streaming/handler';
-import { OpenAIRequest } from '../../types';
+import { ICoreWrapper, IStreamingHandler, OpenAIRequest } from '../../types';
 import { InvalidRequestError } from '../../utils/errors';
 import { asyncHandler } from '../middleware/error';
 import { streamingMiddleware } from '../middleware/streaming';
-import { modelValidationMiddleware } from '../middleware/model-validation';
 import { logger } from '../../utils/logger';
 
-const router = Router();
-const streamingHandler = new StreamingHandler();
+export function createChatRouter(
+  coreWrapper: ICoreWrapper = new CoreWrapper(),
+  streamingHandler?: IStreamingHandler
+): Router {
+  const router = Router();
+  let handler = streamingHandler;
 
-// Apply validation and streaming middleware to chat completions
-router.post('/v1/chat/completions', 
-  modelValidationMiddleware,
-  streamingMiddleware,
-  asyncHandler(async (req: Request, res: Response) => {
+  router.post('/v1/chat/completions',
+    streamingMiddleware,
+    asyncHandler(async (req: Request, res: Response) => {
     logger.info('Chat completion request received', {
       model: req.body.model,
       messageCount: req.body.messages?.length,
@@ -38,7 +39,7 @@ router.post('/v1/chat/completions',
       if (!message.role || !['system', 'user', 'assistant', 'tool'].includes(message.role)) {
         throw new InvalidRequestError('Invalid message role. Must be one of: system, user, assistant, tool');
       }
-      if (message.content === undefined || message.content === null) {
+      if ((message.content === undefined || message.content === null) && message.role !== 'tool' && message.role !== 'assistant') {
         throw new InvalidRequestError('Message content is required');
       }
     }
@@ -51,7 +52,8 @@ router.post('/v1/chat/completions',
       });
       
       // Handle streaming request - response is managed by StreamingHandler
-      await streamingHandler.handleStreamingRequest(request, res);
+      handler = handler || new StreamingHandler(undefined, undefined, coreWrapper);
+      await handler.handleStreamingRequest(request, res);
       
     } else {
       logger.info('Processing non-streaming chat completion', {
@@ -60,7 +62,7 @@ router.post('/v1/chat/completions',
       });
       
       // Handle non-streaming request
-      const response = await sharedCoreWrapper.handleChatCompletion(request);
+      const response = await coreWrapper.handleChatCompletion(request);
       
       logger.info('Chat completion request completed successfully', {
         requestId: response.id,
@@ -69,7 +71,8 @@ router.post('/v1/chat/completions',
 
       res.json(response);
     }
-  })
-);
+    })
+  );
 
-export default router;
+  return router;
+}
