@@ -1,6 +1,7 @@
 import { EnvironmentConfig } from '../types';
 import { API_CONSTANTS, LOG_LEVELS } from './constants';
 import { SECURITY_ENV_VARS } from './security-constants';
+import { MockConfigManager } from './mock-config';
 
 export class EnvironmentManager {
   private static config: EnvironmentConfig | null = null;
@@ -82,6 +83,10 @@ export class EnvironmentManager {
 
   static isDaemonMode(): boolean {
     return process.env['CLAUDE_WRAPPER_DAEMON'] === 'true';
+  }
+
+  static isMockMode(): boolean {
+    return MockConfigManager.isMockMode();
   }
 
   static getRequiredApiKey(): boolean {

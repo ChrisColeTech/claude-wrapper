@@ -10,20 +10,28 @@ import {
   ICommandRunner
 } from '../process/command-runner';
 import { resolveWindowsCommand } from '../process/windows-command';
+import { MockClaudeResolver } from '../mocks/core/mock-claude-resolver';
 
 const RESOLUTION_TIMEOUT_MS = 3000;
 
 export class ClaudeResolver implements IClaudeResolver {
   private claudeCommand: CommandSpec | null = null;
+  private readonly mockResolver: MockClaudeResolver | null;
 
-  constructor(private readonly runner: ICommandRunner = new CommandRunner()) {}
+  constructor(private readonly runner: ICommandRunner = new CommandRunner()) {
+    this.mockResolver = EnvironmentManager.isMockMode()
+      ? MockClaudeResolver.getInstance()
+      : null;
+  }
 
   async findClaudeCommand(): Promise<string> {
+    if (this.mockResolver) return this.mockResolver.findClaudeCommand();
     const spec = await this.resolveClaudeCommand();
     return [spec.command, ...spec.args].join(' ');
   }
 
   async executeClaudeCommand(prompt: string, model: string): Promise<string> {
+    if (this.mockResolver) return this.mockResolver.executeCommand(prompt, model);
     return this.executeClaudeCommandWithSession(prompt, model, null, false);
   }
 
@@ -33,6 +41,14 @@ export class ClaudeResolver implements IClaudeResolver {
     sessionId: string | null,
     useJsonOutput: boolean
   ): Promise<string> {
+    if (this.mockResolver) {
+      return this.mockResolver.executeClaudeCommandWithSession(
+        prompt,
+        model,
+        sessionId || undefined,
+        useJsonOutput
+      );
+    }
     const base = await this.resolveClaudeCommand();
     const args = [...base.args, '--print', '--model', model];
     if (sessionId) args.push('--resume', sessionId);

@@ -10,10 +10,19 @@ import { MockConfigManager } from '../../../src/config/mock-config';
 describe('Enhanced Mock Mode - Comprehensive Validation', () => {
   let generator: EnhancedResponseGenerator;
   let resolver: MockClaudeResolver;
+  const originalMockMode = process.env['MOCK_MODE'];
 
   beforeAll(() => {
+    process.env['MOCK_MODE'] = 'true';
+    MockConfigManager.resetConfig();
     generator = EnhancedResponseGenerator.getInstance();
     resolver = MockClaudeResolver.getInstance();
+  });
+
+  afterAll(() => {
+    if (originalMockMode === undefined) delete process.env['MOCK_MODE'];
+    else process.env['MOCK_MODE'] = originalMockMode;
+    MockConfigManager.resetConfig();
   });
 
   beforeEach(() => {

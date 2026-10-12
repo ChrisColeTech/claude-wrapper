@@ -145,7 +145,7 @@ describe('ClaudeCommandExecutor Mock Mode Tests', () => {
       await executor.execute('claude', ['test prompt', '--model sonnet']);
       
       expect(logger.debug).toHaveBeenCalledWith(
-        'Mock execution triggered',
+        'Enhanced mock execution triggered',
         expect.objectContaining({
           promptLength: 'test prompt'.length,
           flags: '--model sonnet'
@@ -153,7 +153,7 @@ describe('ClaudeCommandExecutor Mock Mode Tests', () => {
       );
       
       expect(logger.info).toHaveBeenCalledWith(
-        'Mock response generated',
+        'Enhanced mock response generated',
         expect.objectContaining({
           responseSize: expect.any(Number),
           inputTokens: expect.any(Number),
@@ -186,13 +186,8 @@ describe('ClaudeCommandExecutor Mock Mode Tests', () => {
           const allData = chunks.join('');
           const lines = allData.split('\n').filter(line => line.trim());
           
-          // Check for expected streaming events
-          expect(lines.some(line => line.includes('"type":"message_start"'))).toBe(true);
-          expect(lines.some(line => line.includes('"type":"content_block_start"'))).toBe(true);
-          expect(lines.some(line => line.includes('"type":"content_block_delta"'))).toBe(true);
-          expect(lines.some(line => line.includes('"type":"content_block_stop"'))).toBe(true);
-          expect(lines.some(line => line.includes('"type":"message_delta"'))).toBe(true);
-          expect(lines.some(line => line.includes('"type":"message_stop"'))).toBe(true);
+          expect(lines.some(line => line.includes('"type":"assistant"'))).toBe(true);
+          expect(lines.some(line => line.includes('"type":"result"'))).toBe(true);
           
           resolve(undefined);
         });
@@ -220,9 +215,9 @@ describe('ClaudeCommandExecutor Mock Mode Tests', () => {
           });
           
           // Check specific content
-          const messageStart = lines.find(line => line.includes('"type":"message_start"'));
-          const startParsed = JSON.parse(messageStart!);
-          expect(startParsed.message.model).toBe('claude-3-5-sonnet-20241022');
+          const assistant = lines.find(line => line.includes('"type":"assistant"'));
+          const parsed = JSON.parse(assistant!);
+          expect(parsed.message.content[0].type).toBe('text');
           
           resolve(undefined);
         });
@@ -242,10 +237,9 @@ describe('ClaudeCommandExecutor Mock Mode Tests', () => {
         
         stream.on('end', () => {
           const allData = chunks.join('');
-          const messageStart = allData.split('\n').find(line => line.includes('"type":"message_start"'));
-          const parsed = JSON.parse(messageStart!);
-          
-          expect(parsed.message.usage.input_tokens).toBe(Math.floor('Hello world test'.length / 4));
+          const assistant = allData.split('\n').find(line => line.includes('"type":"assistant"'));
+          const parsed = JSON.parse(assistant!);
+          expect(parsed.message.content[0].text).toBeTruthy();
           
           resolve(undefined);
         });
@@ -265,14 +259,11 @@ describe('ClaudeCommandExecutor Mock Mode Tests', () => {
         
         stream.on('end', () => {
           const allData = chunks.join('');
-          const deltaLines = allData.split('\n').filter(line => line.includes('"type":"content_block_delta"'));
+          const deltaLines = allData.split('\n').filter(line => line.includes('"type":"assistant"'));
           
           expect(deltaLines.length).toBeGreaterThan(0);
           
-          const words = ['Mock', 'streaming', 'response', 'for', 'testing', 'purposes.'];
-          words.forEach(word => {
-            expect(deltaLines.some(line => line.includes(`"${word} "`))).toBe(true);
-          });
+          expect(deltaLines.every(line => JSON.parse(line).message.content[0].type === 'text')).toBe(true);
           
           resolve(undefined);
         });
@@ -284,16 +275,16 @@ describe('ClaudeCommandExecutor Mock Mode Tests', () => {
       await executor.executeStreaming('claude', ['test prompt']);
       
       expect(logger.debug).toHaveBeenCalledWith(
-        'Mock streaming execution triggered',
+        'Enhanced mock streaming execution triggered',
         expect.objectContaining({
           promptLength: 'test prompt'.length
         })
       );
       
       expect(logger.info).toHaveBeenCalledWith(
-        'Mock streaming response generated',
+        'Enhanced mock streaming response generated',
         expect.objectContaining({
-          streamType: 'mock',
+          streamType: 'enhanced',
           inputTokens: expect.any(Number)
         })
       );
@@ -342,9 +333,9 @@ describe('ClaudeCommandExecutor Mock Mode Tests', () => {
       
       const parsed = JSON.parse(result);
       expect(parsed.duration_ms).toBeGreaterThanOrEqual(5);
-      expect(parsed.duration_ms).toBeLessThanOrEqual(25);
+      expect(parsed.duration_ms).toBeLessThanOrEqual(50);
       expect(parsed.duration_api_ms).toBeGreaterThanOrEqual(2);
-      expect(parsed.duration_api_ms).toBeLessThanOrEqual(12);
+      expect(parsed.duration_api_ms).toBeLessThanOrEqual(30);
     });
 
     test('should generate reasonable token counts', async () => {

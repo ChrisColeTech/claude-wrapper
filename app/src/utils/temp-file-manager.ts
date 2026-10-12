@@ -1,10 +1,11 @@
 import { promises as fs } from 'fs';
 import path from 'path';
 import { randomBytes } from 'crypto';
+import os from 'os';
 import { logger } from './logger';
 
 export class TempFileManager {
-  private static tempDir = '/tmp/claude-wrapper';
+  private static tempDir = path.join(os.tmpdir(), 'claude-wrapper');
   
   /**
    * Creates a temporary file with the given content

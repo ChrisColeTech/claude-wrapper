@@ -32,8 +32,8 @@ describe('MockClaudeResolver', () => {
       await resolver.findClaudeCommand();
       const elapsed = Date.now() - startTime;
       
-      expect(elapsed).toBeGreaterThan(50); // Minimum delay
-      expect(elapsed).toBeLessThan(1000); // Reasonable upper bound
+      expect(elapsed).toBeGreaterThanOrEqual(4);
+      expect(elapsed).toBeLessThan(100);
     });
   });
 

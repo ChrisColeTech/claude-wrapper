@@ -267,6 +267,12 @@ export class ClaudeCommandExecutor implements IClaudeCommandExecutor {
     try {
       // Use enhanced mock resolver
       const response = await this.mockResolver.executeCommand(prompt, model, sessionId || undefined, false);
+      const parsed = JSON.parse(response);
+      logger.info('Enhanced mock response generated', {
+        responseSize: response.length,
+        inputTokens: parsed.usage?.input_tokens || 0,
+        outputTokens: parsed.usage?.output_tokens || 0
+      });
       
       // Check if this is an OpenAI request and wrap accordingly
       if (this.isOpenAIRequest(prompt)) {

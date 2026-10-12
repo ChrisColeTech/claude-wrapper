@@ -404,81 +404,47 @@ export class MockClaudeResolver {
 
   private createMockStream(chunks: string[]): NodeJS.ReadableStream {
     const { Readable } = require('stream');
-    let chunkIndex = 0;
-
-    return new Readable({
-      read() {
-        if (chunkIndex < chunks.length) {
-          setTimeout(() => {
-            // Format as Claude CLI streaming format that handler expects
-            const claudeChunk = {
-              type: 'assistant',
-              message: {
-                content: [{
-                  type: 'text',
-                  text: chunks[chunkIndex]
-                }]
-              },
-              session_id: `mock-session-${Date.now()}`
-            };
-            this.push(JSON.stringify(claudeChunk) + '\n');
-            chunkIndex++;
-          }, 100);
-        } else {
-          // Send final completion chunk
-          const finalChunk = {
-            type: 'result',
-            subtype: 'success',
-            session_id: `mock-session-${Date.now()}`
-          };
-          this.push(JSON.stringify(finalChunk) + '\n');
-          this.push(null); // End stream
-        }
+    async function* stream() {
+      for (const text of chunks) {
+        await new Promise(resolve => setTimeout(resolve, 5));
+        yield JSON.stringify({
+          type: 'assistant',
+          message: { content: [{ type: 'text', text }] },
+          session_id: `mock-session-${Date.now()}`
+        }) + '\n';
       }
-    });
+      yield JSON.stringify({
+        type: 'result',
+        subtype: 'success',
+        session_id: `mock-session-${Date.now()}`
+      }) + '\n';
+    }
+    return Readable.from(stream());
   }
 
   private createOpenAIStreamingResponse(chunks: string[], model: string): NodeJS.ReadableStream {
     const { Readable } = require('stream');
-    let chunkIndex = 0;
-
-    return new Readable({
-      read() {
-        if (chunkIndex < chunks.length) {
-          setTimeout(() => {
-            const chunk = {
-              id: `chatcmpl-mock-${Date.now()}`,
-              object: 'chat.completion.chunk',
-              created: Math.floor(Date.now() / 1000),
-              model,
-              choices: [{
-                index: 0,
-                delta: { content: chunks[chunkIndex] },
-                finish_reason: null
-              }]
-            };
-            this.push(`data: ${JSON.stringify(chunk)}\n\n`);
-            chunkIndex++;
-          }, 50);
-        } else {
-          // Send final chunk
-          const finalChunk = {
-            id: `chatcmpl-mock-${Date.now()}`,
-            object: 'chat.completion.chunk',
-            created: Math.floor(Date.now() / 1000),
-            model,
-            choices: [{
-              index: 0,
-              delta: {},
-              finish_reason: 'stop'
-            }]
-          };
-          this.push(`data: ${JSON.stringify(finalChunk)}\n\n`);
-          this.push('data: [DONE]\n\n');
-          this.push(null);
-        }
+    async function* stream() {
+      for (const content of chunks) {
+        await new Promise(resolve => setTimeout(resolve, 5));
+        yield `data: ${JSON.stringify({
+          id: `chatcmpl-mock-${Date.now()}`,
+          object: 'chat.completion.chunk',
+          created: Math.floor(Date.now() / 1000),
+          model,
+          choices: [{ index: 0, delta: { content }, finish_reason: null }]
+        })}\n\n`;
       }
-    });
+      yield `data: ${JSON.stringify({
+        id: `chatcmpl-mock-${Date.now()}`,
+        object: 'chat.completion.chunk',
+        created: Math.floor(Date.now() / 1000),
+        model,
+        choices: [{ index: 0, delta: {}, finish_reason: 'stop' }]
+      })}\n\n`;
+      yield 'data: [DONE]\n\n';
+    }
+    return Readable.from(stream());
   }
 
   private ensureJsonFormat(response: string): string {

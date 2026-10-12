@@ -64,14 +64,14 @@ export class MockConfigManager {
   }
 
   private static loadConfig(): MockConfig {
-    const enabled = process.env['MOCK_MODE'] === 'true' || 
-                   process.env['NODE_ENV'] === 'test';
+    const enabled = process.env['MOCK_MODE'] === 'true';
+    const testMode = process.env['NODE_ENV'] === 'test';
 
     return {
       enabled,
       responseDelay: {
-        min: this.getNumberFromEnv('MOCK_RESPONSE_DELAY_MIN', DEFAULT_MOCK_CONFIG.responseDelay.min),
-        max: this.getNumberFromEnv('MOCK_RESPONSE_DELAY_MAX', DEFAULT_MOCK_CONFIG.responseDelay.max)
+        min: this.getNumberFromEnv('MOCK_RESPONSE_DELAY_MIN', testMode ? 5 : DEFAULT_MOCK_CONFIG.responseDelay.min),
+        max: this.getNumberFromEnv('MOCK_RESPONSE_DELAY_MAX', testMode ? 25 : DEFAULT_MOCK_CONFIG.responseDelay.max)
       },
       responses: {
         useCache: this.getBooleanFromEnv('MOCK_USE_CACHE', DEFAULT_MOCK_CONFIG.responses.useCache),

@@ -13,7 +13,8 @@ jest.mock('../../../src/utils/logger', () => ({
 
 jest.mock('../../../src/config/env', () => ({
   EnvironmentManager: {
-    getConfig: jest.fn()
+    getConfig: jest.fn(),
+    isMockMode: jest.fn(() => false)
   }
 }));
 

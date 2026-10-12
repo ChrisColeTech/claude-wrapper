@@ -1,6 +1,7 @@
 import { TempFileManager } from '../../../src/utils/temp-file-manager';
 import { promises as fs } from 'fs';
 import path from 'path';
+import os from 'os';
 
 describe('TempFileManager', () => {
   afterEach(async () => {
@@ -54,7 +55,7 @@ describe('TempFileManager', () => {
     });
 
     it('should not throw on non-existent file', async () => {
-      const nonExistentPath = '/tmp/claude-wrapper/non-existent-file.txt';
+      const nonExistentPath = path.join(TempFileManager.getTempDirectory(), 'non-existent-file.txt');
       await expect(TempFileManager.cleanupTempFile(nonExistentPath)).resolves.not.toThrow();
     });
   });
@@ -65,14 +66,14 @@ describe('TempFileManager', () => {
       expect(TempFileManager.isTempFile(tempFile)).toBe(true);
       
       expect(TempFileManager.isTempFile('/some/other/path.txt')).toBe(false);
-      expect(TempFileManager.isTempFile('/tmp/claude-wrapper/not-a-prompt-file.txt')).toBe(false);
+      expect(TempFileManager.isTempFile(path.join(TempFileManager.getTempDirectory(), 'not-a-prompt-file.txt'))).toBe(false);
     });
   });
 
   describe('getTempDirectory', () => {
     it('should return temp directory path', () => {
       const tempDir = TempFileManager.getTempDirectory();
-      expect(tempDir).toBe('/tmp/claude-wrapper');
+      expect(tempDir).toBe(path.join(os.tmpdir(), 'claude-wrapper'));
     });
   });
 

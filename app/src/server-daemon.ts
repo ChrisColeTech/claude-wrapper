@@ -10,9 +10,9 @@ import { signalHandler } from './process/signals';
 /**
  * Parse daemon arguments
  */
-function parseDaemonArgs(): { port: number; apiKey?: string; verbose?: boolean; debug?: boolean } {
+function parseDaemonArgs(): { port: number; apiKey?: string; verbose?: boolean; debug?: boolean; mock?: boolean } {
   const args = process.argv.slice(2);
-  const result: { port: number; apiKey?: string; verbose?: boolean; debug?: boolean } = {
+  const result: { port: number; apiKey?: string; verbose?: boolean; debug?: boolean; mock?: boolean } = {
     port: 8000
   };
 
@@ -33,6 +33,9 @@ function parseDaemonArgs(): { port: number; apiKey?: string; verbose?: boolean; 
         break;
       case '--debug':
         result.debug = true;
+        break;
+      case '--mock':
+        result.mock = true;
         break;
     }
   }
@@ -56,6 +59,9 @@ async function startDaemon(): Promise<void> {
   }
   if (options.debug) {
     process.env['DEBUG_MODE'] = 'true';
+  }
+  if (options.mock) {
+    process.env['MOCK_MODE'] = 'true';
   }
 
   // Import server AFTER setting environment variables
