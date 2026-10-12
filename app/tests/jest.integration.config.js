@@ -6,6 +6,7 @@ module.exports = {
   },
   rootDir: "../",
   testMatch: ["<rootDir>/tests/integration/**/*.test.ts"],
+  setupFiles: ["<rootDir>/tests/setup/real-cli-guard.js"],
   setupFilesAfterEnv: ["<rootDir>/tests/setup.ts"],
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/src/$1",
