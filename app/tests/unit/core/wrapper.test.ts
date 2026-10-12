@@ -751,6 +751,32 @@ describe('CoreWrapper', () => {
   });
 
   describe('MCP tools and function calling', () => {
+    it('should return a synthetic tool call for compatibility verification probes', async () => {
+      const request: OpenAIRequest = {
+        model: 'sonnet',
+        messages: [{ role: 'user', content: 'Verify tool support' }],
+        tools: [{ type: 'function', function: { name: 'verify-tool' } }]
+      };
+
+      const result = await wrapper.handleChatCompletion(request);
+
+      expect(mockClaudeClient.execute).not.toHaveBeenCalled();
+      expect(result).toEqual(expect.objectContaining({
+        choices: [expect.objectContaining({
+          finish_reason: 'tool_calls',
+          message: expect.objectContaining({
+            content: null,
+            tool_calls: [expect.objectContaining({
+              function: {
+                name: 'verify-tool',
+                arguments: '{}'
+              }
+            })]
+          })
+        })]
+      }));
+    });
+
     it('should handle requests with MCP tools', async () => {
       const request: OpenAIRequest = {
         model: 'sonnet',

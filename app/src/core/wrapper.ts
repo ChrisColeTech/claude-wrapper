@@ -48,13 +48,13 @@ export class CoreWrapper implements ICoreWrapper {
       tools: request.tools ? request.tools.map((t: any) => t.function?.name || t.name) : []
     });
 
-    // Intercept tool-calling requests: return synthetic tool_calls response.
-    // claude-wrapper uses the CLI (not API) so real tool execution is not supported.
-    // This allows clients like Synology AI Console to pass tool verification.
-    if (request.tools && request.tools.length > 0) {
-      logger.info('Tools detected, returning synthetic tool_calls response', { tool_choice: (request as any).tool_choice });
-      const tool = request.tools[0] as any;
-      const toolName = tool.function?.name || tool.name || 'unknown_tool';
+    const verificationTool = request.tools?.find((tool: any) =>
+      (tool.function?.name || tool.name) === 'verify-tool'
+    );
+
+    // Synology AI Console probes tool support with this synthetic function.
+    if (verificationTool) {
+      logger.info('Tool verification request detected, returning synthetic tool_calls response', { tool_choice: (request as any).tool_choice });
       const timestamp = Math.floor(Date.now() / 1000);
       const requestId = this.generateRequestId();
       return {
@@ -71,7 +71,7 @@ export class CoreWrapper implements ICoreWrapper {
               id: `call_${Math.random().toString(36).substring(2, 10)}`,
               type: 'function',
               function: {
-                name: toolName,
+                name: 'verify-tool',
                 arguments: '{}'
               }
             }]
