@@ -10,6 +10,7 @@ import * as path from 'path';
 import { PROCESS_CONFIG } from '../config/constants';
 import { logger } from '../utils/logger';
 import { pidManager } from './pid';
+import { instanceState } from './instance-state';
 
 /**
  * Daemon process options
@@ -77,6 +78,7 @@ export class DaemonManager implements IDaemonManager {
       const child = spawn(process.execPath, [scriptPath, ...args], {
         detached: true,
         stdio: 'ignore',
+        cwd: instanceState.workingDirectory,
         env: {
           ...process.env  // Inherit parent environment variables
         }

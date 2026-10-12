@@ -141,6 +141,7 @@ describe('DaemonManager', () => {
       expect(options_param).toEqual({ 
         detached: true, 
         stdio: 'ignore',
+        cwd: expect.any(String),
         env: expect.objectContaining({
           ...process.env  // Should include all environment variables from parent process
         })

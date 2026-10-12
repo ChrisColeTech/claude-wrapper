@@ -27,11 +27,14 @@ export class CommandExecutionError extends Error {
 const MAX_OUTPUT_BYTES = 10 * 1024 * 1024;
 
 export class CommandRunner implements ICommandRunner {
+  constructor(private readonly workingDirectory: string = process.cwd()) {}
+
   run(spec: CommandSpec, input: string, timeoutMs: number): Promise<CommandResult> {
     return new Promise((resolve, reject) => {
       const child = spawn(spec.command, spec.args, {
         shell: false,
         windowsHide: true,
+        cwd: this.workingDirectory,
         stdio: ['pipe', 'pipe', 'pipe']
       });
       const stdout: Buffer[] = [];

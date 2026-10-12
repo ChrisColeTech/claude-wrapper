@@ -1,4 +1,7 @@
 import { CommandExecutionError, CommandRunner } from '../../../src/process/command-runner';
+import { mkdtemp, rm } from 'fs/promises';
+import os from 'os';
+import path from 'path';
 
 describe('CommandRunner', () => {
   const runner = new CommandRunner();
@@ -40,5 +43,20 @@ describe('CommandRunner', () => {
       message: 'failed',
       timedOut: false
     }));
+  });
+
+  it('runs child processes in the configured working directory', async () => {
+    const directory = await mkdtemp(path.join(os.tmpdir(), 'claude-wrapper-cwd-'));
+    try {
+      const scopedRunner = new CommandRunner(directory);
+      const result = await scopedRunner.run({
+        command: process.execPath,
+        args: ['-e', 'process.stdout.write(process.cwd())']
+      }, '', 5000);
+
+      expect(result.stdout.toLowerCase()).toBe(directory.toLowerCase());
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
   });
 });
