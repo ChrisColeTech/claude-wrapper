@@ -34,6 +34,9 @@ This approach gives you **maximum flexibility** with Claude's tool capabilities.
 ## 📦 Installation
 
 ```bash
+# Install Claude Code first
+npm install -g @anthropic-ai/claude-code
+
 # Install globally from npm
 npm install -g claude-wrapper
 ```
@@ -141,8 +144,7 @@ requests open the SSE connection immediately, then emit the text block after
 the CLI response is complete.
 
 When overriding Claude discovery, `CLAUDE_COMMAND` must be a single executable
-path. Supply fixed arguments as a JSON array in `CLAUDE_COMMAND_ARGS`. For
-container execution, prefer `CLAUDE_DOCKER_IMAGE`.
+path. Supply fixed arguments as a JSON array in `CLAUDE_COMMAND_ARGS`.
 
 ## 🚀 CLI Usage
 
@@ -177,6 +179,26 @@ wrapper -t                         # shorthand
 wrapper --stop
 wrapper -s                         # shorthand
 ```
+
+### Multiple Working Directories
+
+Each working directory has independent daemon state. Use a different port for
+each project and manage an instance from the directory where it was started:
+
+```bash
+cd project-a
+wrapper --port 8101 --no-interactive
+
+cd ../project-b
+wrapper --port 8102 --no-interactive
+
+cd ../project-a
+wrapper --status
+wrapper --stop
+```
+
+Claude inherits the project's working directory. Foreground `--debug` instances
+are stopped with Ctrl+C. Stop daemons created by older versions before upgrading.
 
 ## 📚 Documentation
 

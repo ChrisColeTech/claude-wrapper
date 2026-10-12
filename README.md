@@ -37,6 +37,9 @@ This approach gives you **maximum flexibility** with Claude's tool capabilities.
 ## 📦 Installation
 
 ```bash
+# Install Claude Code first
+npm install -g @anthropic-ai/claude-code
+
 # Install globally from npm
 npm install -g claude-wrapper
 ```
@@ -153,6 +156,27 @@ wrapper -t                         # shorthand
 wrapper --stop
 wrapper -s                         # shorthand
 ```
+
+### Multiple Working Directories
+
+Each working directory has independent daemon state. Start every project on a
+different port, then run `--status` or `--stop` from that same directory:
+
+```bash
+cd project-a
+wrapper --port 8101 --no-interactive
+
+cd ../project-b
+wrapper --port 8102 --no-interactive
+
+cd ../project-a
+wrapper --status
+wrapper --stop
+```
+
+Claude inherits the project's working directory. Foreground `--debug` instances
+are stopped with Ctrl+C. Stop any daemon created by versions before this feature
+before upgrading, because older releases used one global PID file.
 
 ## 📚 Documentation
 
