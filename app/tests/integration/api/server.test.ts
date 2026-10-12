@@ -25,7 +25,9 @@ describe('API Integration Tests', () => {
     
     // The mock is already set up at module level
     
-    app = createServer();
+    app = createServer({
+      coreWrapper: { handleChatCompletion: mockHandleChatCompletion }
+    });
   });
 
   afterEach(() => {

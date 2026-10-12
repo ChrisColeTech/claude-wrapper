@@ -1,20 +1,22 @@
 import { Router, Request, Response } from 'express';
 import { CoreWrapper } from '../../core/wrapper';
 import { StreamingHandler } from '../../streaming/handler';
-import { OpenAIRequest } from '../../types';
+import { ICoreWrapper, IStreamingHandler, OpenAIRequest } from '../../types';
 import { InvalidRequestError } from '../../utils/errors';
 import { asyncHandler } from '../middleware/error';
 import { streamingMiddleware } from '../middleware/streaming';
 import { logger } from '../../utils/logger';
 
-const router = Router();
-const coreWrapper = new CoreWrapper();
-const streamingHandler = new StreamingHandler();
+export function createChatRouter(
+  coreWrapper: ICoreWrapper = new CoreWrapper(),
+  streamingHandler?: IStreamingHandler
+): Router {
+  const router = Router();
+  let handler = streamingHandler;
 
-// Apply streaming middleware to chat completions
-router.post('/v1/chat/completions', 
-  streamingMiddleware,
-  asyncHandler(async (req: Request, res: Response) => {
+  router.post('/v1/chat/completions',
+    streamingMiddleware,
+    asyncHandler(async (req: Request, res: Response) => {
     logger.info('Chat completion request received', {
       model: req.body.model,
       messageCount: req.body.messages?.length,
@@ -50,7 +52,8 @@ router.post('/v1/chat/completions',
       });
       
       // Handle streaming request - response is managed by StreamingHandler
-      await streamingHandler.handleStreamingRequest(request, res);
+      handler = handler || new StreamingHandler(undefined, undefined, coreWrapper);
+      await handler.handleStreamingRequest(request, res);
       
     } else {
       logger.info('Processing non-streaming chat completion', {
@@ -68,7 +71,8 @@ router.post('/v1/chat/completions',
 
       res.json(response);
     }
-  })
-);
+    })
+  );
 
-export default router;
+  return router;
+}
