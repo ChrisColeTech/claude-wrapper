@@ -137,7 +137,7 @@ export class ClaudeConfigMock {
     return {
       port: 8000,
       timeout: 60000,
-      claudeCommand: 'docker run --rm anthropic/claude',
+      claudeCommand: '/usr/local/bin/claude',
       logLevel: 'info',
       isProduction: true,
       isDevelopment: false,
@@ -202,22 +202,6 @@ export class ClaudeConfigMock {
   static createFailingConfig(): ClaudeConfigMockConfig {
     return {
       shouldFailValidation: true
-    };
-  }
-
-  /**
-   * Create Docker-specific configuration
-   */
-  static createDockerConfig(): ClaudeConfigMockConfig {
-    return {
-      port: 8000,
-      timeout: 120000,
-      claudeCommand: 'docker run --rm anthropic/claude',
-      logLevel: 'info',
-      environmentVariables: {
-        'CLAUDE_DOCKER_IMAGE': 'anthropic/claude:latest',
-        'DOCKER_CLAUDE_CMD': 'docker run --rm anthropic/claude'
-      }
     };
   }
 

@@ -110,10 +110,8 @@ describe('ClaudeResolverMock', () => {
       const mockInstance = ClaudeResolverMock.setup();
 
       const result1 = await mockInstance.testClaudeCommand('/usr/local/bin/claude');
-      const result2 = await mockInstance.testClaudeCommand('docker run anthropic/claude');
       
       expect(result1).toBe(true);
-      expect(result2).toBe(true);
     });
 
     it('should return false for invalid commands', async () => {
@@ -175,14 +173,6 @@ describe('ClaudeResolverMock', () => {
       expect(commands['where claude']?.stdout).toContain('C:\\Users\\user\\AppData\\Roaming\\npm\\claude.cmd');
     });
 
-    it('should create Docker commands correctly', () => {
-      const commands = ClaudeResolverMock.createDockerCommands();
-
-      expect(commands).toHaveProperty('docker run --rm anthropic/claude --version');
-      expect(commands).toHaveProperty('podman run --rm anthropic/claude --version');
-      expect(commands['docker run --rm anthropic/claude --version']?.stdout).toContain('Claude CLI v1.0.0');
-    });
-
     it('should create alias scenarios correctly', () => {
       const commands = ClaudeResolverMock.createAliasScenarios();
 
@@ -203,9 +193,8 @@ describe('ClaudeResolverMock', () => {
     it('should create timeout scenarios correctly', () => {
       const commands = ClaudeResolverMock.createTimeoutScenarios();
 
-      expect(commands).toHaveProperty('docker run --rm anthropic/claude --version');
       expect(commands).toHaveProperty('/usr/local/bin/claude --version');
-      expect(commands['docker run --rm anthropic/claude --version']?.error?.message).toBe('timeout');
+      expect(commands['/usr/local/bin/claude --version']?.error?.message).toBe('timeout');
     });
   });
 

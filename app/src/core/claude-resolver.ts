@@ -70,11 +70,6 @@ export class ClaudeResolver implements IClaudeResolver {
 
     const config = EnvironmentManager.getConfig();
     if (config.claudeCommand) {
-      if (/^(?:docker|podman)\s+/i.test(config.claudeCommand)) {
-        throw new ClaudeCliError(
-          'CLAUDE_COMMAND must contain only an executable. Put arguments in CLAUDE_COMMAND_ARGS as a JSON array.'
-        );
-      }
       let configured: CommandSpec = {
         command: config.claudeCommand,
         args: config.claudeCommandArgs || []
@@ -106,7 +101,8 @@ export class ClaudeResolver implements IClaudeResolver {
     }
 
     throw new ClaudeCliError(
-      'Claude CLI not found. Install Claude Code, ensure claude is in PATH, or set CLAUDE_COMMAND.'
+      'Claude CLI not found. Install it with `npm install -g @anthropic-ai/claude-code`, ' +
+      'ensure `claude` is in PATH, or set CLAUDE_COMMAND and CLAUDE_COMMAND_ARGS.'
     );
   }
 
@@ -127,14 +123,6 @@ export class ClaudeResolver implements IClaudeResolver {
     const cliPath = process.env['CLAUDE_CLI_PATH'];
     if (cliPath) candidates.push({ command: cliPath, args: [] });
 
-    const dockerImage = process.env['CLAUDE_DOCKER_IMAGE'];
-    if (dockerImage && /^[a-zA-Z0-9._/:@-]+$/.test(dockerImage)) {
-      candidates.push({ command: 'docker', args: ['run', '--rm', '-i', dockerImage] });
-    }
-    candidates.push(
-      { command: 'docker', args: ['run', '--rm', '-i', 'anthropic/claude'] },
-      { command: 'podman', args: ['run', '--rm', '-i', 'anthropic/claude'] }
-    );
     return candidates;
   }
 

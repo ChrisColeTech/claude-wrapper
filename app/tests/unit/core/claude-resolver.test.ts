@@ -117,6 +117,7 @@ describe('ClaudeResolver', () => {
     run.mockRejectedValue(new CommandExecutionError('not found'));
     const resolver = new ClaudeResolver(runner);
 
-    await expect(resolver.findClaudeCommand()).rejects.toThrow(ClaudeCliError);
+    await expect(resolver.findClaudeCommand()).rejects.toThrow('@anthropic-ai/claude-code');
+    expect(run).toHaveBeenCalledTimes(1);
   });
 });
