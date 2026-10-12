@@ -5,8 +5,7 @@
 
 import { CliParser, CliRunner } from '../../../src/cli';
 import * as fs from 'fs';
-import * as path from 'path';
-import * as os from 'os';
+import { instanceState } from '../../../src/process/instance-state';
 
 describe('CLI Integration Tests', () => {
   let originalExit: typeof process.exit;
@@ -107,7 +106,7 @@ describe('CLI Integration Tests', () => {
 
     beforeEach(() => {
       runner = new CliRunner();
-      pidFile = path.join(os.tmpdir(), 'claude-wrapper.pid');
+      pidFile = instanceState.pidFilePath;
       
       // Clean up any existing PID file
       if (fs.existsSync(pidFile)) {
@@ -200,7 +199,7 @@ describe('CLI Integration Tests', () => {
     let pidFile: string;
 
     beforeEach(() => {
-      pidFile = path.join(os.tmpdir(), 'claude-wrapper.pid');
+      pidFile = instanceState.pidFilePath;
       
       // Clean up any existing PID file
       if (fs.existsSync(pidFile)) {

@@ -26,6 +26,7 @@ export interface CliOptions {
   status?: boolean;
   production?: boolean;
   healthMonitoring?: boolean;
+  mock?: boolean;
 }
 
 /**
@@ -54,6 +55,7 @@ class CliParser {
       .option('-n, --no-interactive', 'disable interactive API key setup')
       .option('-P, --production', 'enable production server management features')
       .option('-H, --health-monitoring', 'enable health monitoring system')
+      .option('-m, --mock', 'use mock Claude CLI for testing')
       .option('-s, --stop', 'stop background server')
       .option('-t, --status', 'check background server status')
       .helpOption('-h, --help', 'display help for command')
@@ -67,6 +69,7 @@ Examples:
   wrapper -d                Start in debug mode
   wrapper -k my-key         Start with API key protection
   wrapper -n                Skip interactive API key setup
+  wrapper -m                Start with mock Claude responses
   wrapper -s                Stop background server
   wrapper -t                Check server status
   
@@ -175,7 +178,8 @@ class CliRunner {
           port,
           ...(options.apiKey && { apiKey: options.apiKey }),
           ...(options.debug !== undefined && { debug: options.debug }),
-          ...(options.interactive !== undefined && { interactive: options.interactive })
+          ...(options.interactive !== undefined && { interactive: options.interactive }),
+          ...(options.mock !== undefined && { mock: options.mock })
         });
 
         const wslInfo = WSLHelper.getWSLInfo();
@@ -243,6 +247,9 @@ class CliRunner {
     }
     if (options.debug) {
       process.env['DEBUG_MODE'] = 'true';
+    }
+    if (options.mock) {
+      process.env['MOCK_MODE'] = 'true';
     }
 
     // Import and start server directly

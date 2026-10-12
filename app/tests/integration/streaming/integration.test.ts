@@ -22,7 +22,9 @@ describe('Streaming Integration Tests', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockHandleChatCompletion.mockClear();
-    app = createServer();
+    app = createServer({
+      coreWrapper: { handleChatCompletion: mockHandleChatCompletion }
+    });
   });
 
   afterEach(() => {

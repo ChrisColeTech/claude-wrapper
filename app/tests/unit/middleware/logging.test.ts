@@ -80,6 +80,37 @@ describe('Logging Middleware', () => {
       );
     });
 
+    it('should redact authentication headers', () => {
+      mockRequest.headers = {
+        authorization: 'Bearer secret',
+        'x-api-key': 'secret-key',
+        cookie: 'session=secret'
+      };
+
+      requestLoggingMiddleware(mockRequest as Request, mockResponse as Response, mockNext);
+
+      const logCall = (logger.http as jest.Mock).mock.calls[0][2];
+      expect(logCall.headers).toEqual({
+        authorization: '[REDACTED]',
+        'x-api-key': '[REDACTED]',
+        cookie: '[REDACTED]'
+      });
+    });
+
+    it('should not log Anthropic message bodies with a trailing slash', () => {
+      mockRequest = {
+        ...mockRequest,
+        method: 'POST',
+        path: '/v1/messages/',
+        body: { messages: [{ role: 'user', content: 'private prompt' }] }
+      };
+
+      requestLoggingMiddleware(mockRequest as Request, mockResponse as Response, mockNext);
+
+      const logCall = (logger.http as jest.Mock).mock.calls[0][2];
+      expect(logCall.body).toBeUndefined();
+    });
+
     it('should log request body for non-GET requests', () => {
       mockRequest.method = 'POST';
       mockRequest.body = { test: 'data' };

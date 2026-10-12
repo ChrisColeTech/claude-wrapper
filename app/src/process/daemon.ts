@@ -10,6 +10,7 @@ import * as path from 'path';
 import { PROCESS_CONFIG } from '../config/constants';
 import { logger } from '../utils/logger';
 import { pidManager } from './pid';
+import { instanceState } from './instance-state';
 
 /**
  * Daemon process options
@@ -20,6 +21,7 @@ export interface DaemonOptions {
   verbose?: boolean;
   debug?: boolean;
   scriptPath?: string;
+  mock?: boolean;
 }
 
 /**
@@ -77,6 +79,7 @@ export class DaemonManager implements IDaemonManager {
       const child = spawn(process.execPath, [scriptPath, ...args], {
         detached: true,
         stdio: 'ignore',
+        cwd: instanceState.workingDirectory,
         env: {
           ...process.env  // Inherit parent environment variables
         }
@@ -216,6 +219,10 @@ export class DaemonManager implements IDaemonManager {
     
     if (options.debug) {
       args.push('--debug');
+    }
+
+    if (options.mock) {
+      args.push('--mock');
     }
     
     return args;

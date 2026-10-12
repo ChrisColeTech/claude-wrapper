@@ -8,8 +8,9 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { PROCESS_CONFIG, SIGNAL_CONFIG } from '../config/constants';
+import { SIGNAL_CONFIG } from '../config/constants';
 import { logger } from '../utils/logger';
+import { instanceState, InstanceState } from './instance-state';
 
 /**
  * PID file information interface
@@ -55,15 +56,14 @@ export class PidError extends Error {
 export class PidManager implements IPidManager {
   private readonly pidFilePath: string;
 
-  constructor(pidFileName?: string) {
-    this.pidFilePath = path.join(
-      os.tmpdir(), 
-      pidFileName || PROCESS_CONFIG.PID_FILE_NAME
-    );
+  constructor(pidFileName?: string, state: InstanceState = instanceState) {
+    this.pidFilePath = pidFileName
+      ? path.join(os.tmpdir(), pidFileName)
+      : state.pidFilePath;
     
     logger.debug('PidManager initialized', { 
       pidFilePath: this.pidFilePath,
-      fileName: pidFileName || PROCESS_CONFIG.PID_FILE_NAME
+      fileName: pidFileName || path.basename(state.pidFilePath)
     });
   }
 

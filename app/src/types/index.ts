@@ -85,6 +85,7 @@ export interface EnvironmentConfig {
   port: number;
   timeout: number;
   claudeCommand: string | undefined;
+  claudeCommandArgs?: string[];
   logLevel: 'debug' | 'info' | 'warn' | 'error';
 }
 

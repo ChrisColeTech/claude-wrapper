@@ -88,7 +88,7 @@ export class StreamingManager implements IStreamingManager {
         this.connectionTimeouts.delete(id);
       }
       
-      if (connection.response && !connection.response.headersSent) {
+      if (connection.response && !connection.response.writableEnded) {
         try {
           connection.response.end();
         } catch (error) {

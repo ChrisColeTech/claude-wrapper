@@ -59,6 +59,7 @@ router.get('/v1/auth/status', (req: Request, res: Response) => {
         type: isProtected ? 'bearer_token' : 'none',
         protected_endpoints: isProtected ? [
           '/v1/chat/completions',
+          '/v1/messages',
           '/v1/sessions/*',
           '/v1/models'
         ] : [],

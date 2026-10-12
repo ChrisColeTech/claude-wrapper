@@ -1,0 +1,153 @@
+{
+  "category": "errors",
+  "description": "Various error scenarios for testing error handling",
+  "templates": [
+    {
+      "id": "error-timeout-1",
+      "shouldError": true,
+      "errorType": "timeout",
+      "errorMessage": "Request timed out after 30 seconds",
+      "httpStatus": 408,
+      "errorCode": "REQUEST_TIMEOUT",
+      "retryable": true,
+      "responseTime": 30000,
+      "triggers": ["timeout", "slow", "hang"]
+    },
+    {
+      "id": "error-validation-1",
+      "shouldError": true,
+      "errorType": "validation",
+      "errorMessage": "Invalid request format: missing required field 'messages'",
+      "httpStatus": 400,
+      "errorCode": "VALIDATION_ERROR",
+      "retryable": false,
+      "details": {
+        "field": "messages",
+        "reason": "required field missing",
+        "expected": "array of message objects"
+      },
+      "triggers": ["invalid", "missing", "required"]
+    },
+    {
+      "id": "error-cli-1",
+      "shouldError": true,
+      "errorType": "cli_error",
+      "errorMessage": "Claude CLI execution failed: command not found",
+      "httpStatus": 500,
+      "errorCode": "CLI_EXECUTION_ERROR",
+      "retryable": false,
+      "details": {
+        "command": "claude",
+        "exitCode": 127,
+        "stderr": "command not found: claude"
+      },
+      "triggers": ["cli", "command", "execution"]
+    },
+    {
+      "id": "error-network-1",
+      "shouldError": true,
+      "errorType": "network",
+      "errorMessage": "Network connection failed: unable to reach Claude API",
+      "httpStatus": 503,
+      "errorCode": "NETWORK_ERROR",
+      "retryable": true,
+      "details": {
+        "cause": "DNS resolution failed",
+        "endpoint": "api.anthropic.com",
+        "retryAfter": 60
+      },
+      "triggers": ["network", "connection", "dns"]
+    },
+    {
+      "id": "error-rate-limit-1",
+      "shouldError": true,
+      "errorType": "rate_limit",
+      "errorMessage": "Rate limit exceeded: too many requests",
+      "httpStatus": 429,
+      "errorCode": "RATE_LIMIT_EXCEEDED",
+      "retryable": true,
+      "details": {
+        "limit": 100,
+        "remaining": 0,
+        "resetTime": "2024-01-01T12:00:00Z",
+        "retryAfter": 3600
+      },
+      "triggers": ["rate", "limit", "quota"]
+    },
+    {
+      "id": "error-auth-1",
+      "shouldError": true,
+      "errorType": "authentication",
+      "errorMessage": "Authentication failed: invalid API key",
+      "httpStatus": 401,
+      "errorCode": "AUTHENTICATION_ERROR",
+      "retryable": false,
+      "details": {
+        "reason": "invalid_api_key",
+        "suggestion": "Check your API key configuration"
+      },
+      "triggers": ["auth", "key", "unauthorized"]
+    },
+    {
+      "id": "error-quota-1",
+      "shouldError": true,
+      "errorType": "quota",
+      "errorMessage": "Usage quota exceeded: monthly limit reached",
+      "httpStatus": 402,
+      "errorCode": "QUOTA_EXCEEDED",
+      "retryable": false,
+      "details": {
+        "quotaType": "monthly",
+        "limit": 1000000,
+        "used": 1000000,
+        "resetDate": "2024-02-01T00:00:00Z"
+      },
+      "triggers": ["quota", "usage", "billing"]
+    },
+    {
+      "id": "error-content-1",
+      "shouldError": true,
+      "errorType": "content_filter",
+      "errorMessage": "Content blocked by safety filter",
+      "httpStatus": 400,
+      "errorCode": "CONTENT_FILTERED",
+      "retryable": false,
+      "details": {
+        "reason": "potentially_harmful_content",
+        "category": "safety",
+        "suggestion": "Please modify your request to comply with usage policies"
+      },
+      "triggers": ["filter", "safety", "blocked"]
+    },
+    {
+      "id": "error-system-1",
+      "shouldError": true,
+      "errorType": "system",
+      "errorMessage": "Internal system error: service temporarily unavailable",
+      "httpStatus": 500,
+      "errorCode": "INTERNAL_SERVER_ERROR",
+      "retryable": true,
+      "details": {
+        "errorId": "sys-err-12345",
+        "timestamp": "2024-01-01T12:00:00Z",
+        "retryAfter": 300
+      },
+      "triggers": ["system", "internal", "server"]
+    },
+    {
+      "id": "error-model-1",
+      "shouldError": true,
+      "errorType": "model_error",
+      "errorMessage": "Model not available: requested model is currently offline",
+      "httpStatus": 503,
+      "errorCode": "MODEL_UNAVAILABLE",
+      "retryable": true,
+      "details": {
+        "requestedModel": "claude-3-opus",
+        "availableModels": ["claude-3-sonnet", "claude-3-haiku"],
+        "estimatedRecovery": "2024-01-01T13:00:00Z"
+      },
+      "triggers": ["model", "unavailable", "offline"]
+    }
+  ]
+}

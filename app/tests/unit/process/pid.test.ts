@@ -22,6 +22,7 @@ jest.mock('os', () => ({
 // Mock path
 jest.mock('path', () => ({
   join: jest.fn((...args: string[]) => args.join('/')),
+  basename: jest.fn((value: string) => value.split('/').pop()),
 }));
 
 // Mock logger
@@ -32,6 +33,15 @@ jest.mock('../../../src/utils/logger', () => ({
     warn: jest.fn(),
     error: jest.fn(),
   },
+}));
+
+jest.mock('../../../src/process/instance-state', () => ({
+  instanceState: {
+    workingDirectory: '/project',
+    instanceId: 'test-instance',
+    pidFilePath: '/tmp/claude-wrapper-test-instance.pid',
+    portFilePath: '/tmp/claude-wrapper-test-instance.port'
+  }
 }));
 
 // Import mocked modules
@@ -83,8 +93,8 @@ describe('PidManager', () => {
 
   describe('Constructor', () => {
     test('should create PidManager with default filename', () => {
-      new PidManager();
-      expect(mockJoin).toHaveBeenCalledWith('/tmp', 'claude-wrapper.pid');
+      const manager = new PidManager();
+      expect(manager.getPidFilePath()).toBe('/tmp/claude-wrapper-test-instance.pid');
     });
 
     test('should create PidManager with custom filename', () => {
@@ -93,7 +103,7 @@ describe('PidManager', () => {
     });
 
     test('should use correct temp directory', () => {
-      new PidManager();
+      new PidManager('custom.pid');
       expect(mockTmpdir).toHaveBeenCalled();
     });
   });

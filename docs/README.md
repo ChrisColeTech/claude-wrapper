@@ -46,7 +46,7 @@ This approach gives you maximum flexibility with Claude's tool capabilities.
 - **⚡ System Prompt Optimization**: 60-70% performance improvement with intelligent session caching
 - **🌊 Streaming Support**: Real-time response streaming with Server-Sent Events
 - **🪟 WSL Integration**: Automatic port forwarding script generation for seamless Windows access
-- **🔍 Auto-Detection**: Automatically finds Claude CLI across different installation methods (npm, Docker, aliases, environment variables)
+- **🔍 Auto-Detection**: Finds Claude CLI through PATH, with explicit executable and argument overrides available through environment variables
 - **🛡️ API Protection**: Optional bearer token authentication for endpoint security
 - **🛠️ Perfect Tool Calls**: Claude automatically generates OpenAI `tool_calls` format
 - **⚡ Zero Conversion**: Direct JSON passthrough, no parsing overhead
@@ -264,6 +264,28 @@ claude-wrapper --version
 # Show help
 claude-wrapper --help
 ```
+
+### Multiple Working Directories
+
+Daemon PID and port state are scoped to the canonical working directory. This
+allows separate projects to run simultaneously as long as they use different
+ports. Status and stop commands apply to the current directory's instance.
+
+```bash
+cd project-a
+claude-wrapper --port 8101 --no-interactive
+
+cd ../project-b
+claude-wrapper --port 8102 --no-interactive
+
+cd ../project-a
+claude-wrapper --status
+claude-wrapper --stop
+```
+
+The Claude child process runs in the same directory. Foreground `--debug`
+instances are stopped with Ctrl+C rather than `--stop`. Stop daemons created by
+older versions before upgrading because they used one global PID file.
 
 ## WSL Integration
 

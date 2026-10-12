@@ -61,9 +61,9 @@ describe('ClaudeClient', () => {
       const capturedPrompt = mockResolver.executeClaudeCommandWithSession.mock.calls[0]![0]!
       
       expect(capturedPrompt).toContain('You are a helpful assistant.');
-      expect(capturedPrompt).toContain('Hello!');
-      expect(capturedPrompt).toContain('Hi there!');
-      expect(capturedPrompt).toContain('How are you?');
+      expect(capturedPrompt).toContain('User:\nHello!');
+      expect(capturedPrompt).toContain('Assistant:\nHi there!');
+      expect(capturedPrompt).toContain('User:\nHow are you?');
     });
 
     it('should handle ClaudeCliError and re-throw it', async () => {
