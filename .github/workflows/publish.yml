@@ -11,11 +11,7 @@ on:
         description: 'Version to publish (patch, minor, major, or specific version like 1.2.3)'
         required: true
         default: 'patch'
-        type: choice
-        options:
-          - patch
-          - minor
-          - major
+        type: string
 
 jobs:
   publish:
@@ -26,16 +22,20 @@ jobs:
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         fetch-depth: 0
       
     - name: Setup Node.js
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v6
       with:
-        node-version: '18'
+        node-version: '24'
         registry-url: 'https://registry.npmjs.org'
+        package-manager-cache: false
+
+    - name: Setup npm trusted publishing
+      run: npm install --global npm@11
         
     - name: Install dependencies
       run: |
@@ -62,16 +62,19 @@ jobs:
         CURRENT_VERSION=$(node -p "require('./package.json').version")
         
         if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-          # Manual trigger - use specified version
+          # Manual trigger - use a specific version or calculate a semver bump.
           if [[ "${{ github.event.inputs.version }}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             TARGET_VERSION="${{ github.event.inputs.version }}"
           else
-            npm version ${{ github.event.inputs.version }} --no-git-tag-version --dry-run
-            TARGET_VERSION=$(node -p "require('./package.json').version")
+            TARGET_VERSION=$(npm version "${{ github.event.inputs.version }}" --no-git-tag-version --dry-run | tail -n 1 | sed 's/^v//')
           fi
         else
-          # Release branch push - calculate next patch version
-          TARGET_VERSION=$(npm version patch --no-git-tag-version --dry-run | sed 's/v//')
+          # Retry the current version when a prior publish failed after its bump.
+          if npm view claude-wrapper@$CURRENT_VERSION version >/dev/null 2>&1; then
+            TARGET_VERSION=$(npm version patch --no-git-tag-version --dry-run | tail -n 1 | sed 's/^v//')
+          else
+            TARGET_VERSION="$CURRENT_VERSION"
+          fi
         fi
         
         # Check if version already exists on NPM
@@ -80,22 +83,12 @@ jobs:
           exit 0
         fi
         
-        # Check if git tag already exists
-        if git tag -l | grep -q "^v$TARGET_VERSION$"; then
-          echo "Tag v$TARGET_VERSION already exists, skipping version bump"
+        if [[ "$TARGET_VERSION" == "$CURRENT_VERSION" ]]; then
+          echo "Retrying unpublished current version $CURRENT_VERSION"
           exit 0
         fi
-        
-        # Safe to bump version
-        if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-          if [[ "${{ github.event.inputs.version }}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            npm version ${{ github.event.inputs.version }} --no-git-tag-version
-          else
-            npm version ${{ github.event.inputs.version }} --no-git-tag-version
-          fi
-        else
-          npm version patch --no-git-tag-version
-        fi
+
+        npm version "$TARGET_VERSION" --no-git-tag-version
         
         git add package.json package-lock.json
         git commit -m "Bump version to $(node -p "require('./package.json').version")" || true
@@ -127,9 +120,7 @@ jobs:
           exit 0
         fi
         
-        npm publish --provenance --access public
-      env:
-        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        npm publish --access public
         
     - name: Sync to main branch (release branch only)
       if: github.ref == 'refs/heads/release'
