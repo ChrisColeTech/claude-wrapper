@@ -106,6 +106,7 @@ wrapper -k my-secure-key           # shorthand
 | Method   | Endpoint                    | Description                                   |
 | -------- | --------------------------- | --------------------------------------------- |
 | `POST`   | `/v1/chat/completions`      | Main chat completions with session support    |
+| `POST`   | `/v1/messages`              | Minimal Anthropic Messages API                |
 | `GET`    | `/v1/models`                | List available Claude models (sonnet, opus)   |
 | `GET`    | `/v1/sessions`              | List all active sessions                      |
 | `GET`    | `/v1/sessions/stats`        | Get session statistics                        |
@@ -116,6 +117,28 @@ wrapper -k my-secure-key           # shorthand
 | `GET`    | `/health`                   | Service health check                          |
 | `GET`    | `/docs`                     | Swagger UI                                    |
 | `GET`    | `/swagger.json`             | OpenAPI 3.0 specification JSON schema         |
+
+### Anthropic Messages API
+
+`POST /v1/messages` supports text-only messages, optional text system prompts,
+JSON responses, and Anthropic SSE response envelopes. Set
+`anthropic-version: 2023-06-01`. When API protection is enabled, clients may use
+either `x-api-key` or `Authorization: Bearer <key>`.
+
+```bash
+curl http://localhost:8000/v1/messages \
+  -H "content-type: application/json" \
+  -H "anthropic-version: 2023-06-01" \
+  -H "x-api-key: $API_KEY" \
+  -d '{"model":"sonnet","max_tokens":256,"messages":[{"role":"user","content":"Hello"}]}'
+```
+
+This initial compatibility endpoint does not support tools, image/document
+blocks, thinking, structured output, stop sequences, generation controls, or
+native incremental CLI output. `max_tokens` is required for protocol
+compatibility but is not currently enforced by the underlying CLI. Streaming
+requests open the SSE connection immediately, then emit the text block after
+the CLI response is complete.
 
 ## 🚀 CLI Usage
 

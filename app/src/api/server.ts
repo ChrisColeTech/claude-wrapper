@@ -16,10 +16,12 @@ import { swaggerSpec } from './swagger';
 import { CoreWrapper } from '../core/wrapper';
 import { ICoreWrapper, IStreamingHandler } from '../types';
 import { createChatRouter } from './routes/chat';
+import { createAnthropicMessagesRouter } from './routes/anthropic-messages';
 
 export interface ServerDependencies {
   coreWrapper?: ICoreWrapper;
   streamingHandler?: IStreamingHandler;
+  createAnthropicCoreWrapper?: () => ICoreWrapper;
 }
 
 export function createServer(dependencies: ServerDependencies = {}) {
@@ -28,7 +30,6 @@ export function createServer(dependencies: ServerDependencies = {}) {
 
   // Middleware
   app.use(cors());
-  app.use(express.json());
 
   // Optional HTTP API protection middleware (lazy initialization to handle runtime API key setting)
   app.use((req, res, next) => {
@@ -39,6 +40,9 @@ export function createServer(dependencies: ServerDependencies = {}) {
     });
     authMiddleware(req, res, next);
   });
+
+  // Authenticate before parsing potentially large request bodies.
+  app.use(express.json());
 
   // Enhanced request/response logging middleware (debug mode)
   if (EnvironmentManager.isDebugMode()) {
@@ -74,6 +78,9 @@ export function createServer(dependencies: ServerDependencies = {}) {
   app.use('/', logsRoutes);
   app.use('/', portForwardingRoutes);
   app.use('/', createChatRouter(coreWrapper, dependencies.streamingHandler));
+  const createAnthropicCoreWrapper = dependencies.createAnthropicCoreWrapper ||
+    (dependencies.coreWrapper ? () => coreWrapper : undefined);
+  app.use('/', createAnthropicMessagesRouter(createAnthropicCoreWrapper));
 
   // Error handling (must be last)
   if (EnvironmentManager.isDebugMode()) {

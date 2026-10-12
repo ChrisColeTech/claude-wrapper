@@ -74,13 +74,13 @@ export class ClaudeClient implements IClaudeClient {
         ? JSON.stringify(message.content)
         : String(message.content);
       
-      // Send raw content without prefixes to save tokens
+      // Preserve conversation roles when flattening messages for the CLI.
       if (message.role === 'system') {
         prompt += `${content}\n\n`;
       } else if (message.role === 'user') {
-        prompt += `${content}\n\n`;
+        prompt += `User:\n${content}\n\n`;
       } else if (message.role === 'assistant') {
-        prompt += `${content}\n\n`;
+        prompt += `Assistant:\n${content}\n\n`;
       }
     }
     
