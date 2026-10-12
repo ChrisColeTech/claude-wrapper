@@ -140,6 +140,10 @@ compatibility but is not currently enforced by the underlying CLI. Streaming
 requests open the SSE connection immediately, then emit the text block after
 the CLI response is complete.
 
+When overriding Claude discovery, `CLAUDE_COMMAND` must be a single executable
+path. Supply fixed arguments as a JSON array in `CLAUDE_COMMAND_ARGS`. For
+container execution, prefer `CLAUDE_DOCKER_IMAGE`.
+
 ## 🚀 CLI Usage
 
 ### Starting the Server

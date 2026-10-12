@@ -1,25 +1,7 @@
-/**
- * Tests for ClaudeResolver
- * Tests Claude CLI command resolution and execution using proper mocking
- */
-
-// Create the mock BEFORE any imports
-const mockExecAsync = jest.fn();
-
-// Mock child_process
-jest.mock('child_process', () => ({
-  exec: jest.fn()
-}));
-
-// Mock util with our specific mock function
-jest.mock('util', () => ({
-  promisify: jest.fn(() => mockExecAsync)
-}));
-
 import { ClaudeResolver } from '../../../src/core/claude-resolver';
+import { CommandExecutionError, ICommandRunner } from '../../../src/process/command-runner';
 import { ClaudeCliError, TimeoutError } from '../../../src/utils/errors';
 
-// Mock logger
 jest.mock('../../../src/utils/logger', () => ({
   logger: {
     debug: jest.fn(),
@@ -29,134 +11,112 @@ jest.mock('../../../src/utils/logger', () => ({
   }
 }));
 
-// Mock EnvironmentManager
 jest.mock('../../../src/config/env', () => ({
   EnvironmentManager: {
-    getConfig: jest.fn(() => ({
-      port: 3000,
-      timeout: 30000,
-      claudeCommand: undefined,
-      logLevel: 'info'
-    }))
+    getConfig: jest.fn()
   }
 }));
 
+const { EnvironmentManager } = jest.requireMock('../../../src/config/env');
+
 describe('ClaudeResolver', () => {
-  let mockEnvironmentManager: any;
+  let run: jest.MockedFunction<ICommandRunner['run']>;
+  let runner: ICommandRunner;
 
   beforeEach(() => {
-    jest.clearAllMocks();
-    
-    // Reset EnvironmentManager mock to default
-    mockEnvironmentManager = require('../../../src/config/env').EnvironmentManager;
-    mockEnvironmentManager.getConfig.mockReturnValue({
+    run = jest.fn();
+    runner = { run };
+    EnvironmentManager.getConfig.mockReturnValue({
       port: 3000,
       timeout: 30000,
-      claudeCommand: undefined,
+      claudeCommand: '/config/claude',
+      claudeCommandArgs: [],
       logLevel: 'info'
     });
   });
 
-  describe('findClaudeCommand', () => {
-    describe('configuration-based resolution', () => {
-      it('should use claude command from config when available', async () => {
-        mockEnvironmentManager.getConfig.mockReturnValue({
-          port: 3000,
-          claudeCommand: '/config/claude',
-          timeout: 30000,
-          logLevel: 'info'
-        });
-        
-        const resolver = new ClaudeResolver();
-        const command = await resolver.findClaudeCommand();
-        
-        expect(command).toBe('/config/claude');
-      });
+  it('uses an explicitly configured executable and argument list', async () => {
+    EnvironmentManager.getConfig.mockReturnValue({
+      port: 3000,
+      timeout: 30000,
+      claudeCommand: process.execPath,
+      claudeCommandArgs: ['/safe/claude.js'],
+      logLevel: 'info'
     });
 
-    describe('PATH resolution', () => {
-      it('should find Claude via bash interactive shell', async () => {
-        mockExecAsync
-          .mockResolvedValueOnce({ stdout: '/usr/local/bin/claude', stderr: '' })
-          .mockResolvedValueOnce({ stdout: 'Claude CLI v1.0.0 @anthropic-ai', stderr: '' });
+    const resolver = new ClaudeResolver(runner);
 
-        const resolver = new ClaudeResolver();
-        const command = await resolver.findClaudeCommand();
-        
-        expect(command).toBe('/usr/local/bin/claude');
-      });
-
-      it('should handle Docker container detection', async () => {
-        // Mock all PATH resolution attempts to fail, then Docker to succeed
-        mockExecAsync
-          .mockRejectedValueOnce(new Error('Command not found'))  // bash -i -c "which claude"
-          .mockRejectedValueOnce(new Error('Command not found'))  // zsh -i -c "which claude"
-          .mockRejectedValueOnce(new Error('Command not found'))  // command -v claude
-          .mockRejectedValueOnce(new Error('Command not found'))  // which claude
-          .mockResolvedValueOnce({ stdout: 'Claude CLI v1.0.0 @anthropic-ai', stderr: '' })  // docker run --rm anthropic/claude --version
-          .mockResolvedValueOnce({ stdout: 'Claude CLI v1.0.0 @anthropic-ai', stderr: '' });  // validation call
-
-        const resolver = new ClaudeResolver();
-        const command = await resolver.findClaudeCommand();
-        
-        expect(command).toBe('docker run --rm anthropic/claude');
-      });
-    });
-
-    describe('error handling', () => {
-      it('should throw ClaudeCliError when no command found', async () => {
-        mockExecAsync.mockRejectedValue(new Error('Command not found'));
-
-        const resolver = new ClaudeResolver();
-        await expect(resolver.findClaudeCommand()).rejects.toThrow(ClaudeCliError);
-      });
-    });
+    await expect(resolver.findClaudeCommand()).resolves.toBe(`${process.execPath} /safe/claude.js`);
   });
 
-  describe('executeClaudeCommand', () => {
-
-    describe('command construction', () => {
-      it('should construct regular command correctly', async () => {
-        // Setup resolver with found command first
-        mockExecAsync
-          .mockResolvedValueOnce({ stdout: '/usr/local/bin/claude', stderr: '' })
-          .mockResolvedValueOnce({ stdout: 'Claude CLI v1.0.0', stderr: '' })
-          .mockResolvedValueOnce({ stdout: 'Claude response', stderr: '' });
-
-        const resolver = new ClaudeResolver();
-        await resolver.findClaudeCommand(); // Cache the command
-        const result = await resolver.executeClaudeCommand('test prompt', 'sonnet');
-        
-        expect(result).toBe('Claude response');
-      });
+  it('resolves and verifies Claude from PATH without a shell', async () => {
+    EnvironmentManager.getConfig.mockReturnValue({
+      port: 3000,
+      timeout: 30000,
+      claudeCommand: undefined,
+      claudeCommandArgs: [],
+      logLevel: 'info'
     });
+    run
+      .mockResolvedValueOnce({ stdout: '/usr/local/bin/claude\n', stderr: '' })
+      .mockResolvedValueOnce({ stdout: 'Claude Code 1.0', stderr: '' });
 
-    describe('error handling', () => {
-      it('should throw TimeoutError for timeout errors', async () => {
-        // Setup resolver with found command first
-        mockExecAsync
-          .mockResolvedValueOnce({ stdout: '/usr/local/bin/claude', stderr: '' })
-          .mockResolvedValueOnce({ stdout: 'Claude CLI v1.0.0', stderr: '' })
-          .mockRejectedValueOnce(new Error('timeout exceeded'));
+    const resolver = new ClaudeResolver(runner);
 
-        const resolver = new ClaudeResolver();
-        await resolver.findClaudeCommand(); // Cache the command
-        await expect(resolver.executeClaudeCommand('test prompt', 'sonnet'))
-          .rejects.toThrow(TimeoutError);
-      });
+    await expect(resolver.findClaudeCommand()).resolves.toBe('/usr/local/bin/claude');
+    expect(run).toHaveBeenNthCalledWith(
+      1,
+      process.platform === 'win32'
+        ? { command: 'where.exe', args: ['claude'] }
+        : { command: 'which', args: ['claude'] },
+      '',
+      3000
+    );
+  });
 
-      it('should throw ClaudeCliError for other errors', async () => {
-        // Setup resolver with found command first
-        mockExecAsync
-          .mockResolvedValueOnce({ stdout: '/usr/local/bin/claude', stderr: '' })
-          .mockResolvedValueOnce({ stdout: 'Claude CLI v1.0.0', stderr: '' })
-          .mockRejectedValueOnce(new Error('Permission denied'));
+  it('passes prompt and arguments separately from the executable', async () => {
+    run.mockResolvedValue({ stdout: 'Claude response\n', stderr: '' });
+    const resolver = new ClaudeResolver(runner);
+    const model = 'sonnet; echo unsafe';
 
-        const resolver = new ClaudeResolver();
-        await resolver.findClaudeCommand(); // Cache the command
-        await expect(resolver.executeClaudeCommand('test prompt', 'sonnet'))
-          .rejects.toThrow(ClaudeCliError);
-      });
+    const result = await resolver.executeClaudeCommandWithSession("prompt with ' quotes", model, 'session-id', true);
+
+    expect(result).toBe('Claude response');
+    expect(run).toHaveBeenCalledWith({
+      command: '/config/claude',
+      args: [
+        '--print', '--model', model,
+        '--resume', 'session-id',
+        '--output-format', 'json'
+      ]
+    }, "prompt with ' quotes", 30000);
+  });
+
+  it('maps runner timeouts to TimeoutError', async () => {
+    run.mockRejectedValue(new CommandExecutionError('timed out', true));
+    const resolver = new ClaudeResolver(runner);
+
+    await expect(resolver.executeClaudeCommand('prompt', 'sonnet')).rejects.toThrow(TimeoutError);
+  });
+
+  it('maps process failures to ClaudeCliError', async () => {
+    run.mockRejectedValue(new CommandExecutionError('permission denied'));
+    const resolver = new ClaudeResolver(runner);
+
+    await expect(resolver.executeClaudeCommand('prompt', 'sonnet')).rejects.toThrow(ClaudeCliError);
+  });
+
+  it('fails clearly when no candidate can be executed', async () => {
+    EnvironmentManager.getConfig.mockReturnValue({
+      port: 3000,
+      timeout: 30000,
+      claudeCommand: undefined,
+      claudeCommandArgs: [],
+      logLevel: 'info'
     });
+    run.mockRejectedValue(new CommandExecutionError('not found'));
+    const resolver = new ClaudeResolver(runner);
+
+    await expect(resolver.findClaudeCommand()).rejects.toThrow(ClaudeCliError);
   });
 });

@@ -17,8 +17,24 @@ export class EnvironmentManager {
       port: this.getNumberFromEnv('PORT', API_CONSTANTS.DEFAULT_PORT),
       timeout: this.getNumberFromEnv('TIMEOUT', API_CONSTANTS.DEFAULT_TIMEOUT),
       claudeCommand: process.env['CLAUDE_COMMAND'],
+      claudeCommandArgs: this.getStringArrayFromEnv('CLAUDE_COMMAND_ARGS'),
       logLevel: this.getLogLevelFromEnv('LOG_LEVEL', 'info'),
     };
+  }
+
+  private static getStringArrayFromEnv(key: string): string[] {
+    const value = process.env[key];
+    if (!value) return [];
+
+    try {
+      const parsed: unknown = JSON.parse(value);
+      if (Array.isArray(parsed) && parsed.every(item => typeof item === 'string')) {
+        return parsed;
+      }
+    } catch {
+      // Fall through to the configuration error below.
+    }
+    throw new Error(`${key} must be a JSON array of strings`);
   }
 
   private static getNumberFromEnv(key: string, defaultValue: number): number {
