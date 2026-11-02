@@ -67,23 +67,24 @@ export class ClaudeClient implements IClaudeClient {
     }
     
     for (const message of messages) {
-      // Ensure content is properly serialized to string
-      const content = typeof message.content === 'string' 
-        ? message.content 
-        : typeof message.content === 'object'
-        ? JSON.stringify(message.content)
-        : String(message.content);
-      
-      // Preserve conversation roles when flattening messages for the CLI.
+      const content = textOf(message.content);
+
+      // Preserve conversation roles when flattening messages for the CLI, tool calls and their results included:
+      // without them the model does not see what it already asked and calls the same tool again.
       if (message.role === 'system') {
         prompt += `${content}\n\n`;
       } else if (message.role === 'user') {
         prompt += `User:\n${content}\n\n`;
       } else if (message.role === 'assistant') {
-        prompt += `Assistant:\n${content}\n\n`;
+        const calls = Array.isArray(message.tool_calls) && message.tool_calls.length > 0
+          ? `Tool calls made:\n${JSON.stringify(message.tool_calls)}\n`
+          : '';
+        prompt += `Assistant:\n${content ? `${content}\n` : ''}${calls}\n`;
+      } else if (message.role === 'tool') {
+        prompt += `Tool result (tool_call_id ${message.tool_call_id || 'unknown'}):\n${content}\n\n`;
       }
     }
-    
+
     logger.debug('Converted messages to prompt', { 
       promptLength: prompt.length,
       messageCount: messages.length,
@@ -92,4 +93,17 @@ export class ClaudeClient implements IClaudeClient {
     
     return prompt;
   }
+}
+
+// The text of a message content: a string, the text parts of a multi-part content, nothing for null.
+function textOf(content: unknown): string {
+  if (content === null || content === undefined) return '';
+  if (typeof content === 'string') return content;
+  if (Array.isArray(content)) {
+    return content
+      .map((part: any) => (part?.type === 'text' ? String(part.text ?? '') : part?.type ? `[${part.type}]` : ''))
+      .filter(Boolean)
+      .join('\n');
+  }
+  return typeof content === 'object' ? JSON.stringify(content) : String(content);
 }
