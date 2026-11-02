@@ -12,7 +12,8 @@ import { CoreWrapper } from '../core/wrapper';
 import { 
   SSE_CONFIG, 
   STREAMING_CONFIG, 
-  API_CONSTANTS
+  API_CONSTANTS,
+  OPENAI_STREAMING
 } from '../config/constants';
 import { logger } from '../utils/logger';
 
@@ -117,6 +118,7 @@ export class StreamingHandler implements IStreamingHandler {
         messages: request.messages,
         stream: false,
         ...(request.tools && { tools: request.tools }),
+        ...(request.tool_choice && { tool_choice: request.tool_choice }),
         ...(request.temperature && { temperature: request.temperature }),
         ...(request.max_tokens && { max_tokens: request.max_tokens }),
         ...(request.session_id && { session_id: request.session_id })
@@ -125,12 +127,27 @@ export class StreamingHandler implements IStreamingHandler {
       const fullResponse = await this.coreWrapper.handleChatCompletion(nonStreamingRequest);
       logger.debug('Streaming: handleChatCompletion completed', { requestId });
 
-      // Extract content and stream it in chunks
-      const content = fullResponse.choices[0]?.message?.content || '';
-      yield* this.chunkContent(requestId, request.model, content);
-      
+      // Extract content and stream it in chunks; tool calls chosen by the model go out as their own chunk,
+      // otherwise a client that asked for tools receives an empty stream
+      const message = fullResponse.choices[0]?.message;
+      const content = message?.content || '';
+      if (content) {
+        yield* this.chunkContent(requestId, request.model, content);
+      }
+      const toolCalls = message?.tool_calls || [];
+      if (toolCalls.length > 0) {
+        yield this.formatter.createToolCallsChunk(requestId, request.model, toolCalls);
+      }
+
       // Send final chunk
-      yield this.formatter.createFinalChunk(requestId, request.model);
+      yield this.formatter.createFinalChunk(
+        requestId,
+        request.model,
+        toolCalls.length > 0 ? OPENAI_STREAMING.FINISH_REASONS.TOOL_CALLS : OPENAI_STREAMING.FINISH_REASONS.STOP
+      );
+      if (request.stream_options?.include_usage && fullResponse.usage) {
+        yield this.formatter.createUsageChunk(requestId, request.model, fullResponse.usage);
+      }
       yield this.formatter.formatDone();
 
     } catch (error) {

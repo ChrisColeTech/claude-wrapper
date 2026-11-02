@@ -1,6 +1,8 @@
 import { 
   IStreamingFormatter, 
-  OpenAIStreamingResponse 
+  OpenAIStreamingResponse,
+  OpenAIToolCall,
+  OpenAIUsage
 } from '../types';
 import { 
   OPENAI_STREAMING
@@ -85,6 +87,39 @@ export class StreamingFormatter implements IStreamingFormatter {
     };
     
     return this.formatChunk(contentChunk);
+  }
+
+  /**
+   * Create a chunk carrying the tool calls chosen by the model (OpenAI streaming shape: each with its index)
+   */
+  createToolCallsChunk(requestId: string, model: string, toolCalls: OpenAIToolCall[]): string {
+    const chunk: OpenAIStreamingResponse = {
+      id: requestId,
+      object: OPENAI_STREAMING.OBJECT_TYPE,
+      created: Math.floor(Date.now() / 1000),
+      model: model,
+      choices: [{
+        index: 0,
+        delta: { tool_calls: toolCalls.map((call, index) => ({ index, ...call })) },
+        finish_reason: null
+      }]
+    };
+
+    return this.formatChunk(chunk);
+  }
+
+  /**
+   * Create the usage chunk sent last when the client asks for it (stream_options.include_usage)
+   */
+  createUsageChunk(requestId: string, model: string, usage: OpenAIUsage): string {
+    return this.formatChunk({
+      id: requestId,
+      object: OPENAI_STREAMING.OBJECT_TYPE,
+      created: Math.floor(Date.now() / 1000),
+      model: model,
+      choices: [],
+      usage
+    });
   }
 
   /**
