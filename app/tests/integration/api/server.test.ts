@@ -112,6 +112,21 @@ describe('API Integration Tests', () => {
       expect(mockHandleChatCompletion).toHaveBeenCalledWith(requestBody);
     });
 
+    it('should accept a request body larger than the express default of 100kb', async () => {
+      mockHandleChatCompletion.mockResolvedValue({ id: 'chatcmpl-123', choices: [] });
+      const requestBody = {
+        model: 'claude-3-5-sonnet-20241022',
+        messages: [{ role: 'user', content: 'x'.repeat(1024 * 1024) }]
+      };
+
+      await request(app)
+        .post('/v1/chat/completions')
+        .send(requestBody)
+        .expect(200);
+
+      expect(mockHandleChatCompletion).toHaveBeenCalledWith(requestBody);
+    });
+
     it('should reject request with missing model', async () => {
       const requestBody = {
         messages: [{ role: 'user', content: 'Hello' }]

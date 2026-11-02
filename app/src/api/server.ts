@@ -11,6 +11,7 @@ import logsRoutes from './routes/logs';
 import portForwardingRoutes from './routes/port-forwarding';
 import { logger } from '../utils/logger';
 import { EnvironmentManager } from '../config/env';
+import { API_CONSTANTS } from '../config/constants';
 import { createAuthMiddleware, getApiKey } from '../auth/middleware';
 import { swaggerSpec } from './swagger';
 import { CoreWrapper } from '../core/wrapper';
@@ -42,7 +43,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
   });
 
   // Authenticate before parsing potentially large request bodies.
-  app.use(express.json());
+  app.use(express.json({ limit: process.env['MAX_REQUEST_BODY_SIZE'] || API_CONSTANTS.DEFAULT_MAX_REQUEST_BODY_SIZE }));
 
   // Enhanced request/response logging middleware (debug mode)
   if (EnvironmentManager.isDebugMode()) {

@@ -453,6 +453,7 @@ curl -X POST http://localhost:8000/v1/chat/completions \
 PORT=8000                    # Server port (default: 8000)
 NODE_ENV=production          # Environment mode (development/production)
 LOG_LEVEL=info              # Logging level (debug/info/warn/error)
+MAX_REQUEST_BODY_SIZE=20mb  # Maximum JSON request body size (default: 20mb)
 ```
 
 #### Authentication
