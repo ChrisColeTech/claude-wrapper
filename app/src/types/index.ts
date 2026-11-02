@@ -23,6 +23,7 @@ export interface OpenAIRequest {
   max_tokens?: number;
   session_id?: string;
   tools?: any[];
+  tool_choice?: 'none' | 'auto' | 'required' | { type: 'function'; function: { name: string } };
 }
 
 export interface OpenAIUsage {

@@ -86,6 +86,12 @@ export class CoreWrapper implements ICoreWrapper {
       };
     }
 
+    // tool_choice "none": the model must answer in text, as if no tools were offered
+    if (request.tool_choice === 'none' && request.tools) {
+      const { tools: _unused, ...withoutTools } = request;
+      request = withoutTools as OpenAIRequest;
+    }
+
     // Detect if we have a system prompt and check for existing session
     const sessionInfo = this.detectSystemPromptSession(request.messages);
     
@@ -287,7 +293,7 @@ export class CoreWrapper implements ICoreWrapper {
     
     const formatInstruction: OpenAIMessage = {
       role: TEMPLATE_CONSTANTS.FORMAT_INSTRUCTION_ROLE,
-      content: this.createFormatTemplate(requestId, timestamp, request.model)
+      content: this.createFormatTemplate(requestId, timestamp, request.model) + toolChoiceInstruction(request)
     };
 
     const enhancedMessages = [formatInstruction, ...request.messages];
@@ -362,11 +368,12 @@ export class CoreWrapper implements ICoreWrapper {
     attempt: number = 1
   ): Promise<OpenAIResponse> {
     
+    response = withoutFences(response);
     const validation = this.validator.validate(response);
 
     if (validation.valid) {
       logger.info('Valid response received', { attempt });
-      return this.validator.parse(response);
+      return normalizedToolCalls(this.validator.parse(response));
     }
 
     // Instead of trying to self-correct, wrap non-JSON response in OpenAI format
@@ -420,4 +427,43 @@ export class CoreWrapper implements ICoreWrapper {
   private generateRequestId(): string {
     return `${API_CONSTANTS.DEFAULT_REQUEST_ID_PREFIX}${Math.random().toString(36).substring(2, 15)}`;
   }
+}
+
+// What tool_choice asks beyond "auto": a tool call is required, or a specific tool.
+function toolChoiceInstruction(request: OpenAIRequest): string {
+  const choice = request.tool_choice;
+  if (!request.tools || !choice || choice === 'auto' || choice === 'none') return '';
+  if (choice === 'required') return ' You must answer with at least one tool call, not with text.';
+  return ` You must answer by calling the tool "${choice.function.name}".`;
+}
+
+// A JSON answer the model wrapped in a markdown code fence.
+function withoutFences(response: string): string {
+  const fenced = /^\s*```(?:json)?\s*([\s\S]*?)\s*```\s*$/.exec(response);
+  return fenced?.[1] ?? response;
+}
+
+// The OpenAI shape of an answer with tool calls: finish_reason "tool_calls", content null, arguments as a JSON
+// string, an id and the "function" type on every call (the model may leave any of them out).
+function normalizedToolCalls(response: OpenAIResponse): OpenAIResponse {
+  for (const choice of response.choices || []) {
+    const calls = choice.message?.tool_calls;
+    if (!Array.isArray(calls) || calls.length === 0) {
+      if (choice.message && 'tool_calls' in choice.message) delete choice.message.tool_calls;
+      continue;
+    }
+    choice.message.tool_calls = calls.map((call: any, index: number) => ({
+      id: call.id || `call_${Date.now().toString(36)}_${index}`,
+      type: 'function' as const,
+      function: {
+        name: String(call.function?.name ?? call.name ?? ''),
+        arguments: typeof call.function?.arguments === 'string'
+          ? call.function.arguments
+          : JSON.stringify(call.function?.arguments ?? call.arguments ?? {}),
+      },
+    }));
+    choice.message.content = null;
+    choice.finish_reason = 'tool_calls';
+  }
+  return response;
 }
