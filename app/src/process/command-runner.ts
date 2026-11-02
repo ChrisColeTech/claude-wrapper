@@ -89,7 +89,10 @@ export class CommandRunner implements ICommandRunner {
         killTimer = setTimeout(() => child.kill('SIGKILL'), 1000);
       }, timeoutMs);
 
-      child.stdin.once('error', error => finish(new CommandExecutionError(error.message)));
+      child.stdin.once('error', (error: NodeJS.ErrnoException) => {
+        // A child that exits without reading its input closes the pipe; its exit code decides.
+        if (error.code !== 'EPIPE') finish(new CommandExecutionError(error.message));
+      });
       child.stdin.end(input);
     });
   }
