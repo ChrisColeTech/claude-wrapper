@@ -82,13 +82,18 @@ describe('ClaudeClient', () => {
       await expect(claudeClient.execute(mockRequest)).rejects.toThrow('Claude CLI execution failed: Some other error');
     });
 
-    it('should handle messages with different roles correctly', async () => {
+    it('should pass tool calls and tool results to the prompt', async () => {
       mockResolver.executeClaudeCommandWithSession.mockResolvedValue('response');
 
       const requestWithToolMessage: ClaudeRequest = {
         model: 'claude-3-5-sonnet-20241022',
         messages: [
           { role: 'user', content: 'Use this tool' },
+          {
+            role: 'assistant',
+            content: null,
+            tool_calls: [{ id: 'call_123', type: 'function', function: { name: 'list_issues', arguments: '{}' } }]
+          },
           { role: 'tool', content: 'Tool result', tool_call_id: 'call_123' }
         ]
       };
@@ -96,10 +101,11 @@ describe('ClaudeClient', () => {
       await claudeClient.execute(requestWithToolMessage);
 
       const capturedPrompt = mockResolver.executeClaudeCommandWithSession.mock.calls[0]![0]!
-      
-      // Tool messages should be ignored in the prompt conversion
+
       expect(capturedPrompt).toContain('Use this tool');
-      expect(capturedPrompt).not.toContain('Tool result');
+      expect(capturedPrompt).toContain('"name":"list_issues"');
+      expect(capturedPrompt).toContain('Tool result (tool_call_id call_123):\nTool result');
+      expect(capturedPrompt).not.toContain('null');
     });
 
     it('should generate correct prompt structure', async () => {
