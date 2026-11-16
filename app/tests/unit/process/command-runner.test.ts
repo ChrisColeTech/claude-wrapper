@@ -15,6 +15,15 @@ describe('CommandRunner', () => {
     expect(result).toEqual({ stdout: 'safe prompt', stderr: '' });
   });
 
+  it('returns the output of a command that exits without reading stdin', async () => {
+    const result = await runner.run({
+      command: process.execPath,
+      args: ['-e', 'process.stdout.write("done")']
+    }, 'x'.repeat(1024 * 1024), 5000);
+
+    expect(result).toEqual({ stdout: 'done', stderr: '' });
+  });
+
   it('keeps arguments separate from shell syntax', async () => {
     const unsafeLookingArgument = 'value; echo injected';
     const result = await runner.run({

@@ -19,10 +19,12 @@ export interface OpenAIRequest {
   model: string;
   messages: OpenAIMessage[];
   stream?: boolean;
+  stream_options?: { include_usage?: boolean };
   temperature?: number;
   max_tokens?: number;
   session_id?: string;
   tools?: any[];
+  tool_choice?: 'none' | 'auto' | 'required' | { type: 'function'; function: { name: string } };
 }
 
 export interface OpenAIUsage {
@@ -86,6 +88,8 @@ export interface EnvironmentConfig {
   timeout: number;
   claudeCommand: string | undefined;
   claudeCommandArgs?: string[];
+  /** Resume one Claude session for every request with the same system prompt (CLAUDE_WRAPPER_SESSION_REUSE). */
+  sessionReuse?: boolean;
   logLevel: 'debug' | 'info' | 'warn' | 'error';
 }
 
@@ -137,9 +141,14 @@ export interface SessionStats {
 }
 
 // Streaming Types (Phase 4A)
+export interface StreamingToolCall extends OpenAIToolCall {
+  index: number;
+}
+
 export interface StreamingDelta {
   role?: 'assistant';
   content?: string;
+  tool_calls?: StreamingToolCall[];
 }
 
 export interface OpenAIStreamingChoice {
@@ -154,6 +163,7 @@ export interface OpenAIStreamingResponse {
   created: number;
   model: string;
   choices: OpenAIStreamingChoice[];
+  usage?: OpenAIUsage | null;
 }
 
 export interface StreamConnection {
@@ -175,6 +185,8 @@ export interface IStreamingFormatter {
   formatDone(): string;
   formatInitialChunk(requestId: string, model: string): string;
   createContentChunk(requestId: string, model: string, content: string): string;
+  createToolCallsChunk(requestId: string, model: string, toolCalls: OpenAIToolCall[]): string;
+  createUsageChunk(requestId: string, model: string, usage: OpenAIUsage): string;
   createFinalChunk(requestId: string, model: string, finishReason?: string): string;
 }
 
