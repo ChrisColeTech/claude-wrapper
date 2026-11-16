@@ -88,6 +88,8 @@ export interface EnvironmentConfig {
   timeout: number;
   claudeCommand: string | undefined;
   claudeCommandArgs?: string[];
+  /** Resume one Claude session for every request with the same system prompt (CLAUDE_WRAPPER_SESSION_REUSE). */
+  sessionReuse?: boolean;
   logLevel: 'debug' | 'info' | 'warn' | 'error';
 }
 

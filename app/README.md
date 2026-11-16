@@ -146,6 +146,12 @@ the CLI response is complete.
 When overriding Claude discovery, `CLAUDE_COMMAND` must be a single executable
 path. Supply fixed arguments as a JSON array in `CLAUDE_COMMAND_ARGS`.
 
+Each chat request runs with the conversation the client sends. Set
+`CLAUDE_WRAPPER_SESSION_REUSE=true` to resume one Claude session for every
+request with the same system prompt (the former system prompt optimization):
+with it, separate chats of a client that share a system prompt, its title and
+follow-up requests included, end up in one Claude conversation.
+
 ## 🚀 CLI Usage
 
 ### Starting the Server

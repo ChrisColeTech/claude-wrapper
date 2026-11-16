@@ -19,6 +19,9 @@ export class EnvironmentManager {
       timeout: this.getNumberFromEnv('TIMEOUT', API_CONSTANTS.DEFAULT_TIMEOUT),
       claudeCommand: process.env['CLAUDE_COMMAND'],
       claudeCommandArgs: this.getStringArrayFromEnv('CLAUDE_COMMAND_ARGS'),
+      // Off by default: a resumed session holds every conversation that shared the system prompt, so separate chats
+      // of the same client (titles and follow-ups included) mix. "true" brings back the system prompt optimization.
+      sessionReuse: process.env['CLAUDE_WRAPPER_SESSION_REUSE']?.toLowerCase() === 'true',
       logLevel: this.getLogLevelFromEnv('LOG_LEVEL', 'info'),
     };
   }

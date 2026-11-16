@@ -10,6 +10,7 @@ import {
 import { ClaudeClient } from './claude-client';
 import { ResponseValidator } from './validator';
 import { logger } from '../utils/logger';
+import { EnvironmentManager } from '../config/env';
 import { 
   API_CONSTANTS, 
   TEMPLATE_CONSTANTS, 
@@ -30,7 +31,14 @@ export class CoreWrapper implements ICoreWrapper {
   private validator: IResponseValidator;
   private claudeSessions: Map<string, ClaudeSessionState> = new Map();
 
-  constructor(claudeClient?: IClaudeClient, validator?: IResponseValidator) {
+  private sessionReuse: boolean;
+
+  constructor(
+    claudeClient?: IClaudeClient,
+    validator?: IResponseValidator,
+    options?: { sessionReuse?: boolean }
+  ) {
+    this.sessionReuse = options?.sessionReuse ?? EnvironmentManager.getConfig().sessionReuse ?? false;
     this.claudeClient = claudeClient || new ClaudeClient();
     this.validator = validator || new ResponseValidator();
   }
@@ -90,6 +98,11 @@ export class CoreWrapper implements ICoreWrapper {
     if (request.tool_choice === 'none' && request.tools) {
       const { tools: _unused, ...withoutTools } = request;
       request = withoutTools as OpenAIRequest;
+    }
+
+    // Without session reuse every request carries only the conversation the client sent.
+    if (!this.sessionReuse) {
+      return this.processNormally(request);
     }
 
     // Detect if we have a system prompt and check for existing session

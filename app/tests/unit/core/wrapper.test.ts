@@ -18,7 +18,8 @@ describe('CoreWrapper', () => {
     mockValidator = ValidatorMock.setup();
 
     // Create wrapper with mocked dependencies
-    wrapper = new CoreWrapper(mockClaudeClient, mockValidator);
+    // These tests describe the system prompt optimization: session reuse on.
+    wrapper = new CoreWrapper(mockClaudeClient, mockValidator, { sessionReuse: true });
     
     // Clear any sessions between tests
     (wrapper as any).claudeSessions.clear();
@@ -233,6 +234,31 @@ describe('CoreWrapper', () => {
         null,
         true
       );
+    });
+  });
+
+  describe('without session reuse (the default)', () => {
+    it('sends each request with its own conversation and never resumes a Claude session', async () => {
+      const plain = new CoreWrapper(mockClaudeClient, mockValidator, { sessionReuse: false });
+      const system = { role: 'system' as const, content: 'You are a helpful assistant.' };
+      const first: OpenAIRequest = { model: 'sonnet', messages: [system, { role: 'user', content: 'First chat' }] };
+      const second: OpenAIRequest = { model: 'opus', messages: [system, { role: 'user', content: 'Second chat' }] };
+
+      ClaudeClientMock.setDefaultResponse('An answer');
+      ValidatorMock.setValidationAsValid(false);
+
+      await plain.handleChatCompletion(first);
+      await plain.handleChatCompletion(second);
+
+      expect(mockClaudeClient.executeWithSession).not.toHaveBeenCalled();
+      expect(mockClaudeClient.execute).toHaveBeenCalledTimes(2);
+      const firstSent = mockClaudeClient.execute.mock.calls[0]![0];
+      const secondSent = mockClaudeClient.execute.mock.calls[1]![0];
+      expect(firstSent.model).toBe('sonnet');
+      expect(secondSent.model).toBe('opus');
+      expect(firstSent.messages).toEqual(expect.arrayContaining([system, { role: 'user', content: 'First chat' }]));
+      expect(secondSent.messages).toEqual(expect.arrayContaining([system, { role: 'user', content: 'Second chat' }]));
+      expect(JSON.stringify(secondSent.messages)).not.toContain('First chat');
     });
   });
 
