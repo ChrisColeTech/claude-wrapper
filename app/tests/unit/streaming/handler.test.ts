@@ -229,6 +229,53 @@ describe('StreamingHandler Core Functionality', () => {
     });
   });
 
+  describe('tool calls', () => {
+    const toolCall = {
+      id: 'call_1',
+      type: 'function' as const,
+      function: { name: 'list_issues', arguments: '{}' }
+    };
+
+    it('should stream tool calls and finish with tool_calls', async () => {
+      const mockRequest = testSetup.testDataFactory.createValidRequest();
+      const mockResponse = testSetup.testDataFactory.createValidResponse();
+      if (mockResponse.choices[0]) {
+        mockResponse.choices[0].message = { role: 'assistant', content: null, tool_calls: [toolCall] };
+        mockResponse.choices[0].finish_reason = 'tool_calls';
+      }
+      testSetup.mockCoreWrapper.setMockResponse(mockResponse);
+
+      for await (const _chunk of handler.createStreamingResponse(mockRequest)) { /* drain */ }
+
+      expect(testSetup.mockFormatter.createContentChunkCalls).toHaveLength(0);
+      expect(testSetup.mockFormatter.createToolCallsChunkCalls[0]?.toolCalls).toEqual([toolCall]);
+      expect(testSetup.mockFormatter.createFinalChunkCalls[0]?.finishReason).toBe('tool_calls');
+    });
+
+    it('should pass tool_choice to the core wrapper', async () => {
+      const mockRequest = {
+        ...testSetup.testDataFactory.createValidRequest(),
+        tools: [{ type: 'function', function: { name: 'list_issues' } }],
+        tool_choice: 'required' as const
+      };
+
+      for await (const _chunk of handler.createStreamingResponse(mockRequest)) { /* drain */ }
+
+      expect(testSetup.mockCoreWrapper.handleChatCompletionCalls[0]?.tool_choice).toBe('required');
+    });
+
+    it('should send a usage chunk only when the client asks for it', async () => {
+      const mockRequest = testSetup.testDataFactory.createValidRequest();
+
+      for await (const _chunk of handler.createStreamingResponse(mockRequest)) { /* drain */ }
+      expect(testSetup.mockFormatter.createUsageChunkCalls).toHaveLength(0);
+
+      const withUsage = { ...mockRequest, stream_options: { include_usage: true } };
+      for await (const _chunk of handler.createStreamingResponse(withUsage)) { /* drain */ }
+      expect(testSetup.mockFormatter.createUsageChunkCalls).toHaveLength(1);
+    });
+  });
+
   describe('shutdown', () => {
     it('should shutdown manager when shutdown is called', () => {
       handler.shutdown();

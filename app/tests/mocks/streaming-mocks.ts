@@ -5,7 +5,9 @@ import {
   OpenAIStreamingResponse,
   StreamConnection,
   OpenAIRequest,
-  OpenAIResponse 
+  OpenAIResponse,
+  OpenAIToolCall,
+  OpenAIUsage
 } from '../../src/types';
 
 /**
@@ -64,6 +66,8 @@ export class MockStreamingFormatter implements IStreamingFormatter {
   public formatInitialChunkCalls: Array<{requestId: string, model: string}> = [];
   public createContentChunkCalls: Array<{requestId: string, model: string, content: string}> = [];
   public createFinalChunkCalls: Array<{requestId: string, model: string, finishReason?: string}> = [];
+  public createToolCallsChunkCalls: Array<{requestId: string, model: string, toolCalls: OpenAIToolCall[]}> = [];
+  public createUsageChunkCalls: Array<{requestId: string, model: string, usage: OpenAIUsage}> = [];
 
   formatChunk(chunk: OpenAIStreamingResponse): string {
     this.formatChunkCalls.push(chunk);
@@ -90,6 +94,16 @@ export class MockStreamingFormatter implements IStreamingFormatter {
     return `data: {"id":"${requestId}","model":"${model}","choices":[{"delta":{"content":"${content}"}}]}\n\n`;
   }
 
+  createToolCallsChunk(requestId: string, model: string, toolCalls: OpenAIToolCall[]): string {
+    this.createToolCallsChunkCalls.push({ requestId, model, toolCalls });
+    return `data: {"id":"${requestId}","model":"${model}","choices":[{"delta":{"tool_calls":${JSON.stringify(toolCalls)}}}]}\n\n`;
+  }
+
+  createUsageChunk(requestId: string, model: string, usage: OpenAIUsage): string {
+    this.createUsageChunkCalls.push({ requestId, model, usage });
+    return `data: {"id":"${requestId}","model":"${model}","choices":[],"usage":${JSON.stringify(usage)}}\n\n`;
+  }
+
   createFinalChunk(requestId: string, model: string, finishReason: string = 'stop'): string {
     this.createFinalChunkCalls.push({ requestId, model, finishReason });
     return `data: {"id":"${requestId}","model":"${model}","choices":[{"delta":{},"finish_reason":"${finishReason}"}]}\n\n`;
@@ -102,6 +116,8 @@ export class MockStreamingFormatter implements IStreamingFormatter {
     this.formatInitialChunkCalls = [];
     this.createContentChunkCalls = [];
     this.createFinalChunkCalls = [];
+    this.createToolCallsChunkCalls = [];
+    this.createUsageChunkCalls = [];
   }
 }
 
